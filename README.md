@@ -9,65 +9,126 @@
 ![Node](https://img.shields.io/badge/Node-%E2%89%A518-green?logo=node.js)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 ![Build](https://img.shields.io/badge/Build-passing-brightgreen)
+
+</div>
+
+---
+
+# Project Overview
+
+SST LeaveFlow is a unified institutional leave management and approval orchestration platform built for Scaler School of Technology.
+
+The system manages:
+
+* Hostel leaves
+* College leaves
+* Parent approvals
+* POC approvals
+* Admin workflows
+* QR-based entry/exit tracking
+* Vacation handling
+* Group leaves
+* Leave extensions
+* Notification orchestration
+
+The platform is designed as a configurable workflow engine rather than a hardcoded leave approval application, allowing future expansion into broader institutional operations.
+
+Built with Next.js, TypeScript, PostgreSQL, and Drizzle ORM, the project emphasizes:
+
+* scalable architecture
+* workflow-driven approvals
+* auditability
+* role-based access control
+* operational reliability
+* extensibility for future institutional systems
+
+---
+
+# Core Features
+
+## Leave Management
+
+* Hostel leave workflows
+* College leave workflows
+* Dynamic leave categories
+* Leave extensions
+* Group leave support
+* Vacation/stay requests
+* Holiday-aware leave submission
+
+---
+
+## Approval Workflows
+
+* Parent approvals via WhatsApp
+* POC approvals
+* Warden/Admin approvals
+* Multi-step configurable workflows
+* Cross-domain approval chains
+* Workflow snapshots for audit consistency
+
+---
+
+## QR Verification System
+
+* QR-based hostel exit/entry
+* Scan validation
+* Return tracking
+* Overdue detection
+* Mobile scanner support
+
+---
+
+## Notification System
+
+* WhatsApp integration
+* Slack integration
+* Email notifications
+* Google Sheets synchronization
+* Retry-safe notification architecture
+
+---
+
+## Admin & Analytics
+
+* Super admin dashboard
+* Leave analytics
+* Approval metrics
+* Hostel occupancy insights
+* Student leave history
+* Audit logs
+
+---
+
 # Project Structure
 
 ```txt
 ├── docs/
-│   ├── architecture.md
-│   ├── decisions.md
-│   ├── folder-structure.md
-│   ├── ui-system.md
-│   └── workflows.md
+│   ├── ARCHITECTURE.md
+│   ├── CONTRIBUTION.md
+│   ├── API.md
+│   └── README.md
 │
 ├── public/
 │
 ├── src/
-│   ├── proxy.ts
-│   ├── middleware.ts
 │   ├── app/
-│   │   ├── layout.tsx
-│   │   ├── page.tsx
-│   │   ├── (auth)/
-│   │   └── (dashboard)/
-│   ├── components/
-│   │   ├── marketing/
-│   │   ├── layout/
-│   │   ├── shared/
-│   │   └── ui/
-│   ├── constants/
-│   │   ├── navigation.ts
-│   │   └── routes.ts
-│   ├── features/
-│   │   ├── auth/
-│   │   ├── dashboard/
-│   │   ├── leaves/
-│   │   ├── movements/
-│   │   ├── notifications/
-│   │   ├── qr/
-│   │   └── workflows/
-│   ├── lib/
-│   │   └── auth/
-│   ├── providers/
-│   ├── repositories/
-│   ├── services/
-│   ├── types/
-│   ├── utils/
-│   └── validators/
-│
-├── .env.example
-├── AGENTS.md
-├── CLAUDE.md
-├── components.json
-├── drizzle.config.ts
-├── eslint.config.mjs
-├── next.config.ts
-├── package.json
-├── pnpm-lock.yaml
-├── pnpm-workspace.yaml
-├── postcss.config.mjs
-├── tsconfig.json
-└── next-env.d.ts
-```
+│   │   ├── (app)/
+│   │   │   ├── admin/
+│   │   │   │   ├── dashboard/
+│   │   │   │   ├── approvals/
+│   │   │   │   ├── analytics/
+│   │   │   │   ├── students/
+│   │   │   │   └── scanner/
+│   │   │   │
+│   │   │   ├── poc/
+│   │   │   │   ├── dashboard/
+│   │   │   │   └── approvals/
+│   │   │   │
+│   │   │   ├── student/
+│   │   │   │   ├── dashboard/
+│   │   │   │   ├── leave/
+│   │   │   │   ├── history/
 │   │   │   │   └── qr/
 │   │   │   │
 │   │   │   ├── super-admin/
@@ -164,7 +225,7 @@
 
 Next.js App Router pages and layouts.
 
-### `(dashboard)/`
+### `(app)/`
 
 Protected application routes:
 
@@ -181,46 +242,14 @@ Authentication pages:
 * login
 * forgot password
 
-### `page.tsx`
+### `api/`
 
-Marketing homepage composed from `src/components/marketing/`.
+Backend API routes:
 
-
----
-
-## `src/components/marketing/`
-
-Homepage sections for the public-facing landing experience.
-
----
-
-## `src/components/layout/`
-
-Shared app shell infrastructure.
-
-* `AppShell`
-* `DashboardNavbar`
-* `DashboardSidebar`
-* `Navbar`
-* `Sidebar`
-* `ThemeToggle`
-
----
-
-## `src/features/`
-
-Domain-owned logic.
-
-Each feature owns its own `components/`, `hooks/`, `types/`, `validators/`, `actions/`, and `utils/` folders.
-
----
-
-## `src/constants/`
-
-Route and navigation source of truth.
-
-* `routes.ts`
-* `navigation.ts`
+* leave submission
+* approval workflows
+* QR validation
+* webhook integrations
 
 ---
 
@@ -230,25 +259,38 @@ Core infrastructure and reusable logic.
 
 | Folder             | Purpose                          |
 | ------------------ | -------------------------------- |
-| `auth/`            | Auth helpers, guards, roles, RBAC |
-
----
-
-## `src/providers/`
-
-Application-level providers such as `ThemeProvider` and `SWRProvider`.
+| `workflow-engine/` | Approval orchestration engine    |
+| `notification/`    | WhatsApp/Slack/email abstraction |
+| `policies/`        | RBAC and permission rules        |
+| `queues/`          | BullMQ background jobs           |
+| `integrations/`    | External services                |
 
 ---
 
 ## `src/services/`
 
-Business/domain orchestration.
+Business/domain logic layer.
+
+Examples:
+
+* leave lifecycle
+* workflow transitions
+* QR validation
+* analytics aggregation
 
 ---
 
-## `src/types/`
+## `src/db/schema/`
 
-Platform-level shared types.
+Drizzle ORM schema definitions separated by domain.
+
+| File               | Responsibility            |
+| ------------------ | ------------------------- |
+| `auth.ts`          | Users, roles, permissions |
+| `leave.ts`         | Leave requests/categories |
+| `workflow.ts`      | Workflow engine           |
+| `qr.ts`            | QR sessions and scans     |
+| `notifications.ts` | Delivery tracking         |
 
 ---
 
