@@ -1,5 +1,5 @@
-import { HttpStatusCode } from "./statusCodes";
-import ApiError from "./apiError";
+import type ApiError from "./apiError";
+import type { HttpStatusCode } from "./statusCodes";
 
 export default class ApiResponse<T> {
   success: boolean;

@@ -1,0 +1,18 @@
+export const ROUTES = {
+  HOME: "/",
+  LOGIN: "/login",
+  PROFILE: "/profile",
+  SETTINGS: "/settings",
+  STUDENT_DASHBOARD: "/student/dashboard",
+  STUDENT_LEAVE_NEW: "/student/leave/new",
+  ADMIN_DASHBOARD: "/admin/dashboard",
+  ADMIN_ANALYTICS: "/admin/analytics",
+  ADMIN_STUDENTS: "/admin/students",
+  ADMIN_SCANNER: "/admin/scanner",
+  POC_DASHBOARD: "/poc/dashboard",
+  SUPER_ADMIN_DASHBOARD: "/super-admin/dashboard",
+  SUPER_ADMIN_ANALYTICS: "/super-admin/analytics",
+  SUPER_ADMIN_WORKFLOWS: "/super-admin/workflows",
+  SUPER_ADMIN_USERS: "/super-admin/users",
+  SUPER_ADMIN_SETTINGS: "/super-admin/settings",
+} as const;
