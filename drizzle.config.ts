@@ -1,5 +1,6 @@
 import * as dotenv from "dotenv";
-import { Config, defineConfig } from "drizzle-kit";
+import type { Config } from "drizzle-kit";
+import { defineConfig } from "drizzle-kit";
 
 type NodeEnv = "production" | "development" | "staging";
 
@@ -16,9 +17,9 @@ const nodeEnv = (process.env.NODE_ENV || "development") as NodeEnv;
 // Load the correct env file
 dotenv.config({ path: envFileMap[nodeEnv] });
 
-console.log(`Using environment: ${nodeEnv}`);
-console.log(`Database URL: ${process.env.DATABASE_URL}`);
-console.log(process.env.URL);
+console.debug(`Using environment: ${nodeEnv}`);
+console.debug(`Database URL: ${process.env.DATABASE_URL}`);
+console.debug(process.env.URL);
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set in environment variables");

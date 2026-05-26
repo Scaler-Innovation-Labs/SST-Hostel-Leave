@@ -10,7 +10,6 @@ export function HeroSection() {
           px-8 py-10 md:py-12 lg:grid-cols-2
         "
       >
-        {/* LEFT CONTENT */}
         <div className="relative z-10 max-w-xl">
           <div
             className="
@@ -45,7 +44,7 @@ export function HeroSection() {
           </p>
 
           <div className="mt-8">
-              <Link href="/login" className="inline-flex items-center gap-3 rounded-2xl bg-linear-to-r from-blue-500 to-indigo-600 px-7 py-4 text-sm font-medium text-white shadow-[0_0_60px_rgba(59,130,246,0.35)] transition-all duration-300 hover:scale-[1.02]">
+            <Link href="/login" className="inline-flex items-center gap-3 rounded-2xl bg-linear-to-r from-blue-500 to-indigo-600 px-7 py-4 text-sm font-medium text-white shadow-[0_0_60px_rgba(59,130,246,0.35)] transition-all duration-300 hover:scale-[1.02]">
               Login to Dashboard
               <span>→</span>
             </Link>
@@ -81,7 +80,6 @@ export function HeroSection() {
           </div>
         </div>
 
-        {/* RIGHT SIDE */}
         <div className="relative">
           <div className="absolute inset-0 -z-10 rounded-[2.25rem] bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.18),transparent_42%),linear-gradient(180deg,rgba(15,23,42,0.92),rgba(15,23,42,0.68))] blur-3xl" />
 

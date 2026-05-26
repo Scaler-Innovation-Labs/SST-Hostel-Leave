@@ -12,4 +12,3 @@ export const config = {
     '/__clerk/(.*)',
   ],
 }
-

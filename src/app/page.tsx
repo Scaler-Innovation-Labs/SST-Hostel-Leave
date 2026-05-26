@@ -1,13 +1,11 @@
 import { Navbar } from "@/components/layout/Navbar";
+import { BackgroundLayer } from "@/components/marketing/BackgroundLayer";
+import { FeatureGrid } from "@/components/marketing/FeatureGrid";
+import { HeroSection } from "@/components/marketing/HeroSection";
+import { ProductPreviewSection } from "@/components/marketing/ProductPreviewSection";
+import { WorkflowSection } from "@/components/marketing/WorkflowSection";
 import { Logo } from "@/components/shared/Logo";
-
 import { navigation } from "@/constants/navigation";
-
-import { HeroSection } from "@/components/landingPage/HeroSection";
-import { WorkflowSection } from "@/components/landingPage/WorkflowSection";
-import { FeatureGrid } from "@/components/landingPage/FeatureGrid";
-import { ProductPreviewSection } from "@/components/landingPage/ProductPreviewSection";
-import { BackgroundLayer } from "@/components/landingPage/BackgroundLayer";
 
 export default function HomePage() {
   return (

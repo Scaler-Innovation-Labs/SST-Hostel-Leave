@@ -1,5 +1,4 @@
-import { DashboardShell } from "@/features/dashboard/DashboardShell";
-
+import { AppShell } from "@/components/layout/AppShell";
 import { navigation } from "@/constants/navigation";
 
 type AdminLayoutProps = {
@@ -9,11 +8,19 @@ type AdminLayoutProps = {
 export default function AdminLayout({
   children,
 }: AdminLayoutProps) {
+  const shellItems =
+    navigation.admin.map(
+      ({ label, href }) => ({
+        label,
+        href,
+      })
+    );
+
   return (
-    <DashboardShell
-      items={navigation.admin}
+    <AppShell
+      items={shellItems}
     >
       {children}
-    </DashboardShell>
+    </AppShell>
   );
 }

@@ -1,9 +1,6 @@
-import { DashboardShell } from "@/features/dashboard/DashboardShell";
-
+import { AppShell } from "@/components/layout/AppShell";
 import { navigation } from "@/constants/navigation";
-
 import { requireRole } from "@/lib/auth/guards";
-
 import { ROLES } from "@/lib/auth/roles";
 
 type StudentLayoutProps = {
@@ -17,11 +14,19 @@ export default async function StudentLayout({
     ROLES.STUDENT,
   ]);
 
+  const shellItems =
+    navigation.student.map(
+      ({ label, href }) => ({
+        label,
+        href,
+      })
+    );
+
   return (
-    <DashboardShell
-      items={navigation.student}
+    <AppShell
+      items={shellItems}
     >
       {children}
-    </DashboardShell>
+    </AppShell>
   );
 }
