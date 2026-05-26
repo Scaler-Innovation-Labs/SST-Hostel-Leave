@@ -1,10 +1,12 @@
+import "./globals.css";
+
+import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { ClerkProvider } from "@clerk/nextjs";
-import { ThemeProvider } from "../providers/ThemeProvider";
-import { SWRProvider } from "../providers/SWRProvider";
+
 import { Toaster } from "../components/ui/sonner";
+import { SWRProvider } from "../providers/SWRProvider";
+import { ThemeProvider } from "../providers/ThemeProvider";
 
 
 const geistSans = Geist({

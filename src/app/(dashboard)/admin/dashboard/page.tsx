@@ -1,5 +1,5 @@
-import { DataTable } from "@/components/shared/table/DataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { DataTable } from "@/components/shared/table/DataTable";
 
 const data = [
   {

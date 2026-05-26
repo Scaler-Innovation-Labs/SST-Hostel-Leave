@@ -1,9 +1,12 @@
 import Link from "next/link";
 
-import { NavigationItem } from "@/constants/navigation";
+type SidebarItem = {
+  label: string;
+  href: string;
+};
 
 type SidebarProps = {
-  items: NavigationItem[];
+  items: SidebarItem[];
 };
 
 export function Sidebar({
@@ -26,31 +29,23 @@ export function Sidebar({
         </div>
 
         <nav className="flex flex-col gap-2">
-          {items.map((item) => {
-            const Icon = item.icon;
-
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="
-                  flex items-center gap-3
-                  rounded-xl px-3 py-2
-                  text-sm font-medium
-                  text-muted-foreground
-                  transition-colors
-                  hover:bg-sidebar-accent
-                  hover:text-foreground
-                "
-              >
-                {Icon && (
-                  <Icon className="size-4" />
-                )}
-
-                {item.label}
-              </Link>
-            );
-          })}
+          {items.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="
+                flex items-center gap-3
+                rounded-xl px-3 py-2
+                text-sm font-medium
+                text-muted-foreground
+                transition-colors
+                hover:bg-sidebar-accent
+                hover:text-foreground
+              "
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
       </div>
     </aside>
