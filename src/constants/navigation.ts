@@ -27,10 +27,6 @@ export const navigation = {
       label: "Workflow",
       href: "#workflow",
     },
-    {
-      label: "Security",
-      href: "#features",
-    },
   ],
 
   student: [

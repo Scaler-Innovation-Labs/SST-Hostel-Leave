@@ -10,6 +10,14 @@ import {
   SheetTrigger,
 } from "../../components/ui/sheet";
 
+import {
+  SignedIn,
+  SignedOut,
+  UserButton,
+} from "@clerk/nextjs";
+
+import { ProfileMenu } from "./ProfileMenu";
+
 import { ThemeToggle } from "./ThemeToggle";
 import { Container } from "./Container";
 
@@ -59,47 +67,100 @@ export function Navbar({
           </nav>
 
           {/* RIGHT */}
-          <div className="flex items-center justify-end gap-3">
-            <ThemeToggle />
+<div className="flex items-center justify-end gap-3">
+  <ThemeToggle />
 
-            {/* MOBILE MENU */}
-            <Sheet>
-              <SheetTrigger asChild>
-                <button
-                  className="
-                    inline-flex items-center justify-center
-                    rounded-lg border border-border
-                    p-2
-                    md:hidden
-                  "
-                >
-                  <Menu className="size-5" />
-                </button>
-              </SheetTrigger>
+  {/* DESKTOP AUTH */}
+  <div className="hidden md:flex">
+    <SignedOut>
+      <Link
+        href="/login"
+        className="
+          inline-flex items-center justify-center
+          rounded-xl border border-border
+          bg-linear-to-r from-blue-500 to-indigo-600
+          px-4 py-2
+          text-sm font-medium
+          text-foreground
+          transition-colors
+          hover:bg-accent
+        "
+      >
+        Login
+      </Link>
+    </SignedOut>
 
-              <SheetContent
-                side="right"
-                className="w-72"
-              >
-                <div className="mt-10 flex flex-col gap-6">
-                  {items.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className="
-                        text-base font-medium
-                        text-foreground
-                        transition-colors
-                        hover:text-primary
-                      "
-                    >
-                      {item.label}
-                    </Link>
-                  ))}
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
+    <SignedIn>
+      <ProfileMenu />
+    </SignedIn>
+  </div>
+
+  {/* MOBILE MENU */}
+  <Sheet>
+    <SheetTrigger asChild>
+      <button
+        className="
+          inline-flex items-center justify-center
+          rounded-lg border border-border
+          p-2
+          md:hidden
+        "
+      >
+        <Menu className="size-5" />
+      </button>
+    </SheetTrigger>
+
+    <SheetContent
+      side="right"
+      className="w-72"
+    >
+      <div className="mt-10 flex flex-col gap-6">
+        {items.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="
+              text-base font-medium
+              text-foreground
+              transition-colors
+              hover:text-primary
+            "
+          >
+            {item.label}
+          </Link>
+        ))}
+
+        {/* MOBILE AUTH */}
+        <div className="pt-4">
+          <SignedOut>
+            <Link
+              href="/login"
+              className="
+                inline-flex w-full items-center
+                justify-center rounded-xl
+                border border-border
+                bg-linear-to-r from-blue-500 to-indigo-600
+                px-4 py-3
+                text-sm font-medium
+                text-foreground
+              "
+            >
+              Login
+            </Link>
+          </SignedOut>
+
+          <SignedIn>
+            <div className="flex justify-center">
+              <UserButton
+                afterSignOutUrl="/"
+              />
+            </div>
+          </SignedIn>
+        </div>
+      </div>
+    </SheetContent>
+  </Sheet>
+</div>
         </div>
       </Container>
     </header>
