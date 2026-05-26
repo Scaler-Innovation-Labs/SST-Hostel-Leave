@@ -1,15 +1,16 @@
 import {
-  LayoutDashboard,
-  FileText,
-  ShieldCheck,
-  QrCode,
-  Users,
-  Settings,
-  Workflow,
   BarChart3,
+  FileText,
+  LayoutDashboard,
+  QrCode,
+  Settings,
+  ShieldCheck,
+  Users,
+  Workflow,
 } from "lucide-react";
+import type React from "react";
 
-import React from "react";
+import { ROUTES } from "./routes";
 
 export type NavigationItem = {
   label: string;
@@ -32,12 +33,12 @@ export const navigation = {
   student: [
     {
       label: "Dashboard",
-      href: "/student/dashboard",
+      href: ROUTES.STUDENT_DASHBOARD,
       icon: LayoutDashboard,
     },
     {
       label: "New Leave",
-      href: "/student/leave/new",
+      href: ROUTES.STUDENT_LEAVE_NEW,
       icon: FileText,
     },
     {
@@ -50,17 +51,17 @@ export const navigation = {
   admin: [
     {
       label: "Analytics",
-      href: "/admin/analytics",
+      href: ROUTES.ADMIN_ANALYTICS,
       icon: BarChart3,
     },
     {
       label: "Students",
-      href: "/admin/students",
+      href: ROUTES.ADMIN_STUDENTS,
       icon: Users,
     },
     {
       label: "Scanner",
-      href: "/admin/scanner",
+      href: ROUTES.ADMIN_SCANNER,
       icon: QrCode,
     },
   ],
@@ -68,22 +69,22 @@ export const navigation = {
   superAdmin: [
     {
       label: "Analytics",
-      href: "/super-admin/analytics",
+      href: ROUTES.SUPER_ADMIN_ANALYTICS,
       icon: BarChart3,
     },
     {
       label: "Workflows",
-      href: "/super-admin/workflows",
+      href: ROUTES.SUPER_ADMIN_WORKFLOWS,
       icon: Workflow,
     },
     {
       label: "Users",
-      href: "/super-admin/users",
+      href: ROUTES.SUPER_ADMIN_USERS,
       icon: Users,
     },
     {
       label: "Settings",
-      href: "/super-admin/settings",
+      href: ROUTES.SUPER_ADMIN_SETTINGS,
       icon: Settings,
     },
   ],

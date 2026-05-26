@@ -1,10 +1,8 @@
 export function BackgroundLayer() {
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden">
-      {/* BASE BACKGROUND */}
       <div className="absolute inset-0 bg-[#030712]" />
 
-      {/* GRID */}
       <div
         className="
           absolute inset-0
@@ -19,7 +17,6 @@ export function BackgroundLayer() {
         }}
       />
 
-      {/* CENTER GLOW */}
       <div
         className="
           absolute left-1/2 top-0
@@ -31,7 +28,6 @@ export function BackgroundLayer() {
         "
       />
 
-      {/* LEFT GLOW */}
       <div
         className="
           absolute left-0 top-1/3
@@ -42,7 +38,6 @@ export function BackgroundLayer() {
         "
       />
 
-      {/* RIGHT GLOW */}
       <div
         className="
           absolute right-0 top-1/4
@@ -53,7 +48,6 @@ export function BackgroundLayer() {
         "
       />
 
-      {/* BOTTOM GLOW */}
       <div
         className="
           absolute bottom-[-200px] left-1/2
@@ -65,7 +59,6 @@ export function BackgroundLayer() {
         "
       />
 
-      {/* VIGNETTE */}
       <div
         className="
           absolute inset-0
@@ -73,7 +66,6 @@ export function BackgroundLayer() {
         "
       />
 
-      {/* TOP FADE */}
       <div
         className="
           absolute inset-x-0 top-0
@@ -84,7 +76,6 @@ export function BackgroundLayer() {
         "
       />
 
-      {/* NOISE TEXTURE */}
       <div
         className="
           absolute inset-0

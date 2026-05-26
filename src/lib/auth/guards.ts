@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { getCurrentUserRole } from "./auth";
-
-import { Role } from "./roles";
+import type { Role } from "./roles";
 
 export async function requireRole(
   allowedRoles: Role[]

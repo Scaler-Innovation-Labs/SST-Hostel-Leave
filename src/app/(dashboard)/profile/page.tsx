@@ -19,7 +19,7 @@ export default async function ProfilePage() {
       >
         <div className="flex items-center gap-5">
           <Image
-            src={user?.imageUrl}
+            src={user?.imageUrl ?? ""}
             alt="Profile"
             width={80}
             height={80}

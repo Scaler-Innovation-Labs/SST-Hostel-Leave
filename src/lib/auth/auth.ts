@@ -1,9 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 
-import {
-  Role,
-  ROLES,
-} from "./roles";
+import type { Role } from "./roles";
+import { ROLES } from "./roles";
 
 export async function getSession() {
   return auth();

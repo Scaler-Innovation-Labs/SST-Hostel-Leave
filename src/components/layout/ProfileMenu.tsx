@@ -1,17 +1,16 @@
 "use client";
 
-import Link from "next/link";
-
+import {
+  useClerk,
+  useUser,
+} from "@clerk/nextjs";
 import {
   LogOut,
   Settings,
   User,
 } from "lucide-react";
-
-import {
-  useClerk,
-  useUser,
-} from "@clerk/nextjs";
+import Image from "next/image";
+import Link from "next/link";
 
 import {
   DropdownMenu,
@@ -21,7 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Image from "next/image";
+import { ROUTES } from "@/constants/routes";
 
 export function ProfileMenu() {
   const { signOut } = useClerk();
@@ -68,7 +67,7 @@ export function ProfileMenu() {
 
         <DropdownMenuItem asChild>
           <Link
-            href="/profile"
+            href={ROUTES.PROFILE}
             className="cursor-pointer"
           >
             <User className="mr-2 size-4" />
@@ -79,7 +78,7 @@ export function ProfileMenu() {
 
         <DropdownMenuItem asChild>
           <Link
-            href="/settings"
+            href={ROUTES.SETTINGS}
             className="cursor-pointer"
           >
             <Settings className="mr-2 size-4" />
