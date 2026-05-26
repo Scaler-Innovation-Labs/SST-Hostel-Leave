@@ -1,6 +1,5 @@
 import * as dotenv from "dotenv";
-import type { Config } from "drizzle-kit";
-import { defineConfig } from "drizzle-kit";
+// drizzle-kit is optional in this environment; export a plain config object
 
 type NodeEnv = "production" | "development" | "staging";
 
@@ -26,7 +25,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 const dbURL = process.env.URL || process.env.DATABASE_URL;
-export default defineConfig({
+const config = ({
   out: "./src/db/drizzle", // migrations folder
   schema: "./src/db/schema.ts", // your Drizzle schema file
   dialect: "postgresql",
@@ -39,4 +38,6 @@ export default defineConfig({
   },
   verbose: true,
   strict: true,
-}) satisfies Config;
+});
+
+export default config;
