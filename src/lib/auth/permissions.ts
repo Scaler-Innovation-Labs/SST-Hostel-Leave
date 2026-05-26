@@ -1,7 +1,5 @@
-import {
-  Role,
-  ROLES,
-} from "./roles";
+import type { Role } from "./roles";
+import { ROLES } from "./roles";
 
 export function isAdmin(role: Role) {
   return (

@@ -1,8 +1,8 @@
 "use client";
 
 import { useAuth, useSignIn } from "@clerk/nextjs";
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function LoginPage() {
   const router = useRouter();

@@ -5,7 +5,6 @@ export function ProductPreviewSection() {
       className="relative py-16 md:py-20"
     >
       <div className="relative mx-auto max-w-7xl px-8">
-        {/* HEADER */}
         <div className="max-w-3xl">
           <div
             className="
@@ -43,14 +42,12 @@ export function ProductPreviewSection() {
           </p>
         </div>
 
-        {/* MAIN GRID */}
         <div
           className="
             mt-20 grid gap-6
             lg:grid-cols-12
           "
         >
-          {/* LARGE LEFT PANEL */}
           <div
             className="
               relative overflow-hidden
@@ -60,7 +57,6 @@ export function ProductPreviewSection() {
               lg:col-span-7
             "
           >
-            {/* HEADER */}
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">
@@ -83,7 +79,6 @@ export function ProductPreviewSection() {
               </div>
             </div>
 
-            {/* TABLE */}
             <div className="mt-10 space-y-4">
               {[
                 {
@@ -130,7 +125,6 @@ export function ProductPreviewSection() {
               ))}
             </div>
 
-            {/* BOTTOM STATS */}
             <div className="mt-10 grid grid-cols-3 gap-4">
               {[
                 {
@@ -165,9 +159,7 @@ export function ProductPreviewSection() {
             </div>
           </div>
 
-          {/* RIGHT COLUMN */}
           <div className="space-y-6 lg:col-span-5">
-            {/* QR CARD */}
             <div
               className="
                 rounded-3xl border border-border
@@ -197,7 +189,6 @@ export function ProductPreviewSection() {
                 </div>
               </div>
 
-              {/* QR */}
               <div
                 className="
                   mt-8 flex items-center justify-center
@@ -216,7 +207,6 @@ export function ProductPreviewSection() {
                 </div>
               </div>
 
-              {/* STATUS */}
               <div className="mt-8 space-y-4">
                 {[
                   "Exit scan required",
@@ -237,7 +227,6 @@ export function ProductPreviewSection() {
               </div>
             </div>
 
-            {/* MOVEMENT CARD */}
             <div
               className="
                 rounded-3xl border border-border

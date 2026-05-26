@@ -1,60 +1,29 @@
-STEP 2L — Define Navbar Architecture
+# UI System
 
-You already correctly identified role-based navs.
+This document describes the UI system used across SST LeaveFlow and where to find related components and tokens.
 
-VERY GOOD.
+## Key Concepts
 
-Public Landing Nav
-Logo
-Features
-Workflow
-Security
-Login
-Theme Toggle
+- Design primitives: Tailwind CSS utility classes and shared tokens.
+- Component library: `src/components/ui` contains low-level controls (buttons, sheets, toggles).
+- Patterns: `src/components/layout` contains layout primitives like `Navbar`, `Sidebar`, and `Container`.
 
-Purpose:
+## Where to find components
 
-explain product
-trust
-onboarding
-Student Navbar
-Logo
-Dashboard
-New Leave
-Rules & Policies
-My Leaves
-Profile
-Theme Toggle
+- `src/components/ui` — shared UI primitives
+- `src/components/layout` — app layout components
+- `src/components/shared` — small reusable pieces (Logo, StatusBadge, DataTable)
 
-Student workflow-focused.
+## Theming
 
-Admin Navbar
-Logo
-Analytics
-Students
-Leave Queue
-Scanner
-Movement Logs
-Profile
-Theme Toggle
+Theme state is provided via the `ThemeProvider` in `src/providers/ThemeProvider.tsx` and toggled by `ThemeToggle`.
 
-Operational workflow-focused.
+## Environment & Local Setup
 
-Amin naavbar
-Logo
-Analytics
-Scanner
-Theme Toggle
-Student
+For local development, copy the example env file and fill required values:
 
-Super Admin Navbar
-Logo
-Analytics
-Categories
-Workflows
-Users/Staff
-Settings
-Scanner
-Theme Toggle
+```bash
+cp .env.example .env.local
+```
 
-System-management focused.
+See the project README for detailed setup steps and the canonical list of environment variables.
