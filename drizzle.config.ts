@@ -1,43 +1,47 @@
 import * as dotenv from "dotenv";
-// drizzle-kit is optional in this environment; export a plain config object
+import { defineConfig } from "drizzle-kit";
 
-type NodeEnv = "production" | "development" | "staging";
+type NodeEnv =
+  | "development"
+  | "staging"
+  | "production";
 
-// Load environment variables first
 const envFileMap: Record<NodeEnv, string> = {
   development: ".env.local",
   staging: ".env.staging",
   production: ".env.production",
 };
 
-// Default to development if NODE_ENV is not set
-const nodeEnv = (process.env.NODE_ENV || "development") as NodeEnv;
+const nodeEnv =
+  (process.env.NODE_ENV ??
+    "development") as NodeEnv;
 
-// Load the correct env file
-dotenv.config({ path: envFileMap[nodeEnv] });
-
-console.debug(`Using environment: ${nodeEnv}`);
-console.debug(`Database URL: ${process.env.DATABASE_URL}`);
-console.debug(process.env.URL);
+dotenv.config({
+  path: envFileMap[nodeEnv],
+});
 
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL is not set in environment variables");
+  throw new Error(
+    "DATABASE_URL is not set"
+  );
 }
 
-const dbURL = process.env.URL || process.env.DATABASE_URL;
-const config = ({
-  out: "./src/db/drizzle", // migrations folder
-  schema: "./src/db/schema.ts", // your Drizzle schema file
+export default defineConfig({
+  schema: "./src/db/index.ts",
+
+  out: "./src/db/drizzle",
+
   dialect: "postgresql",
+
   dbCredentials: {
-    url: dbURL!,
+    url: process.env.DATABASE_URL,
   },
+
   migrations: {
     table: "__drizzle_migration",
     schema: "public",
   },
+
   verbose: true,
   strict: true,
 });
-
-export default config;
