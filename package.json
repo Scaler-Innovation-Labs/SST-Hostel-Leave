@@ -6,9 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
     "test": "echo \"No tests\"",
-    "prepare": "husky"
+    "prepare": "husky",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier . --write",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@clerk/nextjs": "6.39.3",
@@ -19,6 +22,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.2.1",
     "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.16.0",
     "next": "16.2.6",
@@ -40,29 +44,27 @@
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^20.19.41",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/ui": "^4.1.8",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "eslint-config-prettier": "link:/eslint-config-prettier",
+    "eslint-import-resolver-typescript": "link:/eslint-import-resolver-typescript",
+    "eslint-plugin-boundaries": "^6.0.2",
+    "eslint-plugin-check-file": "^3.3.1",
+    "eslint-plugin-filenames": "link:/eslint-plugin-filenames",
     "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-perfectionist": "link:/eslint-plugin-perfectionist",
     "eslint-plugin-simple-import-sort": "^13.0.0",
     "eslint-plugin-unused-imports": "^4.4.1",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.5",
+    "prettier": "link:/prettier",
     "tailwindcss": "^4",
-    "typescript": "^5"
-  },
-  "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix",
-      "git add"
-    ]
-  },
-  "commitlint": {
-    "extends": [
-      "@commitlint/config-conventional"
-    ]
+    "typescript": "^5",
+    "vitest": "^4.1.8"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
