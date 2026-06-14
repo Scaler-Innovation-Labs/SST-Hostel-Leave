@@ -1,0 +1,15 @@
+export const AUDIT_ACTION = {
+  CREATE: "CREATE",
+  UPDATE: "UPDATE",
+  DELETE: "DELETE",
+  APPROVE: "APPROVE",
+  REJECT: "REJECT",
+  CANCEL: "CANCEL",
+  INVALIDATE: "INVALIDATE",
+  OVERRIDE: "OVERRIDE",
+  LOGIN: "LOGIN",
+  LOGOUT: "LOGOUT",
+} as const;
+
+export type AuditAction =
+  (typeof AUDIT_ACTION)[keyof typeof AUDIT_ACTION];

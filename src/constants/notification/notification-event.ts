@@ -1,0 +1,22 @@
+export const NOTIFICATION_EVENTS = [
+	"LEAVE_SUBMITTED",
+	"LEAVE_APPROVED",
+	"LEAVE_REJECTED",
+	"LEAVE_CANCELLED",
+	"LEAVE_COMPLETED",
+	"LEAVE_EXPIRED",
+	"LEAVE_EXTENSION_REQUESTED",
+	"LEAVE_EXTENSION_APPROVED",
+	"LEAVE_EXTENSION_REJECTED",
+	"LEAVE_OVERDUE",
+	"PARENT_APPROVAL_REQUESTED",
+	"QR_GENERATED",
+	"QR_INVALIDATED",
+] as const;
+
+export type NotificationEvent =
+	(typeof NOTIFICATION_EVENTS)[number];
+
+export const NOTIFICATION_EVENT = Object.fromEntries(
+	NOTIFICATION_EVENTS.map((e) => [e, e]),
+) as Record<NotificationEvent, NotificationEvent>;
