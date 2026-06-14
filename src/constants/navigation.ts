@@ -1,5 +1,7 @@
 import {
   BarChart3,
+  Bell,
+  ClipboardList,
   FileText,
   LayoutDashboard,
   QrCode,
@@ -37,18 +39,33 @@ export const navigation = {
       icon: LayoutDashboard,
     },
     {
+      label: "My Leaves",
+      href: ROUTES.STUDENT_LEAVES,
+      icon: FileText,
+    },
+    {
       label: "New Leave",
       href: ROUTES.STUDENT_LEAVE_NEW,
       icon: FileText,
     },
     {
-      label: "Policies",
-      href: "/student/policies",
-      icon: ShieldCheck,
+      label: "QR Pass",
+      href: ROUTES.STUDENT_QR,
+      icon: QrCode,
     },
   ],
 
   admin: [
+    {
+      label: "Approvals",
+      href: ROUTES.ADMIN_APPROVALS,
+      icon: FileText,
+    },
+    {
+      label: "Movement History",
+      href: ROUTES.ADMIN_MOVEMENTS,
+      icon: LayoutDashboard,
+    },
     {
       label: "Analytics",
       href: ROUTES.ADMIN_ANALYTICS,
@@ -66,6 +83,27 @@ export const navigation = {
     },
   ],
 
+  poc: [
+    {
+      label: "Dashboard",
+      href: ROUTES.POC_DASHBOARD,
+      icon: LayoutDashboard,
+    },
+    {
+      label: "Approvals",
+      href: ROUTES.POC_APPROVALS,
+      icon: FileText,
+    },
+  ],
+
+  guard: [
+    {
+      label: "Scanner",
+      href: ROUTES.GUARD_SCANNER,
+      icon: QrCode,
+    },
+  ],
+
   superAdmin: [
     {
       label: "Analytics",
@@ -73,14 +111,54 @@ export const navigation = {
       icon: BarChart3,
     },
     {
+      label: "Approvals",
+      href: ROUTES.SUPER_ADMIN_APPROVALS,
+      icon: FileText,
+    },
+    {
+      label: "Extension Approvals",
+      href: ROUTES.SUPER_ADMIN_EXTENSION_APPROVALS,
+      icon: FileText,
+    },
+    {
       label: "Workflows",
       href: ROUTES.SUPER_ADMIN_WORKFLOWS,
       icon: Workflow,
     },
     {
+      label: "Policies",
+      href: ROUTES.SUPER_ADMIN_POLICIES,
+      icon: ShieldCheck,
+    },
+    {
+      label: "Leave Types",
+      href: ROUTES.SUPER_ADMIN_LEAVE_TYPES,
+      icon: ClipboardList,
+    },
+    {
       label: "Users",
       href: ROUTES.SUPER_ADMIN_USERS,
       icon: Users,
+    },
+    {
+      label: "Parents",
+      href: ROUTES.SUPER_ADMIN_PARENTS,
+      icon: ShieldCheck,
+    },
+    {
+      label: "Notification Templates",
+      href: ROUTES.SUPER_ADMIN_TEMPLATES,
+      icon: Bell,
+    },
+    {
+      label: "Notification Rules",
+      href: ROUTES.SUPER_ADMIN_NOTIFICATION_RULES,
+      icon: Bell,
+    },
+    {
+      label: "Delivery Logs",
+      href: ROUTES.SUPER_ADMIN_DELIVERY_LOGS,
+      icon: Bell,
     },
     {
       label: "Settings",

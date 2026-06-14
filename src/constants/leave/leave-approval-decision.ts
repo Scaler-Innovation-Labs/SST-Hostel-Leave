@@ -1,0 +1,16 @@
+export const LEAVE_APPROVAL_DECISIONS = [
+	"PENDING",
+	"APPROVED",
+	"REJECTED",
+	"AUTO_APPROVED",
+] as const;
+
+export type LeaveApprovalDecision =
+	(typeof LEAVE_APPROVAL_DECISIONS)[number];
+
+export const LEAVE_APPROVAL_DECISION = {
+	PENDING: "PENDING",
+	APPROVED: "APPROVED",
+	REJECTED: "REJECTED",
+	AUTO_APPROVED: "AUTO_APPROVED",
+} as const;
