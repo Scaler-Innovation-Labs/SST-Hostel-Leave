@@ -4,9 +4,9 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
-import { Toaster } from "../components/ui/sonner";
-import { SWRProvider } from "../providers/SWRProvider";
-import { ThemeProvider } from "../providers/ThemeProvider";
+import { Toaster } from "@/components/ui/sonner";
+import { SWRProvider } from "@/providers/SWRProvider";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 
 
 const geistSans = Geist({
@@ -37,9 +37,15 @@ export default function RootLayout({
       lang="en" suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >      
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <ThemeProvider>
-          <ClerkProvider>
+          <ClerkProvider
+            signInUrl="/login"
+            signUpUrl="/login"
+            afterSignOutUrl="/login"
+            signInFallbackRedirectUrl="/redirect"
+            signUpFallbackRedirectUrl="/login"
+          >
               <Toaster />
             <SWRProvider>{children}</SWRProvider>
           </ClerkProvider>
