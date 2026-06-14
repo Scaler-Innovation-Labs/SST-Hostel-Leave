@@ -40,6 +40,8 @@ export const notificationTemplates = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
 
+    code: text("code").notNull().unique(),
+
     eventKey: text("event_key").notNull(),
 
     channel: notificationChannelEnum("channel").notNull(),
@@ -139,6 +141,10 @@ export const notificationLogs = pgTable(
       withTimezone: true,
     }),
 
+    readAt: timestamp("read_at", {
+      withTimezone: true,
+    }),
+
     metadata: jsonb("metadata"),
 
     createdAt: timestamp("created_at", {
@@ -149,7 +155,7 @@ export const notificationLogs = pgTable(
   },
   (table) => ({
     parentConstraint: check(
-      "leave_approval_target_chk",
+      "notification_log_target_chk",
       sql`
         num_nonnulls(
           ${table.leaveRequestId},
@@ -234,7 +240,7 @@ export const inboundSmsLogs = pgTable(
   (table) => ({
 
     parentConstraint: check(
-      "leave_approval_target_chk",
+      "inbound_sms_log_target_chk",
       sql`
         num_nonnulls(
           ${table.leaveRequestId},
@@ -335,7 +341,7 @@ export const sheetSyncLogs = pgTable(
   ).on(table.createdAt),
 
   parentConstraint: check(
-      "leave_approval_target_chk",
+      "sheet_sync_log_target_chk",
       sql`
         num_nonnulls(
           ${table.leaveRequestId},

@@ -6,5 +6,8 @@ export * from "./schema/hostel";
 export * from "./schema/leave";
 export * from "./schema/movement";
 export * from "./schema/notification";
+export * from "./schema/notification-rules";
+export * from "./schema/outbox";
 export * from "./schema/policy";
 export * from "./schema/relations";
+export * from "./schema/workflow";

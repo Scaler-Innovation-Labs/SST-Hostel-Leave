@@ -121,3 +121,47 @@ export const parents = pgTable(
     ).on(table.studentId, table.phone),
   })
 );
+
+// =====================================================
+// PARENT OTP SESSIONS
+// =====================================================
+
+export const parentOtpSessions = pgTable(
+  "parent_otp_sessions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    parentId: uuid("parent_id")
+      .notNull()
+      .references(() => parents.id, {
+        onDelete: "cascade",
+      }),
+
+    phone: text("phone").notNull(),
+
+    otpHash: text("otp_hash").notNull(),
+
+    expiresAt: timestamp("expires_at", {
+      withTimezone: true,
+    }).notNull(),
+
+    verifiedAt: timestamp("verified_at", {
+      withTimezone: true,
+    }),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    parentIdIndex: index(
+      "pos_parent_id_idx"
+    ).on(table.parentId),
+
+    phoneIndex: index("pos_phone_idx").on(
+      table.phone
+    ),
+  })
+);

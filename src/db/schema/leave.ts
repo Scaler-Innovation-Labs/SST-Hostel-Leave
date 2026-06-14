@@ -28,6 +28,7 @@ import {
   workflowModeEnum,
 } from "./enums";
 import { hostels, parents } from "./hostel";
+import { workflowDefinitions } from "./workflow";
 
 // =====================================================
 // LEAVE TYPES
@@ -52,11 +53,22 @@ export const leaveTypes = pgTable("leave_types", {
 
   notificationConfig: jsonb("notification_config"),
 
+  useGlobalNotificationRules: boolean("use_global_notification_rules")
+    .default(true)
+    .notNull(),
+
   requiredDocuments: jsonb("required_documents"),
 
   uiConfig: jsonb("ui_config"),
 
   workflowMode: workflowModeEnum("workflow_mode").notNull(),
+
+  defaultWorkflowId: uuid("default_workflow_id").references(
+    () => workflowDefinitions.id,
+    {
+      onDelete: "restrict",
+    }
+  ),
 
   allowExtensions: boolean("allow_extensions")
     .default(false)
@@ -102,56 +114,6 @@ export const leaveTypes = pgTable("leave_types", {
     "leave_types_workflow_mode_idx"
   ).on(table.workflowMode),
 })
-);
-
-// =====================================================
-// LEAVE TYPE APPROVAL STEPS
-// =====================================================
-
-export const leaveTypeApprovalSteps = pgTable(
-  "leave_type_approval_steps",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-
-    leaveTypeId: uuid("leave_type_id")
-      .notNull()
-      .references(() => leaveTypes.id, {
-        onDelete: "cascade",
-      }),
-
-    stepKey: text("step_key").notNull(),
-
-    stepOrder: integer("step_order").notNull(),
-
-    approverRoleId: uuid("approver_role_id").references(
-      () => roles.id,
-      {
-        onDelete: "restrict",
-      }
-    ),
-
-    isParentApproval: boolean("is_parent_approval")
-      .default(false)
-      .notNull(),
-
-    isRequired: boolean("is_required")
-      .default(true)
-      .notNull(),
-
-    metadata: jsonb("metadata"),
-
-    createdAt: timestamp("created_at", {
-      withTimezone: true,
-    })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => ({
-    leaveTypeIdIndex: index("ltas_leave_type_id_idx").on(table.leaveTypeId),
-    stepOrderUnique: unique("ltas_step_order_unq").on(table.leaveTypeId, table.stepOrder),
-    stepKeyUnique: unique("ltas_step_key_unq").on(table.leaveTypeId, table.stepKey),
-    approverRoleIdIndex: index("ltas_approver_role_id_idx").on(table.approverRoleId),
-  })
 );
 
 // =====================================================
@@ -249,7 +211,7 @@ export const leaveRequests = pgTable("leave_requests", {
     .defaultNow()
     .notNull(),
 
-  leaveTypeVersion: integer().default(1).notNull(),
+  leaveTypeVersion: integer("leave_type_version").default(1).notNull(),
 },
 (table) => ({
   requestNumberIndex: index(
@@ -392,6 +354,23 @@ export const leaveApprovals = pgTable("leave_approvals", {
 
   comments: text("comments"),
 
+  parentApprovalToken: text("parent_approval_token")
+    .unique(),
+
+  parentApprovalOtpHash: text(
+    "parent_approval_otp_hash"
+  ),
+
+  parentApprovalExpiresAt: timestamp(
+    "parent_approval_expires_at",
+    { withTimezone: true }
+  ),
+
+  parentApprovalVerifiedAt: timestamp(
+    "parent_approval_verified_at",
+    { withTimezone: true }
+  ),
+
   metadata: jsonb("metadata"),
 
   actedAt: timestamp("acted_at", {
@@ -419,6 +398,7 @@ export const leaveApprovals = pgTable("leave_approvals", {
     approverRoleIdIndex: index("la_approver_role_id_idx").on(table.approverRoleId),
     approverUserIdIndex: index("la_approver_user_id_idx").on(table.approverUserId),
     decisionIndex: index("la_decision_idx").on(table.decision),
+    parentApprovalTokenIndex: index("la_parent_token_idx").on(table.parentApprovalToken),
   })
 );
 

@@ -100,8 +100,8 @@ export const qrPasses = pgTable("qr_passes", {
     .notNull(),
 },
 (table) => ({
-  leaveRequestIdUnique: unique("qr_pass_leave_request_unq")
-  .on(table.leaveRequestId),
+  leaveRequestIdQrTypeUnique: unique("qr_pass_leave_request_qr_type_unq")
+  .on(table.leaveRequestId, table.qrType),
 
   leaveRequestIdIndex: index(
     "qr_pass_leave_request_id_idx"
