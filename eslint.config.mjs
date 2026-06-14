@@ -1,8 +1,6 @@
 import { defineConfig, globalIgnores } from "eslint/config";
-
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
-
 import boundaries from "eslint-plugin-boundaries";
 import checkFile from "eslint-plugin-check-file";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
@@ -244,6 +242,7 @@ export default defineConfig([
 
     rules: {
       "check-file/filename-naming-convention": "off",
+      "check-file/folder-naming-convention": "off",
     },
   },
 
@@ -261,5 +260,7 @@ export default defineConfig([
     "coverage/**",
     "next-env.d.ts",
     "drizzle/**",
+    "tests/**",
+    "src/components/ui/**",
   ]),
 ]);
