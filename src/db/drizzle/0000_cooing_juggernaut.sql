@@ -22,42 +22,6 @@ CREATE TYPE "public"."sheet_sync_status" AS ENUM('PENDING', 'SUCCESS', 'FAILED')
 CREATE TYPE "public"."sms_parsed_action" AS ENUM('APPROVE', 'REJECT', 'UNKNOWN');--> statement-breakpoint
 CREATE TYPE "public"."sms_processing_status" AS ENUM('RECEIVED', 'PARSED', 'PROCESSED', 'FAILED');--> statement-breakpoint
 CREATE TYPE "public"."workflow_mode" AS ENUM('HOSTEL', 'ACADEMIC');--> statement-breakpoint
-CREATE TABLE "roles" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"code" text NOT NULL,
-	"name" text NOT NULL,
-	"metadata" jsonb,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "roles_code_unique" UNIQUE("code")
-);
---> statement-breakpoint
-CREATE TABLE "user_roles" (
-	"user_id" uuid NOT NULL,
-	"role_id" uuid NOT NULL,
-	"assigned_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "user_roles_user_id_role_id_pk" PRIMARY KEY("user_id","role_id")
-);
---> statement-breakpoint
-CREATE TABLE "users" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"clerk_id" text,
-	"hostel_id" uuid,
-	"full_name" text NOT NULL,
-	"email" text,
-	"phone" text,
-	"gender" "gender",
-	"profile_image_url" text,
-	"is_active" boolean DEFAULT true NOT NULL,
-	"last_login_at" timestamp with time zone,
-	"metadata" jsonb,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"deleted_at" timestamp with time zone,
-	CONSTRAINT "users_clerk_id_unique" UNIQUE("clerk_id"),
-	CONSTRAINT "users_email_unique" UNIQUE("email"),
-	CONSTRAINT "users_phone_unique" UNIQUE("phone")
-);
---> statement-breakpoint
 CREATE TABLE "academic_groups" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"department_id" uuid NOT NULL,
@@ -94,6 +58,56 @@ CREATE TABLE "students" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "students_user_id_unique" UNIQUE("user_id"),
 	CONSTRAINT "students_roll_number_unique" UNIQUE("roll_number")
+);
+--> statement-breakpoint
+CREATE TABLE "audit_logs" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"actor_user_id" uuid,
+	"entity_type" "audit_entity_type" NOT NULL,
+	"entity_id" uuid NOT NULL,
+	"action" "audit_action" NOT NULL,
+	"old_data" jsonb,
+	"new_data" jsonb,
+	"metadata" jsonb,
+	"ip_address" text,
+	"user_agent" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "roles" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"code" text NOT NULL,
+	"name" text NOT NULL,
+	"metadata" jsonb,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "roles_code_unique" UNIQUE("code")
+);
+--> statement-breakpoint
+CREATE TABLE "user_roles" (
+	"user_id" uuid NOT NULL,
+	"role_id" uuid NOT NULL,
+	"assigned_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "user_roles_user_id_role_id_pk" PRIMARY KEY("user_id","role_id")
+);
+--> statement-breakpoint
+CREATE TABLE "users" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"clerk_id" text,
+	"hostel_id" uuid,
+	"full_name" text NOT NULL,
+	"email" text,
+	"phone" text,
+	"gender" "gender",
+	"profile_image_url" text,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"last_login_at" timestamp with time zone,
+	"metadata" jsonb,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"deleted_at" timestamp with time zone,
+	CONSTRAINT "users_clerk_id_unique" UNIQUE("clerk_id"),
+	CONSTRAINT "users_email_unique" UNIQUE("email"),
+	CONSTRAINT "users_phone_unique" UNIQUE("phone")
 );
 --> statement-breakpoint
 CREATE TABLE "hostels" (
@@ -217,22 +231,8 @@ CREATE TABLE "leave_requests" (
 	"completed_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	"leaveTypeVersion" integer DEFAULT 1 NOT NULL,
+	"leave_type_version" integer DEFAULT 1 NOT NULL,
 	CONSTRAINT "leave_requests_request_number_unique" UNIQUE("request_number")
-);
---> statement-breakpoint
-CREATE TABLE "leave_type_approval_steps" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"leave_type_id" uuid NOT NULL,
-	"step_key" text NOT NULL,
-	"step_order" integer NOT NULL,
-	"approver_role_id" uuid,
-	"is_parent_approval" boolean DEFAULT false NOT NULL,
-	"is_required" boolean DEFAULT true NOT NULL,
-	"metadata" jsonb,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "ltas_step_order_unq" UNIQUE("leave_type_id","step_order"),
-	CONSTRAINT "ltas_step_key_unq" UNIQUE("leave_type_id","step_key")
 );
 --> statement-breakpoint
 CREATE TABLE "leave_types" (
@@ -247,6 +247,7 @@ CREATE TABLE "leave_types" (
 	"required_documents" jsonb,
 	"ui_config" jsonb,
 	"workflow_mode" "workflow_mode" NOT NULL,
+	"default_workflow_id" uuid,
 	"allow_extensions" boolean DEFAULT false NOT NULL,
 	"max_extension_count" integer,
 	"is_active" boolean DEFAULT true NOT NULL,
@@ -338,7 +339,7 @@ CREATE TABLE "inbound_sms_logs" (
 	"metadata" jsonb,
 	"received_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"processed_at" timestamp with time zone,
-	CONSTRAINT "leave_approval_target_chk" CHECK (
+	CONSTRAINT "inbound_sms_log_target_chk" CHECK (
         num_nonnulls(
           "inbound_sms_logs"."leave_request_id",
           "inbound_sms_logs"."leave_extension_id"
@@ -362,7 +363,7 @@ CREATE TABLE "notification_logs" (
 	"sent_at" timestamp with time zone,
 	"metadata" jsonb,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "leave_approval_target_chk" CHECK (
+	CONSTRAINT "notification_log_target_chk" CHECK (
         num_nonnulls(
           "notification_logs"."leave_request_id",
           "notification_logs"."leave_extension_id"
@@ -393,7 +394,7 @@ CREATE TABLE "sheet_sync_logs" (
 	"synced_at" timestamp with time zone,
 	"metadata" jsonb,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "leave_approval_target_chk" CHECK (
+	CONSTRAINT "sheet_sync_log_target_chk" CHECK (
         num_nonnulls(
           "sheet_sync_logs"."leave_request_id",
           "sheet_sync_logs"."leave_extension_id"
@@ -418,26 +419,40 @@ CREATE TABLE "policies" (
 	CONSTRAINT "policies_name_unique" UNIQUE("name")
 );
 --> statement-breakpoint
-CREATE TABLE "audit_logs" (
+CREATE TABLE "workflow_definitions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"actor_user_id" uuid,
-	"entity_type" "audit_entity_type" NOT NULL,
-	"entity_id" uuid NOT NULL,
-	"action" "audit_action" NOT NULL,
-	"old_data" jsonb,
-	"new_data" jsonb,
+	"code" text NOT NULL,
+	"name" text NOT NULL,
+	"description" text,
+	"version" integer DEFAULT 1 NOT NULL,
+	"is_active" boolean DEFAULT true NOT NULL,
 	"metadata" jsonb,
-	"ip_address" text,
-	"user_agent" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "workflow_definitions_code_unique" UNIQUE("code")
 );
 --> statement-breakpoint
-ALTER TABLE "user_roles" ADD CONSTRAINT "user_roles_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "user_roles" ADD CONSTRAINT "user_roles_role_id_roles_id_fk" FOREIGN KEY ("role_id") REFERENCES "public"."roles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE TABLE "workflow_steps" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"workflow_definition_id" uuid NOT NULL,
+	"step_key" text NOT NULL,
+	"step_order" integer NOT NULL,
+	"approver_role_id" uuid,
+	"is_parent_approval" boolean DEFAULT false NOT NULL,
+	"is_required" boolean DEFAULT true NOT NULL,
+	"metadata" jsonb,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "workflow_step_order_unq" UNIQUE("workflow_definition_id","step_order"),
+	CONSTRAINT "workflow_step_key_unq" UNIQUE("workflow_definition_id","step_key")
+);
+--> statement-breakpoint
 ALTER TABLE "academic_groups" ADD CONSTRAINT "academic_groups_department_id_departments_id_fk" FOREIGN KEY ("department_id") REFERENCES "public"."departments"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "students" ADD CONSTRAINT "students_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "students" ADD CONSTRAINT "students_academic_group_id_academic_groups_id_fk" FOREIGN KEY ("academic_group_id") REFERENCES "public"."academic_groups"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "students" ADD CONSTRAINT "students_current_location_state_movement_states_code_fk" FOREIGN KEY ("current_location_state") REFERENCES "public"."movement_states"("code") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_actor_user_id_users_id_fk" FOREIGN KEY ("actor_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "user_roles" ADD CONSTRAINT "user_roles_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "user_roles" ADD CONSTRAINT "user_roles_role_id_roles_id_fk" FOREIGN KEY ("role_id") REFERENCES "public"."roles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "parents" ADD CONSTRAINT "parents_student_id_students_id_fk" FOREIGN KEY ("student_id") REFERENCES "public"."students"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "leave_approvals" ADD CONSTRAINT "leave_approvals_leave_request_id_leave_requests_id_fk" FOREIGN KEY ("leave_request_id") REFERENCES "public"."leave_requests"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "leave_approvals" ADD CONSTRAINT "leave_approvals_leave_extension_id_leave_extensions_id_fk" FOREIGN KEY ("leave_extension_id") REFERENCES "public"."leave_extensions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -450,8 +465,7 @@ ALTER TABLE "leave_documents" ADD CONSTRAINT "leave_documents_uploaded_by_users_
 ALTER TABLE "leave_extensions" ADD CONSTRAINT "leave_extensions_leave_request_id_leave_requests_id_fk" FOREIGN KEY ("leave_request_id") REFERENCES "public"."leave_requests"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "leave_requests" ADD CONSTRAINT "leave_requests_student_id_students_id_fk" FOREIGN KEY ("student_id") REFERENCES "public"."students"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "leave_requests" ADD CONSTRAINT "leave_requests_leave_type_id_leave_types_id_fk" FOREIGN KEY ("leave_type_id") REFERENCES "public"."leave_types"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "leave_type_approval_steps" ADD CONSTRAINT "leave_type_approval_steps_leave_type_id_leave_types_id_fk" FOREIGN KEY ("leave_type_id") REFERENCES "public"."leave_types"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "leave_type_approval_steps" ADD CONSTRAINT "leave_type_approval_steps_approver_role_id_roles_id_fk" FOREIGN KEY ("approver_role_id") REFERENCES "public"."roles"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "leave_types" ADD CONSTRAINT "leave_types_default_workflow_id_workflow_definitions_id_fk" FOREIGN KEY ("default_workflow_id") REFERENCES "public"."workflow_definitions"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "operational_periods" ADD CONSTRAINT "operational_periods_hostel_id_hostels_id_fk" FOREIGN KEY ("hostel_id") REFERENCES "public"."hostels"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "movement_events" ADD CONSTRAINT "movement_events_student_id_students_id_fk" FOREIGN KEY ("student_id") REFERENCES "public"."students"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "movement_events" ADD CONSTRAINT "movement_events_leave_request_id_leave_requests_id_fk" FOREIGN KEY ("leave_request_id") REFERENCES "public"."leave_requests"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -474,12 +488,17 @@ ALTER TABLE "sheet_sync_logs" ADD CONSTRAINT "sheet_sync_logs_leave_request_id_l
 ALTER TABLE "sheet_sync_logs" ADD CONSTRAINT "sheet_sync_logs_leave_extension_id_leave_extensions_id_fk" FOREIGN KEY ("leave_extension_id") REFERENCES "public"."leave_extensions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "policies" ADD CONSTRAINT "policies_leave_type_id_leave_types_id_fk" FOREIGN KEY ("leave_type_id") REFERENCES "public"."leave_types"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "policies" ADD CONSTRAINT "policies_hostel_id_hostels_id_fk" FOREIGN KEY ("hostel_id") REFERENCES "public"."hostels"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_actor_user_id_users_id_fk" FOREIGN KEY ("actor_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "workflow_steps" ADD CONSTRAINT "workflow_steps_workflow_definition_id_workflow_definitions_id_fk" FOREIGN KEY ("workflow_definition_id") REFERENCES "public"."workflow_definitions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "workflow_steps" ADD CONSTRAINT "workflow_steps_approver_role_id_roles_id_fk" FOREIGN KEY ("approver_role_id") REFERENCES "public"."roles"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "student_user_id_idx" ON "students" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "student_academic_group_id_idx" ON "students" USING btree ("academic_group_id");--> statement-breakpoint
+CREATE INDEX "audit_entity_lookup_idx" ON "audit_logs" USING btree ("entity_type","entity_id");--> statement-breakpoint
+CREATE INDEX "audit_actor_user_id_idx" ON "audit_logs" USING btree ("actor_user_id");--> statement-breakpoint
+CREATE INDEX "audit_action_idx" ON "audit_logs" USING btree ("action");--> statement-breakpoint
+CREATE INDEX "audit_created_at_idx" ON "audit_logs" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "users_clerk_id_idx" ON "users" USING btree ("clerk_id");--> statement-breakpoint
 CREATE INDEX "users_email_idx" ON "users" USING btree ("email");--> statement-breakpoint
 CREATE INDEX "users_hostel_id_idx" ON "users" USING btree ("hostel_id");--> statement-breakpoint
-CREATE INDEX "student_user_id_idx" ON "students" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "student_academic_group_id_idx" ON "students" USING btree ("academic_group_id");--> statement-breakpoint
 CREATE INDEX "hostels_code_idx" ON "hostels" USING btree ("code");--> statement-breakpoint
 CREATE INDEX "hostels_active_idx" ON "hostels" USING btree ("is_active");--> statement-breakpoint
 CREATE INDEX "parents_student_id_idx" ON "parents" USING btree ("student_id");--> statement-breakpoint
@@ -503,8 +522,6 @@ CREATE INDEX "leave_requests_status_idx" ON "leave_requests" USING btree ("statu
 CREATE INDEX "leave_requests_request_version_idx" ON "leave_requests" USING btree ("request_version");--> statement-breakpoint
 CREATE INDEX "leave_requests_start_at_idx" ON "leave_requests" USING btree ("start_at");--> statement-breakpoint
 CREATE INDEX "leave_requests_end_at_idx" ON "leave_requests" USING btree ("end_at");--> statement-breakpoint
-CREATE INDEX "ltas_leave_type_id_idx" ON "leave_type_approval_steps" USING btree ("leave_type_id");--> statement-breakpoint
-CREATE INDEX "ltas_approver_role_id_idx" ON "leave_type_approval_steps" USING btree ("approver_role_id");--> statement-breakpoint
 CREATE INDEX "leave_types_code_idx" ON "leave_types" USING btree ("code");--> statement-breakpoint
 CREATE INDEX "leave_types_active_idx" ON "leave_types" USING btree ("is_active");--> statement-breakpoint
 CREATE INDEX "leave_types_workflow_mode_idx" ON "leave_types" USING btree ("workflow_mode");--> statement-breakpoint
@@ -541,7 +558,7 @@ CREATE INDEX "policies_leave_type_id_idx" ON "policies" USING btree ("leave_type
 CREATE INDEX "policies_hostel_id_idx" ON "policies" USING btree ("hostel_id");--> statement-breakpoint
 CREATE INDEX "policies_is_active_idx" ON "policies" USING btree ("is_active");--> statement-breakpoint
 CREATE INDEX "policies_priority_idx" ON "policies" USING btree ("priority");--> statement-breakpoint
-CREATE INDEX "audit_entity_lookup_idx" ON "audit_logs" USING btree ("entity_type","entity_id");--> statement-breakpoint
-CREATE INDEX "audit_actor_user_id_idx" ON "audit_logs" USING btree ("actor_user_id");--> statement-breakpoint
-CREATE INDEX "audit_action_idx" ON "audit_logs" USING btree ("action");--> statement-breakpoint
-CREATE INDEX "audit_created_at_idx" ON "audit_logs" USING btree ("created_at");
+CREATE INDEX "workflow_definition_code_idx" ON "workflow_definitions" USING btree ("code");--> statement-breakpoint
+CREATE INDEX "workflow_definition_active_idx" ON "workflow_definitions" USING btree ("is_active");--> statement-breakpoint
+CREATE INDEX "workflow_steps_workflow_id_idx" ON "workflow_steps" USING btree ("workflow_definition_id");--> statement-breakpoint
+CREATE INDEX "workflow_steps_role_idx" ON "workflow_steps" USING btree ("approver_role_id");

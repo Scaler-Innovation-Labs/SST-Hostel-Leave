@@ -15,6 +15,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { policyTypeEnum } from "./enums";
+import { departments } from "./academics";
 import { hostels } from "./hostel";
 import { leaveTypes } from "./leave";
 
@@ -46,6 +47,15 @@ export const policies = pgTable("policies", {
       onDelete: "cascade",
     }
   ),
+
+  departmentId: uuid("department_id").references(
+    () => departments.id,
+    {
+      onDelete: "cascade",
+    }
+  ),
+
+  batchYear: integer("batch_year"),
 
   config: jsonb("config").notNull(),
 
@@ -87,6 +97,14 @@ export const policies = pgTable("policies", {
   hostelIdIndex: index(
     "policies_hostel_id_idx"
   ).on(table.hostelId),
+
+  departmentIdIndex: index(
+    "policies_department_id_idx"
+  ).on(table.departmentId),
+
+  batchYearIndex: index(
+    "policies_batch_year_idx"
+  ).on(table.batchYear),
 
   isActiveIndex: index(
     "policies_is_active_idx"

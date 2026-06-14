@@ -57,6 +57,20 @@ export const approvalSourceEnum = pgEnum(
     "SMS",
     "MANUAL",
     "SYSTEM",
+    "PORTAL",
+    "SMS_REPLY",
+    "EMAIL_LINK",
+  ]
+);
+
+export const approvalMethodEnum = pgEnum(
+  "approval_method",
+  [
+    "SMS_REPLY",
+    "SMS_AND_LINK",
+    "SMS_LINK",
+    "PORTAL",
+    "AUTO",
   ]
 );
 
@@ -106,6 +120,8 @@ export const movementEventEnum = pgEnum(
     "ENTER_HOSTEL",
     "AUTO_OVERDUE",
     "MANUAL_RETURN",
+    "MANUAL_CHECKOUT",
+    "SECURITY_OVERRIDE",
     "QR_INVALIDATED",
   ]
 );
@@ -161,6 +177,22 @@ export const qrScanResultEnum = pgEnum(
 // NOTIFICATIONS
 // =====================================================
 
+export const notificationRecipientTypeEnum =
+  pgEnum(
+    "notification_recipient_type",
+    [
+      "STUDENT",
+      "PARENT",
+      "CURRENT_APPROVER",
+      "PREVIOUS_APPROVER",
+      "ALL_APPROVERS",
+      "WARDEN",
+      "POC",
+      "ADMIN",
+      "SUPER_ADMIN",
+    ]
+  );
+
 export const notificationChannelEnum =
   pgEnum(
     "notification_channel",
@@ -169,6 +201,7 @@ export const notificationChannelEnum =
       "SMS",
       "PUSH",
       "WEBHOOK",
+      "SLACK",
     ]
   );
 
@@ -191,10 +224,14 @@ export const notificationEventEnum =
       "LEAVE_SUBMITTED",
       "LEAVE_APPROVED",
       "LEAVE_REJECTED",
+      "LEAVE_CANCELLED",
+      "LEAVE_COMPLETED",
+      "LEAVE_EXPIRED",
       "LEAVE_EXTENSION_REQUESTED",
       "LEAVE_EXTENSION_APPROVED",
       "LEAVE_EXTENSION_REJECTED",
       "LEAVE_OVERDUE",
+      "PARENT_APPROVAL_REQUESTED",
       "QR_GENERATED",
       "QR_INVALIDATED",
     ]
@@ -226,6 +263,20 @@ export const smsProcessingStatusEnum =
   );
 
 // =====================================================
+// OUTBOX
+// =====================================================
+
+export const outboxStatusEnum = pgEnum(
+  "outbox_status",
+  [
+    "PENDING",
+    "PROCESSING",
+    "PROCESSED",
+    "FAILED",
+  ]
+);
+
+// =====================================================
 // SHEET SYNC
 // =====================================================
 
@@ -252,6 +303,7 @@ export const policyTypeEnum = pgEnum(
     "REQUIRE_PARENT_APPROVAL",
     "CURFEW_RESTRICTION",
     "MAX_EXTENSION_COUNT",
+    "FORM_FIELD_RESTRICTION",
   ]
 );
 
