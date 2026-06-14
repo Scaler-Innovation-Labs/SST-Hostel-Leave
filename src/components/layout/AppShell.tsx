@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { DashboardNavbar } from "./DashboardNavbar";
-import { DashboardSidebar } from "./DashboardSidebar";
+import { PageTransition } from "@/components/shared/PageTransition";
 
 type ShellNavItem = {
   label: string;
@@ -11,25 +11,25 @@ type ShellNavItem = {
 type AppShellProps = {
   children: ReactNode;
   items: ShellNavItem[];
+  logoHref?: string;
 };
 
 export function AppShell({
   children,
   items,
+  logoHref,
 }: AppShellProps) {
   return (
     <div className="min-h-screen bg-background">
-      <DashboardNavbar items={items} />
+      <DashboardNavbar items={items} logoHref={logoHref} />
 
-      <div className="flex">
-        <DashboardSidebar items={items} />
-
-        <main className="flex-1">
-          <div className="p-6">
+      <main className="flex-1">
+        <div className="p-4 sm:p-6">
+          <PageTransition>
             {children}
-          </div>
-        </main>
-      </div>
+          </PageTransition>
+        </div>
+      </main>
     </div>
   );
 }
