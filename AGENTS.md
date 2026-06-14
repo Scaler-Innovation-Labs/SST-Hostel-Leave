@@ -4,253 +4,573 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
+# SST Hostel Leave System
 
-You are working on a production-grade Next.js 15 App Router application called SST Hostel Leave System.
+## Agent Operating Manual
 
-This is NOT a toy project.
+This document is the authoritative engineering constitution for this repository.
 
-You MUST follow the architecture and constraints below EXACTLY.
+All contributors, AI coding agents, Copilot, Cursor, Claude Code, Aider, OpenCode, and future automation tools must follow these rules.
 
-# STACK
+If generated code conflicts with this document:
+
+**The generated code is wrong.**
+
+---
+
+# Mission
+
+Build a production-grade Hostel Leave & Movement Management Platform.
+
+The system must prioritize:
+
+1. Correctness
+2. Auditability
+3. Maintainability
+4. Extensibility
+5. Architectural Consistency
+
+Never optimize for short-term convenience.
+
+---
+
+# Technology Stack
 
 * Next.js App Router
 * TypeScript
+* Drizzle ORM
+* PostgreSQL
 * Tailwind CSS
 * shadcn/ui
 * Clerk Authentication
-* next-themes
-* Lucide Icons
 
-# PROJECT GOAL
+---
 
-This system manages:
+# Architecture Philosophy
 
-* hostel leave workflows
-* QR-based movement tracking
-* approval workflows
+The project follows:
+
+```text
+Route
+→ DTO Validation
+→ Service
+→ Repository
+→ Database
+```
+
+This flow is mandatory.
+
+Never bypass architectural layers.
+
+Forbidden:
+
+```text
+Route → Database
+Route → Drizzle
+Route → Repository
+Repository → Service
+Service → UI
+```
+
+---
+
+# Project Structure
+
+```text
+src/
+├── app/
+├── components/
+├── constants/
+├── db/
+│   ├── repositories/
+│   └── schema/
+├── dto/
+├── features/
+├── hooks/
+├── lib/
+├── providers/
+├── services/
+├── types/
+└── utils/
+```
+
+Follow existing structure.
+
+Do not introduce new top-level folders without strong justification.
+
+---
+
+# Domain Model
+
+Domains:
+
+```text
+auth
+academics
+hostel
+leave
+movement
+policy
+notification
+audit
+```
+
+Each domain owns:
+
+* schema
+* repositories
+* services
+* business rules
+
+Avoid cross-domain coupling.
+
+---
+
+# Critical Business Rules
+
+## Leave Approval Is Not Movement
+
+Leave:
+
+```text
+Permission
+```
+
+Movement:
+
+```text
+Reality
+```
+
+These systems must remain independent.
+
+---
+
+## Leave Extensions Are Not New Leaves
+
+Always use:
+
+```text
+leave_extensions
+```
+
+Never create a new leave request when extending an existing leave.
+
+---
+
+## Workflows Are Configuration Driven
+
+Always read workflow configuration from:
+
+```text
+workflow_definitions
+workflow_steps
+```
+
+Never hardcode:
+
+```text
+Parent → Warden
+POC → Warden
+Admin → Warden
+```
+
+Approval chains must come from configuration.
+
+---
+
+## Dynamic Forms
+
+Forms are driven by:
+
+```text
+leave_types.form_schema
+```
+
+and
+
+```text
+leave_requests.submitted_form
+```
+
+Never create database columns for individual leave form fields.
+
+---
+
+## Parents Are Not Auth Users
+
+Parents approve through:
+
+* SMS
+* Email
+
+Do not introduce parent login systems unless explicitly required.
+
+---
+
+## QR Rules
+
+QR represents authorization.
+
+QR does not represent:
+
+* movement history
+* leave history
+* workflow history
+
+QR payload should contain:
+
+```text
+token
+identifier
+```
+
+only.
+
+---
+
+## Movement Rules
+
+Movement history comes from:
+
+```text
+movement_events
+```
+
+Every movement transition creates a movement event.
+
+Never create alternative movement history systems.
+
+---
+
+# Layer Responsibilities
+
+## Routes
+
+Allowed:
+
+* authentication
+* authorization
+* validation
+* service invocation
+* response mapping
+
+Forbidden:
+
+* business logic
+* workflows
+* database queries
 * notifications
-* student/admin/poc dashboards
-
-The architecture must be scalable for future:
-
-* college OD workflows
-* attendance systems
-* multi-campus systems
-
-# ARCHITECTURE RULES
-
-## NEVER violate folder boundaries
-
-### components/
-
-ONLY reusable presentation/UI infrastructure.
-
-Examples:
-
-* Navbar
-* AppShell
-* ThemeToggle
-* DataTable
-
-NO business logic here.
 
 ---
 
-### features/
+## DTOs
 
-Domain-owned logic ONLY.
-
-Examples:
-
-* features/leaves
-* features/movements
-* features/notifications
-
-Each feature owns:
-
-* components
-* hooks
-* validators
-* actions
-* types
-* utils
-
-DO NOT leak feature-specific logic into global folders.
-
----
-
-### lib/
-
-Infrastructure and platform utilities ONLY.
-
-Examples:
-
-* auth
-* formatting
-* shared utilities
-* RBAC helpers
-
----
-
-### repositories/
-
-Database access ONLY.
-
-NO business logic.
-
-Repositories:
-
-* query data
-* insert/update/delete
-* persistence layer only
-
----
-
-### services/
-
-Business orchestration ONLY.
-
-Services:
-
-* approval flows
-* QR generation
-* workflow logic
-* notifications
-* policy enforcement
-
-NO direct UI logic.
-
----
-
-# IMPORT RULES
-
-* ALWAYS use @/ aliases
-* NEVER use ../../../ relative imports
-* NEVER create circular dependencies
-
----
-
-# UI SYSTEM RULES
-
-The design system is:
-
-* operational
-* cinematic
-* enterprise-grade
-* dark/light mode compatible
-
-DO NOT generate:
-
-* generic AI dashboards
-* oversized spacing
-* excessive gradients
-* floating random cards
-* Dribbble-style gimmicks
+DTOs define contracts.
 
 Use:
 
-* tight spacing rhythm
-* layered surfaces
-* subtle borders
-* muted backgrounds
-* operational hierarchy
+* Zod schemas
+* inferred types
 
-The UI should feel closer to:
-
-* Linear
-* Vercel
-* Ramp
-* Notion
-
-NOT:
-
-* crypto dashboards
-* SaaS template spam
-* AI-generated glassmorphism
+Every externally supplied payload must be validated.
 
 ---
 
-# ROUTING RULES
+## Services
 
-Use App Router correctly.
+Services own:
 
-Protected areas:
+* workflows
+* approvals
+* notifications
+* policy evaluation
+* QR generation
+* movement coordination
 
-* /(dashboard)
-
-Auth routes:
-
-* /(auth)
-
-Global authenticated pages:
-
-* /profile
-* /settings
-
-Role routes:
-
-* /student/*
-* /admin/*
-* /poc/*
-* /super-admin/*
+Services orchestrate repositories.
 
 ---
 
-# AUTH RULES
+## Repositories
 
-Clerk handles:
+Repositories own:
 
-* authentication
-* sessions
-* identity
+* select
+* insert
+* update
+* delete
 
-Internal system handles:
+Repositories must remain thin.
 
-* RBAC
-* permissions
-* hostel mapping
-* workflow permissions
+Forbidden:
 
-DO NOT use Clerk roles as primary RBAC.
-
----
-
-# CODE QUALITY RULES
-
-ALWAYS:
-
-* use proper TypeScript types
-* extract reusable logic
-* avoid duplicated UI
-* use semantic naming
-* keep files focused
-* keep components small
-* separate UI from business logic
-
-NEVER:
-
-* use any
-* hardcode role checks everywhere
-* mix layout logic with business logic
-* create giant components
-* put server logic in client components
+* workflows
+* notifications
+* approvals
+* QR generation
 
 ---
 
-# WHEN GENERATING CODE
+## Schema
 
-Before writing code:
+Schema files define persistence structure only.
 
-1. Identify architectural layer
-2. Identify ownership boundary
-3. Identify reusable pieces
-4. Keep future extensibility in mind
+Do not place business logic inside schema definitions.
 
-When refactoring:
+---
 
-* preserve behavior
-* improve separation of concerns
-* improve scalability
-* improve consistency
+# Naming Conventions
 
-You are acting as a senior frontend architect and platform engineer.
+## Folders
+
+```text
+kebab-case
+```
+
+Examples:
+
+```text
+leave
+movement
+notification
+```
+
+---
+
+## Files
+
+```text
+kebab-case
+```
+
+Examples:
+
+```text
+create-leave.dto.ts
+approve-leave.service.ts
+leave.repository.ts
+```
+
+---
+
+## Components
+
+```text
+PascalCase
+```
+
+Examples:
+
+```text
+DashboardCard.tsx
+ProfileMenu.tsx
+```
+
+---
+
+## Hooks
+
+```text
+camelCase
+```
+
+Examples:
+
+```ts
+useLeave()
+useDashboard()
+```
+
+---
+
+## Variables
+
+```text
+camelCase
+```
+
+---
+
+## Types
+
+```text
+PascalCase
+```
+
+---
+
+## Constants
+
+```text
+SCREAMING_SNAKE_CASE
+```
+
+---
+
+## Database
+
+```text
+snake_case
+```
+
+---
+
+# Import Rules
+
+Always use:
+
+```ts
+@/
+```
+
+Example:
+
+```ts
+import { leaveRepository } from "@/db/repositories/leave";
+```
+
+Never use:
+
+```text
+../../../
+```
+
+Avoid circular dependencies.
+
+---
+
+# TypeScript Standards
+
+Always:
+
+* use strict typing
+* use type imports
+* use explicit return types for exported functions
+* prefer inference when obvious
+
+Never use:
+
+```ts
+any
+```
+
+Use:
+
+```ts
+unknown
+```
+
+or proper types.
+
+---
+
+# Error Handling
+
+Never throw:
+
+```ts
+new Error(...)
+```
+
+Use domain errors:
+
+```text
+NotFoundError
+ValidationError
+ConflictError
+AuthorizationError
+AuthenticationError
+```
+
+---
+
+# API Standards
+
+Success:
+
+```json
+{
+  "success": true,
+  "data": {}
+}
+```
+
+Failure:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "",
+    "message": ""
+  }
+}
+```
+
+All APIs must use standardized response helpers.
+
+---
+
+# Refactoring Rules
+
+Before creating:
+
+* component
+* service
+* repository
+* utility
+* DTO
+
+Search for existing implementation.
+
+Prefer extension over duplication.
+
+---
+
+# Code Generation Rules
+
+Before generating code:
+
+1. Identify domain ownership
+2. Identify architectural layer
+3. Search for existing implementation
+4. Reuse existing patterns
+5. Follow naming conventions
+6. Respect domain boundaries
+
+---
+
+# Code Review Questions
+
+Before finalizing any change:
+
+* Does it belong in this layer?
+* Does it belong in this domain?
+* Is duplication introduced?
+* Is architecture preserved?
+* Is naming consistent?
+* Is the implementation maintainable?
+* Is the implementation extensible?
+
+If any answer is "No", revise the implementation.
+
+---
+
+# Definition Of Good Code
+
+Good code is:
+
+* explicit
+* predictable
+* maintainable
+* testable
+* extensible
+
+Favor:
+
+* clarity over cleverness
+* consistency over novelty
+* architecture over convenience
+
+Generate code that another engineer can confidently maintain six months from now.

@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  allowedDevOrigins: ["10.187.159.181", "10.70.225.181",'unregained-ledgy-charmaine.ngrok-free.dev',],
 };
 
 export default nextConfig;
