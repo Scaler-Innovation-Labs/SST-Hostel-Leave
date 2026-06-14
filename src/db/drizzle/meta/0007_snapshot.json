@@ -1,6 +1,6 @@
 {
-  "id": "757a29bb-959f-471d-8836-ed164154bac5",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "a193fe1b-d5a4-41ac-b8ac-4aa2f64ed8f8",
+  "prevId": "5ea8dfa7-b7de-4f26-8989-5e76153ef792",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -897,6 +897,108 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.parent_otp_sessions": {
+      "name": "parent_otp_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "otp_hash": {
+          "name": "otp_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verified_at": {
+          "name": "verified_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "pos_parent_id_idx": {
+          "name": "pos_parent_id_idx",
+          "columns": [
+            {
+              "expression": "parent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "pos_phone_idx": {
+          "name": "pos_phone_idx",
+          "columns": [
+            {
+              "expression": "phone",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "parent_otp_sessions_parent_id_parents_id_fk": {
+          "name": "parent_otp_sessions_parent_id_parents_id_fk",
+          "tableFrom": "parent_otp_sessions",
+          "tableTo": "parents",
+          "columnsFrom": [
+            "parent_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.parents": {
       "name": "parents",
       "schema": "",
@@ -1101,6 +1203,30 @@
           "primaryKey": false,
           "notNull": false
         },
+        "parent_approval_token": {
+          "name": "parent_approval_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_approval_otp_hash": {
+          "name": "parent_approval_otp_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_approval_expires_at": {
+          "name": "parent_approval_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_approval_verified_at": {
+          "name": "parent_approval_verified_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "metadata": {
           "name": "metadata",
           "type": "jsonb",
@@ -1196,6 +1322,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "la_parent_token_idx": {
+          "name": "la_parent_token_idx",
+          "columns": [
+            {
+              "expression": "parent_approval_token",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -1266,7 +1407,15 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "leave_approvals_parent_approval_token_unique": {
+          "name": "leave_approvals_parent_approval_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "parent_approval_token"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {
         "leave_approval_target_chk": {
@@ -2042,6 +2191,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "use_global_notification_rules": {
+          "name": "use_global_notification_rules",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
         "required_documents": {
           "name": "required_documents",
           "type": "jsonb",
@@ -2657,6 +2813,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "raw_token": {
+          "name": "raw_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "status": {
           "name": "status",
           "type": "qr_status",
@@ -3239,6 +3401,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "read_at": {
+          "name": "read_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "metadata": {
           "name": "metadata",
           "type": "jsonb",
@@ -3391,6 +3559,12 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "event_key": {
           "name": "event_key",
           "type": "text",
@@ -3464,6 +3638,13 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
+        "notification_templates_code_unique": {
+          "name": "notification_templates_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        },
         "notification_template_event_channel_unq": {
           "name": "notification_template_event_channel_unq",
           "nullsNotDistinct": false,
@@ -3655,6 +3836,378 @@
       },
       "isRLSEnabled": false
     },
+    "public.notification_rule_channels": {
+      "name": "notification_rule_channels",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "rule_id": {
+          "name": "rule_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "channel": {
+          "name": "channel",
+          "type": "notification_channel",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "notification_rule_channels_rule_id_notification_rules_id_fk": {
+          "name": "notification_rule_channels_rule_id_notification_rules_id_fk",
+          "tableFrom": "notification_rule_channels",
+          "tableTo": "notification_rules",
+          "columnsFrom": [
+            "rule_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "notification_rule_channel_unq": {
+          "name": "notification_rule_channel_unq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "rule_id",
+            "channel"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.notification_rule_recipients": {
+      "name": "notification_rule_recipients",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "rule_id": {
+          "name": "rule_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient_type": {
+          "name": "recipient_type",
+          "type": "notification_recipient_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "notification_rule_recipients_rule_id_notification_rules_id_fk": {
+          "name": "notification_rule_recipients_rule_id_notification_rules_id_fk",
+          "tableFrom": "notification_rule_recipients",
+          "tableTo": "notification_rules",
+          "columnsFrom": [
+            "rule_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "notification_rule_recipient_unq": {
+          "name": "notification_rule_recipient_unq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "rule_id",
+            "recipient_type"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.notification_rules": {
+      "name": "notification_rules",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "leave_type_id": {
+          "name": "leave_type_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "notification_event",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "template_id": {
+          "name": "template_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "custom_recipients": {
+          "name": "custom_recipients",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "notification_rules_leave_type_event_idx": {
+          "name": "notification_rules_leave_type_event_idx",
+          "columns": [
+            {
+              "expression": "leave_type_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "event_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "notification_rules_leave_type_id_leave_types_id_fk": {
+          "name": "notification_rules_leave_type_id_leave_types_id_fk",
+          "tableFrom": "notification_rules",
+          "tableTo": "leave_types",
+          "columnsFrom": [
+            "leave_type_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notification_rules_template_id_notification_templates_id_fk": {
+          "name": "notification_rules_template_id_notification_templates_id_fk",
+          "tableFrom": "notification_rules",
+          "tableTo": "notification_templates",
+          "columnsFrom": [
+            "template_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.outbox_events": {
+      "name": "outbox_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aggregate_type": {
+          "name": "aggregate_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aggregate_id": {
+          "name": "aggregate_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payload": {
+          "name": "payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "outbox_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "attempt_count": {
+          "name": "attempt_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "last_error": {
+          "name": "last_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "processed_at": {
+          "name": "processed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "outbox_events_status_idx": {
+          "name": "outbox_events_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "outbox_events_created_at_idx": {
+          "name": "outbox_events_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "outbox_events_aggregate_idx": {
+          "name": "outbox_events_aggregate_idx",
+          "columns": [
+            {
+              "expression": "aggregate_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "aggregate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "outbox_events_event_type_idx": {
+          "name": "outbox_events_event_type_idx",
+          "columns": [
+            {
+              "expression": "event_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.policies": {
       "name": "policies",
       "schema": "",
@@ -3695,6 +4248,18 @@
         "hostel_id": {
           "name": "hostel_id",
           "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "department_id": {
+          "name": "department_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "batch_year": {
+          "name": "batch_year",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false
         },
@@ -3790,6 +4355,36 @@
           "method": "btree",
           "with": {}
         },
+        "policies_department_id_idx": {
+          "name": "policies_department_id_idx",
+          "columns": [
+            {
+              "expression": "department_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "policies_batch_year_idx": {
+          "name": "policies_batch_year_idx",
+          "columns": [
+            {
+              "expression": "batch_year",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "policies_is_active_idx": {
           "name": "policies_is_active_idx",
           "columns": [
@@ -3841,6 +4436,19 @@
           "tableTo": "hostels",
           "columnsFrom": [
             "hostel_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "policies_department_id_departments_id_fk": {
+          "name": "policies_department_id_departments_id_fk",
+          "tableFrom": "policies",
+          "tableTo": "departments",
+          "columnsFrom": [
+            "department_id"
           ],
           "columnsTo": [
             "id"
@@ -4016,6 +4624,13 @@
           "notNull": true,
           "default": false
         },
+        "approval_method": {
+          "name": "approval_method",
+          "type": "approval_method",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
         "is_required": {
           "name": "is_required",
           "type": "boolean",
@@ -4122,6 +4737,17 @@
     }
   },
   "enums": {
+    "public.approval_method": {
+      "name": "approval_method",
+      "schema": "public",
+      "values": [
+        "SMS_REPLY",
+        "SMS_AND_LINK",
+        "SMS_LINK",
+        "PORTAL",
+        "AUTO"
+      ]
+    },
     "public.approval_source": {
       "name": "approval_source",
       "schema": "public",
@@ -4129,7 +4755,10 @@
         "WEB",
         "SMS",
         "MANUAL",
-        "SYSTEM"
+        "SYSTEM",
+        "PORTAL",
+        "SMS_REPLY",
+        "EMAIL_LINK"
       ]
     },
     "public.audit_action": {
@@ -4263,7 +4892,8 @@
         "EMAIL",
         "SMS",
         "PUSH",
-        "WEBHOOK"
+        "WEBHOOK",
+        "SLACK"
       ]
     },
     "public.notification_delivery_status": {
@@ -4284,12 +4914,41 @@
         "LEAVE_SUBMITTED",
         "LEAVE_APPROVED",
         "LEAVE_REJECTED",
+        "LEAVE_CANCELLED",
+        "LEAVE_COMPLETED",
+        "LEAVE_EXPIRED",
         "LEAVE_EXTENSION_REQUESTED",
         "LEAVE_EXTENSION_APPROVED",
         "LEAVE_EXTENSION_REJECTED",
         "LEAVE_OVERDUE",
+        "PARENT_APPROVAL_REQUESTED",
         "QR_GENERATED",
         "QR_INVALIDATED"
+      ]
+    },
+    "public.notification_recipient_type": {
+      "name": "notification_recipient_type",
+      "schema": "public",
+      "values": [
+        "STUDENT",
+        "PARENT",
+        "CURRENT_APPROVER",
+        "PREVIOUS_APPROVER",
+        "ALL_APPROVERS",
+        "WARDEN",
+        "POC",
+        "ADMIN",
+        "SUPER_ADMIN"
+      ]
+    },
+    "public.outbox_status": {
+      "name": "outbox_status",
+      "schema": "public",
+      "values": [
+        "PENDING",
+        "PROCESSING",
+        "PROCESSED",
+        "FAILED"
       ]
     },
     "public.policy_type": {
@@ -4301,7 +4960,8 @@
         "RESTRICT_BATCH",
         "REQUIRE_PARENT_APPROVAL",
         "CURFEW_RESTRICTION",
-        "MAX_EXTENSION_COUNT"
+        "MAX_EXTENSION_COUNT",
+        "FORM_FIELD_RESTRICTION"
       ]
     },
     "public.qr_scan_result": {

@@ -1,6 +1,6 @@
 {
-  "id": "757a29bb-959f-471d-8836-ed164154bac5",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "6a31ea01-a8fa-4593-ae66-713380dca679",
+  "prevId": "351f0308-7418-4224-9d69-01a173ce2103",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1101,6 +1101,30 @@
           "primaryKey": false,
           "notNull": false
         },
+        "parent_approval_token": {
+          "name": "parent_approval_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_approval_otp_hash": {
+          "name": "parent_approval_otp_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_approval_expires_at": {
+          "name": "parent_approval_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_approval_verified_at": {
+          "name": "parent_approval_verified_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "metadata": {
           "name": "metadata",
           "type": "jsonb",
@@ -1196,6 +1220,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "la_parent_token_idx": {
+          "name": "la_parent_token_idx",
+          "columns": [
+            {
+              "expression": "parent_approval_token",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -1266,7 +1305,15 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "leave_approvals_parent_approval_token_unique": {
+          "name": "leave_approvals_parent_approval_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "parent_approval_token"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {
         "leave_approval_target_chk": {
@@ -3655,6 +3702,151 @@
       },
       "isRLSEnabled": false
     },
+    "public.outbox_events": {
+      "name": "outbox_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aggregate_type": {
+          "name": "aggregate_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aggregate_id": {
+          "name": "aggregate_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payload": {
+          "name": "payload",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "outbox_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "attempt_count": {
+          "name": "attempt_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "last_error": {
+          "name": "last_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "processed_at": {
+          "name": "processed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "outbox_events_status_idx": {
+          "name": "outbox_events_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "outbox_events_created_at_idx": {
+          "name": "outbox_events_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "outbox_events_aggregate_idx": {
+          "name": "outbox_events_aggregate_idx",
+          "columns": [
+            {
+              "expression": "aggregate_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "aggregate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "outbox_events_event_type_idx": {
+          "name": "outbox_events_event_type_idx",
+          "columns": [
+            {
+              "expression": "event_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.policies": {
       "name": "policies",
       "schema": "",
@@ -4016,6 +4208,13 @@
           "notNull": true,
           "default": false
         },
+        "approval_method": {
+          "name": "approval_method",
+          "type": "approval_method",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
         "is_required": {
           "name": "is_required",
           "type": "boolean",
@@ -4122,6 +4321,17 @@
     }
   },
   "enums": {
+    "public.approval_method": {
+      "name": "approval_method",
+      "schema": "public",
+      "values": [
+        "PORTAL",
+        "OTP",
+        "SMS_REPLY",
+        "EMAIL_LINK",
+        "AUTO"
+      ]
+    },
     "public.approval_source": {
       "name": "approval_source",
       "schema": "public",
@@ -4129,7 +4339,10 @@
         "WEB",
         "SMS",
         "MANUAL",
-        "SYSTEM"
+        "SYSTEM",
+        "PORTAL",
+        "SMS_REPLY",
+        "EMAIL_LINK"
       ]
     },
     "public.audit_action": {
@@ -4284,12 +4497,26 @@
         "LEAVE_SUBMITTED",
         "LEAVE_APPROVED",
         "LEAVE_REJECTED",
+        "LEAVE_CANCELLED",
+        "LEAVE_COMPLETED",
+        "LEAVE_EXPIRED",
         "LEAVE_EXTENSION_REQUESTED",
         "LEAVE_EXTENSION_APPROVED",
         "LEAVE_EXTENSION_REJECTED",
         "LEAVE_OVERDUE",
+        "PARENT_APPROVAL_REQUESTED",
         "QR_GENERATED",
         "QR_INVALIDATED"
+      ]
+    },
+    "public.outbox_status": {
+      "name": "outbox_status",
+      "schema": "public",
+      "values": [
+        "PENDING",
+        "PROCESSING",
+        "PROCESSED",
+        "FAILED"
       ]
     },
     "public.policy_type": {

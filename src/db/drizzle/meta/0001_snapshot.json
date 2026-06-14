@@ -1,6 +1,6 @@
 {
-  "id": "757a29bb-959f-471d-8836-ed164154bac5",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "bebc1170-f992-4d7d-bc1f-a4b9c86cb847",
+  "prevId": "757a29bb-959f-471d-8836-ed164154bac5",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1101,6 +1101,30 @@
           "primaryKey": false,
           "notNull": false
         },
+        "parent_approval_token": {
+          "name": "parent_approval_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_approval_otp_hash": {
+          "name": "parent_approval_otp_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_approval_expires_at": {
+          "name": "parent_approval_expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "parent_approval_verified_at": {
+          "name": "parent_approval_verified_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "metadata": {
           "name": "metadata",
           "type": "jsonb",
@@ -1196,6 +1220,21 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "la_parent_token_idx": {
+          "name": "la_parent_token_idx",
+          "columns": [
+            {
+              "expression": "parent_approval_token",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -1266,7 +1305,15 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "leave_approvals_parent_approval_token_unique": {
+          "name": "leave_approvals_parent_approval_token_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "parent_approval_token"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {
         "leave_approval_target_chk": {
@@ -4284,10 +4331,14 @@
         "LEAVE_SUBMITTED",
         "LEAVE_APPROVED",
         "LEAVE_REJECTED",
+        "LEAVE_CANCELLED",
+        "LEAVE_COMPLETED",
+        "LEAVE_EXPIRED",
         "LEAVE_EXTENSION_REQUESTED",
         "LEAVE_EXTENSION_APPROVED",
         "LEAVE_EXTENSION_REJECTED",
         "LEAVE_OVERDUE",
+        "PARENT_APPROVAL_REQUESTED",
         "QR_GENERATED",
         "QR_INVALIDATED"
       ]

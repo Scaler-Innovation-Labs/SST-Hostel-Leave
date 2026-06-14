@@ -20,6 +20,7 @@ import {
 } from "./auth";
 import {
   hostels,
+  parentOtpSessions,
   parents,
 } from "./hostel";
 import {
@@ -27,7 +28,6 @@ import {
   leaveDocuments,
   leaveExtensions,
   leaveRequests,
-  leaveTypeApprovalSteps,
   leaveTypes,
   operationalPeriods,
 } from "./leave";
@@ -40,11 +40,24 @@ import {
 import {
   inboundSmsLogs,
   notificationLogs,
+  notificationTemplates,
   sheetSyncLogs,
 } from "./notification";
 import {
+  notificationRuleChannels,
+  notificationRuleRecipients,
+  notificationRules,
+} from "./notification-rules";
+import {
+  outboxEvents,
+} from "./outbox";
+import {
   policies,
 } from "./policy";
+import {
+  workflowDefinitions,
+  workflowSteps,
+} from "./workflow";
 
 // =====================================================
 // AUTH RELATIONS
@@ -68,8 +81,6 @@ export const usersRelations = relations(users, ({ many }) => ({
 
 export const rolesRelations = relations(roles, ({ many }) => ({
   userRoles: many(userRoles),
-
-  approvalSteps: many(leaveTypeApprovalSteps),
 
   leaveApprovals: many(leaveApprovals),
 }));
@@ -166,6 +177,18 @@ export const parentsRelations = relations(
     inboundSmsLogs: many(inboundSmsLogs),
 
     notificationLogs: many(notificationLogs),
+
+    otpSessions: many(parentOtpSessions),
+  })
+);
+
+export const parentOtpSessionsRelations = relations(
+  parentOtpSessions,
+  ({ one }) => ({
+    parent: one(parents, {
+      fields: [parentOtpSessions.parentId],
+      references: [parents.id],
+    }),
   })
 );
 
@@ -175,30 +198,19 @@ export const parentsRelations = relations(
 
 export const leaveTypesRelations = relations(
   leaveTypes,
-  ({ many }) => ({
-    approvalSteps: many(leaveTypeApprovalSteps),
+  ({ one, many }) => ({
+    defaultWorkflow: one(workflowDefinitions, {
+      fields: [leaveTypes.defaultWorkflowId],
+      references: [workflowDefinitions.id],
+    }),
 
     leaveRequests: many(leaveRequests),
 
     policies: many(policies),
+
+    notificationRules: many(notificationRules),
   })
 );
-
-export const leaveTypeApprovalStepsRelations =
-  relations(
-    leaveTypeApprovalSteps,
-    ({ one }) => ({
-      leaveType: one(leaveTypes, {
-        fields: [leaveTypeApprovalSteps.leaveTypeId],
-        references: [leaveTypes.id],
-      }),
-
-      approverRole: one(roles, {
-        fields: [leaveTypeApprovalSteps.approverRoleId],
-        references: [roles.id],
-      }),
-    })
-  );
 
 export const leaveRequestsRelations = relations(
   leaveRequests,
@@ -474,6 +486,56 @@ export const inboundSmsLogsRelations =
     })
   );
 
+export const notificationRulesRelations =
+  relations(
+    notificationRules,
+    ({ many, one }) => ({
+      recipients: many(notificationRuleRecipients),
+
+      channels: many(notificationRuleChannels),
+
+      template: one(notificationTemplates, {
+        fields: [notificationRules.templateId],
+        references: [notificationTemplates.id],
+      }),
+
+      leaveType: one(leaveTypes, {
+        fields: [notificationRules.leaveTypeId],
+        references: [leaveTypes.id],
+      }),
+    })
+  );
+
+export const notificationRuleRecipientsRelations =
+  relations(
+    notificationRuleRecipients,
+    ({ one }) => ({
+      rule: one(notificationRules, {
+        fields: [notificationRuleRecipients.ruleId],
+        references: [notificationRules.id],
+      }),
+    })
+  );
+
+export const notificationRuleChannelsRelations =
+  relations(
+    notificationRuleChannels,
+    ({ one }) => ({
+      rule: one(notificationRules, {
+        fields: [notificationRuleChannels.ruleId],
+        references: [notificationRules.id],
+      }),
+    })
+  );
+
+export const notificationTemplatesRelations =
+  relations(
+    notificationTemplates,
+    ({ many }) => ({
+      rules: many(notificationRules),
+    })
+  );
+
 export const sheetSyncLogsRelations = relations(
   sheetSyncLogs,
   ({ one }) => ({
@@ -501,4 +563,50 @@ export const auditLogsRelations = relations(
       references: [users.id],
     }),
   })
+);
+
+
+// =====================================================
+// WORKFLOW RELATIONS
+// =====================================================
+export const workflowDefinitionsRelations =
+  relations(
+    workflowDefinitions,
+    ({ many }) => ({
+      steps: many(workflowSteps),
+      leaveTypes: many(leaveTypes),
+    })
+  );
+
+export const workflowStepsRelations =
+  relations(
+    workflowSteps,
+    ({ one }) => ({
+      workflowDefinition: one(
+        workflowDefinitions,
+        {
+          fields: [
+            workflowSteps.workflowDefinitionId,
+          ],
+          references: [
+            workflowDefinitions.id,
+          ],
+        }
+      ),
+
+      approverRole: one(
+        roles,
+        {
+          fields: [
+            workflowSteps.approverRoleId,
+          ],
+          references: [roles.id],
+        }
+      ),
+    })
+  );
+
+export const outboxEventsRelations = relations(
+  outboxEvents,
+  () => ({})
 );

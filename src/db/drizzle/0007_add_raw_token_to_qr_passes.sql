@@ -1,0 +1,1 @@
+ALTER TABLE "qr_passes" ADD COLUMN "raw_token" text;
