@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { SWRConfig } from "swr";
 
-interface SWRProviderProps {
+type SWRProviderProps = {
   children: ReactNode;
 }
 
