@@ -1,0 +1,18 @@
+export const MOVEMENT_STATES = [
+	"IN_HOSTEL",
+	"APPROVED_LEAVE",
+	"CHECKED_OUT",
+	"OUTSIDE_HOSTEL",
+	"OVERDUE",
+] as const;
+
+export type MovementState =
+	(typeof MOVEMENT_STATES)[number];
+
+export const MOVEMENT_STATE = {
+	IN_HOSTEL: "IN_HOSTEL",
+	APPROVED_LEAVE: "APPROVED_LEAVE",
+	CHECKED_OUT: "CHECKED_OUT",
+	OUTSIDE_HOSTEL: "OUTSIDE_HOSTEL",
+	OVERDUE: "OVERDUE",
+} as const;
