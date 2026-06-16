@@ -1,16 +1,7 @@
 import type { ListStudentsQuery } from "@/dto/student/list-students.dto";
+import { buildQueryString } from "@/lib/api/query-string";
 
 const BASE = "/api/v1";
-
-function buildQueryString(params: Record<string, string | number | undefined>): string {
-  const searchParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") {
-      searchParams.set(key, String(value));
-    }
-  }
-  return searchParams.toString();
-}
 
 export function getStudentsUrl(query?: Partial<ListStudentsQuery>): string {
   const qs = buildQueryString({
