@@ -16,7 +16,7 @@ const formFieldSchema = z.object({
 const LEAVE_CATEGORIES = ["HOME_PASS", "MEDICAL", "LOCAL_OUTING", "NIGHT_OUT"] as const;
 const WORKFLOW_MODES = ["HOSTEL", "ACADEMIC"] as const;
 
-export const saveLeaveTypeSchema = z.object({
+const leaveTypeBaseSchema = z.object({
   code: z.string().min(2).max(50).transform((v) => v.toUpperCase().replace(/\s+/g, "_")),
   name: z.string().min(2).max(200),
   category: z.enum(LEAVE_CATEGORIES),
@@ -30,10 +30,15 @@ export const saveLeaveTypeSchema = z.object({
     fields: z.array(formFieldSchema).min(1, "At least one form field is required"),
   }),
   policyConfig: z.record(z.string(), z.unknown()).optional().nullable().default({}),
-}).refine(
+});
+
+export const createLeaveTypeSchema = leaveTypeBaseSchema.refine(
   (data) => !data.allowExtensions || (data.maxExtensionCount != null && data.maxExtensionCount > 0),
   { message: "maxExtensionCount is required when extensions are allowed", path: ["maxExtensionCount"] },
 );
 
+export const saveLeaveTypeSchema = leaveTypeBaseSchema;
+
+export type CreateLeaveTypeDto = z.infer<typeof createLeaveTypeSchema>;
 export type SaveLeaveTypeDto = z.infer<typeof saveLeaveTypeSchema>;
 export default saveLeaveTypeSchema;

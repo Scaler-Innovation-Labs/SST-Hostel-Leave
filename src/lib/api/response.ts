@@ -1,5 +1,6 @@
 import { ZodError } from "zod";
 
+import { logger } from "@/lib/logger";
 import { AppError } from "@/lib/errors/app-error";
 
 export class ApiResponse {
@@ -39,6 +40,7 @@ export class ApiResponse {
       return this.error("VALIDATION_ERROR", error.message, 400);
     }
 
+    logger.error("Unhandled API error", { error: error instanceof Error ? error.message : String(error) });
     return this.error("INTERNAL_ERROR", "An unexpected error occurred", 500);
   }
 }
