@@ -2,6 +2,7 @@
 
 import { Upload } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { uploadLeaveDocument } from "@/lib/api/leave-api";
 
@@ -44,9 +45,12 @@ export function DocumentUpload({ leaveId, onUploadSuccess, disabled }: DocumentU
     setUploading(true);
     try {
       await uploadLeaveDocument(leaveId, file, "GENERAL");
+      toast.success("Document uploaded");
       onUploadSuccess();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      toast.error(msg);
+      setError(msg);
     } finally {
       setUploading(false);
     }

@@ -20,7 +20,7 @@ export type NavigationItem = {
   icon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
 };
 
-export const navigation = {
+export const NAVIGATION = {
   landing: [
     {
       label: "Features",

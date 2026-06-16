@@ -5,7 +5,7 @@ import { HeroSection } from "@/components/marketing/HeroSection";
 import { ProductPreviewSection } from "@/components/marketing/ProductPreviewSection";
 import { WorkflowSection } from "@/components/marketing/WorkflowSection";
 import { Logo } from "@/components/shared/Logo";
-import { navigation } from "@/constants/navigation";
+import { NAVIGATION } from "@/constants/navigation";
 
 export default function HomePage() {
   return (
@@ -13,7 +13,7 @@ export default function HomePage() {
       <BackgroundLayer />
 
       <Navbar
-        items={navigation.landing}
+        items={NAVIGATION.landing}
         logo={<Logo />}
       />
 

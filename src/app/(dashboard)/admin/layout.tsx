@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { navigation } from "@/constants/navigation";
+import { NAVIGATION } from "@/constants/navigation";
 import { ROUTES } from "@/constants/routes";
 import { requireRole } from "@/lib/auth/authorization";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
@@ -23,7 +23,7 @@ export default async function AdminLayout({
   requireRole(user, ROLES.ADMIN);
 
   const shellItems =
-    navigation.admin.map(
+    NAVIGATION.admin.map(
       ({ label, href }) => ({
         label,
         href,

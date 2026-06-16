@@ -2,8 +2,9 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
@@ -41,6 +42,7 @@ export default function NewLeavePage() {
     register,
     handleSubmit,
     watch,
+    unregister,
     formState: { errors },
   } = useForm<CreateLeaveFormDto>({
     resolver: zodResolver(createLeaveFormSchema),
@@ -57,6 +59,10 @@ export default function NewLeavePage() {
     (leaveType: LeaveTypeItem) => leaveType.id === selectedLeaveTypeId,
   );
   const dynamicSchema = parseLeaveFormSchema(selectedLeaveType?.formSchema);
+
+  useEffect(() => {
+    unregister("submittedForm");
+  }, [selectedLeaveTypeId, unregister]);
 
   if (typesLoading) return <LoadingState count={3} />;
   if (typesError) return <ErrorState message="Failed to load leave types" />;
@@ -80,17 +86,16 @@ export default function NewLeavePage() {
 
     const result = await createLeave(payload) as { id?: string };
 
+    toast.success("Leave request submitted");
     if (result?.id) {
       router.push(`/student/leaves/${result.id}`);
     } else {
       router.push(ROUTES.STUDENT_LEAVES);
     }
   } catch (err) {
-    setSubmitError(
-      err instanceof Error
-        ? err.message
-        : "Failed to create leave"
-    );
+    const message = err instanceof Error ? err.message : "Failed to create leave";
+    toast.error(message);
+    setSubmitError(message);
   } finally {
     setSubmitting(false);
   }
