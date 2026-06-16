@@ -1,17 +1,13 @@
+import listQrPassesSchema from "@/dto/movement/list-qr-passes.dto";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
 import { listQrPasses } from "@/services/movement/list-qr-passes.service";
-import { z } from "zod";
-
-const listQrPassesSchema = z.object({
-  leaveRequestId: z.string().uuid(),
-});
 
 export async function GET(request: Request) {
   try {
-    requireAnyRole(await requireAuth(), [
+    const currentUser = requireAnyRole(await requireAuth(), [
       ROLES.STUDENT,
       ROLES.POC,
       ROLES.ADMIN,
@@ -23,7 +19,7 @@ export async function GET(request: Request) {
       Object.fromEntries(url.searchParams),
     );
 
-    const qrPasses = await listQrPasses(query.leaveRequestId);
+    const qrPasses = await listQrPasses(query.leaveRequestId, currentUser);
 
     return ApiResponse.success(qrPasses);
   } catch (error) {

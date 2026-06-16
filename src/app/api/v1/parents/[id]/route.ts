@@ -1,43 +1,38 @@
+import updateParentSchema from "@/dto/admin/update-parent.dto";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
 import { parentManagementService } from "@/services/admin/parent-management.service";
 
-export async function GET(
-  _request: Request,
-  routeContext: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
-
-    const { id } = await routeContext.params;
-    const result = await parentManagementService.getById(id);
-
-    return ApiResponse.success(result);
+    const { id } = await params;
+    return ApiResponse.success(await parentManagementService.getById(id));
   } catch (error) {
     return ApiResponse.fromError(error);
   }
 }
 
-export async function PUT(
-  request: Request,
-  routeContext: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
-
-    const { id } = await routeContext.params;
-    const body = await request.json();
-    const { updateParentSchema } = await import("@/dto/admin/update-parent.dto");
-    const dto = updateParentSchema.parse(body);
-
-    const result = await parentManagementService.update(id, dto);
-
-    return ApiResponse.success(result);
+    const { id } = await params;
+    const dto = updateParentSchema.parse(await request.json());
+    return ApiResponse.success(await parentManagementService.update(id, dto));
   } catch (error) {
     return ApiResponse.fromError(error);
   }
 }
 
-export const runtime = "edge";
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const { id } = await params;
+    await parentManagementService.delete(id);
+    return ApiResponse.success({ deleted: true });
+  } catch (error) {
+    return ApiResponse.fromError(error);
+  }
+}

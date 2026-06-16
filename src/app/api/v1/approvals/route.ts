@@ -7,7 +7,7 @@ import { listApprovals } from "@/services/approval/list-approvals.service";
 
 export async function GET(request: Request) {
   try {
-    requireAnyRole(await requireAuth(), [
+    const currentUser = requireAnyRole(await requireAuth(), [
       ROLES.STUDENT,
       ROLES.POC,
       ROLES.ADMIN,
@@ -17,12 +17,10 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const query = listApprovalsSchema.parse(Object.fromEntries(url.searchParams));
 
-    const result = await listApprovals(query);
+    const result = await listApprovals(query, currentUser);
 
     return ApiResponse.success(result);
   } catch (error) {
     return ApiResponse.fromError(error);
   }
 }
-
-export const runtime = "edge";

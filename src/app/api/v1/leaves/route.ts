@@ -7,7 +7,6 @@ import { ROLES } from "@/lib/auth/roles";
 import { createLeave } from "@/services/leave/create-leave.service";
 import { listLeaves } from "@/services/leave/list-leaves.service";
 
-export const runtime = "edge";
 
 export async function GET(request: Request) {
   try {
