@@ -2,6 +2,7 @@
 
 import { FileText, Image, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import { ErrorState } from "@/components/shared/ErrorState";
@@ -38,9 +39,10 @@ export function DocumentList({ leaveId, canDelete = false }: DocumentListProps) 
     setDeletingId(confirmDeleteId);
     try {
       await deleteLeaveDocument(leaveId, confirmDeleteId);
+      toast.success("Document deleted");
       await mutate();
     } catch {
-      // Error handled silently
+      toast.error("Failed to delete document");
     } finally {
       setDeletingId(null);
       setConfirmDeleteId(null);

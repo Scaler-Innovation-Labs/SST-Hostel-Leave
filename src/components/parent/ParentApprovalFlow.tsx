@@ -186,7 +186,7 @@ export function ParentApprovalFlow({ token }: { token: string }) {
 
             <Button
               onClick={handleSendOtp}
-              disabled={phone.length < 10 || submitting}
+              disabled={!/^(\+91)?\d{10}$/.test(phone.replace(/\s/g, "")) || submitting}
               className="w-full"
             >
               {submitting ? "Sending..." : "Send OTP"}

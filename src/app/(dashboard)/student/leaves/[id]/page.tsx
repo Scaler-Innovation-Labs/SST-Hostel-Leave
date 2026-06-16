@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import useSWR from "swr";
 
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
@@ -171,7 +172,7 @@ function SectionCard({
   );
 }
 
-function ApprovalTimeline({ leaveId }: { leaveId: string }) {
+function ApprovalTimeline({ leaveId, leaveStatus }: { leaveId: string; leaveStatus: string }) {
   const { approvals, isLoading, isError } = useApprovalChain(leaveId);
 
   if (isLoading)
@@ -209,6 +210,8 @@ function ApprovalTimeline({ leaveId }: { leaveId: string }) {
         const decision = (app.decision ?? "pending").toLowerCase();
         const isLast = i === sorted.length - 1;
         const isPending = decision === "pending";
+        const isCancelled = decision === "cancelled"
+          || decision === "pending" && leaveStatus === "cancelled";
         const isApproved = decision === "approved" || decision === "APPROVED";
         const isRejected = decision === "rejected" || decision === "REJECTED";
 
@@ -222,15 +225,18 @@ function ApprovalTimeline({ leaveId }: { leaveId: string }) {
                     ? "border-emerald-500 bg-emerald-500/10"
                     : isRejected
                       ? "border-red-500 bg-red-500/10"
-                      : isPending
-                        ? "border-amber-500 bg-amber-500/10"
-                        : "border-border bg-muted",
+                      : isCancelled
+                        ? "border-muted-foreground/30 bg-muted/30"
+                        : isPending
+                          ? "border-amber-500 bg-amber-500/10"
+                          : "border-border bg-muted",
                 )}
               >
                 {isApproved && (
                   <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                 )}
                 {isRejected && <XCircle className="h-4 w-4 text-red-500" />}
+                {isCancelled && <XCircle className="h-4 w-4 text-muted-foreground" />}
                 {isPending && <Clock className="h-4 w-4 text-amber-500" />}
               </div>
               {!isLast && <div className="h-full w-px bg-border" />}
@@ -247,14 +253,18 @@ function ApprovalTimeline({ leaveId }: { leaveId: string }) {
                       ? "success"
                       : isRejected
                         ? "error"
-                        : "warning"
+                        : isCancelled
+                          ? "muted"
+                          : "warning"
                   }
                 >
                   {isApproved
                     ? "Approved"
                     : isRejected
                       ? "Rejected"
-                      : "Pending"}
+                      : isCancelled
+                        ? "Cancelled"
+                        : "Pending"}
                 </StatusChip>
               </div>
 
@@ -429,10 +439,12 @@ function QRPassSection({
       } | null;
       if (result?.passId && result?.token) {
         storeToken(result.passId, result.token, leaveId);
+        toast.success("QR pass generated");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
       if (!msg.includes("already exists")) {
+        toast.error(msg || "Failed to generate QR");
         setQrError(msg || "Failed to generate QR");
       }
     } finally {
@@ -942,9 +954,11 @@ export default function StudentLeaveDetailPage() {
     setCancelling(true);
     try {
       await cancelLeave(id);
+      toast.success("Leave cancelled");
       await mutate();
       setShowCancel(false);
     } catch {
+      toast.error("Failed to cancel leave");
     } finally {
       setCancelling(false);
     }
@@ -973,18 +987,12 @@ export default function StudentLeaveDetailPage() {
   const isCompleted = status === "completed" || status === "expired" || status === "cancelled";
   const isCancellable = status === "pending" || isApproved;
 
-  const raw = leave._raw;
-  const rawLeave = (raw?.leave ?? {}) as Record<string, unknown>;
-  const rawUser = (raw?.user ?? {}) as Record<string, unknown>;
-  const rawStudent = (raw?.student ?? {}) as Record<string, unknown>;
-
   const studentName =
-    (rawUser.fullName as string) ||
-    `${leave.studentFirstName ?? ""} ${leave.studentLastName ?? ""}`.trim() ||
-    "";
-  const rollNumber = (rawStudent.rollNumber as string) ?? "—";
-  const email = (rawUser.email as string) ?? "";
-  const phone = (rawUser.phone as string) ?? "";
+    leave.userFullName ??
+    (`${leave.studentFirstName ?? ""} ${leave.studentLastName ?? ""}`.trim() || "");
+  const rollNumber = leave.studentRollNumber ?? "—";
+  const email = leave.userEmail ?? "";
+  const phone = leave.userPhone ?? "";
 
   return (
     <div className="space-y-6">
@@ -1140,26 +1148,6 @@ export default function StudentLeaveDetailPage() {
                   />
                 </dd>
               </div>
-              {(rawLeave.workflowKey ? (
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Workflow
-                  </dt>
-                  <dd className="mt-1 text-sm">
-                    {rawLeave.workflowKey as string}
-                  </dd>
-                </div>
-              ) : null)}
-              {(rawLeave.policyVersion ? (
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Policy Version
-                  </dt>
-                  <dd className="mt-1 text-sm">
-                    v{rawLeave.policyVersion as string}
-                  </dd>
-                </div>
-              ) : null)}
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Start Date
@@ -1196,14 +1184,6 @@ export default function StudentLeaveDetailPage() {
               </div>
               <div className="sm:col-span-2">
                 <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Destination
-                </dt>
-                <dd className="mt-1 text-sm">
-                  {(rawLeave.destinationAddress as string) ?? "—"}
-                </dd>
-              </div>
-              <div className="sm:col-span-2">
-                <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Reason
                 </dt>
                 <dd className="mt-1 rounded-lg bg-muted/50 p-3 text-sm leading-relaxed">
@@ -1215,7 +1195,7 @@ export default function StudentLeaveDetailPage() {
 
           {/* Section 2 — Approval Timeline */}
           <SectionCard title="Approval Timeline" icon={CheckCircle2}>
-            <ApprovalTimeline leaveId={id} />
+            <ApprovalTimeline leaveId={id} leaveStatus={status} />
           </SectionCard>
         </div>
 

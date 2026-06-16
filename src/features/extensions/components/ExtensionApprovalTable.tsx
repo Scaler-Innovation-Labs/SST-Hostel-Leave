@@ -71,7 +71,8 @@ export function ExtensionApprovalTable({
       });
       setActionTarget(null);
       onMutate();
-    } catch {
+    } catch (err) {
+      console.error("Failed to approve extension:", err);
     } finally {
       setActionLoading(false);
     }

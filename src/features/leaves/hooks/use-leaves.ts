@@ -5,7 +5,7 @@ import useSWR from "swr";
 import type { ListLeavesQuery } from "@/dto/leave/list-leaves.dto";
 import { getLeavesUrl,getLeaveUrl } from "@/lib/api/leave-api";
 
-type RawLeaveItem = {
+export type RawLeaveItem = {
   leave: {
     id: string;
     status: string;
@@ -36,7 +36,10 @@ function flattenLeaveItem(item: RawLeaveItem) {
     leaveTypeName: item.leaveType?.name,
     studentFirstName: item.user?.fullName?.split(" ")[0],
     studentLastName: item.user?.fullName?.split(" ").slice(1).join(" "),
-    _raw: item,
+    userFullName: item.user?.fullName ?? null,
+    userEmail: item.user?.email ?? null,
+    userPhone: item.user?.phone ?? null,
+    studentRollNumber: item.student?.rollNumber ?? null,
   };
 }
 
@@ -45,6 +48,7 @@ export type FlatLeave = ReturnType<typeof flattenLeaveItem>;
 export function useLeaves(query?: Partial<ListLeavesQuery>) {
   const { data, error, isLoading, mutate } = useSWR(
     query ? getLeavesUrl(query) : null,
+    { refreshInterval: 15000 },
   );
 
   const rawItems: RawLeaveItem[] = data?.data?.items ?? [];
@@ -78,39 +82,11 @@ export function useLeave(id: string | undefined) {
     id ? getLeaveUrl(id) : null,
   );
 
-  const raw = data?.data as {
-    leave: {
-      id: string;
-      status: string;
-      startAt: string;
-      endAt: string;
-      expectedReturnAt?: string;
-      reason: string;
-      createdAt: string;
-      requestNumber: string;
-      isActive: boolean;
-    };
-    leaveType: { name: string } | null;
-    student: { rollNumber: string } | null;
-    user: { fullName: string; email?: string; phone?: string } | null;
-  } | undefined;
+  const raw = data?.data as RawLeaveItem | undefined;
 
   const leave = raw
     ? {
-        id: raw.leave.id,
-        status: raw.leave.status,
-        startAt: raw.leave.startAt,
-        endAt: raw.leave.endAt,
-        expectedReturnAt: raw.leave.expectedReturnAt,
-        reason: raw.leave.reason,
-        createdAt: raw.leave.createdAt,
-        requestNumber: raw.leave.requestNumber,
-        isActive: raw.leave.isActive,
-        leaveTypeName: raw.leaveType?.name,
-        studentFirstName: raw.user?.fullName?.split(" ")[0],
-        studentLastName: raw.user?.fullName?.split(" ").slice(1).join(" "),
-        // Nested raw data for detail views that need the full structure
-        _raw: raw,
+        ...flattenLeaveItem(raw),
       }
     : null;
 
