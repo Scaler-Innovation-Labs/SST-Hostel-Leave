@@ -12,7 +12,12 @@ export async function POST(
   try {
     const currentUser = requireRole(await requireAuth(), ROLES.STUDENT);
 
-    const body = await request.json();
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      body = {};
+    }
     const dto = cancelLeaveSchema.parse(body);
 
     const { id: leaveId } = await routeContext.params;

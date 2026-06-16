@@ -5,7 +5,6 @@ import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
 import { listNotificationLogs } from "@/services/notification/list-notification-logs.service";
 
-export const runtime = "edge";
 
 export async function GET(request: Request) {
   try {

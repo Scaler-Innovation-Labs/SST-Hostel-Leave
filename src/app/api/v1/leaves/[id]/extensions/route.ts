@@ -1,7 +1,9 @@
 import createExtensionSchema from "@/dto/leave/create-extension.dto";
 import listLeaveExtensionsSchema from "@/dto/extension/list-leave-extensions.dto";
 import { ApiResponse } from "@/lib/api/response";
+import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
+import { ROLES } from "@/lib/auth/roles";
 import { createExtension } from "@/services/leave/create-extension.service";
 import { listLeaveExtensions } from "@/services/extension/list-leave-extensions.service";
 
@@ -10,13 +12,18 @@ export async function GET(
   routeContext: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAuth();
+    const currentUser = requireAnyRole(await requireAuth(), [
+      ROLES.STUDENT,
+      ROLES.ADMIN,
+      ROLES.POC,
+      ROLES.SUPER_ADMIN,
+    ]);
 
     const { id } = await routeContext.params;
     const url = new URL(request.url);
     const query = listLeaveExtensionsSchema.parse(Object.fromEntries(url.searchParams));
 
-    const result = await listLeaveExtensions(id, query);
+    const result = await listLeaveExtensions(id, query, currentUser);
 
     return ApiResponse.success(result);
   } catch (error) {
@@ -29,7 +36,12 @@ export async function POST(
   routeContext: { params: Promise<{ id: string }> }
 ) {
   try {
-    const currentUser = await requireAuth();
+    const currentUser = requireAnyRole(await requireAuth(), [
+      ROLES.STUDENT,
+      ROLES.ADMIN,
+      ROLES.POC,
+      ROLES.SUPER_ADMIN,
+    ]);
     const { id } = await routeContext.params;
     const body = await request.json();
     const dto = createExtensionSchema.parse(body);
