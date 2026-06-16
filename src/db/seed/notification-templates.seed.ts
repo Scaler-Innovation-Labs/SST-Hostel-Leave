@@ -76,88 +76,20 @@ const TEMPLATES = [
       "Your leave request {{leaveId}} has expired. Please contact your warden.",
   },
 
-  // SMS templates
-  {
-    eventKey: "LEAVE_SUBMITTED",
-    channel: "SMS" as const,
-    subject: null,
-    templateBody:
-      "Leave {{leaveId}} submitted. Awaiting approval.",
-  },
-  {
-    eventKey: "LEAVE_APPROVED",
-    channel: "SMS" as const,
-    subject: null,
-    templateBody:
-      "Leave {{leaveId}} approved. Generate QR from the portal.",
-  },
-  {
-    eventKey: "LEAVE_REJECTED",
-    channel: "SMS" as const,
-    subject: null,
-    templateBody:
-      "Leave {{leaveId}} rejected.",
-  },
-  {
-    eventKey: "LEAVE_CANCELLED",
-    channel: "SMS" as const,
-    subject: null,
-    templateBody:
-      "Leave {{leaveId}} cancelled.",
-  },
-  {
-    eventKey: "LEAVE_EXTENSION_APPROVED",
-    channel: "SMS" as const,
-    subject: null,
-    templateBody:
-      "Extension for leave {{leaveId}} approved.",
-  },
-  {
-    eventKey: "LEAVE_EXTENSION_REJECTED",
-    channel: "SMS" as const,
-    subject: null,
-    templateBody:
-      "Extension for leave {{leaveId}} rejected.",
-  },
-  {
-    eventKey: "LEAVE_OVERDUE",
-    channel: "SMS" as const,
-    subject: null,
-    templateBody:
-      "Leave {{leaveId}} overdue. Contact warden immediately.",
-  },
-  {
-    eventKey: "LEAVE_COMPLETED",
-    channel: "SMS" as const,
-    subject: null,
-    templateBody:
-      "Leave {{leaveId}} marked as completed.",
-  },
-  {
-    eventKey: "LEAVE_EXPIRED",
-    channel: "SMS" as const,
-    subject: null,
-    templateBody:
-      "Leave {{leaveId}} expired.",
-  },
+  // SMS templates (parent-only)
   {
     eventKey: NOTIFICATION_EVENT.PARENT_APPROVAL_REQUESTED,
     channel: NOTIFICATION_CHANNEL.SMS,
     subject: null,
     templateBody:
-      "Your ward {{studentName}} requests leave {{dates}}. Reason: {{reason}}. Approve: {{approvalLink}} OTP: {{otp}}",
+      "{{studentName}} applied for a leave. Approve: {{approvalLink}} or reply 1 {{code}} to approve, 2 {{code}} to reject.",
   },
   {
     eventKey: NOTIFICATION_EVENT.PARENT_APPROVAL_REQUESTED,
     channel: NOTIFICATION_CHANNEL.EMAIL,
-    subject: "Approval requested for {{studentName}}",
-    templateBody: "{{studentName}} requests leave for {{dates}}. Reason: {{reason}}. Review: {{approvalLink}}",
-  },
-  {
-    eventKey: NOTIFICATION_EVENT.LEAVE_EXTENSION_REQUESTED,
-    channel: NOTIFICATION_CHANNEL.SMS,
-    subject: null,
-    templateBody: "Extension #{{extensionNumber}} requested for leave {{leaveId}}.",
+    subject: "Leave approval needed for {{studentName}}",
+    templateBody:
+      "{{studentName}} has requested leave from {{dates}}. Reason: {{reason}}. Click to review and respond: {{approvalLink}}",
   },
   {
     eventKey: NOTIFICATION_EVENT.QR_GENERATED,
@@ -170,18 +102,6 @@ const TEMPLATES = [
     channel: NOTIFICATION_CHANNEL.EMAIL,
     subject: "QR pass invalidated",
     templateBody: "Your QR pass for leave {{leaveId}} is no longer valid.",
-  },
-  {
-    eventKey: NOTIFICATION_EVENT.QR_GENERATED,
-    channel: NOTIFICATION_CHANNEL.SMS,
-    subject: null,
-    templateBody: "QR pass for leave {{leaveId}} is ready.",
-  },
-  {
-    eventKey: NOTIFICATION_EVENT.QR_INVALIDATED,
-    channel: NOTIFICATION_CHANNEL.SMS,
-    subject: null,
-    templateBody: "QR pass for leave {{leaveId}} has been invalidated.",
   },
 ];
 

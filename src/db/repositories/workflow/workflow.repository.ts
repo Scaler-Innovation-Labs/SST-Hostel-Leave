@@ -1,5 +1,5 @@
 import type { InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 
 import { roles } from "@/db/schema/auth";
 import { workflowDefinitions, workflowSteps } from "@/db/schema/workflow";
@@ -67,25 +67,35 @@ export const workflowRepository = {
       .limit(filters.limit)
       .offset((filters.page - 1) * filters.limit);
 
-    const items: WorkflowDefinitionWithSteps[] = await Promise.all(
-      rows.map(async (def) => {
-        const stepRows = await dbClient
-          .select()
-          .from(workflowSteps)
-          .leftJoin(roles, eq(workflowSteps.approverRoleId, roles.id))
-          .where(eq(workflowSteps.workflowDefinitionId, def.id))
-          .orderBy(workflowSteps.stepOrder);
+    const defIds = rows.map((d) => d.id);
+    let stepsByDefId = new Map<string, Array<WorkflowStep & { approverRoleName: string | null; approverRoleCode: string | null }>>();
+    if (defIds.length > 0) {
+      const allSteps = await dbClient
+        .select()
+        .from(workflowSteps)
+        .leftJoin(roles, eq(workflowSteps.approverRoleId, roles.id))
+        .where(inArray(workflowSteps.workflowDefinitionId, defIds))
+        .orderBy(workflowSteps.stepOrder);
 
-        return {
-          ...def,
-          steps: stepRows.map((row) => ({
-            ...row.workflow_steps,
-            approverRoleName: row.roles?.name ?? null,
-            approverRoleCode: row.roles?.code ?? null,
-          })),
+      for (const row of allSteps) {
+        const step = {
+          ...row.workflow_steps,
+          approverRoleName: row.roles?.name ?? null,
+          approverRoleCode: row.roles?.code ?? null,
         };
-      })
-    );
+        const list = stepsByDefId.get(row.workflow_steps.workflowDefinitionId);
+        if (list) {
+          list.push(step);
+        } else {
+          stepsByDefId.set(row.workflow_steps.workflowDefinitionId, [step]);
+        }
+      }
+    }
+
+    const items: WorkflowDefinitionWithSteps[] = rows.map((def) => ({
+      ...def,
+      steps: stepsByDefId.get(def.id) ?? [],
+    }));
 
     return {
       items,

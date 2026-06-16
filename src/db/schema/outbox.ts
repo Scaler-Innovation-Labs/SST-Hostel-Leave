@@ -66,5 +66,9 @@ export const outboxEvents = pgTable(
     eventTypeIndex: index("outbox_events_event_type_idx").on(
       table.eventType
     ),
+    statusCreatedIdx: index("oe_status_created_idx").on(
+      table.status,
+      table.createdAt
+    ),
   })
 );

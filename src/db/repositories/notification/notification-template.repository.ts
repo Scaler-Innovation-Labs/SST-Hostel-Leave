@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, eq, asc } from "drizzle-orm";
+import { and, eq, asc, inArray } from "drizzle-orm";
 
 import { notificationTemplates } from "@/db";
 import { db } from "@/lib/db";
@@ -46,6 +46,17 @@ export const notificationTemplateRepository = {
 			.limit(1);
 
 		return rows[0] ?? null;
+	},
+
+	async findByIds(
+		ids: string[],
+		dbClient: Pick<typeof db, "select"> = db
+	): Promise<NotificationTemplate[]> {
+		if (ids.length === 0) return [];
+		return dbClient
+			.select()
+			.from(notificationTemplates)
+			.where(inArray(notificationTemplates.id, ids));
 	},
 
 	async findByEventAndChannel(

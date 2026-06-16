@@ -84,6 +84,37 @@ export const leaveExtensionRepository = {
     return rows;
   },
 
+  async findByLeaveRequestIdPaginated(
+    leaveRequestId: string,
+    page: number,
+    limit: number,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<{ items: LeaveExtension[]; total: number; page: number; limit: number; totalPages: number }> {
+    const countResult = await dbClient
+      .select({ count: sql<number>`count(*)` })
+      .from(leaveExtensions)
+      .where(eq(leaveExtensions.leaveRequestId, leaveRequestId));
+
+    const total = Number(countResult[0]?.count ?? 0);
+    const totalPages = Math.ceil(total / limit);
+
+    const rows = await dbClient
+      .select()
+      .from(leaveExtensions)
+      .where(eq(leaveExtensions.leaveRequestId, leaveRequestId))
+      .orderBy(desc(leaveExtensions.extensionNumber))
+      .offset((page - 1) * limit)
+      .limit(limit);
+
+    return {
+      items: rows,
+      total,
+      page,
+      limit,
+      totalPages,
+    };
+  },
+
   async findLatestByLeaveRequestId(
     leaveRequestId: string,
     dbClient: Pick<typeof db, "select"> = db

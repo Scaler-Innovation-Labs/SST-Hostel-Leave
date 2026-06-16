@@ -175,6 +175,17 @@ export const movementEventRepository = {
       totalPages,
     };
   },
+
+  async countRecent(
+    since: Date,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<number> {
+    const result = await dbClient
+      .select({ count: sql<number>`count(*)` })
+      .from(movementEvents)
+      .where(gte(movementEvents.occurredAt, since));
+    return Number(result[0]?.count ?? 0);
+  },
 };
 
 export default movementEventRepository;

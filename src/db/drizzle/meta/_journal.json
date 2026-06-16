@@ -5,57 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1780653289671,
-      "tag": "0000_cooing_juggernaut",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1780936231479,
-      "tag": "0001_parallel_scream",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1780937652267,
-      "tag": "0002_safe_steve_rogers",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1780985396267,
-      "tag": "0003_legal_whiplash",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1780985772396,
-      "tag": "0004_bitter_la_nuit",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1781066568541,
-      "tag": "0005_rename_approval_method_values",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1781068374246,
-      "tag": "0006_notification_rules_system",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1781093439732,
-      "tag": "0007_add_raw_token_to_qr_passes",
+      "when": 1781522285537,
+      "tag": "0000_thick_skullbuster",
       "breakpoints": true
     }
   ]

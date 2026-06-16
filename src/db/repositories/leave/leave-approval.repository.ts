@@ -1,9 +1,10 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, gt, gte, isNotNull, like, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, isNotNull, like, lte, ne, or, sql } from "drizzle-orm";
 
 import { LEAVE_APPROVAL_SOURCE } from "@/constants/leave/approval-source";
 import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
+import type { LeaveRequestStatus } from "@/constants/leave/leave-status";
 import {
   leaveApprovals,
   leaveExtensions,
@@ -50,6 +51,7 @@ export const leaveApprovalRepository = {
       dateFrom?: Date;
       dateTo?: Date;
       search?: string;
+      excludeLeaveStatuses?: LeaveRequestStatus[];
       page: number;
       limit: number;
     },
@@ -88,6 +90,9 @@ export const leaveApprovalRepository = {
     }
     if (filters.dateTo) {
       conditions.push(lte(leaveApprovals.createdAt, filters.dateTo));
+    }
+    if (filters.excludeLeaveStatuses?.length) {
+      conditions.push(...filters.excludeLeaveStatuses.map((s) => ne(leaveRequests.status, s)));
     }
     if (filters.search) {
       const searchPattern = `%${filters.search}%`;
@@ -232,6 +237,29 @@ export const leaveApprovalRepository = {
       .limit(1);
 
     return rows[0] ?? null;
+  },
+
+  async updateDecisionByLeaveRequestId(
+    leaveRequestId: string,
+    decision: LeaveApprovalDecision,
+    actedAt: Date,
+    dbClient: Pick<typeof db, "update"> = db
+  ): Promise<LeaveApproval[]> {
+    const rows = await dbClient
+      .update(leaveApprovals)
+      .set({
+        decision,
+        actedAt,
+      })
+      .where(
+        and(
+          eq(leaveApprovals.leaveRequestId, leaveRequestId),
+          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING)
+        )
+      )
+      .returning();
+
+    return rows;
   },
 
   async updateDecisionById(
@@ -585,6 +613,24 @@ export const leaveApprovalRepository = {
     return rows[0] ?? null;
   },
 
+  async updateParentApprovalToken(
+    id: string,
+    tokenHash: string,
+    expiresAt: Date,
+    dbClient: Pick<typeof db, "update"> = db
+  ): Promise<LeaveApproval | null> {
+    const rows = await dbClient
+      .update(leaveApprovals)
+      .set({
+        parentApprovalToken: tokenHash,
+        parentApprovalExpiresAt: expiresAt,
+      })
+      .where(eq(leaveApprovals.id, id))
+      .returning();
+
+    return rows[0] ?? null;
+  },
+
   async updateParentApprovalVerified(
     id: string,
     dbClient: Pick<typeof db, "update"> = db
@@ -605,7 +651,8 @@ export const leaveApprovalRepository = {
     approverParentId: string,
     decision: LeaveApprovalDecision,
     comments: string | undefined,
-    dbClient: Pick<typeof db, "update"> = db
+    dbClient: Pick<typeof db, "update"> = db,
+    approvalSource?: string,
   ): Promise<LeaveApproval | null> {
     const rows = await dbClient
       .update(leaveApprovals)
@@ -614,7 +661,7 @@ export const leaveApprovalRepository = {
         approverParentId,
         comments,
         actedAt: new Date(),
-        approvalSource: LEAVE_APPROVAL_SOURCE.SMS,
+        approvalSource: (approvalSource ?? LEAVE_APPROVAL_SOURCE.SMS) as typeof LEAVE_APPROVAL_SOURCE.SMS,
       })
       .where(
         and(
@@ -778,6 +825,58 @@ export const leaveApprovalRepository = {
     }));
   },
 
+  async findPendingByParentPhone(
+    phone: string,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<Array<LeaveApproval & { leaveRequest: { id: string; reason: string; startAt: Date; endAt: Date; status: string; requestNumber: string } | null; studentName: string | null }>> {
+    const parentRows = await dbClient
+      .select({ id: parents.id })
+      .from(parents)
+      .where(eq(parents.phone, phone))
+      .limit(1);
+
+    if (!parentRows[0]) return [];
+
+    const rows = await dbClient
+      .select({
+        approval: leaveApprovals,
+        studentName: users.fullName,
+        leaveReqId: leaveRequests.id,
+        leaveReqReason: leaveRequests.reason,
+        leaveReqStartAt: leaveRequests.startAt,
+        leaveReqEndAt: leaveRequests.endAt,
+        leaveReqStatus: leaveRequests.status,
+        leaveReqNumber: leaveRequests.requestNumber,
+      })
+      .from(leaveApprovals)
+      .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(
+        and(
+          eq(leaveApprovals.approverParentId, parentRows[0].id),
+          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+          sql`(${leaveApprovals.parentApprovalExpiresAt} IS NULL OR ${leaveApprovals.parentApprovalExpiresAt} > NOW())`
+        )
+      )
+      .orderBy(desc(leaveApprovals.createdAt));
+
+    return rows.map((row) => ({
+      ...row.approval,
+      studentName: row.studentName,
+      leaveRequest: row.leaveReqId
+        ? {
+            id: row.leaveReqId,
+            reason: row.leaveReqReason ?? "",
+            startAt: row.leaveReqStartAt!,
+            endAt: row.leaveReqEndAt!,
+            status: row.leaveReqStatus ?? "",
+            requestNumber: row.leaveReqNumber ?? "",
+          }
+        : null,
+    }));
+  },
+
   async countByParentIdAndDecision(
     parentId: string,
     decision: LeaveApprovalDecision,
@@ -793,6 +892,28 @@ export const leaveApprovalRepository = {
         )
       );
 
+    return Number(result[0]?.count ?? 0);
+  },
+
+  async findByLeaveRequestId(
+    leaveRequestId: string,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<LeaveApproval[]> {
+    return await dbClient
+      .select()
+      .from(leaveApprovals)
+      .where(eq(leaveApprovals.leaveRequestId, leaveRequestId))
+      .orderBy(leaveApprovals.stepOrder);
+  },
+
+  async countByDecision(
+    decision: LeaveApprovalDecision,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<number> {
+    const result = await dbClient
+      .select({ count: sql<number>`count(*)` })
+      .from(leaveApprovals)
+      .where(eq(leaveApprovals.decision, decision));
     return Number(result[0]?.count ?? 0);
   },
 };

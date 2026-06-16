@@ -238,6 +238,9 @@ export const movementEvents = pgTable("movement_events", {
   eventTypeIndex: index(
     "movement_events_event_type_idx"
   ).on(table.eventType),
+
+  studentOccurredIdx: index("me_student_occurred_idx").on(table.studentId, table.occurredAt),
+  requestOccurredIdx: index("me_request_occurred_idx").on(table.leaveRequestId, table.occurredAt),
   })
   );
 

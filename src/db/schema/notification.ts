@@ -179,6 +179,10 @@ export const notificationLogs = pgTable(
   deliveryStatusIndex: index(
     "notification_logs_delivery_status_idx"
   ).on(table.deliveryStatus),
+
+  leaveRequestIdIndex: index(
+    "notification_logs_leave_request_id_idx"
+  ).on(table.leaveRequestId),
 })
 
 );
