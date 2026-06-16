@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
+import { toast } from "sonner";
 import {
   AlertCircle,
   ArrowLeft,
@@ -98,14 +99,17 @@ export default function AdminLeaveDetailPage() {
     try {
       if (actionTarget === "approve") {
         await approveLeave(id, comments || undefined);
+        toast.success("Leave approved");
       } else {
         await rejectLeave(id, comments || undefined);
+        toast.success("Leave rejected");
       }
       setActionTarget(null);
       setComments("");
       setShowComments(false);
       await mutate();
     } catch {
+      toast.error(`Failed to ${actionTarget} leave`);
     } finally {
       setActionLoading(false);
     }
@@ -115,24 +119,18 @@ export default function AdminLeaveDetailPage() {
   if (isError) return <ErrorState message={error?.message ?? "Leave not found"} onRetry={() => mutate()} />;
   if (!leave) return <ErrorState message="Leave not found" />;
 
-  const raw = (leave as unknown as { _raw?: { leave: Record<string, unknown>; leaveType: Record<string, unknown> | null; student: Record<string, unknown> | null; user: Record<string, unknown> | null } })._raw;
-  const lr = raw?.leave ?? {};
-  const student = raw?.student ?? {};
-  const user = raw?.user ?? {};
-  const leaveType = raw?.leaveType ?? {};
-
-  const requestNumber = (lr.requestNumber as string) ?? leave.id ?? "—";
-  const status = ((lr.status as string) ?? leave.status ?? "").toLowerCase();
+  const requestNumber = leave.requestNumber ?? leave.id ?? "—";
+  const status = leave.status.toLowerCase();
   const isPending = status === "pending";
-  const leaveTypeName = (leaveType.name as string) ?? leave.leaveTypeName ?? "—";
-  const startAt = (lr.startAt as string) ?? leave.startAt ?? "";
-  const endAt = (lr.endAt as string) ?? leave.endAt ?? "";
-  const reason = (lr.reason as string) ?? leave.reason ?? "—";
-  const studentName = ((user.fullName as string) ?? `${leave.studentFirstName ?? ""} ${leave.studentLastName ?? ""}`.trim()) || "—";
-  const rollNumber = (student.rollNumber as string) ?? "—";
-  const email = (user.email as string) ?? "";
-  const phone = (user.phone as string) ?? "";
-  const createdAt = (lr.createdAt as string) ?? leave.createdAt ?? "";
+  const leaveTypeName = leave.leaveTypeName ?? "—";
+  const startAt = leave.startAt ?? "";
+  const endAt = leave.endAt ?? "";
+  const reason = leave.reason ?? "—";
+  const studentName = leave.userFullName ?? (`${leave.studentFirstName ?? ""} ${leave.studentLastName ?? ""}`.trim() || "—");
+  const rollNumber = leave.studentRollNumber ?? "—";
+  const email = leave.userEmail ?? "";
+  const phone = leave.userPhone ?? "";
+  const createdAt = leave.createdAt ?? "";
   const isApproved = status === "approved";
   const isRejected = status === "rejected";
 

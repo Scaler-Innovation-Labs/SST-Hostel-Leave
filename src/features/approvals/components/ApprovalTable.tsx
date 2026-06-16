@@ -93,10 +93,12 @@ export function ApprovalTable({
     studentName: string;
   } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string>("");
 
   const handleAction = async () => {
     if (!actionTarget) return;
     setActionLoading(true);
+    setActionError("");
     try {
       if (actionTarget.action === "approve") {
         await approveLeave(actionTarget.id);
@@ -105,7 +107,10 @@ export function ApprovalTable({
       }
       setActionTarget(null);
       onMutate();
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Action failed";
+      setActionError(message);
+      console.error("[ApprovalTable] Action failed:", error);
     } finally {
       setActionLoading(false);
     }
@@ -246,6 +251,12 @@ export function ApprovalTable({
               Next
             </Button>
           </div>
+        </div>
+      )}
+
+      {actionError && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+          {actionError}
         </div>
       )}
 

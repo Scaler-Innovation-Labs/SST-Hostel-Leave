@@ -140,9 +140,12 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
   const isLoading = leaveLoading || chainLoading;
   const isError = leaveError || chainError;
 
+  const [actionError, setActionError] = useState("");
+
   const handleAction = async () => {
     if (!actionTarget) return;
     setActionLoading(true);
+    setActionError("");
     try {
       if (actionTarget === "approve") {
         await approveLeave(leaveId, comments || undefined);
@@ -153,7 +156,10 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
       setComments("");
       setShowComments(false);
       await Promise.all([leaveMutate(), chainMutate()]);
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Action failed";
+      setActionError(message);
+      console.error("[ApprovalDetailView] Action failed:", error);
     } finally {
       setActionLoading(false);
     }
@@ -173,39 +179,19 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
   }
   if (!leave) return <ErrorState message="Leave not found" />;
 
-  const raw = (
-    leave as unknown as {
-      _raw?: {
-        leave: Record<string, unknown>;
-        leaveType: Record<string, unknown> | null;
-        student: Record<string, unknown> | null;
-        user: Record<string, unknown> | null;
-      };
-    }
-  )._raw;
-  const lr = raw?.leave ?? {};
-  const student = raw?.student ?? {};
-  const user = raw?.user ?? {};
-  const leaveType = raw?.leaveType ?? {};
-
-  const requestNumber =
-    (lr.requestNumber as string) ?? leave.id ?? "Leave Detail";
-  const status = ((lr.status as string) ?? leave.status ?? "").toLowerCase();
+  const requestNumber = leave.requestNumber ?? leave.id ?? "Leave Detail";
+  const status = leave.status.toLowerCase();
   const isPending = status === "pending";
-  const leaveTypeName =
-    (leaveType.name as string) ?? leave.leaveTypeName ?? "—";
-  const startAt = (lr.startAt as string) ?? leave.startAt ?? "";
-  const endAt = (lr.endAt as string) ?? leave.endAt ?? "";
-  const expectedReturnAt = (lr.expectedReturnAt as string) ?? leave.expectedReturnAt ?? "";
-  const reason = (lr.reason as string) ?? leave.reason ?? "—";
-  const studentName =
-    ((user.fullName as string) ??
-      `${leave.studentFirstName ?? ""} ${leave.studentLastName ?? ""}`.trim()) ||
-    "—";
-  const rollNumber = (student.rollNumber as string) ?? "—";
-  const email = (user.email as string) ?? "";
-  const phone = (user.phone as string) ?? "";
-  const createdAt = (lr.createdAt as string) ?? leave.createdAt ?? "";
+  const leaveTypeName = leave.leaveTypeName ?? "—";
+  const startAt = leave.startAt ?? "";
+  const endAt = leave.endAt ?? "";
+  const expectedReturnAt = leave.expectedReturnAt ?? "";
+  const reason = leave.reason ?? "—";
+  const studentName = leave.userFullName ?? (`${leave.studentFirstName ?? ""} ${leave.studentLastName ?? ""}`.trim() || "—");
+  const rollNumber = leave.studentRollNumber ?? "—";
+  const email = leave.userEmail ?? "";
+  const phone = leave.userPhone ?? "";
+  const createdAt = leave.createdAt ?? "";
 
   const sortedApprovals = [...approvals]
     .sort((a, b) => (a.stepOrder ?? 0) - (b.stepOrder ?? 0))
@@ -549,6 +535,12 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
           )}
         </div>
       </div>
+
+      {actionError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+          {actionError}
+        </div>
+      )}
 
       {/* Confirmation Dialogs */}
       <ConfirmationDialog
