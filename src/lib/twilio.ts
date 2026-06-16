@@ -1,5 +1,7 @@
 import twilio from "twilio";
 
+import { logger } from "@/lib/logger";
+
 let twilioClientInstance: ReturnType<typeof twilio> | null = null;
 
 function getTwilioClient() {
@@ -27,10 +29,12 @@ export async function sendSms(
   },
 ): Promise<{ success: boolean; messageId?: string; error?: string }> {
   try {
-    const from =
-      options?.from ?? process.env.TWILIO_FROM_NUMBER ?? process.env.TWILIO_PHONE_NUMBER;
+    const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
+    const from = messagingServiceSid
+      ? undefined
+      : (options?.from ?? process.env.TWILIO_FROM_NUMBER ?? process.env.TWILIO_PHONE_NUMBER);
 
-    if (!from) {
+    if (!messagingServiceSid && !from) {
       return {
         success: false,
         error: "TWILIO_PHONE_NUMBER is not configured",
@@ -50,25 +54,37 @@ export async function sendSms(
     // every parent's phone number with Twilio.
     const testMode = process.env.TWILIO_TEST_MODE === "true";
 
-    if (testMode && normalizedPhone !== from) {
+    if (testMode && toOverride) {
       const originalRecipient = normalizedPhone;
-      normalizedPhone = from;
+      normalizedPhone = toOverride;
 
       message = `[TO ${originalRecipient}] ${message}`;
     }
 
-    const result = await getTwilioClient().messages.create({
+    const messageParams: {
+      to: string;
+      body: string;
+      messagingServiceSid?: string;
+      from?: string;
+    } = {
       to: normalizedPhone,
-      from,
       body: message,
-    });
+    };
+
+    if (messagingServiceSid) {
+      messageParams.messagingServiceSid = messagingServiceSid;
+    } else if (from) {
+      messageParams.from = from;
+    }
+
+    const result = await getTwilioClient().messages.create(messageParams);
 
     return {
       success: true,
       messageId: result.sid,
     };
   } catch (error) {
-    console.error("[TWILIO] Failed to send SMS:", error);
+    logger.error("Failed to send SMS", { error: error instanceof Error ? error.message : String(error) });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",

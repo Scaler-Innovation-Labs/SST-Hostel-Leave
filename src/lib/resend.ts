@@ -1,5 +1,7 @@
 import { Resend } from "resend";
 
+import { logger } from "@/lib/logger";
+
 let resendInstance: Resend | null = null;
 
 function getResendClient(): Resend {
@@ -16,6 +18,15 @@ function getResendClient(): Resend {
   }
 
   return resendInstance;
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 export async function sendEmail(
@@ -41,11 +52,11 @@ export async function sendEmail(
       replyTo: options?.replyTo ? [options.replyTo] : undefined,
       subject,
       text: body,
-      html: body.replace(/\n/g, "<br/>"),
+      html: body.split("\n").map((line) => `<p>${escapeHtml(line)}</p>`).join(""),
     });
 
     if (error) {
-      console.error("[RESEND] Failed to send email:", error);
+      logger.error("Failed to send email", { error: error.message });
       return {
         success: false,
         error: error.message ?? "Resend API error",
@@ -57,7 +68,7 @@ export async function sendEmail(
       messageId: data?.id,
     };
   } catch (error) {
-    console.error("[RESEND] Failed to send email:", error);
+    logger.error("Failed to send email", { error: error instanceof Error ? error.message : String(error) });
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
