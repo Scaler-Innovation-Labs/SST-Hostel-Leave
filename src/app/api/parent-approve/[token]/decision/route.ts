@@ -1,5 +1,6 @@
 import parentDecisionSchema from "@/dto/parent/parent-decision.dto";
 import { ApiResponse } from "@/lib/api/response";
+import { rateLimit } from "@/lib/rate-limiter";
 import { parentApproveDecision } from "@/services/parent/parent-approve-decision.service";
 
 export async function POST(
@@ -8,6 +9,8 @@ export async function POST(
 ) {
   try {
     const { token } = await routeContext.params;
+
+    rateLimit(`approve-decision:${token}`, 10, 900_000);
 
     const body = await request.json();
     const dto = parentDecisionSchema.parse(body);

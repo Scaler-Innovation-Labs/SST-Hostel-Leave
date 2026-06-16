@@ -3,13 +3,21 @@ import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
-import { deleteWorkflow } from "@/services/workflow/delete-workflow.service";
+import { getWorkflowById } from "@/services/workflow/get-workflow.service";
 import { updateWorkflow } from "@/services/workflow/save-workflow.service";
+import { deleteWorkflow } from "@/services/workflow/delete-workflow.service";
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const { id } = await params;
+    return ApiResponse.success(await getWorkflowById(id));
+  } catch (error) {
+    return ApiResponse.fromError(error);
+  }
+}
+
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
     const { id } = await params;
@@ -20,18 +28,13 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
     const { id } = await params;
     await deleteWorkflow(id);
-    return ApiResponse.success(null);
+    return ApiResponse.success({ deleted: true });
   } catch (error) {
     return ApiResponse.fromError(error);
   }
 }
-
-export const runtime = "edge";
