@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import createExtensionSchema from "@/dto/leave/create-extension.dto";
@@ -49,9 +50,12 @@ export function ExtensionForm({ leaveId, currentEndAt, onSuccess, onCancel }: Ex
         requestedEndAt: new Date(data.requestedEndAt).toISOString(),
       };
       await createExtension(leaveId, payload);
+      toast.success("Extension requested");
       onSuccess?.();
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Failed to create extension");
+      const msg = err instanceof Error ? err.message : "Failed to create extension";
+      toast.error(msg);
+      setSubmitError(msg);
     } finally {
       setSubmitting(false);
     }
