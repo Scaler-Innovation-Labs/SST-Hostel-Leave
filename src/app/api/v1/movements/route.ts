@@ -7,7 +7,7 @@ import { listMovements } from "@/services/movement/list-movements.service";
 
 export async function GET(request: Request) {
   try {
-    requireAnyRole(await requireAuth(), [
+    const currentUser = requireAnyRole(await requireAuth(), [
       ROLES.STUDENT,
       ROLES.POC,
       ROLES.ADMIN,
@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const query = listMovementsSchema.parse(Object.fromEntries(url.searchParams));
 
-    const result = await listMovements(query);
+    const result = await listMovements(query, currentUser);
 
     return ApiResponse.success(result);
   } catch (error) {

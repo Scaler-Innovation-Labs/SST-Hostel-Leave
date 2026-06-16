@@ -1,4 +1,4 @@
-import saveLeaveTypeSchema from "@/dto/leave/save-leave-type.dto";
+import { createLeaveTypeSchema } from "@/dto/leave/save-leave-type.dto";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   try {
     requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
-    const dto = saveLeaveTypeSchema.parse(await request.json());
+    const dto = createLeaveTypeSchema.parse(await request.json());
 
     const leaveType = await createLeaveType(dto);
 
@@ -32,4 +32,3 @@ export async function POST(request: Request) {
   }
 }
 
-export const runtime = "edge";

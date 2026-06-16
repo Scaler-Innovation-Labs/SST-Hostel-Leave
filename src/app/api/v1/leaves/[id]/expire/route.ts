@@ -4,21 +4,16 @@ import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
 import { expireSingleLeave } from "@/services/leave/expire-leave.service";
 
-export async function POST(
-  _request: Request,
-  routeContext: { params: Promise<{ id: string }> }
-) {
+export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const currentUser = requireAnyRole(await requireAuth(), [ROLES.ADMIN, ROLES.SUPER_ADMIN]);
 
-    const { id: leaveId } = await routeContext.params;
+    const { id } = await params;
 
-    const result = await expireSingleLeave(leaveId, currentUser);
+    const result = await expireSingleLeave(id, currentUser);
 
     return ApiResponse.success(result);
   } catch (error) {
     return ApiResponse.fromError(error);
   }
 }
-
-export const runtime = "edge";
