@@ -223,6 +223,9 @@ export const leaveRequests = pgTable("leave_requests", {
   requestVersionIndex: index("leave_requests_request_version_idx").on(table.requestVersion),
   startAtIndex: index("leave_requests_start_at_idx").on(table.startAt),
   endAtIndex: index("leave_requests_end_at_idx").on(table.endAt),
+  studentDatesIdx: index("lr_student_dates_idx").on(table.studentId, table.startAt, table.endAt),
+  statusEndatReturnIdx: index("lr_status_endat_return_idx").on(table.status, table.endAt, table.actualReturnAt),
+  statusCreatedIdx: index("lr_status_created_idx").on(table.status, table.createdAt),
 }));
 
 // =====================================================
@@ -399,6 +402,11 @@ export const leaveApprovals = pgTable("leave_approvals", {
     approverUserIdIndex: index("la_approver_user_id_idx").on(table.approverUserId),
     decisionIndex: index("la_decision_idx").on(table.decision),
     parentApprovalTokenIndex: index("la_parent_token_idx").on(table.parentApprovalToken),
+    approverParentIdIndex: index("la_approver_parent_id_idx").on(table.approverParentId),
+    parentExpiryIndex: index("la_parent_expiry_idx").on(table.parentApprovalExpiresAt),
+    requestDecisionStepIdx: index("la_request_decision_step_idx").on(table.leaveRequestId, table.decision, table.stepOrder),
+    extensionDecisionStepIdx: index("la_extension_decision_step_idx").on(table.leaveExtensionId, table.decision, table.stepOrder),
+    parentDecisionCreatedIdx: index("la_parent_decision_created_idx").on(table.approverParentId, table.decision, table.createdAt),
   })
 );
 
@@ -520,6 +528,7 @@ export const operationalPeriods = pgTable(
     hostelIdIndex: index("op_hostel_id_idx").on(table.hostelId),
     isActiveIndex: index("op_is_active_idx").on(table.isActive),
     periodTypeIndex: index("op_period_type_idx").on(table.periodType),
+    datesIndex: index("op_dates_idx").on(table.startDate, table.endDate),
   })
 );
 

@@ -1,13 +1,34 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 
 import { notificationLogs } from "@/db";
 import { db } from "@/lib/db";
+import type { NotificationChannel } from "@/constants/notification/notification-channel";
+import type { NotificationDeliveryStatus } from "@/constants/notification/notification-delivery-status";
+import type { NotificationEvent } from "@/constants/notification/notification-event";
 
 export type NotificationLog = InferSelectModel<typeof notificationLogs>;
 export type NewNotificationLog = InferInsertModel<
 	typeof notificationLogs
 >;
+
+export type NotificationLogFilters = {
+  eventType?: string;
+  channel?: string;
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  page: number;
+  limit: number;
+};
+
+export type PaginatedLogs = {
+  items: NotificationLog[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+};
 
 type LogDbClient = Pick<typeof db, "select" | "insert">;
 
@@ -112,6 +133,55 @@ export const notificationLogRepository = {
 			page,
 			limit,
 			totalPages: Math.ceil(total / limit),
+		};
+	},
+
+	async findByFilters(
+		filters: NotificationLogFilters,
+		dbClient: Pick<typeof db, "select"> = db
+	): Promise<PaginatedLogs> {
+		const conditions: ReturnType<typeof and>[] = [];
+
+		if (filters.eventType) {
+			conditions.push(eq(notificationLogs.eventType, filters.eventType as NotificationEvent));
+		}
+		if (filters.channel) {
+			conditions.push(eq(notificationLogs.channel, filters.channel as NotificationChannel));
+		}
+		if (filters.status) {
+			conditions.push(eq(notificationLogs.deliveryStatus, filters.status as NotificationDeliveryStatus));
+		}
+		if (filters.dateFrom) {
+			conditions.push(gte(notificationLogs.createdAt, new Date(filters.dateFrom)));
+		}
+		if (filters.dateTo) {
+			conditions.push(lte(notificationLogs.createdAt, new Date(filters.dateTo)));
+		}
+
+		const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+		const countResult = await dbClient
+			.select({ count: sql<number>`count(*)` })
+			.from(notificationLogs)
+			.where(whereClause);
+
+		const total = Number(countResult[0]?.count ?? 0);
+		const offset = (filters.page - 1) * filters.limit;
+
+		const rows = await dbClient
+			.select()
+			.from(notificationLogs)
+			.where(whereClause)
+			.orderBy(desc(notificationLogs.createdAt))
+			.limit(filters.limit)
+			.offset(offset);
+
+		return {
+			items: rows,
+			total,
+			page: filters.page,
+			limit: filters.limit,
+			totalPages: Math.ceil(total / filters.limit),
 		};
 	},
 

@@ -1,4 +1,5 @@
-import { eq, isNull } from "drizzle-orm";
+import type { InferInsertModel } from "drizzle-orm";
+import { eq, inArray, isNull } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import type { SaveNotificationRuleDto } from "@/dto/notification/save-notification-rule.dto";
@@ -9,6 +10,10 @@ import {
   notificationRules,
 } from "@/db/schema/notification-rules";
 import { notificationTemplates } from "@/db/schema/notification";
+
+type NewRule = InferInsertModel<typeof notificationRules>;
+type NewRecipient = InferInsertModel<typeof notificationRuleRecipients>;
+type NewChannel = InferInsertModel<typeof notificationRuleChannels>;
 
 type RuleWriteDb = Pick<typeof db, "select" | "insert" | "update" | "delete">;
 
@@ -39,27 +44,47 @@ async function attachChildren(
   }>,
   dbClient: RuleWriteDb
 ): Promise<RuleRow[]> {
-  return Promise.all(
-    rows.map(async (row) => {
-      const [recipients, channels] = await Promise.all([
-        dbClient
-          .select()
-          .from(notificationRuleRecipients)
-          .where(eq(notificationRuleRecipients.ruleId, row.id)),
-        dbClient
-          .select()
-          .from(notificationRuleChannels)
-          .where(eq(notificationRuleChannels.ruleId, row.id)),
-      ]);
+  if (rows.length === 0) return [];
 
-      return {
-        ...row,
-        templateCode: "",
-        recipients,
-        channels,
-      } satisfies RuleRow;
-    })
-  );
+  const ruleIds = rows.map((r) => r.id);
+
+  const [allRecipients, allChannels] = await Promise.all([
+    dbClient
+      .select()
+      .from(notificationRuleRecipients)
+      .where(inArray(notificationRuleRecipients.ruleId, ruleIds)),
+    dbClient
+      .select()
+      .from(notificationRuleChannels)
+      .where(inArray(notificationRuleChannels.ruleId, ruleIds)),
+  ]);
+
+  const recipientsByRuleId = new Map<string, Array<{ recipientType: string }>>();
+  for (const r of allRecipients) {
+    const list = recipientsByRuleId.get(r.ruleId);
+    if (list) {
+      list.push({ recipientType: r.recipientType });
+    } else {
+      recipientsByRuleId.set(r.ruleId, [{ recipientType: r.recipientType }]);
+    }
+  }
+
+  const channelsByRuleId = new Map<string, Array<{ channel: string }>>();
+  for (const c of allChannels) {
+    const list = channelsByRuleId.get(c.ruleId);
+    if (list) {
+      list.push({ channel: c.channel });
+    } else {
+      channelsByRuleId.set(c.ruleId, [{ channel: c.channel }]);
+    }
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    templateCode: "",
+    recipients: recipientsByRuleId.get(row.id) ?? [],
+    channels: channelsByRuleId.get(row.id) ?? [],
+  }));
 }
 
 export const notificationRuleRepository = {
@@ -159,10 +184,10 @@ export const notificationRuleRepository = {
       .insert(notificationRules)
       .values({
         leaveTypeId: input.leaveTypeId ?? null,
-        eventType: input.eventType as never,
+        eventType: input.eventType as NewRule["eventType"],
         templateId: input.templateId,
         enabled: input.enabled,
-        customRecipients: (input.customRecipients ?? []) as never,
+        customRecipients: input.customRecipients as NewRule["customRecipients"],
       })
       .returning();
 
@@ -172,7 +197,7 @@ export const notificationRuleRepository = {
       await dbClient.insert(notificationRuleRecipients).values(
         input.recipientTypes.map((rt) => ({
           ruleId,
-          recipientType: rt as never,
+          recipientType: rt as NewRecipient["recipientType"],
         }))
       );
     }
@@ -181,7 +206,7 @@ export const notificationRuleRepository = {
       await dbClient.insert(notificationRuleChannels).values(
         input.channels.map((ch) => ({
           ruleId,
-          channel: ch as never,
+          channel: ch as NewChannel["channel"],
         }))
       );
     }
@@ -197,10 +222,10 @@ export const notificationRuleRepository = {
     await dbClient
       .update(notificationRules)
       .set({
-        eventType: input.eventType as never,
+        eventType: input.eventType as NewRule["eventType"],
         templateId: input.templateId,
         enabled: input.enabled,
-        customRecipients: (input.customRecipients ?? []) as never,
+        customRecipients: input.customRecipients as NewRule["customRecipients"],
         updatedAt: new Date(),
       })
       .where(eq(notificationRules.id, id));
@@ -217,7 +242,7 @@ export const notificationRuleRepository = {
       await dbClient.insert(notificationRuleRecipients).values(
         input.recipientTypes.map((rt) => ({
           ruleId: id,
-          recipientType: rt as never,
+          recipientType: rt as NewRecipient["recipientType"],
         }))
       );
     }
@@ -226,7 +251,7 @@ export const notificationRuleRepository = {
       await dbClient.insert(notificationRuleChannels).values(
         input.channels.map((ch) => ({
           ruleId: id,
-          channel: ch as never,
+          channel: ch as NewChannel["channel"],
         }))
       );
     }
@@ -255,7 +280,7 @@ export const notificationRuleRepository = {
           eq(notificationRules.templateId, notificationTemplates.id)
         )
         .where(
-          eq(notificationRules.eventType, eventType as never)
+          eq(notificationRules.eventType, eventType as NewRule["eventType"])
         )
         .$dynamic();
 
@@ -296,7 +321,7 @@ export const notificationRuleRepository = {
         eq(notificationRules.templateId, notificationTemplates.id)
       )
       .where(
-        eq(notificationRules.eventType, eventType as never)
+        eq(notificationRules.eventType, eventType as NewRule["eventType"])
       );
 
     const mapped = rows.map((r) => ({

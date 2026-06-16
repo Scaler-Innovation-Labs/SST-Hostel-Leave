@@ -174,6 +174,26 @@ export const studentRepository = {
       locationState: row.movement_states ?? null,
     };
   },
+
+  async countAll(
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<number> {
+    const result = await dbClient
+      .select({ count: sql<number>`count(*)` })
+      .from(students);
+    return Number(result[0]?.count ?? 0);
+  },
+
+  async countByLocationState(
+    state: string,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<number> {
+    const result = await dbClient
+      .select({ count: sql<number>`count(*)` })
+      .from(students)
+      .where(eq(students.currentLocationState, state));
+    return Number(result[0]?.count ?? 0);
+  },
 };
 
 export default studentRepository;

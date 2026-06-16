@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 export type Policy = InferSelectModel<typeof policies>;
 
 type PolicyDbClient = Pick<typeof db, "select">;
-type PolicyWriteDbClient = Pick<typeof db, "select" | "insert" | "update">;
+type PolicyWriteDbClient = Pick<typeof db, "select" | "insert" | "update" | "delete">;
 
 export const policyRepository = {
   async findActiveByLeaveTypeId(
@@ -81,6 +81,10 @@ export const policyRepository = {
   async update(id: string, input: Partial<typeof policies.$inferInsert>, dbClient: PolicyWriteDbClient = db): Promise<Policy | null> {
     const rows = await dbClient.update(policies).set({ ...input, updatedAt: new Date() }).where(eq(policies.id, id)).returning();
     return rows[0] ?? null;
+  },
+
+  async deleteById(id: string, dbClient: PolicyWriteDbClient = db): Promise<void> {
+    await dbClient.delete(policies).where(eq(policies.id, id));
   },
 };
 

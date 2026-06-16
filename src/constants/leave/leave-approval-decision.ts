@@ -3,6 +3,7 @@ export const LEAVE_APPROVAL_DECISIONS = [
 	"APPROVED",
 	"REJECTED",
 	"AUTO_APPROVED",
+	"CANCELLED",
 ] as const;
 
 export type LeaveApprovalDecision =
@@ -13,4 +14,5 @@ export const LEAVE_APPROVAL_DECISION = {
 	APPROVED: "APPROVED",
 	REJECTED: "REJECTED",
 	AUTO_APPROVED: "AUTO_APPROVED",
+	CANCELLED: "CANCELLED",
 } as const;

@@ -8,7 +8,7 @@ export type Parent = InferSelectModel<typeof parents>;
 export type NewParent = InferInsertModel<typeof parents>;
 
 type ParentReadClient = Pick<typeof db, "select">;
-type ParentWriteClient = Pick<typeof db, "insert" | "update">;
+type ParentWriteClient = Pick<typeof db, "insert" | "update" | "delete">;
 
 export const parentRepository = {
   async findById(
@@ -137,6 +137,10 @@ export const parentRepository = {
       .returning();
 
     return rows[0] ?? null;
+  },
+
+  async deleteById(id: string, dbClient: ParentWriteClient = db): Promise<void> {
+    await dbClient.delete(parents).where(eq(parents.id, id));
   },
 };
 

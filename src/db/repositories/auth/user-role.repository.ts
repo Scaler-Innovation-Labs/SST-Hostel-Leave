@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 import { roles, userRoles } from "@/db";
 import { db } from "@/lib/db";
@@ -54,6 +54,17 @@ export const userRoleRepository = {
     return rows[0] ?? null;
   },
 
+  async findRolesByCodes(
+    codes: string[],
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<Array<{ id: string; code: string }>> {
+    if (codes.length === 0) return [];
+    return dbClient
+      .select({ id: roles.id, code: roles.code })
+      .from(roles)
+      .where(inArray(roles.code, codes));
+  },
+
   async create(
     userId: string,
     roleId: string,
@@ -66,6 +77,18 @@ export const userRoleRepository = {
       .returning();
 
     return rows[0] ?? null;
+  },
+
+  async findUserIdsByRoleCode(
+    roleCode: string,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<string[]> {
+    const rows = await dbClient
+      .select({ userId: userRoles.userId })
+      .from(userRoles)
+      .innerJoin(roles, eq(userRoles.roleId, roles.id))
+      .where(eq(roles.code, roleCode));
+    return rows.map((r) => r.userId);
   },
 };
 
