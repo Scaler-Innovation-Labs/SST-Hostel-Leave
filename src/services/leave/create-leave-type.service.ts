@@ -1,8 +1,8 @@
-import type { SaveLeaveTypeDto } from "@/dto/leave/save-leave-type.dto";
+import type { CreateLeaveTypeDto } from "@/dto/leave/save-leave-type.dto";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { ConflictError } from "@/lib/errors";
 
-export async function createLeaveType(dto: SaveLeaveTypeDto) {
+export async function createLeaveType(dto: CreateLeaveTypeDto) {
   const existing = await leaveTypeRepository.findByCode(dto.code);
   if (existing) {
     throw new ConflictError(`Leave type with code ${dto.code} already exists`);

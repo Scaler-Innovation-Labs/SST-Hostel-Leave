@@ -22,6 +22,12 @@ export async function listPolicies() {
   return policyRepository.findAll();
 }
 
+export async function getPolicyById(id: string) {
+  const policy = await policyRepository.findById(id);
+  if (!policy) throw new NotFoundError("Policy");
+  return policy;
+}
+
 export async function createPolicy(dto: SavePolicyDto, actorUserId: string) {
   return db.transaction(async (tx) => {
     const policy = await policyRepository.create(toPolicyInput(dto), tx);
@@ -36,5 +42,13 @@ export async function updatePolicy(id: string, dto: SavePolicyDto, actorUserId: 
     const policy = await policyRepository.update(id, toPolicyInput(dto), tx);
     await auditService.record(AUDIT_ACTION.UPDATE, AUDIT_ENTITY_TYPE.POLICY, id, actorUserId, { name: dto.name, policyType: dto.policyType }, tx);
     return policy;
+  });
+}
+
+export async function deletePolicy(id: string, actorUserId: string) {
+  return db.transaction(async (tx) => {
+    if (!await policyRepository.findById(id, tx)) throw new NotFoundError("Policy");
+    await policyRepository.deleteById(id, tx);
+    await auditService.record(AUDIT_ACTION.DELETE, AUDIT_ENTITY_TYPE.POLICY, id, actorUserId, { deleted: true }, tx);
   });
 }

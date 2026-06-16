@@ -4,7 +4,7 @@ import {
 } from "@/constants/notification/notification-event";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
-import { userRepository } from "@/db/repositories/auth/user.repository";
+import { userRepository } from "@/db/repositories/user/user.repository";
 import {
   notificationService,
 } from "@/services/notification/notification.service";
@@ -37,6 +37,8 @@ async function resolveContext(
   const variables: Record<string, string> = {
     ...(payload.variables ?? {}) as Record<string, string>,
   };
+
+  if (leaveRequestId) variables.leaveId = leaveRequestId;
 
   // 1. Resolve student → user for name and contact
   const resolvedStudentId = studentId ?? null;

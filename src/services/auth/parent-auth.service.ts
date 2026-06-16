@@ -4,12 +4,7 @@ import { parentRepository } from "@/db/repositories/hostel/parent.repository";
 import { signParentJwt } from "@/lib/jwt";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { notificationService } from "@/services/notification/notification.service";
-
-async function sha256(input: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(input));
-  return Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
+import { sha256 } from "@/lib/crypto";
 
 export type SendLoginOtpResult = {
   phoneLast4: string;

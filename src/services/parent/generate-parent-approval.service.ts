@@ -9,16 +9,7 @@ import { transaction } from "@/lib/db/transaction";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
-
-function toHex(bytes: Uint8Array): string {
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-async function sha256(input: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(input));
-  return toHex(new Uint8Array(hashBuffer));
-}
+import { sha256, toHex } from "@/lib/crypto";
 
 export type GenerateParentApprovalContext = {
   leaveRequestId: string;
@@ -59,7 +50,7 @@ export async function generateParentApproval(
   );
 
   await transaction(async (tx) => {
-    await leaveApprovalRepository.updateParentApprovalOtp(
+    await leaveApprovalRepository.updateParentApprovalToken(
       approvalStep.id,
       tokenHash,
       expiresAt,
@@ -67,12 +58,13 @@ export async function generateParentApproval(
     );
 
     const approvalLink = `${context.baseUrl}/parent-approve/${rawToken}`;
+    const shortCode = approvalStep.id.replace(/-/g, "").slice(-8).toLowerCase();
 
     await auditService.record(
       AUDIT_ACTION.CREATE,
       AUDIT_ENTITY_TYPE.LEAVE_APPROVAL,
       approvalStep.id,
-      parent.id,
+      null,
       {
         leaveRequestId: context.leaveRequestId,
         action: "PARENT_APPROVAL_TOKEN_GENERATED",
@@ -94,6 +86,7 @@ export async function generateParentApproval(
           dates: context.leaveDates,
           reason: context.leaveReason,
           approvalLink,
+          code: shortCode,
         },
       },
     }, tx);
