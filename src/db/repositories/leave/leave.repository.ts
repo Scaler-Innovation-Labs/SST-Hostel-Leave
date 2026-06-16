@@ -289,6 +289,15 @@ export const leaveRepository = {
 
     return rows;
   },
+
+  async countAll(
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<number> {
+    const result = await dbClient
+      .select({ count: sql<number>`count(*)` })
+      .from(leaveRequests);
+    return Number(result[0]?.count ?? 0);
+  },
 };
 
 export default leaveRepository;

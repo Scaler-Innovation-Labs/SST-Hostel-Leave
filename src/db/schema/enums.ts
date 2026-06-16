@@ -47,6 +47,7 @@ export const leaveApprovalDecisionEnum =
       "APPROVED",
       "REJECTED",
       "AUTO_APPROVED",
+      "CANCELLED",
     ]
   );
 

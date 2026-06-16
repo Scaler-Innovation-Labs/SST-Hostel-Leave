@@ -146,5 +146,6 @@ export const students = pgTable("students", {
   (table) => ({
     userIdIndex: index("student_user_id_idx").on(table.userId),
     academicGroupIdIndex: index("student_academic_group_id_idx").on(table.academicGroupId),
+    currentLocationStateIndex: index("students_cur_loc_state_idx").on(table.currentLocationState),
   })
 );
