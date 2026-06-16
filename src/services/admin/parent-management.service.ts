@@ -31,4 +31,11 @@ export const parentManagementService = {
 
     return parentRepository.updateById(id, dto);
   },
+
+  async delete(id: string) {
+    const parent = await parentRepository.findById(id);
+    if (!parent) throw new NotFoundError("Parent");
+
+    await parentRepository.deleteById(id);
+  },
 };

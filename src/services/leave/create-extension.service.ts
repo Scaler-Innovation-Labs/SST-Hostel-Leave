@@ -50,6 +50,10 @@ export async function createExtension(
     );
   }
 
+  if (!leaveType.defaultWorkflowId) {
+    throw new ValidationError("Leave type has no default workflow configured");
+  }
+
   const existingExtensions = await leaveExtensionRepository.findByLeaveRequestId(leaveRequestId);
   const extensionCount = existingExtensions.length;
 
@@ -117,7 +121,7 @@ export async function createExtension(
 
     const { steps: approvalSteps } =
       await workflowEngine.resolve(
-        leaveType!.defaultWorkflowId!,
+        leaveType.defaultWorkflowId,
         tx
       );
 

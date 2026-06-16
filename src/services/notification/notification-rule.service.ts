@@ -46,6 +46,12 @@ export async function getRulesByLeaveType(
   return rows.map(toResponse);
 }
 
+export async function getNotificationRuleById(id: string): Promise<NotificationRuleResponse> {
+  const row = await notificationRuleRepository.findById(id);
+  if (!row) throw new NotFoundError("NotificationRule");
+  return toResponse(row);
+}
+
 export async function createNotificationRule(
   leaveTypeId: string | null,
   dto: SaveNotificationRuleDto

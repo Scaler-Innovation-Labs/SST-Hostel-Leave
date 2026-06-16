@@ -1,7 +1,6 @@
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
-import { QR_STATUS } from "@/constants/movement/qr-status";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { movementEventRepository } from "@/db/repositories/movement/movement-event.repository";
@@ -12,9 +11,6 @@ import type { DashboardStats,StaffDashboardStats, StudentDashboardStats } from "
 import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
 import { NotFoundError } from "@/lib/errors";
-import { db } from "@/lib/db";
-import { eq, sql, gte } from "drizzle-orm";
-import { leaveApprovals, leaveRequests, qrPasses, students, movementEvents } from "@/db";
 
 function fillDateRange(startDate: Date, endDate: Date, data: Array<{ date: string; count: number }>): Array<{ date: string; value: number }> {
   const map = new Map(data.map((d) => [d.date, d.count]));
@@ -117,46 +113,19 @@ async function getStaffStats(): Promise<StaffDashboardStats> {
     leaves30dRaw,
     approvals7dRaw,
   ] = await Promise.all([
-    // Replace findByFilters(limit=1).total with direct count queries
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(leaveApprovals)
-      .where(eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING))
-      .then((r) => Number(r[0]?.count ?? 0)),
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(students)
-      .then((r) => Number(r[0]?.count ?? 0)),
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(students)
-      .where(eq(students.currentLocationState, MOVEMENT_STATE.OUTSIDE_HOSTEL))
-      .then((r) => Number(r[0]?.count ?? 0)),
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(students)
-      .where(eq(students.currentLocationState, MOVEMENT_STATE.OVERDUE))
-      .then((r) => Number(r[0]?.count ?? 0)),
+    leaveApprovalRepository.countByDecision(LEAVE_APPROVAL_DECISION.PENDING),
+    studentRepository.countAll(),
+    studentRepository.countByLocationState(MOVEMENT_STATE.OUTSIDE_HOSTEL),
+    studentRepository.countByLocationState(MOVEMENT_STATE.OVERDUE),
     userRepository.count(),
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(leaveRequests)
-      .then((r) => Number(r[0]?.count ?? 0)),
+    leaveRepository.countAll(),
     leaveRepository.countByStatus(LEAVE_REQUEST_STATUS.APPROVED),
     leaveApprovalRepository.countRecent(sevenDaysAgo),
     leaveRepository.countByLeaveType(),
     leaveRepository.countByStatus(LEAVE_REQUEST_STATUS.REJECTED),
     leaveApprovalRepository.averageApprovalTime(thirtyDaysAgo),
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(qrPasses)
-      .where(eq(qrPasses.status, QR_STATUS.ACTIVE))
-      .then((r) => Number(r[0]?.count ?? 0)),
-    db
-      .select({ count: sql<number>`count(*)` })
-      .from(movementEvents)
-      .where(gte(movementEvents.occurredAt, sevenDaysAgo))
-      .then((r) => Number(r[0]?.count ?? 0)),
+    qrPassRepository.countActive(),
+    movementEventRepository.countRecent(sevenDaysAgo),
     leaveRepository.countByDateRange(sevenDaysAgo, now),
     leaveRepository.countByDateRange(thirtyDaysAgo, now),
     leaveApprovalRepository.countByDateRange(sevenDaysAgo, now),

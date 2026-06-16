@@ -4,6 +4,9 @@ import { LEAVE_APPROVAL_SOURCE } from "@/constants/leave/approval-source";
 import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
+import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
+import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
@@ -14,14 +17,10 @@ import {
   ConflictError,
   NotFoundError,
 } from "@/lib/errors";
+import { recordMovement } from "@/services/movement/record-movement.service";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
-
-async function sha256(input: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(input));
-  return Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
+import { sha256 } from "@/lib/crypto";
 
 export type ParentDecisionResult = {
   approvalId: string;
@@ -76,7 +75,7 @@ export async function parentApproveDecision(
         : AUDIT_ACTION.REJECT,
       AUDIT_ENTITY_TYPE.LEAVE_APPROVAL,
       approval.id,
-      approval.approverParentId ?? "",
+      null,
       {
         leaveRequestId: approval.leaveRequestId,
         comments: dto.comments,
@@ -141,11 +140,16 @@ export async function parentApproveDecision(
           AUDIT_ACTION.UPDATE,
           AUDIT_ENTITY_TYPE.LEAVE_REQUEST,
           approval.leaveRequestId,
-          approval.approverParentId ?? "",
+          null,
           {
             oldStatus: LEAVE_REQUEST_STATUS.PENDING,
             newStatus: LEAVE_REQUEST_STATUS.APPROVED,
           },
+          tx
+        );
+
+        const approvedLeave = await leaveRepository.findById(
+          approval.leaveRequestId,
           tx
         );
 
@@ -155,8 +159,21 @@ export async function parentApproveDecision(
           aggregateId: approval.leaveRequestId,
           payload: {
             leaveRequestId: approval.leaveRequestId,
+            studentId: approvedLeave?.studentId,
           },
         }, tx);
+
+        if (approvedLeave?.studentId) {
+          await recordMovement({
+            studentId: approvedLeave.studentId,
+            leaveRequestId: approval.leaveRequestId,
+            fromState: MOVEMENT_STATE.IN_HOSTEL,
+            toState: MOVEMENT_STATE.APPROVED_LEAVE,
+            eventType: MOVEMENT_EVENT.LEAVE_APPROVED,
+            movementMethod: MOVEMENT_METHOD.SYSTEM,
+            dbClient: tx,
+          });
+        }
       }
     }
 

@@ -12,6 +12,7 @@ import { db } from "@/lib/db";
 import { AuthorizationError, NotFoundError, ValidationError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
+import { sha256, toHex } from "@/lib/crypto";
 
 export type GenerateQrInput = {
 	leaveRequestId: string;
@@ -28,20 +29,10 @@ export type QrPassResult = {
 	expiresAt: Date | null;
 }
 
-function toHex(bytes: Uint8Array): string {
-  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
 function generateToken(): string {
-	const raw = new Uint8Array(32);
-	crypto.getRandomValues(raw);
-	return toHex(raw);
-}
-
-async function hashToken(token: string): Promise<string> {
-	const encoder = new TextEncoder();
-	const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(token));
-	return toHex(new Uint8Array(hashBuffer));
+  const raw = new Uint8Array(32);
+  crypto.getRandomValues(raw);
+  return toHex(raw);
 }
 
 export async function generateQrPass(
@@ -62,6 +53,10 @@ export async function generateQrPass(
 			throw new NotFoundError("Leave request not found");
 		}
 
+		if (leaveRequest.studentId !== student.id) {
+			throw new AuthorizationError("You can only generate QR passes for your own leaves");
+		}
+
 		if (leaveRequest.status !== LEAVE_REQUEST_STATUS.APPROVED) {
 			throw new ValidationError(
 				"Leave request must be approved to generate QR"
@@ -74,7 +69,7 @@ export async function generateQrPass(
 		);
 
 		const token = generateToken();
-		const tokenHash = await hashToken(token);
+		const tokenHash = await sha256(token);
 		const expiresAt = input.expiresAt ?? null;
 
 		if (existingPass) {

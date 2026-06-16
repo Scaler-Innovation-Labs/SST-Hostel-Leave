@@ -1,7 +1,20 @@
+import type { CurrentUser } from "@/lib/auth/types";
 import { leaveDocumentRepository } from "@/db/repositories/leave/leave-document.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { uploadFromBuffer } from "@/lib/cloudinary";
-import { NotFoundError } from "@/lib/errors";
+import { NotFoundError, ValidationError } from "@/lib/errors";
+import { verifyStudentOwnership } from "@/services/shared/authorization.service";
+
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 export type UploadDocumentResult = {
   id: string;
@@ -21,11 +34,24 @@ export async function uploadLeaveDocument(
   file: File,
   documentType: string,
   uploadedBy: string,
+  currentUser?: CurrentUser,
 ): Promise<UploadDocumentResult> {
+  if (file.size > MAX_FILE_SIZE) {
+    throw new ValidationError("File size must be less than 10MB");
+  }
+
+  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    throw new ValidationError("File type not supported. Allowed: JPG, PNG, GIF, PDF, DOC, DOCX");
+  }
+
   const leave = await leaveRepository.findById(leaveRequestId);
 
   if (!leave) {
     throw new NotFoundError("LeaveRequest");
+  }
+
+  if (currentUser) {
+    await verifyStudentOwnership(currentUser, leave.studentId);
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
