@@ -8,6 +8,7 @@ type LeaveDocumentDbClient = Pick<typeof db, "insert" | "select" | "update" | "d
 
 export type LeaveDocument = InferSelectModel<typeof leaveDocuments>;
 export type NewLeaveDocument = InferInsertModel<typeof leaveDocuments>;
+type DocumentStatus = LeaveDocument["documentStatus"];
 
 export const leaveDocumentRepository = {
   async create(
@@ -38,11 +39,11 @@ export const leaveDocumentRepository = {
   async findByLeaveRequestId(
     leaveRequestId: string,
     dbClient: Pick<LeaveDocumentDbClient, "select"> = db,
-    statuses?: string[],
+    statuses?: DocumentStatus[],
   ): Promise<LeaveDocument[]> {
     if (statuses && statuses.length > 0) {
       const statusConditions = statuses.map((s) =>
-        eq(leaveDocuments.documentStatus, s as unknown as typeof leaveDocuments.documentStatus),
+        eq(leaveDocuments.documentStatus, s),
       );
 
       const rows = await dbClient
@@ -70,12 +71,12 @@ export const leaveDocumentRepository = {
 
   async updateStatus(
     id: string,
-    documentStatus: string,
+    documentStatus: DocumentStatus,
     dbClient: Pick<LeaveDocumentDbClient, "update"> = db,
   ): Promise<LeaveDocument | null> {
     const rows = await dbClient
       .update(leaveDocuments)
-      .set({ documentStatus: documentStatus as unknown as typeof leaveDocuments.documentStatus })
+      .set({ documentStatus })
       .where(eq(leaveDocuments.id, id))
       .returning();
 

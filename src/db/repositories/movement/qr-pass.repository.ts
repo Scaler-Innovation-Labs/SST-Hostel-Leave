@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { QR_STATUS } from "@/constants/movement/qr-status";
 import type { QrType } from "@/constants/movement/qr-type";
@@ -161,7 +161,17 @@ export const qrPassRepository = {
 			.returning();
 
 		return rows[0] ?? null;
-	},
+  },
+
+  async countActive(
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<number> {
+    const result = await dbClient
+      .select({ count: sql<number>`count(*)` })
+      .from(qrPasses)
+      .where(eq(qrPasses.status, QR_STATUS.ACTIVE));
+    return Number(result[0]?.count ?? 0);
+  },
 };
 
 export default qrPassRepository;

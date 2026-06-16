@@ -15,6 +15,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { genderEnum } from "./enums";
+import { hostels } from "./hostel";
 // =====================================================
 // USERS
 // =====================================================
@@ -24,7 +25,7 @@ export const users = pgTable("users", {
 
   clerkId: text("clerk_id").unique(),
 
-  hostelId: uuid("hostel_id"),
+  hostelId: uuid("hostel_id").references(() => hostels.id, { onDelete: "set null" }),
 
   fullName: text("full_name").notNull(),
 
