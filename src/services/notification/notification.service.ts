@@ -16,13 +16,11 @@ import { createSmsProvider } from "./providers/sms.provider";
 import type { NotificationRecipientType } from "@/constants/notification/notification-recipient-type";
 import { NOTIFICATION_RECIPIENT_TYPE } from "@/constants/notification/notification-recipient-type";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
-import { db } from "@/lib/db";
-import { userRepository } from "@/db/repositories/auth/user.repository";
+import { userRepository } from "@/db/repositories/user/user.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { parentRepository } from "@/db/repositories/hostel/parent.repository";
-import { roles as rolesTable, userRoles, users as usersTable } from "@/db/schema/auth";
-import { leaveApprovals } from "@/db/schema/leave";
-import { eq, inArray, and } from "drizzle-orm";
+import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
+import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 
 export type NotificationContext = {
 	leaveRequestId?: string;
@@ -77,14 +75,6 @@ async function resolveStudentContact(studentId: string): Promise<{ email?: strin
 	return { email: user.email ?? undefined, phone: user.phone ?? undefined, userId: user.id };
 }
 
-async function findUsersByIds(ids: string[]): Promise<Array<{ id: string; email: string | null; phone: string | null }>> {
-  if (ids.length === 0) return [];
-  return db
-    .select({ id: usersTable.id, email: usersTable.email, phone: usersTable.phone })
-    .from(usersTable)
-    .where(inArray(usersTable.id, ids));
-}
-
 async function resolveRecipientContacts(
 	recipientType: NotificationRecipientType,
 	context: NotificationContext
@@ -119,45 +109,36 @@ async function resolveRecipientContacts(
 
 		case NOTIFICATION_RECIPIENT_TYPE.CURRENT_APPROVER: {
 			if (!context.leaveRequestId) return [];
-			const approvals = await db
-				.select()
-				.from(leaveApprovals)
-				.where(eq(leaveApprovals.leaveRequestId, context.leaveRequestId))
-				.orderBy(leaveApprovals.stepOrder);
+			const approvals = await leaveApprovalRepository.findByLeaveRequestId(context.leaveRequestId);
 			const pending = approvals.filter((a) => a.decision === LEAVE_APPROVAL_DECISION.PENDING);
 			if (pending.length === 0) return [];
 			const approverUserId = pending[0]!.approverUserId;
 			if (!approverUserId) return [];
-			const users = await findUsersByIds([approverUserId]);
-			if (users.length === 0) return [];
-			return [{ email: users[0]!.email ?? undefined, phone: users[0]!.phone ?? undefined, userId: users[0]!.id }];
+			const users = await userRepository.findByIds([approverUserId]);
+			return users.length > 0
+				? [{ email: users[0]!.email ?? undefined, phone: users[0]!.phone ?? undefined, userId: users[0]!.id }]
+				: [];
 		}
 
 		case NOTIFICATION_RECIPIENT_TYPE.PREVIOUS_APPROVER: {
 			if (!context.leaveRequestId) return [];
-			const approvals = await db
-				.select()
-				.from(leaveApprovals)
-				.where(eq(leaveApprovals.leaveRequestId, context.leaveRequestId))
-				.orderBy(leaveApprovals.stepOrder);
-			const decided = approvals.filter((a) => a.decision !== LEAVE_APPROVAL_DECISION.PENDING && a.approverUserId);
+			const approvals = await leaveApprovalRepository.findByLeaveRequestId(context.leaveRequestId);
+			const decided = approvals.filter((a): a is typeof a & { approverUserId: string } => a.decision !== LEAVE_APPROVAL_DECISION.PENDING && a.approverUserId !== null);
 			const sorted = [...decided].sort((a, b) => b.stepOrder - a.stepOrder);
 			if (sorted.length === 0) return [];
-			const approverUserId = sorted[0]!.approverUserId!;
-			const users = await findUsersByIds([approverUserId]);
-			if (users.length === 0) return [];
-			return [{ email: users[0]!.email ?? undefined, phone: users[0]!.phone ?? undefined, userId: users[0]!.id }];
+			const approverUserId = sorted[0].approverUserId;
+			const users = await userRepository.findByIds([approverUserId]);
+			return users.length > 0
+				? [{ email: users[0]!.email ?? undefined, phone: users[0]!.phone ?? undefined, userId: users[0]!.id }]
+				: [];
 		}
 
 		case NOTIFICATION_RECIPIENT_TYPE.ALL_APPROVERS: {
 			if (!context.leaveRequestId) return [];
-			const approvals = await db
-				.select()
-				.from(leaveApprovals)
-				.where(eq(leaveApprovals.leaveRequestId, context.leaveRequestId));
+			const approvals = await leaveApprovalRepository.findByLeaveRequestId(context.leaveRequestId);
 			const userIds = approvals.map((a) => a.approverUserId).filter((id): id is string => id !== null);
 			if (userIds.length === 0) return [];
-			const users = await findUsersByIds(userIds);
+			const users = await userRepository.findByIds(userIds);
 			return users.map((u) => ({
 				email: u.email ?? undefined,
 				phone: u.phone ?? undefined,
@@ -170,41 +151,20 @@ async function resolveRecipientContacts(
 			const hostelId = context.hostelId ?? null;
 			if (!hostelId) return [];
 			const roleCode = recipientType === NOTIFICATION_RECIPIENT_TYPE.WARDEN ? "WARDEN" : "POC";
-			const roleRows = await db
-				.select({ id: rolesTable.id })
-				.from(rolesTable)
-				.where(eq(rolesTable.code, roleCode));
-			if (roleRows.length === 0) return [];
-			const roleId = roleRows[0]!.id;
-			const roleUserRows = await db
-				.select({ userId: userRoles.userId })
-				.from(userRoles)
-				.where(eq(userRoles.roleId, roleId));
-			if (roleUserRows.length === 0) return [];
-			const roleUserIds = roleUserRows.map((r) => r.userId);
-			const hostelUsers = await db
-				.select({ id: usersTable.id, email: usersTable.email, phone: usersTable.phone })
-				.from(usersTable)
-				.where(and(inArray(usersTable.id, roleUserIds), eq(usersTable.hostelId, hostelId)));
-			return hostelUsers.map((u) => ({ email: u.email ?? undefined, phone: u.phone ?? undefined, userId: u.id }));
+			const roleUserIds = await userRoleRepository.findUserIdsByRoleCode(roleCode);
+			if (roleUserIds.length === 0) return [];
+			const hostelUsers = await userRepository.findByIds(roleUserIds);
+			return hostelUsers
+				.filter((u) => u.hostelId === hostelId)
+				.map((u) => ({ email: u.email ?? undefined, phone: u.phone ?? undefined, userId: u.id }));
 		}
 
 		case NOTIFICATION_RECIPIENT_TYPE.ADMIN:
 		case NOTIFICATION_RECIPIENT_TYPE.SUPER_ADMIN: {
 			const roleCode = recipientType === NOTIFICATION_RECIPIENT_TYPE.ADMIN ? "ADMIN" : "SUPER_ADMIN";
-			const roleRows = await db
-				.select({ id: rolesTable.id })
-				.from(rolesTable)
-				.where(eq(rolesTable.code, roleCode));
-			if (roleRows.length === 0) return [];
-			const roleId = roleRows[0]!.id;
-			const roleUserRows = await db
-				.select({ userId: userRoles.userId })
-				.from(userRoles)
-				.where(eq(userRoles.roleId, roleId));
-			if (roleUserRows.length === 0) return [];
-			const roleUserIds = roleUserRows.map((r) => r.userId);
-			const adminUsers = await findUsersByIds(roleUserIds);
+			const roleUserIds = await userRoleRepository.findUserIdsByRoleCode(roleCode);
+			if (roleUserIds.length === 0) return [];
+			const adminUsers = await userRepository.findByIds(roleUserIds);
 			return adminUsers.map((u) => ({
 				email: u.email ?? undefined,
 				phone: u.phone ?? undefined,
@@ -298,8 +258,12 @@ export const notificationService = {
 				return { success: true, failures };
 			}
 
+			const templateIds = [...new Set(rules.map((r) => r.templateId))];
+			const templates = await notificationTemplateRepository.findByIds(templateIds);
+			const templateById = new Map(templates.map((t) => [t.id, t]));
+
 			for (const rule of rules) {
-				const template = await notificationTemplateRepository.findById(rule.templateId);
+				const template = templateById.get(rule.templateId);
 				if (!template) continue;
 
 				const resolvedChannels = rule.channels.map((c) => c.channel as NotificationChannel);

@@ -5,7 +5,7 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
-import { userRepository } from "@/db/repositories/auth/user.repository";
+import { userRepository } from "@/db/repositories/user/user.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
@@ -13,6 +13,7 @@ import { studentRepository } from "@/db/repositories/student/student.repository"
 import type { CreateLeaveDto } from "@/dto/leave/create-leave.dto";
 import { db } from "@/lib/db";
 import { AuthorizationError, ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
+import { parentRepository } from "@/db/repositories/hostel/parent.repository";
 import { auditService } from "@/services/audit/audit.service";
 import { validateLeaveSubmittedForm } from "@/services/leave/validate-leave-form.service";
 import { outboxService } from "@/services/outbox/outbox.service";
@@ -148,16 +149,29 @@ export async function createLeave(
     tx
   );
 
+    const parentApprovalStep = approvalSteps.find((s) => s.isParentApproval);
+    let parentId: string | null = null;
+    if (parentApprovalStep) {
+      const parent = await parentRepository.findPrimaryByStudentId(student.id, tx);
+      parentId = parent?.id ?? null;
+    }
+
     const approvalsToCreate = approvalSteps.map((step) => ({
       leaveRequestId: createdLeave.id,
       stepKey: step.stepKey,
       stepOrder: step.stepOrder,
       approverRoleId: step.approverRoleId ?? null,
+      approverParentId: step.isParentApproval ? parentId : null,
       decision: LEAVE_APPROVAL_DECISION.PENDING,
       approvalSource: resolveApprovalSource(step.approvalMethod ?? null, step.isParentApproval),
     }));
 
-    await leaveApprovalRepository.createMany(approvalsToCreate, tx);
+    const createdApprovals = await leaveApprovalRepository.createMany(approvalsToCreate, tx);
+
+    const stepKeyToApprovalId = new Map<string, string>();
+    for (let i = 0; i < createdApprovals.length; i++) {
+      stepKeyToApprovalId.set(approvalSteps[i]!.stepKey, createdApprovals[i]!.id);
+    }
 
     await auditService.record(
       AUDIT_ACTION.CREATE,
@@ -196,11 +210,25 @@ export async function createLeave(
             currentStepKey: null,
             currentStepOrder: null,
           }, tx);
+
+          await outboxService.publish({
+            eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVED,
+            aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
+            aggregateId: createdLeave.id,
+            payload: {
+              leaveId: createdLeave.id,
+              studentId: student.id,
+              decision: LEAVE_APPROVAL_DECISION.APPROVED,
+            },
+          }, tx);
         }
         continue;
       }
 
-      if (step.isParentApproval && !method) {
+      if (step.isParentApproval && (!method || method === "SMS_REPLY" || method === "SMS_AND_LINK")) {
+        const approvalId = stepKeyToApprovalId.get(step.stepKey);
+        if (!approvalId) continue;
+
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
         await outboxService.publish({
           eventType: OUTBOX_EVENT_TYPE.PARENT_APPROVAL_REQUIRED,
@@ -213,26 +241,23 @@ export async function createLeave(
             leaveDates,
             leaveReason: dto.reason,
             baseUrl,
-            approvalStepId: step.id,
+            approvalStepId: approvalId,
             approvalStepKey: step.stepKey,
           },
         }, tx);
       }
 
-      if (method === "SMS_REPLY" || method === "SMS_LINK" || method === "SMS_AND_LINK") {
-        const channels = method === "SMS_AND_LINK" ? ["SMS_REPLY", "SMS_LINK"] : [method];
-        for (const channel of channels) {
-          await outboxService.publish({
-            eventType: OUTBOX_EVENT_TYPE.NOTIFICATION_REQUESTED,
-            aggregateType: AGGREGATE_TYPE.NOTIFICATION,
-            aggregateId: createdLeave.id,
-            payload: {
-              notificationType: channel === "SMS_REPLY" ? "PARENT_APPROVAL_REQUESTED" : "LEAVE_SUBMITTED",
-              leaveRequestId: createdLeave.id,
-              variables: { studentName, dates: leaveDates, reason: dto.reason },
-            },
-          }, tx);
-        }
+      if (method === "SMS_LINK") {
+        await outboxService.publish({
+          eventType: OUTBOX_EVENT_TYPE.NOTIFICATION_REQUESTED,
+          aggregateType: AGGREGATE_TYPE.NOTIFICATION,
+          aggregateId: createdLeave.id,
+          payload: {
+            notificationType: "LEAVE_SUBMITTED",
+            leaveRequestId: createdLeave.id,
+            variables: { studentName, dates: leaveDates, reason: dto.reason },
+          },
+        }, tx);
       }
     }
 

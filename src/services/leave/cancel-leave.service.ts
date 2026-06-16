@@ -1,10 +1,12 @@
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { QR_STATUS } from "@/constants/movement/qr-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
@@ -90,6 +92,14 @@ export async function cancelLeave(
         currentStepKey: null,
         currentStepOrder: null,
       },
+      tx
+    );
+
+    // Mark all pending approvals as cancelled
+    await leaveApprovalRepository.updateDecisionByLeaveRequestId(
+      leaveId,
+      LEAVE_APPROVAL_DECISION.CANCELLED,
+      new Date(),
       tx
     );
 

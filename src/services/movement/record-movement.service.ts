@@ -112,7 +112,7 @@ export async function recordMovement(
       AUDIT_ACTION.CREATE,
       AUDIT_ENTITY_TYPE.MOVEMENT_EVENT,
       event.id,
-      input.recordedBy ?? input.studentId,
+      input.recordedBy ?? null,
       {
         eventType: input.eventType,
         fromState: input.fromState,
