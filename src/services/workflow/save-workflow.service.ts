@@ -8,24 +8,25 @@ async function resolveSteps(dto: SaveWorkflowDto, tx: Parameters<Parameters<type
   const stepKeys = new Set<string>();
   const steps = [];
 
+  const roleCodes = [...new Set(dto.steps.map((s) => s.approverRoleCode).filter((c): c is string => !!c))];
+  const rolesByCode = new Map(
+    (await userRoleRepository.findRolesByCodes(roleCodes, tx)).map((r) => [r.code, r.id])
+  );
+
   for (const [index, step] of dto.steps.entries()) {
     if (stepKeys.has(step.stepKey)) {
       throw new ValidationError(`Duplicate workflow step key: ${step.stepKey}`);
     }
     stepKeys.add(step.stepKey);
 
-    const role = step.approverRoleCode
-      ? await userRoleRepository.findRoleByCode(step.approverRoleCode, tx)
-      : null;
-
-    if (step.approverRoleCode && !role) {
+    if (step.approverRoleCode && !rolesByCode.has(step.approverRoleCode)) {
       throw new ValidationError(`Unknown approver role: ${step.approverRoleCode}`);
     }
 
     steps.push({
       stepKey: step.stepKey,
       stepOrder: index + 1,
-      approverRoleId: role?.id ?? null,
+      approverRoleId: step.approverRoleCode ? (rolesByCode.get(step.approverRoleCode) ?? null) : null,
       isParentApproval: step.isParentApproval,
       approvalMethod: step.approvalMethod ?? null,
       isRequired: step.isRequired,

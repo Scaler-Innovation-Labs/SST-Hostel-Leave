@@ -13,7 +13,7 @@ export function createSmsProvider() {
       const twilioConfigured =
         !!process.env.TWILIO_ACCOUNT_SID &&
         !!process.env.TWILIO_AUTH_TOKEN &&
-        !!process.env.TWILIO_PHONE_NUMBER;
+        (!!process.env.TWILIO_PHONE_NUMBER || !!process.env.TWILIO_FROM_NUMBER || !!process.env.TWILIO_MESSAGING_SERVICE_SID);
 
       if (!twilioConfigured) {
         console.warn(
@@ -22,7 +22,7 @@ export function createSmsProvider() {
         return {
           success: false,
           error:
-            "Twilio is not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER.",
+            "Twilio is not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER (or TWILIO_MESSAGING_SERVICE_SID).",
         };
       }
 

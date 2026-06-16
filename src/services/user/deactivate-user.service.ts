@@ -1,42 +1,24 @@
-import { eq } from "drizzle-orm";
-
-import { users } from "@/db";
+import { userRepository } from "@/db/repositories/user/user.repository";
 import { db } from "@/lib/db";
 import { NotFoundError } from "@/lib/errors";
 
 export async function deactivateUser(id: string) {
-  const rows = await db
-    .update(users)
-    .set({
-      isActive: false,
-      deletedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(users.id, id))
-    .returning();
+  const user = await userRepository.deactivate(id, db);
 
-  if (rows.length === 0) {
+  if (!user) {
     throw new NotFoundError("User");
   }
 
-  return rows[0]!;
+  return user;
 }
 
 export async function activateUser(id: string) {
-  const rows = await db
-    .update(users)
-    .set({
-      isActive: true,
-      deletedAt: null,
-      updatedAt: new Date(),
-    })
-    .where(eq(users.id, id))
-    .returning();
+  const user = await userRepository.activate(id, db);
 
-  if (rows.length === 0) {
+  if (!user) {
     throw new NotFoundError("User");
   }
 
-  return rows[0]!;
+  return user;
 }
 

@@ -5,6 +5,8 @@ import type {
 
 import { sendEmail } from "@/lib/resend";
 
+const DEV_REDIRECT_EMAIL = "n.vedvarshit@gmail.com";
+
 export function createEmailProvider() {
   return {
     async send(
@@ -23,8 +25,14 @@ export function createEmailProvider() {
         };
       }
 
+      const actualTo = process.env.NODE_ENV === "development" ? DEV_REDIRECT_EMAIL : payload.to;
+
+      if (process.env.NODE_ENV === "development" && actualTo !== payload.to) {
+        console.info(`[DEV EMAIL] Redirecting "${payload.subject}" from ${payload.to} to ${actualTo}`);
+      }
+
       const result = await sendEmail(
-        payload.to,
+        actualTo,
         payload.subject ?? "No Subject",
         payload.body,
       );

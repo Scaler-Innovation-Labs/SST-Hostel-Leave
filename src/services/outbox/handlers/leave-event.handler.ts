@@ -13,7 +13,7 @@ import {
 } from "@/services/notification/notification.service";
 import { generateParentApproval } from "@/services/parent/generate-parent-approval.service";
 import { studentRepository } from "@/db/repositories/student/student.repository";
-import { userRepository } from "@/db/repositories/auth/user.repository";
+import { userRepository } from "@/db/repositories/user/user.repository";
 import { parentRepository } from "@/db/repositories/hostel/parent.repository";
 import type { OutboxEventRow } from "@/types/outbox/outbox-event";
 
@@ -34,6 +34,9 @@ type ResolvedContext = {
   email?: string;
   phone?: string;
   variables: Record<string, string>;
+  studentId?: string;
+  leaveTypeId?: string;
+  hostelId?: string;
 };
 
 function formatDate(date: Date): string {
@@ -79,6 +82,7 @@ async function resolveContext(
   let studentName = "";
   let email: string | undefined;
   let phone: string | undefined;
+  let hostelId: string | undefined;
 
   if (resolvedStudentId) {
     const student = await studentRepository.findById(resolvedStudentId);
@@ -88,6 +92,7 @@ async function resolveContext(
         studentName = user.fullName;
         email = user.email ?? undefined;
         phone = user.phone ?? undefined;
+        hostelId = user.hostelId ?? undefined;
       }
     }
   }
@@ -97,6 +102,7 @@ async function resolveContext(
     ...(payload.variables ?? {}) as Record<string, string>,
   };
 
+  if (leaveId) variables.leaveId = leaveId;
   if (studentName) variables.studentName = studentName;
   if (payload.requestNumber) variables.requestNumber = String(payload.requestNumber);
 
@@ -110,7 +116,14 @@ async function resolveContext(
   if (payload.reason) variables.reason = String(payload.reason);
   if (payload.decision) variables.decision = String(payload.decision);
 
-  return { email, phone, variables };
+  return {
+    email,
+    phone,
+    variables,
+    studentId: resolvedStudentId,
+    leaveTypeId: leave?.leaveTypeId ?? undefined,
+    hostelId,
+  };
 }
 
 export async function handleLeaveEvent(
@@ -130,35 +143,15 @@ export async function handleLeaveEvent(
 
   const notificationType = LEAVE_EVENT_TO_NOTIFICATION[eventType];
 
-  if (notificationType) {
+  if (notificationType && eventType !== OUTBOX_EVENT_TYPE.PARENT_APPROVAL_REQUIRED) {
     const context = await resolveContext(eventType, payload);
-
-    let leaveTypeId: string | undefined;
-    let hostelId: string | undefined;
-
-    if (leaveId) {
-      const leave = await leaveRepository.findById(leaveId);
-      if (leave) {
-        leaveTypeId = leave.leaveTypeId ?? undefined;
-      }
-    }
-
-    if (studentId) {
-      const student = await studentRepository.findById(studentId);
-      if (student) {
-        const user = await userRepository.findById(student.userId);
-        if (user?.hostelId) {
-          hostelId = user.hostelId;
-        }
-      }
-    }
 
     await notificationService.notify(notificationType, {
       leaveRequestId: leaveId,
       leaveExtensionId: payload.extensionId as string | undefined,
-      leaveTypeId,
-      studentId,
-      hostelId,
+      leaveTypeId: context.leaveTypeId,
+      studentId: context.studentId ?? studentId,
+      hostelId: context.hostelId,
       userId: payload.userId as string | undefined,
       recipientEmail: context.email,
       recipientPhone: context.phone,

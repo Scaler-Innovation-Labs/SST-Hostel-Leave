@@ -1,6 +1,3 @@
-import { eq } from "drizzle-orm";
-
-import { leaveApprovals } from "@/db";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_APPROVAL_SOURCE } from "@/constants/leave/approval-source";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
@@ -51,15 +48,14 @@ export const parentDashboardService = {
       if (!approval) throw new NotFoundError("Approval");
       if (approval.approverParentId !== parentId) throw new ConflictError("Not your approval");
 
-      await tx
-        .update(leaveApprovals)
-        .set({
-          decision,
-          comments,
-          actedAt: new Date(),
-          approvalSource: LEAVE_APPROVAL_SOURCE.PORTAL,
-        })
-        .where(eq(leaveApprovals.id, approvalId));
+      await leaveApprovalRepository.updateParentDecision(
+        approvalId,
+        parentId,
+        decision,
+        comments,
+        tx,
+        LEAVE_APPROVAL_SOURCE.PORTAL,
+      );
 
       await auditService.record(
         decision === "APPROVED" ? AUDIT_ACTION.APPROVE : AUDIT_ACTION.REJECT,
