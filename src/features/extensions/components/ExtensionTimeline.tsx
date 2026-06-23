@@ -11,7 +11,7 @@ type TimelineEntry = {
   createdAt: string;
 };
 
-interface ExtensionTimelineProps {
+type ExtensionTimelineProps = {
   extensions: TimelineEntry[];
 }
 

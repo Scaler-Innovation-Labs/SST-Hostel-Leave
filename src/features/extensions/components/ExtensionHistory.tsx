@@ -1,9 +1,10 @@
 "use client";
 
 import { useLeaveExtensions } from "@/features/extensions/hooks/use-leave-extensions";
+
 import { ExtensionTimeline } from "./ExtensionTimeline";
 
-interface ExtensionHistoryProps {
+type ExtensionHistoryProps = {
   leaveId: string;
 }
 
