@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect,useState } from "react";
 
-import { ROUTES } from "@/constants/routes";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { ROUTES } from "@/constants/routes";
 
 type ParentProfile = {
   id: string;

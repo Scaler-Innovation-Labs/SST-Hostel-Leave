@@ -1,4 +1,4 @@
-import { parentRepository } from "@/db/repositories/hostel/parent.repository";
+import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import type { CreateParentDto } from "@/dto/admin/create-parent.dto";
 import type { UpdateParentDto } from "@/dto/admin/update-parent.dto";
 import { NotFoundError } from "@/lib/errors";
