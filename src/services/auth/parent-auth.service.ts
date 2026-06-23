@@ -1,10 +1,10 @@
 import { PARENT_LOGIN_OTP_EXPIRY_MINUTES } from "@/constants/auth/parent-auth";
-import { parentOtpSessionRepository } from "@/db/repositories/hostel/parent-otp-session.repository";
-import { parentRepository } from "@/db/repositories/hostel/parent.repository";
-import { signParentJwt } from "@/lib/jwt";
-import { NotFoundError, ValidationError } from "@/lib/errors";
-import { notificationService } from "@/services/notification/notification.service";
+import { parentRepository } from "@/db/repositories/parent/parent.repository";
+import { parentOtpSessionRepository } from "@/db/repositories/parent/parent-otp-session.repository";
 import { sha256 } from "@/lib/crypto";
+import { NotFoundError, ValidationError } from "@/lib/errors";
+import { signParentJwt } from "@/lib/jwt";
+import { notificationService } from "@/services/notification/notification.service";
 
 export type SendLoginOtpResult = {
   phoneLast4: string;

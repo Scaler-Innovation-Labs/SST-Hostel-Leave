@@ -6,10 +6,11 @@ import { NOTIFICATION_DELIVERY_STATUS } from "@/constants/notification/notificat
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { OTP_EXPIRY_MINUTES } from "@/constants/parent/parent-approval";
-import { parentRepository } from "@/db/repositories/hostel/parent.repository";
-import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { notificationLogRepository } from "@/db/repositories/notification/notification-log.repository";
+import { parentRepository } from "@/db/repositories/parent/parent.repository";
+import { sha256 } from "@/lib/crypto";
 import { transaction } from "@/lib/db/transaction";
 import {
   ConflictError,
@@ -19,7 +20,6 @@ import {
 import { auditService } from "@/services/audit/audit.service";
 import { createSmsProvider } from "@/services/notification/providers/sms.provider";
 import { outboxService } from "@/services/outbox/outbox.service";
-import { sha256 } from "@/lib/crypto";
 
 export type SendOtpResult = {
   phoneLast4: string;
@@ -69,13 +69,36 @@ export async function sendParentOtp(
     );
   }
 
-  const leave = approval.leaveRequestId
-    ? await leaveRepository.findById(approval.leaveRequestId)
-    : null;
+  // Determine target type and build context
+  const isExtension = !!approval.leaveExtensionId;
+  const leaveRequestId = isExtension
+    ? approval.leaveExtension?.leaveRequestId ?? approval.leaveRequestId ?? ""
+    : approval.leaveRequestId ?? "";
 
-  const dates = leave
-    ? `${leave.startAt.toLocaleDateString()} - ${leave.endAt.toLocaleDateString()}`
-    : "";
+  if (!leaveRequestId) {
+    throw new NotFoundError("LeaveRequest");
+  }
+
+  // Build date descriptions
+  let dates = "";
+  let reason = "";
+  let smsBody = "";
+
+  if (isExtension) {
+    const ext = approval.leaveExtension;
+    if (ext) {
+      dates = `${ext.currentEndAt.toLocaleDateString()} → ${ext.requestedEndAt.toLocaleDateString()}`;
+      reason = ext.reason;
+    }
+    smsBody = `${approval.studentName ?? "Student"} requested a leave extension. `;
+  } else {
+    const leave = await leaveRepository.findById(leaveRequestId);
+    if (leave) {
+      dates = `${leave.startAt.toLocaleDateString()} - ${leave.endAt.toLocaleDateString()}`;
+      reason = leave.reason;
+    }
+    smsBody = `${approval.studentName ?? "Student"} applied for a leave. `;
+  }
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
   const approvalLink = `${baseUrl}/parent-approve/${rawToken}`;
@@ -103,6 +126,7 @@ export async function sendParentOtp(
       null,
       {
         leaveRequestId: approval.leaveRequestId,
+        leaveExtensionId: approval.leaveExtensionId,
         action: "PARENT_OTP_SENT",
       },
       tx
@@ -115,12 +139,13 @@ export async function sendParentOtp(
       payload: {
         notificationType: "PARENT_APPROVAL_REQUESTED",
         leaveRequestId: approval.leaveRequestId ?? undefined,
+        leaveExtensionId: approval.leaveExtensionId ?? undefined,
         parentId: parent.id,
         recipientPhone: parent.phone,
         variables: {
           studentName: approval.studentName ?? "",
           dates,
-          reason: leave?.reason ?? "",
+          reason,
           approvalLink,
           code: shortCode,
         },
@@ -128,12 +153,13 @@ export async function sendParentOtp(
     }, tx);
   });
 
-  const otpBody = `${approval.studentName ?? "Student"} applied for a leave. OTP: ${otp}. Approve: ${approvalLink} or reply 1 ${shortCode} to approve, 2 ${shortCode} to reject.`;
+  smsBody += `OTP: ${otp}. Approve: ${approvalLink} or reply 1 ${shortCode} to approve, 2 ${shortCode} to reject.`;
   const smsProvider = createSmsProvider();
-  const otpResult = await smsProvider.send({ to: parent.phone, body: otpBody });
+  const otpResult = await smsProvider.send({ to: parent.phone, body: smsBody });
 
   await notificationLogRepository.create({
     leaveRequestId: approval.leaveRequestId ?? null,
+    leaveExtensionId: approval.leaveExtensionId ?? null,
     userId: null,
     parentId: parent.id,
     channel: NOTIFICATION_CHANNEL.SMS,
@@ -152,4 +178,3 @@ export async function sendParentOtp(
     phoneLast4: phone.slice(-4),
   };
 }
-
