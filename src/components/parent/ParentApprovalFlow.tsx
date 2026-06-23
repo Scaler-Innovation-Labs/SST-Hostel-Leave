@@ -15,7 +15,10 @@ type ApprovalState =
 
 type LeaveData = {
   approvalId: string;
+  targetType: "LEAVE_REQUEST" | "LEAVE_EXTENSION";
   leaveRequestId: string;
+  leaveExtensionId: string | null;
+  extensionNumber: number | null;
   studentName: string;
   studentRollNumber: string;
   leaveReason: string;
@@ -268,12 +271,20 @@ export function ParentApprovalFlow({ token }: { token: string }) {
   }
 
   if (state === "verified" && leaveData) {
+    const isExtension = leaveData.targetType === "LEAVE_EXTENSION";
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
         <div className="max-w-lg w-full bg-white rounded-lg shadow-md p-8">
-          <h1 className="text-xl font-semibold text-gray-900 mb-6">
-            Leave Request Details
+          <h1 className="text-xl font-semibold text-gray-900 mb-1">
+            {isExtension ? "Leave Extension Request" : "Leave Request Details"}
           </h1>
+          {isExtension && (
+            <p className="text-sm text-gray-500 mb-6">
+              Extension #{leaveData.extensionNumber}
+            </p>
+          )}
+          {!isExtension && <div className="mb-6" />}
 
           {error && (
             <div className="bg-red-50 text-red-700 p-3 rounded-md mb-4 text-sm">
@@ -296,22 +307,43 @@ export function ParentApprovalFlow({ token }: { token: string }) {
               </span>
             </div>
 
-            <div className="flex justify-between border-b pb-2">
-              <span className="text-gray-600">Dates</span>
-              <span className="font-medium">
-                {new Date(
-                  leaveData.leaveStartDate
-                ).toLocaleDateString()}{" "}
-                -{" "}
-                {new Date(
-                  leaveData.leaveEndDate
-                ).toLocaleDateString()}
-              </span>
-            </div>
+            {isExtension ? (
+              <>
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-gray-600">Current End Date</span>
+                  <span className="font-medium">
+                    {new Date(
+                      leaveData.leaveStartDate
+                    ).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-gray-600">Requested New End Date</span>
+                  <span className="font-medium">
+                    {new Date(
+                      leaveData.leaveEndDate
+                    ).toLocaleDateString()}
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-600">Dates</span>
+                <span className="font-medium">
+                  {new Date(
+                    leaveData.leaveStartDate
+                  ).toLocaleDateString()}{" "}
+                  -{" "}
+                  {new Date(
+                    leaveData.leaveEndDate
+                  ).toLocaleDateString()}
+                </span>
+              </div>
+            )}
 
             <div className="border-b pb-2">
               <span className="text-gray-600 block mb-1">
-                Reason
+                {isExtension ? "Extension Reason" : "Reason"}
               </span>
               <p className="text-gray-900">
                 {leaveData.leaveReason}

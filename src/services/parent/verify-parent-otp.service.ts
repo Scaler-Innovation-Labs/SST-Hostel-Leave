@@ -2,17 +2,20 @@ import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
+import { sha256 } from "@/lib/crypto";
 import {
   ConflictError,
   NotFoundError,
   ValidationError,
 } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
-import { sha256 } from "@/lib/crypto";
 
 export type VerifyOtpResult = {
   approvalId: string;
+  targetType: "LEAVE_REQUEST" | "LEAVE_EXTENSION";
   leaveRequestId: string;
+  leaveExtensionId: string | null;
+  extensionNumber: number | null;
   studentName: string;
   studentRollNumber: string;
   leaveReason: string;
@@ -79,23 +82,56 @@ export async function verifyParentOtp(
     null,
     {
       leaveRequestId: approval.leaveRequestId,
+      leaveExtensionId: approval.leaveExtensionId,
       action: "PARENT_OTP_VERIFIED",
     }
   );
 
-  if (!approval.leaveRequest) {
+  // Determine target type and resolve details
+  const isExtension = !!approval.leaveExtensionId;
+  const leaveRequestId = isExtension
+    ? approval.leaveExtension?.leaveRequestId ?? approval.leaveRequestId ?? ""
+    : approval.leaveRequestId ?? "";
+
+  if (!leaveRequestId) {
     throw new NotFoundError("LeaveRequest");
   }
 
-  return {
-    approvalId: approval.id,
-    leaveRequestId: approval.leaveRequest.id,
-    studentName: approval.studentName ?? "",
-    studentRollNumber: approval.studentRollNumber ?? "",
-    leaveReason: approval.leaveRequest.reason,
-    leaveStartDate: approval.leaveRequest.startAt,
-    leaveEndDate: approval.leaveRequest.endAt,
-    submittedForm: approval.leaveRequest.submittedForm,
-  };
-}
+  if (isExtension) {
+    const ext = approval.leaveExtension;
+    if (!ext) {
+      throw new NotFoundError("LeaveExtension");
+    }
 
+    return {
+      approvalId: approval.id,
+      targetType: "LEAVE_EXTENSION",
+      leaveRequestId,
+      leaveExtensionId: approval.leaveExtensionId!,
+      extensionNumber: ext.extensionNumber,
+      studentName: approval.studentName ?? "",
+      studentRollNumber: approval.studentRollNumber ?? "",
+      leaveReason: ext.reason,
+      leaveStartDate: ext.currentEndAt,
+      leaveEndDate: ext.requestedEndAt,
+      submittedForm: ext.submittedForm,
+    };
+  }
+
+  const lr = approval.leaveRequest;
+  if (!lr) {
+    throw new NotFoundError("LeaveRequest");
+  }    return {
+      approvalId: approval.id,
+      targetType: "LEAVE_REQUEST",
+      leaveRequestId,
+      leaveExtensionId: null,
+      extensionNumber: null,
+      studentName: approval.studentName ?? "",
+      studentRollNumber: approval.studentRollNumber ?? "",
+      leaveReason: lr.reason,
+      leaveStartDate: lr.startAt,
+      leaveEndDate: lr.endAt,
+      submittedForm: lr.submittedForm,
+    };
+}

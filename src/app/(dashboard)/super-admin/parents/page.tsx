@@ -1,7 +1,7 @@
 "use client";
 
-import useSWR from "swr";
 import { useState } from "react";
+import useSWR from "swr";
 
 import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";

@@ -2,11 +2,11 @@
 
 import useSWR from "swr";
 
-import { ROUTES } from "@/constants/routes";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { InfoCard } from "@/components/shared/InfoCard";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { ROUTES } from "@/constants/routes";
 
 type ParentDashboardStats = {
   pendingCount: number;

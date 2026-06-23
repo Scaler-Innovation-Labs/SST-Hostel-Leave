@@ -3,10 +3,10 @@ import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { ROUTES } from "@/constants/routes";
-import { verifyParentJwt, PARENT_JWT_COOKIE } from "@/lib/jwt";
+import type { Parent } from "@/db/repositories/parent/parent.repository";
+import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { NotFoundError } from "@/lib/errors";
-import { parentRepository } from "@/db/repositories/hostel/parent.repository";
-import type { Parent } from "@/db/repositories/hostel/parent.repository";
+import { PARENT_JWT_COOKIE,verifyParentJwt } from "@/lib/jwt";
 
 type ParentDashboardLayoutProps = {
   children: React.ReactNode;

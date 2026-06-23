@@ -1,5 +1,5 @@
-import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_APPROVAL_SOURCE } from "@/constants/leave/approval-source";
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
 import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
@@ -8,8 +8,9 @@ import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
-import { parentRepository } from "@/db/repositories/hostel/parent.repository";
+import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { transaction } from "@/lib/db/transaction";
+import { logger } from "@/lib/logger";
 import { auditService } from "@/services/audit/audit.service";
 import { recordMovement } from "@/services/movement/record-movement.service";
 import { outboxService } from "@/services/outbox/outbox.service";
@@ -189,7 +190,7 @@ export async function handleTwilioWebhook(from: string, body: string): Promise<R
       headers: { "Content-Type": "text/xml" },
     });
   } catch (error) {
-    console.error("[TWILIO WEBHOOK] Error:", error);
+    logger.error("Twilio webhook error", { error: error instanceof Error ? error.message : String(error) });
     return new Response(twiml("An error occurred. Please try again."), {
       status: 200,
       headers: { "Content-Type": "text/xml" },

@@ -1,12 +1,12 @@
 "use client";
 
-import useSWR from "swr";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import useSWR from "swr";
 
-import { ROUTES } from "@/constants/routes";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
+import { ROUTES } from "@/constants/routes";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 

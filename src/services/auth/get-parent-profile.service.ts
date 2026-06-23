@@ -1,4 +1,4 @@
-import { parentRepository } from "@/db/repositories/hostel/parent.repository";
+import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { AuthenticationError } from "@/lib/errors";
 import { PARENT_JWT_COOKIE, verifyParentJwt } from "@/lib/jwt";
 
