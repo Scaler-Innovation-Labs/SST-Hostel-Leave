@@ -3,16 +3,17 @@ import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { PARENT_APPROVAL_TOKEN_EXPIRY_HOURS } from "@/constants/parent/parent-approval";
-import { parentRepository } from "@/db/repositories/hostel/parent.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
+import { parentRepository } from "@/db/repositories/parent/parent.repository";
+import { sha256, toHex } from "@/lib/crypto";
 import { transaction } from "@/lib/db/transaction";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
-import { sha256, toHex } from "@/lib/crypto";
 
 export type GenerateParentApprovalContext = {
   leaveRequestId: string;
+  leaveExtensionId?: string;
   studentId: string;
   studentName: string;
   leaveDates: string;
@@ -67,6 +68,7 @@ export async function generateParentApproval(
       null,
       {
         leaveRequestId: context.leaveRequestId,
+        leaveExtensionId: context.leaveExtensionId,
         action: "PARENT_APPROVAL_TOKEN_GENERATED",
       },
       tx
@@ -79,6 +81,7 @@ export async function generateParentApproval(
       payload: {
         notificationType: "PARENT_APPROVAL_REQUESTED",
         leaveRequestId: context.leaveRequestId,
+        leaveExtensionId: context.leaveExtensionId,
         parentId: parent.id,
         recipientPhone: parent.phone,
         variables: {
@@ -92,4 +95,3 @@ export async function generateParentApproval(
     }, tx);
   });
 }
-

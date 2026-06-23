@@ -11,16 +11,17 @@ import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
+import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import type { ParentDecisionDto } from "@/dto/parent/parent-decision.dto";
+import { sha256 } from "@/lib/crypto";
 import { transaction } from "@/lib/db/transaction";
 import {
   ConflictError,
   NotFoundError,
 } from "@/lib/errors";
-import { recordMovement } from "@/services/movement/record-movement.service";
 import { auditService } from "@/services/audit/audit.service";
+import { recordMovement } from "@/services/movement/record-movement.service";
 import { outboxService } from "@/services/outbox/outbox.service";
-import { sha256 } from "@/lib/crypto";
 
 export type ParentDecisionResult = {
   approvalId: string;
@@ -52,9 +53,7 @@ export async function parentApproveDecision(
       throw new ConflictError("Approval already processed");
     }
 
-    if (!approval.leaveRequestId) {
-      throw new NotFoundError("LeaveRequest");
-    }
+    const isExtension = !!approval.leaveExtensionId;
 
     const updatedApproval =
       await leaveApprovalRepository.updateParentDecision(
@@ -78,109 +77,219 @@ export async function parentApproveDecision(
       null,
       {
         leaveRequestId: approval.leaveRequestId,
+        leaveExtensionId: approval.leaveExtensionId,
         comments: dto.comments,
         approvalSource: LEAVE_APPROVAL_SOURCE.SMS,
       },
       tx
     );
 
-    if (
-      dto.decision === LEAVE_APPROVAL_DECISION.REJECTED
-    ) {
+    if (isExtension) {
+      return await handleExtensionDecision(approval, dto, tx);
+    }
+
+    return await handleLeaveDecision(approval, dto, tx);
+  });
+}
+
+async function handleLeaveDecision(
+  approval: NonNullable<Awaited<ReturnType<typeof leaveApprovalRepository.findByParentApprovalToken>>>,
+  dto: ParentDecisionDto,
+  tx: any
+): Promise<ParentDecisionResult> {
+  if (dto.decision === LEAVE_APPROVAL_DECISION.REJECTED) {
+    await leaveRepository.updateById(
+      approval.leaveRequestId!,
+      {
+        status: LEAVE_REQUEST_STATUS.REJECTED,
+        rejectedAt: new Date(),
+        currentStepKey: null,
+        currentStepOrder: null,
+      },
+      tx
+    );
+
+    await outboxService.publish({
+      eventType: OUTBOX_EVENT_TYPE.LEAVE_REJECTED,
+      aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
+      aggregateId: approval.leaveRequestId!,
+      payload: {
+        leaveRequestId: approval.leaveRequestId,
+      },
+    }, tx);
+  } else {
+    const next =
+      await leaveApprovalRepository.findNextByDecision(
+        approval.leaveRequestId!,
+        approval.stepOrder,
+        LEAVE_APPROVAL_DECISION.PENDING,
+        tx
+      );
+
+    if (next) {
+      await leaveRepository.updateCurrentStep(
+        approval.leaveRequestId!,
+        next.stepKey,
+        next.stepOrder,
+        tx
+      );
+    } else {
       await leaveRepository.updateById(
-        approval.leaveRequestId,
+        approval.leaveRequestId!,
         {
-          status: LEAVE_REQUEST_STATUS.REJECTED,
-          rejectedAt: new Date(),
+          status: LEAVE_REQUEST_STATUS.APPROVED,
+          approvedAt: new Date(),
           currentStepKey: null,
           currentStepOrder: null,
         },
         tx
       );
 
+      await auditService.record(
+        AUDIT_ACTION.UPDATE,
+        AUDIT_ENTITY_TYPE.LEAVE_REQUEST,
+        approval.leaveRequestId!,
+        null,
+        {
+          oldStatus: LEAVE_REQUEST_STATUS.PENDING,
+          newStatus: LEAVE_REQUEST_STATUS.APPROVED,
+        },
+        tx
+      );
+
+      const approvedLeave = await leaveRepository.findById(
+        approval.leaveRequestId!,
+        tx
+      );
+
       await outboxService.publish({
-        eventType: OUTBOX_EVENT_TYPE.LEAVE_REJECTED,
+        eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVED,
         aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
-        aggregateId: approval.leaveRequestId,
+        aggregateId: approval.leaveRequestId!,
         payload: {
           leaveRequestId: approval.leaveRequestId,
+          studentId: approvedLeave?.studentId,
         },
       }, tx);
-    } else if (
-      dto.decision === LEAVE_APPROVAL_DECISION.APPROVED
-    ) {
-      const next =
-        await leaveApprovalRepository.findNextByDecision(
-          approval.leaveRequestId,
-          approval.stepOrder,
-          LEAVE_APPROVAL_DECISION.PENDING,
-          tx
-        );
 
-      if (next) {
-        await leaveRepository.updateCurrentStep(
-          approval.leaveRequestId,
-          next.stepKey,
-          next.stepOrder,
-          tx
-        );
-      } else {
-        await leaveRepository.updateById(
-          approval.leaveRequestId,
-          {
-            status: LEAVE_REQUEST_STATUS.APPROVED,
-            approvedAt: new Date(),
-            currentStepKey: null,
-            currentStepOrder: null,
-          },
-          tx
-        );
-
-        await auditService.record(
-          AUDIT_ACTION.UPDATE,
-          AUDIT_ENTITY_TYPE.LEAVE_REQUEST,
-          approval.leaveRequestId,
-          null,
-          {
-            oldStatus: LEAVE_REQUEST_STATUS.PENDING,
-            newStatus: LEAVE_REQUEST_STATUS.APPROVED,
-          },
-          tx
-        );
-
-        const approvedLeave = await leaveRepository.findById(
-          approval.leaveRequestId,
-          tx
-        );
-
-        await outboxService.publish({
-          eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVED,
-          aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
-          aggregateId: approval.leaveRequestId,
-          payload: {
-            leaveRequestId: approval.leaveRequestId,
-            studentId: approvedLeave?.studentId,
-          },
-        }, tx);
-
-        if (approvedLeave?.studentId) {
-          await recordMovement({
-            studentId: approvedLeave.studentId,
-            leaveRequestId: approval.leaveRequestId,
-            fromState: MOVEMENT_STATE.IN_HOSTEL,
-            toState: MOVEMENT_STATE.APPROVED_LEAVE,
-            eventType: MOVEMENT_EVENT.LEAVE_APPROVED,
-            movementMethod: MOVEMENT_METHOD.SYSTEM,
-            dbClient: tx,
-          });
-        }
+      if (approvedLeave?.studentId) {
+        await recordMovement({
+          studentId: approvedLeave.studentId,
+          leaveRequestId: approval.leaveRequestId!,
+          fromState: MOVEMENT_STATE.IN_HOSTEL,
+          toState: MOVEMENT_STATE.APPROVED_LEAVE,
+          eventType: MOVEMENT_EVENT.LEAVE_APPROVED,
+          movementMethod: MOVEMENT_METHOD.SYSTEM,
+          dbClient: tx,
+        });
       }
     }
+  }
 
-    return {
-      approvalId: approval.id,
-      decision: dto.decision,
-    };
-  });
+  return {
+    approvalId: approval.id,
+    decision: dto.decision,
+  };
 }
 
+async function handleExtensionDecision(
+  approval: NonNullable<Awaited<ReturnType<typeof leaveApprovalRepository.findByParentApprovalToken>>>,
+  dto: ParentDecisionDto,
+  tx: any
+): Promise<ParentDecisionResult> {
+  const extensionId = approval.leaveExtensionId!;
+  const leaveRequestId = approval.leaveExtension?.leaveRequestId ?? approval.leaveRequestId ?? "";
+
+  if (dto.decision === LEAVE_APPROVAL_DECISION.REJECTED) {
+    await leaveExtensionRepository.updateById(
+      extensionId,
+      {
+        status: LEAVE_REQUEST_STATUS.REJECTED,
+        rejectedAt: new Date(),
+        currentStepKey: null,
+        currentStepOrder: null,
+      },
+      tx
+    );
+
+    await outboxService.publish({
+      eventType: OUTBOX_EVENT_TYPE.LEAVE_EXTENSION_REJECTED,
+      aggregateType: AGGREGATE_TYPE.LEAVE_EXTENSION,
+      aggregateId: extensionId,
+      payload: {
+        leaveId: leaveRequestId,
+        extensionId,
+        reason: dto.comments ?? "",
+      },
+    }, tx);
+  } else {
+    const next =
+      await leaveApprovalRepository.findNextByDecisionForExtension(
+        extensionId,
+        approval.stepOrder,
+        LEAVE_APPROVAL_DECISION.PENDING,
+        tx
+      );
+
+    if (next) {
+      await leaveExtensionRepository.updateCurrentStep(
+        extensionId,
+        next.stepKey,
+        next.stepOrder,
+        tx
+      );
+    } else {
+      const extension = await leaveExtensionRepository.findByIdWithLeave(extensionId, tx);
+
+      if (!extension) throw new NotFoundError("LeaveExtension");
+
+      await leaveExtensionRepository.updateById(
+        extensionId,
+        {
+          status: LEAVE_REQUEST_STATUS.APPROVED,
+          approvedAt: new Date(),
+          currentStepKey: null,
+          currentStepOrder: null,
+        },
+        tx
+      );
+
+      await leaveRepository.updateById(
+        leaveRequestId,
+        {
+          endAt: extension.requestedEndAt,
+        },
+        tx
+      );
+
+      await auditService.record(
+        AUDIT_ACTION.UPDATE,
+        AUDIT_ENTITY_TYPE.LEAVE_REQUEST,
+        leaveRequestId,
+        null,
+        {
+          extensionId,
+          oldEndAt: extension.currentEndAt.toISOString(),
+          newEndAt: extension.requestedEndAt.toISOString(),
+        },
+        tx
+      );
+
+      await outboxService.publish({
+        eventType: OUTBOX_EVENT_TYPE.LEAVE_EXTENSION_APPROVED,
+        aggregateType: AGGREGATE_TYPE.LEAVE_EXTENSION,
+        aggregateId: extensionId,
+        payload: {
+          leaveId: leaveRequestId,
+          extensionId,
+          studentId: extension.leaveRequest?.studentId,
+        },
+      }, tx);
+    }
+  }
+
+  return {
+    approvalId: approval.id,
+    decision: dto.decision,
+  };
+}

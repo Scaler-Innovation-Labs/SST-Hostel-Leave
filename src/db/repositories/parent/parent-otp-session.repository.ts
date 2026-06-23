@@ -1,5 +1,5 @@
-import { and, eq, gte, isNull } from "drizzle-orm";
 import type { InferSelectModel } from "drizzle-orm";
+import { and, eq, gte, isNull } from "drizzle-orm";
 
 import { parentOtpSessions } from "@/db";
 import { db } from "@/lib/db";
