@@ -3,9 +3,9 @@ import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
+import { deleteWorkflow } from "@/services/workflow/delete-workflow.service";
 import { getWorkflowById } from "@/services/workflow/get-workflow.service";
 import { updateWorkflow } from "@/services/workflow/save-workflow.service";
-import { deleteWorkflow } from "@/services/workflow/delete-workflow.service";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

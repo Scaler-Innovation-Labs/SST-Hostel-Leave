@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { academicGroups, parents, students, users } from "@/db";
 import type { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export async function seedStudents(
   database: typeof db
@@ -13,7 +14,7 @@ export async function seedStudents(
     .limit(1);
 
   if (userRows.length === 0) {
-    console.warn("Student user not found, skipping student seed");
+    logger.warn("Student user not found, skipping student seed");
     return;
   }
 
@@ -23,7 +24,7 @@ export async function seedStudents(
     .limit(1);
 
   if (groupRows.length === 0) {
-    console.warn("No academic groups found, skipping student seed");
+    logger.warn("No academic groups found, skipping student seed");
     return;
   }
 
@@ -43,7 +44,7 @@ export async function seedStudents(
     .returning({ id: students.id });
 
   if (studentRows.length === 0) {
-    console.warn("Student already exists, skipping parent insert");
+    logger.warn("Student already exists, skipping parent insert");
     return;
   }
 

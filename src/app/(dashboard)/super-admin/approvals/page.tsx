@@ -6,8 +6,8 @@ import { useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApprovalTable } from "@/features/approvals/components/ApprovalTable";
-import { ExtensionApprovalTable } from "@/features/extensions/components/ExtensionApprovalTable";
 import { useApprovals } from "@/features/approvals/hooks/use-approvals";
+import { ExtensionApprovalTable } from "@/features/extensions/components/ExtensionApprovalTable";
 import { useExtensionApprovals } from "@/features/extensions/hooks/use-approve-extension";
 
 const STATUS_TABS = [

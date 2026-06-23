@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { academicGroups, departments } from "@/db";
 import type { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export async function seedAcademicGroups(
   database: typeof db
@@ -13,7 +14,7 @@ export async function seedAcademicGroups(
     .limit(1);
 
   if (deptRows.length === 0) {
-    console.warn("Department CS-AI not found, skipping academic groups");
+    logger.warn("Department CS-AI not found, skipping academic groups");
     return;
   }
 

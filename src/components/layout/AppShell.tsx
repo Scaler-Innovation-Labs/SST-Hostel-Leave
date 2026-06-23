@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 
-import { DashboardNavbar } from "./DashboardNavbar";
 import { PageTransition } from "@/components/shared/PageTransition";
+
+import { DashboardNavbar } from "./DashboardNavbar";
 
 type ShellNavItem = {
   label: string;

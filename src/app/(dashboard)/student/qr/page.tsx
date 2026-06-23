@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-
 import { Loader2, QrCode } from "lucide-react";
+import { useState } from "react";
 
 import { QrCodeDisplay } from "@/components/qr/QrCodeDisplay";
 import { ErrorState } from "@/components/shared/ErrorState";

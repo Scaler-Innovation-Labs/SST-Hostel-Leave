@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import { Loader2 } from "lucide-react";
 import QRCode from "qrcode";
+import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 
-interface QrCodeDisplayProps {
+type QrCodeDisplayProps = {
   token: string;
   size?: number;
   className?: string;

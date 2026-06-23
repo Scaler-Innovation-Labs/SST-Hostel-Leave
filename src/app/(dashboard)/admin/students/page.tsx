@@ -1,18 +1,18 @@
 "use client";
 
+import { ArrowRight, Mail } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { DataToolbar } from "@/components/shared/DataToolbar";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { DataToolbar } from "@/components/shared/DataToolbar";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { useStudents } from "@/features/students/hooks/use-students";
 import { cn } from "@/lib/utils";
-import { ArrowRight, Mail } from "lucide-react";
 
 const LOCATION_OPTIONS = [
   { value: MOVEMENT_STATE.IN_HOSTEL, label: "In Hostel" },

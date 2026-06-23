@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import { Scanner } from "@yudiel/react-qr-scanner";
 import type { IScannerError, ScannerErrorKind } from "@yudiel/react-qr-scanner";
+import { Scanner } from "@yudiel/react-qr-scanner";
 import { CameraOff, QrCode, RefreshCw } from "lucide-react";
+import { useCallback, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
 type ScannerStatus = "loading" | "active" | "error";
@@ -27,7 +28,7 @@ function getScannerErrorMessage(kind: ScannerErrorKind): string {
   return ERROR_MESSAGES[kind] ?? ERROR_MESSAGES.unknown;
 }
 
-interface QrScannerProps {
+type QrScannerProps = {
   onScan: (token: string) => void;
   onError?: (error: string) => void;
   className?: string;
@@ -57,7 +58,7 @@ export function QrScanner({ onScan, onError, className }: QrScannerProps) {
       const message = getScannerErrorMessage(err.kind);
       setStatus("error");
       setErrorMessage(message);
-      console.error("[QR Scanner]", `[${err.kind}]`, message);
+      logger.error("QR scanner error", { kind: err.kind, message });
       onError?.(message);
     },
     [status, onError],
