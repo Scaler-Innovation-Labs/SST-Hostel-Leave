@@ -4,9 +4,9 @@ import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
 import {
+  deleteNotificationRule,
   getNotificationRuleById,
   updateNotificationRule,
-  deleteNotificationRule,
 } from "@/services/notification/notification-rule.service";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {

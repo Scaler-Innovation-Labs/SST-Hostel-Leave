@@ -1,5 +1,7 @@
 import type { Block, KnownBlock } from "@slack/web-api";
 
+import { logger } from "@/lib/logger";
+
 import type {
 	NotificationPayload,
 	NotificationSendResult,
@@ -14,9 +16,7 @@ export function createSlackProvider() {
 			const channelId = process.env.SLACK_CHANNEL_ID;
 
 			if (!botToken || !channelId) {
-				console.warn(
-					`[SLACK STUB] Channel: ${payload.to} | Subject: ${payload.subject} | Body: ${payload.body}`
-				);
+				logger.warn("Slack not configured — SLACK STUB", { to: payload.to });
 				return {
 					success: false,
 					error: "Slack is not configured. Set SLACK_BOT_TOKEN and SLACK_CHANNEL_ID.",
@@ -70,9 +70,9 @@ export function createSlackProvider() {
 					messageId: `slack-${result.ts ?? Date.now()}`,
 				};
 			} catch (error) {
-				const errorMessage =
-					error instanceof Error ? error.message : String(error);
-				console.error(`[SLACK] Failed to send: ${errorMessage}`);
+			const errorMessage =
+				error instanceof Error ? error.message : String(error);
+				logger.error("Failed to send Slack message", { error: errorMessage });
 				return {
 					success: false,
 					error: errorMessage,

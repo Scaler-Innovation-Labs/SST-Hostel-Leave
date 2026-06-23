@@ -14,8 +14,8 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-import { policyTypeEnum } from "./enums";
 import { departments } from "./academics";
+import { policyTypeEnum } from "./enums";
 import { hostels } from "./hostel";
 import { leaveTypes } from "./leave";
 

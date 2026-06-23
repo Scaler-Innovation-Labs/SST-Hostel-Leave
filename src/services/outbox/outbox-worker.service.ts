@@ -1,4 +1,4 @@
-import { outboxRepository, type OutboxEvent } from "@/db/repositories/outbox/outbox.repository";
+import { type OutboxEvent,outboxRepository } from "@/db/repositories/outbox/outbox.repository";
 import type {
   OutboxEventRow,
 } from "@/types/outbox/outbox-event";

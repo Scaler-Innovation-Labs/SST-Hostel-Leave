@@ -6,14 +6,14 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
+import { NOTIFICATION_CHANNELS } from "@/constants/notification/notification-channel";
 import { NOTIFICATION_EVENTS } from "@/constants/notification/notification-event";
 import { EVENT_LABELS } from "@/constants/notification/notification-labels";
-import { NOTIFICATION_CHANNELS } from "@/constants/notification/notification-channel";
 import {
-  useNotificationTemplates,
   createTemplate,
   deleteTemplate,
   toggleTemplateActive,
+  useNotificationTemplates,
 } from "@/features/notifications/hooks/use-notification-templates";
 
 const CHANNEL_LABELS: Record<string, string> = {

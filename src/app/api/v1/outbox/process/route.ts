@@ -2,6 +2,7 @@ import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
+import { logger } from "@/lib/logger";
 import { processPendingEvents } from "@/services/outbox/outbox-worker.service";
 
 /**
@@ -23,10 +24,7 @@ export async function POST() {
 
     const result = await processPendingEvents();
 
-    console.info(
-      `[OUTBOX] Worker completed triggered by ${currentUser.id}: ` +
-      `${result.processed} processed, ${result.failed} failed, ${result.skipped} skipped`
-    );
+    logger.info("Outbox worker completed", { triggeredBy: currentUser.id, processed: result.processed, failed: result.failed, skipped: result.skipped });
 
     return ApiResponse.success({
       processed: result.processed,

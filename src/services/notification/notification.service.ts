@@ -1,26 +1,25 @@
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import type { NotificationChannel } from "@/constants/notification/notification-channel";
 import { NOTIFICATION_CHANNEL } from "@/constants/notification/notification-channel";
 import type { NotificationDeliveryStatus } from "@/constants/notification/notification-delivery-status";
 import { NOTIFICATION_DELIVERY_STATUS } from "@/constants/notification/notification-delivery-status";
 import type { NotificationEvent } from "@/constants/notification/notification-event";
+import type { NotificationRecipientType } from "@/constants/notification/notification-recipient-type";
+import { NOTIFICATION_RECIPIENT_TYPE } from "@/constants/notification/notification-recipient-type";
+import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
+import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { notificationLogRepository } from "@/db/repositories/notification/notification-log.repository";
 import { notificationRuleRepository } from "@/db/repositories/notification/notification-rule.repository";
 import { notificationTemplateRepository } from "@/db/repositories/notification/notification-template.repository";
+import { parentRepository } from "@/db/repositories/parent/parent.repository";
+import { studentRepository } from "@/db/repositories/student/student.repository";
+import { userRepository } from "@/db/repositories/user/user.repository";
 
 import { createEmailProvider } from "./providers/email.provider";
 import { createInAppProvider } from "./providers/in-app.provider";
 import type { NotificationProvider, NotificationSendResult } from "./providers/notification-provider";
 import { createSlackProvider } from "./providers/slack.provider";
 import { createSmsProvider } from "./providers/sms.provider";
-
-import type { NotificationRecipientType } from "@/constants/notification/notification-recipient-type";
-import { NOTIFICATION_RECIPIENT_TYPE } from "@/constants/notification/notification-recipient-type";
-import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
-import { userRepository } from "@/db/repositories/user/user.repository";
-import { studentRepository } from "@/db/repositories/student/student.repository";
-import { parentRepository } from "@/db/repositories/hostel/parent.repository";
-import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
-import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 
 export type NotificationContext = {
 	leaveRequestId?: string;
@@ -126,7 +125,7 @@ async function resolveRecipientContacts(
 			const decided = approvals.filter((a): a is typeof a & { approverUserId: string } => a.decision !== LEAVE_APPROVAL_DECISION.PENDING && a.approverUserId !== null);
 			const sorted = [...decided].sort((a, b) => b.stepOrder - a.stepOrder);
 			if (sorted.length === 0) return [];
-			const approverUserId = sorted[0].approverUserId;
+			const approverUserId = sorted[0]!.approverUserId;
 			const users = await userRepository.findByIds([approverUserId]);
 			return users.length > 0
 				? [{ email: users[0]!.email ?? undefined, phone: users[0]!.phone ?? undefined, userId: users[0]!.id }]
