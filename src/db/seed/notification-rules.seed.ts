@@ -1,3 +1,5 @@
+import { count, isNull } from "drizzle-orm";
+
 import { NOTIFICATION_CHANNEL } from "@/constants/notification/notification-channel";
 import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event";
 import { NOTIFICATION_RECIPIENT_TYPE } from "@/constants/notification/notification-recipient-type";
@@ -8,7 +10,7 @@ import {
   notificationTemplates,
 } from "@/db";
 import { db } from "@/lib/db";
-import { count, isNull } from "drizzle-orm";
+import { logger } from "@/lib/logger";
 
 type RuleDraft = {
   eventType: (typeof NOTIFICATION_EVENT)[keyof typeof NOTIFICATION_EVENT];
@@ -201,7 +203,7 @@ export async function seedNotificationRules() {
     .where(isNull(notificationRules.leaveTypeId));
 
   if (row?.count && row.count > 0) {
-    console.log("Global notification rules already exist \u2014 skipping");
+    logger.info("Global notification rules already exist — skipping");
     return;
   }
 
@@ -214,7 +216,7 @@ export async function seedNotificationRules() {
   for (const rule of GLOBAL_RULES) {
     const templateId = templateByCode.get(rule.templateCode);
     if (!templateId) {
-      console.warn(`Template code "${rule.templateCode}" not found \u2014 skipping rule`);
+      logger.warn("Template code not found", { templateCode: rule.templateCode });
       continue;
     }
 
@@ -254,7 +256,7 @@ export async function seedNotificationRules() {
     inserted++;
   }
 
-  console.log(`Seeded ${inserted} global notification rules`);
+  logger.info("Seeded global notification rules", { count: inserted });
 }
 
 export default seedNotificationRules;

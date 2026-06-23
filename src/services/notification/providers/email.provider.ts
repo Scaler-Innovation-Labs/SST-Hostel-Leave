@@ -1,9 +1,10 @@
+import { logger } from "@/lib/logger";
+import { sendEmail } from "@/lib/resend";
+
 import type {
   NotificationPayload,
   NotificationSendResult,
 } from "./notification-provider";
-
-import { sendEmail } from "@/lib/resend";
 
 const DEV_REDIRECT_EMAIL = "n.vedvarshit@gmail.com";
 
@@ -15,9 +16,7 @@ export function createEmailProvider() {
       const resendConfigured = !!process.env.RESEND_API_KEY;
 
       if (!resendConfigured) {
-        console.warn(
-          `[EMAIL STUB] To: ${payload.to} | Subject: ${payload.subject} | Body: ${payload.body}`,
-        );
+        logger.warn("Email not configured — EMAIL STUB", { to: payload.to });
         return {
           success: false,
           error:
@@ -28,7 +27,7 @@ export function createEmailProvider() {
       const actualTo = process.env.NODE_ENV === "development" ? DEV_REDIRECT_EMAIL : payload.to;
 
       if (process.env.NODE_ENV === "development" && actualTo !== payload.to) {
-        console.info(`[DEV EMAIL] Redirecting "${payload.subject}" from ${payload.to} to ${actualTo}`);
+        logger.info("Dev mode email redirect", { from: payload.to, to: actualTo, subject: payload.subject });
       }
 
       const result = await sendEmail(

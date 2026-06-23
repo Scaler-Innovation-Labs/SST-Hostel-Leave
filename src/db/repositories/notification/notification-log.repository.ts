@@ -1,11 +1,11 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { and, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 
-import { notificationLogs } from "@/db";
-import { db } from "@/lib/db";
 import type { NotificationChannel } from "@/constants/notification/notification-channel";
 import type { NotificationDeliveryStatus } from "@/constants/notification/notification-delivery-status";
 import type { NotificationEvent } from "@/constants/notification/notification-event";
+import { notificationLogs } from "@/db";
+import { db } from "@/lib/db";
 
 export type NotificationLog = InferSelectModel<typeof notificationLogs>;
 export type NewNotificationLog = InferInsertModel<

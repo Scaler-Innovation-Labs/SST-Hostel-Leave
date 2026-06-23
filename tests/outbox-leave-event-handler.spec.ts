@@ -21,7 +21,7 @@ vi.mock("@/db/repositories/student/student.repository", () => ({
   },
 }));
 
-vi.mock("@/db/repositories/auth/user.repository", () => ({
+vi.mock("@/db/repositories/user/user.repository", () => ({
   userRepository: {
     findById: vi.fn(),
   },
@@ -36,7 +36,7 @@ vi.mock("@/db/repositories/hostel/parent.repository", () => ({
 import { handleLeaveEvent } from "@/services/outbox/handlers/leave-event.handler";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
-import { userRepository } from "@/db/repositories/auth/user.repository";
+import { userRepository } from "@/db/repositories/user/user.repository";
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -111,10 +111,10 @@ describe("handleLeaveEvent", () => {
     expect(mockNotify).toHaveBeenCalledWith("LEAVE_EXTENSION_REQUESTED", expect.any(Object));
   });
 
-  it("maps PARENT_APPROVAL_REQUIRED to PARENT_APPROVAL_REQUESTED notification", async () => {
+  it("handles PARENT_APPROVAL_REQUIRED without dispatching notification directly (uses outbox instead)", async () => {
     await handleLeaveEvent(makeEvent("PARENT_APPROVAL_REQUIRED"));
 
-    expect(mockNotify).toHaveBeenCalledWith("PARENT_APPROVAL_REQUESTED", expect.any(Object));
+    expect(mockNotify).not.toHaveBeenCalled();
   });
 
   it("passes payload fields to notification context", async () => {

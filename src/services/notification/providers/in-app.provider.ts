@@ -1,3 +1,5 @@
+import { logger } from "@/lib/logger";
+
 import type {
 	NotificationPayload,
 	NotificationSendResult,
@@ -10,9 +12,7 @@ export function createInAppProvider() {
 		): Promise<NotificationSendResult> {
 			// In-app notifications are stored as notificationLog rows with PENDING status.
 			// The frontend polls or uses WebSocket for real-time updates.
-			console.log(
-				`[IN-APP] To: ${payload.to} | Body: ${payload.body}`
-			);
+		logger.debug("In-app notification sent", { to: payload.to });
 
 			return {
 				success: true,

@@ -1,6 +1,7 @@
 import type {
   NotificationEvent,
 } from "@/constants/notification/notification-event";
+import { logger } from "@/lib/logger";
 import {
   notificationService,
 } from "@/services/notification/notification.service";
@@ -21,9 +22,7 @@ export async function handleNotificationEvent(
   >;
 
   if (!notificationType) {
-    console.warn(
-      `[OUTBOX] No notificationType in payload for event ${event.id}`
-    );
+    logger.warn("No notificationType in payload", { eventId: event.id });
     return;
   }
 
@@ -45,8 +44,6 @@ export async function handleNotificationEvent(
     variables,
   });
 
-  console.info(
-    `[OUTBOX] Notification dispatched: ${notificationType}`
-  );
+  logger.info("Notification dispatched", { notificationType });
 }
 

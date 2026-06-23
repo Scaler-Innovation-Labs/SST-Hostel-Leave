@@ -1,9 +1,10 @@
+import { logger } from "@/lib/logger";
+import { sendSms } from "@/lib/twilio";
+
 import type {
   NotificationPayload,
   NotificationSendResult,
 } from "./notification-provider";
-
-import { sendSms } from "@/lib/twilio";
 
 export function createSmsProvider() {
   return {
@@ -16,9 +17,7 @@ export function createSmsProvider() {
         (!!process.env.TWILIO_PHONE_NUMBER || !!process.env.TWILIO_FROM_NUMBER || !!process.env.TWILIO_MESSAGING_SERVICE_SID);
 
       if (!twilioConfigured) {
-        console.warn(
-          `[SMS STUB] To: ${payload.to} | Body: ${payload.body}`,
-        );
+        logger.warn("SMS not configured — SMS STUB", { to: payload.to });
         return {
           success: false,
           error:
