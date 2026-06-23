@@ -1,0 +1,20 @@
+export const LEAVE_REQUEST_STATUSES = [
+	"PENDING",
+	"APPROVED",
+	"REJECTED",
+	"CANCELLED",
+	"EXPIRED",
+	"COMPLETED",
+] as const;
+
+export type LeaveRequestStatus =
+	(typeof LEAVE_REQUEST_STATUSES)[number];
+
+export const LEAVE_REQUEST_STATUS = {
+	PENDING: "PENDING",
+	APPROVED: "APPROVED",
+	REJECTED: "REJECTED",
+	CANCELLED: "CANCELLED",
+	EXPIRED: "EXPIRED",
+	COMPLETED: "COMPLETED",
+} as const;

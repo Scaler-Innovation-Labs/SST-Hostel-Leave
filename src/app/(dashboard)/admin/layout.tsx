@@ -1,15 +1,29 @@
+import { redirect } from "next/navigation";
+
 import { AppShell } from "@/components/layout/AppShell";
-import { navigation } from "@/constants/navigation";
+import { NAVIGATION } from "@/constants/navigation";
+import { ROUTES } from "@/constants/routes";
+import { requireRole } from "@/lib/auth/authorization";
+import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { ROLES } from "@/lib/auth/roles";
 
 type AdminLayoutProps = {
   children: React.ReactNode;
 };
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: AdminLayoutProps) {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/unauthorized");
+  }
+
+  requireRole(user, ROLES.ADMIN);
+
   const shellItems =
-    navigation.admin.map(
+    NAVIGATION.admin.map(
       ({ label, href }) => ({
         label,
         href,
@@ -19,6 +33,7 @@ export default function AdminLayout({
   return (
     <AppShell
       items={shellItems}
+      logoHref={ROUTES.ADMIN_DASHBOARD}
     >
       {children}
     </AppShell>
