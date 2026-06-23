@@ -49,6 +49,18 @@ vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
   },
 }));
 
+vi.mock("@/db/repositories/parent/parent.repository", () => ({
+  parentRepository: {
+    findPrimaryByStudentId: vi.fn().mockResolvedValue(null),
+  },
+}));
+
+vi.mock("@/db/repositories/user/user.repository", () => ({
+  userRepository: {
+    findById: vi.fn().mockResolvedValue({ id: "U1", fullName: "Test Student" }),
+  },
+}));
+
 vi.mock("@/services/audit/audit.service", () => ({
   auditService: {
     record: (...args: any[]) => mockAuditRecord(...args),
@@ -112,6 +124,7 @@ beforeEach(async () => {
     defaultWorkflowId: "WF1",
   });
   mockPolicyEvaluate.mockResolvedValue({ allowed: true, restrictions: [] });
+  mockApprovalCreateMany.mockResolvedValue([{ id: "AP1" }]);
   mockWorkflowResolve.mockResolvedValue({
     steps: [
       { stepKey: "WARDEN", stepOrder: 1, approverRoleId: "ROLE1" },
@@ -131,6 +144,7 @@ describe("createExtension service", () => {
     mockLeaveFindByIdForUpdate.mockResolvedValue({
       id: "L1",
       status: "APPROVED",
+      startAt: new Date("2026-06-10"),
       endAt: new Date("2026-06-15"),
       leaveTypeId: "LT1",
     });

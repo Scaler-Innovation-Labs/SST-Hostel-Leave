@@ -2,15 +2,16 @@
 
 import { useMemo, useState } from "react";
 
-import { DataTable } from "@/components/shared/table/DataTable";
-import { StatusBadge } from "@/components/shared/StatusBadge";
+import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
-import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { DataTable } from "@/components/shared/table/DataTable";
 import { Button } from "@/components/ui/button";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { approveExtension } from "@/lib/api/extension-api";
+import { logger } from "@/lib/logger";
 
 type ExtensionApprovalItem = {
   id: string;
@@ -33,7 +34,7 @@ type ExtensionApprovalItem = {
   } | null;
 };
 
-interface ExtensionApprovalTableProps {
+type ExtensionApprovalTableProps = {
   approvals: ExtensionApprovalItem[];
   total: number;
   page: number;
@@ -72,7 +73,7 @@ export function ExtensionApprovalTable({
       setActionTarget(null);
       onMutate();
     } catch (err) {
-      console.error("Failed to approve extension:", err);
+      logger.error("Failed to approve extension", { error: err instanceof Error ? err.message : String(err) });
     } finally {
       setActionLoading(false);
     }
@@ -167,14 +168,6 @@ export function ExtensionApprovalTable({
     [],
   );
 
-  if (isError) {
-    return <ErrorState message={error?.message ?? "Failed to load extension approvals"} onRetry={onMutate} />;
-  }
-
-  if (isLoading) {
-    return <LoadingState count={5} />;
-  }
-
   const deduped = useMemo(() => {
     const seen = new Set<string>();
     return approvals.filter((a) => {
@@ -184,6 +177,14 @@ export function ExtensionApprovalTable({
       return true;
     });
   }, [approvals]);
+
+  if (isError) {
+    return <ErrorState message={error?.message ?? "Failed to load extension approvals"} onRetry={onMutate} />;
+  }
+
+  if (isLoading) {
+    return <LoadingState count={5} />;
+  }
 
   if (deduped.length === 0) {
     return <EmptyState title="No extension approvals" description="No extension approvals to review." />;

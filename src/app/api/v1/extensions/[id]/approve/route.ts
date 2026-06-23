@@ -5,7 +5,7 @@ import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
 import { approveExtension } from "@/services/leave/approve-extension.service";
-import { rejectExtension } from "@/services/extension/reject-extension.service";
+import { rejectExtension } from "@/services/leave/reject-extension.service";
 
 export async function POST(
   request: Request,

@@ -1,8 +1,9 @@
 "use client";
 
-import { ExtensionStatusBadge } from "./ExtensionStatusBadge";
 import { Button } from "@/components/ui/button";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
+
+import { ExtensionStatusBadge } from "./ExtensionStatusBadge";
 
 type ExtensionApprovalItem = {
   id: string;
@@ -19,7 +20,7 @@ type ExtensionApprovalItem = {
   } | null;
 };
 
-interface ExtensionApprovalCardProps {
+type ExtensionApprovalCardProps = {
   approval: ExtensionApprovalItem;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
