@@ -3,8 +3,9 @@ import * as fs from "fs";
 import * as path from "path";
 dotenv.config({ path: ".env.local" });
 
-import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
+
+import { db } from "@/lib/db";
 
 async function main() {
   console.log("Dropping all tables...");

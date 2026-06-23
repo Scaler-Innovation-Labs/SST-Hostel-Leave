@@ -1,34 +1,24 @@
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
-import type { LeaveApprovalSource } from "@/constants/leave/approval-source";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
-import { userRepository } from "@/db/repositories/user/user.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
+import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
+import { userRepository } from "@/db/repositories/user/user.repository";
 import type { CreateLeaveDto } from "@/dto/leave/create-leave.dto";
 import { db } from "@/lib/db";
 import { AuthorizationError, ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
-import { parentRepository } from "@/db/repositories/hostel/parent.repository";
+import { resolveApprovalSource } from "@/lib/workflows/resolve-approval-source";
 import { auditService } from "@/services/audit/audit.service";
 import { validateLeaveSubmittedForm } from "@/services/leave/validate-leave-form.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 import { policyEngine } from "@/services/policy/policy-engine";
 import { workflowEngine } from "@/services/workflow/workflow-engine";
-
-function resolveApprovalSource(method: string | null, isParent: boolean): LeaveApprovalSource {
-  if (isParent && !method) return "SMS";
-  if (isParent && method === "PORTAL") return "PORTAL";
-  if (method === "PORTAL" || !method) return "PORTAL";
-  if (method === "SMS_REPLY") return "SMS_REPLY";
-  if (method === "SMS_LINK" || method === "SMS_AND_LINK") return "EMAIL_LINK";
-  if (method === "AUTO") return "SYSTEM";
-  return "WEB";
-}
 
 export async function createLeave(
   dto: CreateLeaveDto,

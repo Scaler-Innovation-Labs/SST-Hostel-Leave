@@ -8,11 +8,11 @@ import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
+import { sha256, toHex } from "@/lib/crypto";
 import { db } from "@/lib/db";
 import { AuthorizationError, NotFoundError, ValidationError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
-import { sha256, toHex } from "@/lib/crypto";
 
 export type GenerateQrInput = {
 	leaveRequestId: string;

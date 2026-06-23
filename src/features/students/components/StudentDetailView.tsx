@@ -1,18 +1,19 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import {
   ArrowLeft,
   ArrowRight,
-  Shield,
-  Mail,
-  Phone,
-  User,
-  History,
   FileText,
+  History,
+  Mail,
   MapPin,
+  Phone,
+  Shield,
+  User,
 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { ErrorState } from "@/components/shared/ErrorState";
 import { InfoCard } from "@/components/shared/InfoCard";
@@ -21,10 +22,9 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { getEventLabel } from "@/constants/notification/notification-labels";
 import { useLeaves } from "@/features/leaves/hooks/use-leaves";
-import { useMovement } from "@/hooks/use-movement";
 import { useStudent } from "@/features/students/hooks/use-students";
+import { useMovement } from "@/hooks/use-movement";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
 
 type StudentDetailViewProps = {
   studentId: string;

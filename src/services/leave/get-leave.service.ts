@@ -1,5 +1,5 @@
-import type { CurrentUser } from "@/lib/auth/types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import type { CurrentUser } from "@/lib/auth/types";
 import { NotFoundError } from "@/lib/errors";
 import { verifyStudentOwnership } from "@/services/shared/authorization.service";
 

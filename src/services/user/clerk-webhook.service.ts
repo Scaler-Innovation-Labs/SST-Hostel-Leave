@@ -1,4 +1,5 @@
 import type { WebhookEvent } from "@clerk/nextjs/server";
+
 import { userRepository } from "@/db/repositories/user/user.repository";
 
 export async function handleClerkWebhookEvent(evt: WebhookEvent): Promise<void> {

@@ -1,9 +1,10 @@
-import { Webhook } from "svix";
 import type { WebhookEvent } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { Webhook } from "svix";
+
+import { ConfigurationError,ValidationError } from "@/lib/errors";
 import { handleClerkWebhookEvent } from "@/services/user/clerk-webhook.service";
-import { ValidationError, ConfigurationError } from "@/lib/errors";
 
 async function validateRequest(request: Request): Promise<WebhookEvent> {
   const headerPayload = await headers();

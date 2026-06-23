@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-
 import { Camera, Loader2, Type } from "lucide-react";
+import { useState } from "react";
 
 import { QrScanner } from "@/components/qr/QrScanner";
 import { PageHeader } from "@/components/shared/PageHeader";

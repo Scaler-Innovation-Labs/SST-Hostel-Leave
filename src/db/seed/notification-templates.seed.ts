@@ -2,6 +2,7 @@ import { NOTIFICATION_CHANNEL } from "@/constants/notification/notification-chan
 import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event";
 import { notificationTemplates } from "@/db";
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 const TEMPLATES = [
   // EMAIL templates
@@ -124,7 +125,7 @@ export async function seedNotificationTemplates() {
       count++;
   }
 
-  console.log(`Seeded ${count} notification templates`);
+  logger.info("Seeded notification templates", { count });
 }
 
 export default seedNotificationTemplates;
