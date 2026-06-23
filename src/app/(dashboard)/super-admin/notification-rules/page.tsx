@@ -5,18 +5,18 @@ import { useEffect, useState } from "react";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
-import { EVENT_LABELS } from "@/constants/notification/notification-labels";
 import { NOTIFICATION_CHANNELS } from "@/constants/notification/notification-channel";
 import { NOTIFICATION_EVENTS } from "@/constants/notification/notification-event";
+import { EVENT_LABELS } from "@/constants/notification/notification-labels";
 import { NOTIFICATION_RECIPIENT_TYPES } from "@/constants/notification/notification-recipient-type";
+import { useNotificationTemplates } from "@/features/notifications/hooks/use-notification-templates";
 import {
   createRule,
   deleteRule,
   fetchGlobalRules,
-  updateRule,
   type NotificationRuleResponse,
+  updateRule,
 } from "@/lib/api/notification-rule-api";
-import { useNotificationTemplates } from "@/features/notifications/hooks/use-notification-templates";
 
 const CHANNEL_LABELS: Record<string, string> = {
   EMAIL: "Email",

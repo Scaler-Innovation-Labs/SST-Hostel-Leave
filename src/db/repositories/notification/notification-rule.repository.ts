@@ -1,15 +1,14 @@
 import type { InferInsertModel } from "drizzle-orm";
 import { eq, inArray, isNull } from "drizzle-orm";
 
-import { db } from "@/lib/db";
-import type { SaveNotificationRuleDto } from "@/dto/notification/save-notification-rule.dto";
-
+import { notificationTemplates } from "@/db/schema/notification";
 import {
   notificationRuleChannels,
   notificationRuleRecipients,
   notificationRules,
 } from "@/db/schema/notification-rules";
-import { notificationTemplates } from "@/db/schema/notification";
+import type { SaveNotificationRuleDto } from "@/dto/notification/save-notification-rule.dto";
+import { db } from "@/lib/db";
 
 type NewRule = InferInsertModel<typeof notificationRules>;
 type NewRecipient = InferInsertModel<typeof notificationRuleRecipients>;

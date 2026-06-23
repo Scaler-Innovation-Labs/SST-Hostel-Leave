@@ -12,8 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getEventLabel } from "@/constants/notification/notification-labels";
-import { useNotificationToast } from "@/features/notifications/hooks/use-notification-toast";
 import { useNotificationStream } from "@/features/notifications/hooks/use-notification-stream";
+import { useNotificationToast } from "@/features/notifications/hooks/use-notification-toast";
 import { markNotificationsRead, useNotifications } from "@/features/notifications/hooks/use-notifications";
 
 export function NotificationBell() {

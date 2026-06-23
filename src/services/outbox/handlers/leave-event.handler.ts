@@ -1,20 +1,21 @@
 import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
 import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
-import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import {
   NOTIFICATION_EVENT,
   type NotificationEvent,
 } from "@/constants/notification/notification-event";
+import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { parentRepository } from "@/db/repositories/parent/parent.repository";
+import { studentRepository } from "@/db/repositories/student/student.repository";
+import { userRepository } from "@/db/repositories/user/user.repository";
+import { logger } from "@/lib/logger";
 import { recordMovement } from "@/services/movement/record-movement.service";
 import {
   notificationService,
 } from "@/services/notification/notification.service";
 import { generateParentApproval } from "@/services/parent/generate-parent-approval.service";
-import { studentRepository } from "@/db/repositories/student/student.repository";
-import { userRepository } from "@/db/repositories/user/user.repository";
-import { parentRepository } from "@/db/repositories/hostel/parent.repository";
 import type { OutboxEventRow } from "@/types/outbox/outbox-event";
 
 const LEAVE_EVENT_TO_NOTIFICATION: Record<string, NotificationEvent> = {
@@ -158,13 +159,14 @@ export async function handleLeaveEvent(
       variables: context.variables,
     });
 
-    console.info(`[OUTBOX] Notification dispatched for ${eventType}: ${notificationType}`);
-  } else {
-    console.warn(`[OUTBOX] No notification mapping for leave event: ${eventType}`);
+    logger.info("Notification dispatched", { eventType, notificationType });
+  } else if (!notificationType) {
+    logger.warn("No notification mapping for leave event", { eventType });
   }
 
   if (eventType === OUTBOX_EVENT_TYPE.PARENT_APPROVAL_REQUIRED) {
     const leaveRequestId = payload.leaveRequestId as string;
+    const leaveExtensionId = payload.leaveExtensionId as string | undefined;
     const studentId = payload.studentId as string;
     const studentName = payload.studentName as string;
     const leaveDates = payload.leaveDates as string;
@@ -176,12 +178,14 @@ export async function handleLeaveEvent(
     if (leaveRequestId && studentId && approvalStepId) {
       try {
         await generateParentApproval(
-          { leaveRequestId, studentId, studentName, leaveDates, leaveReason, baseUrl },
+          { leaveRequestId, leaveExtensionId, studentId, studentName, leaveDates, leaveReason, baseUrl },
           { id: approvalStepId, stepKey: approvalStepKey },
         );
-        console.info(`[OUTBOX] Parent approval generated for leave: ${leaveRequestId}`);
+        const logIdentifier = leaveExtensionId ? `extension ${leaveExtensionId}` : `leave ${leaveRequestId}`;
+        logger.info("Parent approval generated for", { target: logIdentifier });
       } catch (error) {
-        console.error(`[OUTBOX] Failed to generate parent approval for leave ${leaveRequestId}:`, error);
+        const logIdentifier = leaveExtensionId ? `extension ${leaveExtensionId}` : `leave ${leaveRequestId}`;
+        logger.error("Failed to generate parent approval for", { target: logIdentifier, error: error instanceof Error ? error.message : String(error) });
       }
     }
     return;
@@ -201,9 +205,9 @@ export async function handleLeaveEvent(
           eventType: MOVEMENT_EVENT.LEAVE_APPROVED,
           movementMethod: MOVEMENT_METHOD.SYSTEM,
         });
-        console.info(`[OUTBOX] Movement recorded for leave approval: ${leaveId}`);
+        logger.info("Movement recorded for leave approval", { leaveId });
       } catch (error) {
-        console.error(`[OUTBOX] Failed to record movement for leave ${leaveId}:`, error);
+        logger.error("Failed to record movement for leave approval", { leaveId, error: error instanceof Error ? error.message : String(error) });
       }
     }
 
@@ -217,9 +221,9 @@ export async function handleLeaveEvent(
           eventType: MOVEMENT_EVENT.QR_INVALIDATED,
           movementMethod: MOVEMENT_METHOD.SYSTEM,
         });
-        console.info(`[OUTBOX] Movement recorded for leave cancellation: ${leaveId}`);
+        logger.info("Movement recorded for leave cancellation", { leaveId });
       } catch (error) {
-        console.error(`[OUTBOX] Failed to record movement for leave cancellation ${leaveId}:`, error);
+        logger.error("Failed to record movement for leave cancellation", { leaveId, error: error instanceof Error ? error.message : String(error) });
       }
     }
 
@@ -238,9 +242,9 @@ export async function handleLeaveEvent(
           eventType: MOVEMENT_EVENT.AUTO_OVERDUE,
           movementMethod: MOVEMENT_METHOD.SYSTEM,
         });
-        console.info(`[OUTBOX] Movement recorded for leave expiry: ${leaveId}`);
+        logger.info("Movement recorded for leave expiry", { leaveId });
       } catch (error) {
-        console.error(`[OUTBOX] Failed to record movement for leave expiry ${leaveId}:`, error);
+        logger.error("Failed to record movement for leave expiry", { leaveId, error: error instanceof Error ? error.message : String(error) });
       }
     }
   }
