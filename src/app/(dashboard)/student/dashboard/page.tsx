@@ -1,190 +1,137 @@
-import { DashboardCard } from "@/features/dashboard/components/DashboardCard";
-import { StatCard } from "@/features/dashboard/components/StatCard";
-import { WorkflowTimeline } from "@/features/workflows/components/WorkflowTimeline";
+"use client";
 
-export default function StudentPage() {
+import Link from "next/link";
+
+import { ErrorState } from "@/components/shared/ErrorState";
+import { InfoCard } from "@/components/shared/InfoCard";
+import { LoadingState } from "@/components/shared/LoadingState";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { Button } from "@/components/ui/button";
+import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
+import { ROUTES } from "@/constants/routes";
+import type { StudentDashboardStats } from "@/dto/dashboard/dashboard-stats.dto";
+import { useDashboardStats } from "@/features/dashboard/hooks/use-dashboard-stats";
+import { useLeaves } from "@/features/leaves/hooks/use-leaves";
+
+export default function StudentDashboardPage() {
+  const { stats, isLoading: statsLoading, isError: statsError, mutate: retryStats } = useDashboardStats();
+  const { leaves, isLoading: leavesLoading } = useLeaves({ page: 1, limit: 5 });
+
+  if (statsLoading || leavesLoading) {
+    return <LoadingState count={4} />;
+  }
+
+  if (statsError) {
+    return <ErrorState message="Failed to load dashboard" onRetry={() => { retryStats(); }} />;
+  }
+
+  const s = stats as StudentDashboardStats | null;
+  const activeLeave = s?.activeLeave ?? null;
+  const pendingCount = s?.pendingLeaves ?? 0;
+  const currentLocation = s?.currentLocation ?? MOVEMENT_STATE.IN_HOSTEL;
+  const activeQr = s?.activeQr ?? null;
+
   return (
     <div className="space-y-8">
-      {/* HEADER */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Student Dashboard</h1>
+      <PageHeader
+        title="Student Dashboard"
+        description="Manage your hostel leaves, QR passes, and movement activity."
+      />
 
-        <p className="mt-2 text-muted-foreground">
-          Manage your hostel leaves, QR passes, and movement activity.
-        </p>
-      </div>
-
-      {/* STATS */}
-      <section
-        className="
-          grid gap-4
-          sm:grid-cols-2
-          xl:grid-cols-4
-        "
-      >
-        <StatCard
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <InfoCard
           label="Active Leave"
-          value="01"
-          helperText="Currently approved"
+          value={activeLeave ? activeLeave.leaveType : "None"}
+          className={activeLeave ? "border-primary/30" : ""}
         />
-
-        <StatCard
+        <InfoCard
           label="Pending Requests"
-          value="02"
-          helperText="Awaiting approvals"
+          value={pendingCount}
         />
-
-        <StatCard
+        <InfoCard
           label="Movement Status"
-          value="IN"
-          helperText="Inside hostel"
+          value={currentLocation === MOVEMENT_STATE.IN_HOSTEL ? "IN" : "OUT"}
         />
-
-        <StatCard
+        <InfoCard
           label="QR Status"
-          value="VALID"
-          helperText="Ready for scanning"
+          value={activeQr ? "VALID" : "NONE"}
         />
       </section>
 
-      {/* MAIN GRID */}
-      <section
-        className="
-          grid gap-6
-          lg:grid-cols-3
-        "
-      >
-        {/* LEFT */}
+      <section className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <DashboardCard
-            title="Current Leave"
-            description="Your active leave request."
-          >
-            <div className="space-y-4">
-              <div
-                className="
-                  flex items-center justify-between
-                  rounded-xl bg-muted p-4
-                "
-              >
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold">Current Leave</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Your active leave request.</p>
+            </div>
+            {activeLeave ? (
+              <div className="flex items-center justify-between rounded-xl bg-muted p-4">
                 <div>
-                  <p className="font-medium">Long Leave</p>
-
+                  <p className="font-medium">{activeLeave.leaveType}</p>
                   <p className="text-sm text-muted-foreground">
-                    Apr 20 → Apr 24
+                    {activeLeave.startAt} → {activeLeave.endAt}
                   </p>
                 </div>
-
-                <div
-                  className="
-                    rounded-full bg-primary/10
-                    px-3 py-1 text-sm
-                    font-medium text-primary
-                  "
-                >
-                  Approved
-                </div>
+                <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary capitalize">
+                  {activeLeave.status.toLowerCase()}
+                </span>
               </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No active leave.</p>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold">Recent Leaves</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Your most recent leave requests.</p>
             </div>
-          </DashboardCard>
-
-          <DashboardCard
-            title="Approval Workflow"
-            description="Track your leave approval progress."
-          >
-            <WorkflowTimeline
-              steps={[
-                {
-                  title: "Leave Submitted",
-                  description: "Your leave request was created.",
-                  status: "completed",
-                },
-                {
-                  title: "Parent Approval",
-                  description: "Approved via SMS confirmation.",
-                  status: "completed",
-                },
-                {
-                  title: "Admin Approval",
-                  description: "Awaiting hostel admin approval.",
-                  status: "current",
-                },
-                {
-                  title: "QR Generation",
-                  description: "QR pass will be generated.",
-                  status: "upcoming",
-                },
-              ]}
-            />
-          </DashboardCard>
-
-          <DashboardCard
-            title="Recent Movement"
-            description="Latest movement activity."
-          >
-            <div className="space-y-4">
-              {["EXIT Hostel A", "ENTER Campus", "ENTER Hostel A"].map(
-                (item) => (
-                  <div
-                    key={item}
-                    className="
-                    flex items-center justify-between
-                    border-b border-border pb-3
-                    last:border-none
-                  "
+            {leaves.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No leave requests yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {leaves.map((leave: { id: string; leaveTypeName?: string; startAt: string; endAt: string; status: string }) => (
+                  <Link
+                    key={leave.id}
+                    href={`/student/leaves/${leave.id}`}
+                    className="flex items-center justify-between rounded-xl bg-muted p-4 transition-colors hover:bg-muted/70"
                   >
-                    <p className="text-sm font-medium">{item}</p>
-
-                    <span className="text-xs text-muted-foreground">
-                      2 mins ago
+                    <div>
+                      <p className="text-sm font-medium">{leave.leaveTypeName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {leave.startAt} → {leave.endAt}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary capitalize">
+                      {leave.status.toLowerCase()}
                     </span>
-                  </div>
-                ),
-              )}
-            </div>
-          </DashboardCard>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* RIGHT */}
         <div className="space-y-6">
-          <DashboardCard
-            title="Quick Actions"
-            description="Common student actions."
-          >
-            <div className="flex flex-col gap-3">
-              <button
-                className="
-                  rounded-xl bg-primary px-4 py-3
-                  text-sm font-medium
-                  text-primary-foreground
-                "
-              >
-                Raise New Leave
-              </button>
-
-              <button
-                className="
-                  rounded-xl border border-border
-                  bg-background px-4 py-3
-                  text-sm font-medium
-                  transition-colors
-                  hover:bg-accent
-                "
-              >
-                View QR Pass
-              </button>
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold">Quick Actions</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Common student actions.</p>
             </div>
-          </DashboardCard>
+            <div className="flex flex-col gap-3">
+              <Link href={ROUTES.STUDENT_LEAVE_NEW}>
+                <Button className="w-full">Raise New Leave</Button>
+              </Link>
+              <Link href="/student/leaves">
+                <Button variant="outline" className="w-full">View My Leaves</Button>
+              </Link>
+              <Link href="/student/qr">
+                <Button variant="ghost" className="w-full">View QR Pass</Button>
+              </Link>
+            </div>
+          </div>
 
-          <DashboardCard title="Policies" description="Important hostel rules.">
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <li>• Long leave restricted before exams</li>
-
-              <li>• QR scan required during exit</li>
-
-              <li>• Late returns require approval</li>
-            </ul>
-          </DashboardCard>
         </div>
       </section>
     </div>
