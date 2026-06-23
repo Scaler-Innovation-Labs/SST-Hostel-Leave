@@ -5,22 +5,25 @@ import { Navbar } from "./Navbar";
 
 type DashboardNavbarProps = {
   items: NavigationItem[];
+  logoHref?: string;
 };
 
 export function DashboardNavbar({
   items,
+  logoHref,
 }: DashboardNavbarProps) {
   const navItems = items.map(
-    ({ label, href }) => ({
+    ({ label, href, icon }) => ({
       label,
       href,
+      icon,
     })
   );
 
   return (
     <Navbar
       items={navItems}
-      logo={<Logo />}
+      logo={<Logo href={logoHref} />}
     />
   );
 }

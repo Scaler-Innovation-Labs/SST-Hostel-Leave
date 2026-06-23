@@ -1,10 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
 
-export function Logo() {
+type LogoProps = {
+  href?: string;
+};
+
+export function Logo({ href = "/" }: LogoProps) {
   return (
     <Link
-      href="/"
+      href={href}
       className="flex items-center gap-3"
     >
       <Image

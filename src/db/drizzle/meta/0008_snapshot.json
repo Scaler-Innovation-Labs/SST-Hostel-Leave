@@ -1,0 +1,13 @@
+{
+  "id": "d0e3f8a1-b2c4-5d6e-7f8a-9b0c1d2e3f4a",
+  "prevId": "prev_0007_snapshot_id_placeholder",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {},
+  "schemas": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
