@@ -78,7 +78,7 @@ export const userRepository = {
       .offset((filters.page - 1) * filters.limit);
 
     const userIds = rows.map((r) => r.id);
-    let roleMap = new Map<string, Array<{ roleId: string; roleCode: string; roleName: string; assignedAt: Date }>>();
+    const roleMap = new Map<string, Array<{ roleId: string; roleCode: string; roleName: string; assignedAt: Date }>>();
     if (userIds.length > 0) {
       const allUserRoles = await dbClient
         .select({

@@ -1,7 +1,7 @@
 import { AuthorizationError } from "@/lib/errors";
 
-import { canRoleApprove } from "./roles";
 import type { Role } from "./roles";
+import { canRoleApprove } from "./roles";
 import type { CurrentUser } from "./types";
 
 export function hasRole(

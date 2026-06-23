@@ -1,6 +1,6 @@
-import { parentRepository, type Parent } from "@/db/repositories/hostel/parent.repository";
-import { verifyParentJwt, PARENT_JWT_COOKIE } from "@/lib/jwt";
+import { type Parent,parentRepository } from "@/db/repositories/parent/parent.repository";
 import { AuthenticationError } from "@/lib/errors";
+import { PARENT_JWT_COOKIE,verifyParentJwt } from "@/lib/jwt";
 
 export async function getAuthenticatedParent(
   request: Request
