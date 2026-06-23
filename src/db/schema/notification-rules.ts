@@ -13,12 +13,12 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-import { leaveTypes } from "./leave";
 import {
   notificationChannelEnum,
   notificationEventEnum,
   notificationRecipientTypeEnum,
 } from "./enums";
+import { leaveTypes } from "./leave";
 import { notificationTemplates } from "./notification";
 
 // =====================================================

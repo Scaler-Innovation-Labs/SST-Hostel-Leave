@@ -7,10 +7,10 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
-import { getEventLabel, getEventColor } from "@/constants/notification/notification-labels";
-import { NOTIFICATION_EVENTS } from "@/constants/notification/notification-event";
 import { NOTIFICATION_CHANNELS } from "@/constants/notification/notification-channel";
 import { NOTIFICATION_DELIVERY_STATUSES } from "@/constants/notification/notification-delivery-status";
+import { NOTIFICATION_EVENTS } from "@/constants/notification/notification-event";
+import { getEventColor,getEventLabel } from "@/constants/notification/notification-labels";
 import type { NotificationLog } from "@/db/repositories/notification/notification-log.repository";
 
 const fetcher = (url: string) =>

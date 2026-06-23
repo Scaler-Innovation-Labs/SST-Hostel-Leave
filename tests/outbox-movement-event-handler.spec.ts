@@ -21,7 +21,7 @@ vi.mock("@/db/repositories/student/student.repository", () => ({
   },
 }));
 
-vi.mock("@/db/repositories/auth/user.repository", () => ({
+vi.mock("@/db/repositories/user/user.repository", () => ({
   userRepository: {
     findById: vi.fn(),
   },
@@ -30,7 +30,7 @@ vi.mock("@/db/repositories/auth/user.repository", () => ({
 import { handleMovementEvent } from "@/services/outbox/handlers/movement-event.handler";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
-import { userRepository } from "@/db/repositories/auth/user.repository";
+import { userRepository } from "@/db/repositories/user/user.repository";
 
 beforeEach(() => {
   vi.resetAllMocks();

@@ -1,11 +1,11 @@
-import saveNotificationTemplateSchema from "@/dto/notification/save-notification-template.dto";
+import { saveNotificationTemplateSchema } from "@/dto/notification/save-notification-template.dto";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
+import { deleteNotificationTemplate } from "@/services/notification/delete-notification-template.service";
 import { getNotificationTemplateById } from "@/services/notification/list-notification-templates.service";
 import { updateNotificationTemplate } from "@/services/notification/update-notification-template.service";
-import { deleteNotificationTemplate } from "@/services/notification/delete-notification-template.service";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {

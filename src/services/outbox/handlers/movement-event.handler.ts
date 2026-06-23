@@ -5,6 +5,7 @@ import {
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
+import { logger } from "@/lib/logger";
 import {
   notificationService,
 } from "@/services/notification/notification.service";
@@ -128,9 +129,9 @@ export async function handleMovementEvent(
       variables: context.variables,
     });
 
-    console.info(`[OUTBOX] Notification dispatched for ${eventType}: ${notificationType}`);
+    logger.info("Notification dispatched", { eventType, notificationType });
   } else {
-    console.info(`[OUTBOX] Movement event processed (no notification): ${eventType}`);
+    logger.info("Movement event processed (no notification)", { eventType });
   }
 }
 

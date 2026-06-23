@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { Bell, CheckCheck, Clock } from "lucide-react";
+import { useState } from "react";
 
 import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
