@@ -6,11 +6,11 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import createExtensionSchema from "@/dto/leave/create-extension.dto";
 import type { CreateExtensionDto } from "@/dto/leave/create-extension.dto";
+import createExtensionSchema from "@/dto/leave/create-extension.dto";
 import { createExtension } from "@/lib/api/extension-api";
 
-interface ExtensionFormProps {
+type ExtensionFormProps = {
   leaveId: string;
   currentEndAt: string;
   onSuccess?: () => void;

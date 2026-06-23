@@ -2,7 +2,7 @@ import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
-import { getExtension } from "@/services/extension/get-extension.service";
+import { getExtension } from "@/services/leave/get-extension.service";
 
 export async function GET(
   _request: Request,

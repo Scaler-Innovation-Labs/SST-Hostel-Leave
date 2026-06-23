@@ -54,7 +54,7 @@ export async function approveLeave(
     const updatedApproval =
       await leaveApprovalRepository.updateDecisionById(
         current.id,
-        LEAVE_APPROVAL_DECISION.APPROVED,
+        dto.decision,
         currentUser.id,
         dto.comments,
         new Date(),
