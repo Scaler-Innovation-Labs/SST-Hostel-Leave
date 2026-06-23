@@ -1,4 +1,5 @@
 import { asc } from "drizzle-orm";
+
 import { hostels } from "@/db/schema/hostel";
 import { db } from "@/lib/db";
 

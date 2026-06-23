@@ -68,7 +68,7 @@ export const workflowRepository = {
       .offset((filters.page - 1) * filters.limit);
 
     const defIds = rows.map((d) => d.id);
-    let stepsByDefId = new Map<string, Array<WorkflowStep & { approverRoleName: string | null; approverRoleCode: string | null }>>();
+    const stepsByDefId = new Map<string, Array<WorkflowStep & { approverRoleName: string | null; approverRoleCode: string | null }>>();
     if (defIds.length > 0) {
       const allSteps = await dbClient
         .select()

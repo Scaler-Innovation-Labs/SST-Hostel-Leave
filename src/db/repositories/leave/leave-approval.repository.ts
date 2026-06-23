@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, gt, gte, isNotNull, like, lte, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, isNotNull, isNull, like, lte, ne, or, sql } from "drizzle-orm";
 
 import { LEAVE_APPROVAL_SOURCE } from "@/constants/leave/approval-source";
 import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
@@ -406,6 +406,7 @@ export const leaveApprovalRepository = {
   }> {
     const conditions: ReturnType<typeof and>[] = [
       isNotNull(leaveApprovals.leaveExtensionId),
+      isNull(leaveApprovals.approverParentId),
     ];
 
     if (filters.status) {
@@ -511,6 +512,16 @@ export const leaveApprovalRepository = {
         status: string;
         submittedForm: Record<string, unknown> | null;
       } | null;
+      leaveExtension: {
+        id: string;
+        extensionNumber: number;
+        reason: string;
+        currentEndAt: Date;
+        requestedEndAt: Date;
+        status: string;
+        submittedForm: Record<string, unknown> | null;
+        leaveRequestId: string;
+      } | null;
     }) | null
   > {
     const rows = await dbClient
@@ -536,6 +547,10 @@ export const leaveApprovalRepository = {
         eq(leaveApprovals.leaveRequestId, leaveRequests.id)
       )
       .leftJoin(
+        leaveExtensions,
+        eq(leaveApprovals.leaveExtensionId, leaveExtensions.id)
+      )
+      .leftJoin(
         students,
         eq(leaveRequests.studentId, students.id)
       )
@@ -552,6 +567,7 @@ export const leaveApprovalRepository = {
 
     const row = rows[0]!;
     const leaveRequestId = row.approval.leaveRequestId;
+    const leaveExtensionId = row.approval.leaveExtensionId;
 
     let leaveRequest: {
       id: string;
@@ -584,6 +600,41 @@ export const leaveApprovalRepository = {
       }
     }
 
+    let leaveExtension: {
+      id: string;
+      extensionNumber: number;
+      reason: string;
+      currentEndAt: Date;
+      requestedEndAt: Date;
+      status: string;
+      submittedForm: Record<string, unknown> | null;
+      leaveRequestId: string;
+    } | null = null;
+    if (leaveExtensionId) {
+      const extRows = await dbClient
+        .select({
+          id: leaveExtensions.id,
+          extensionNumber: leaveExtensions.extensionNumber,
+          reason: leaveExtensions.reason,
+          currentEndAt: leaveExtensions.currentEndAt,
+          requestedEndAt: leaveExtensions.requestedEndAt,
+          status: leaveExtensions.status,
+          submittedForm: leaveExtensions.submittedForm,
+          leaveRequestId: leaveExtensions.leaveRequestId,
+        })
+        .from(leaveExtensions)
+        .where(eq(leaveExtensions.id, leaveExtensionId))
+        .limit(1);
+
+      const ext = extRows[0];
+      if (ext) {
+        leaveExtension = {
+          ...ext,
+          submittedForm: ext.submittedForm as Record<string, unknown> | null,
+        };
+      }
+    }
+
     return {
       ...row.approval,
       approverRoleCode: row.roleCode,
@@ -592,6 +643,7 @@ export const leaveApprovalRepository = {
       studentName: row.studentName,
       studentRollNumber: row.studentRollNumber,
       leaveRequest,
+      leaveExtension,
     };
   },
 
