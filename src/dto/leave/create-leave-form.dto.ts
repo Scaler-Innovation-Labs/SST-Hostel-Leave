@@ -1,7 +1,8 @@
 // create-leave-form.dto.ts
 
 import { z } from "zod";
-import { CreateLeaveDto } from "./create-leave.dto";
+
+import { type CreateLeaveDto } from "./create-leave.dto";
 
 export const createLeaveFormSchema = z
   .object({

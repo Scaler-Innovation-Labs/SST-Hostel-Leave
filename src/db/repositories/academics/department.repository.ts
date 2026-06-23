@@ -1,4 +1,5 @@
 import { asc } from "drizzle-orm";
+
 import { departments } from "@/db/schema/academics";
 import { db } from "@/lib/db";
 
