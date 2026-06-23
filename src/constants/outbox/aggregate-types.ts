@@ -1,0 +1,18 @@
+export const AGGREGATE_TYPES = [
+  "LEAVE_REQUEST",
+  "LEAVE_EXTENSION",
+  "QR_PASS",
+  "MOVEMENT_EVENT",
+  "NOTIFICATION",
+] as const;
+
+export type AggregateType =
+  (typeof AGGREGATE_TYPES)[number];
+
+export const AGGREGATE_TYPE = {
+  LEAVE_REQUEST: "LEAVE_REQUEST",
+  LEAVE_EXTENSION: "LEAVE_EXTENSION",
+  QR_PASS: "QR_PASS",
+  MOVEMENT_EVENT: "MOVEMENT_EVENT",
+  NOTIFICATION: "NOTIFICATION",
+} as const;
