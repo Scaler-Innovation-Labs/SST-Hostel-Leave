@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 
+import { DataToolbar } from "@/components/shared/DataToolbar";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { DataToolbar } from "@/components/shared/DataToolbar";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/table/DataTable";

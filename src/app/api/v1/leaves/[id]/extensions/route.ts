@@ -1,11 +1,11 @@
-import createExtensionSchema from "@/dto/leave/create-extension.dto";
 import listLeaveExtensionsSchema from "@/dto/extension/list-leave-extensions.dto";
+import createExtensionSchema from "@/dto/leave/create-extension.dto";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
 import { createExtension } from "@/services/leave/create-extension.service";
-import { listLeaveExtensions } from "@/services/extension/list-leave-extensions.service";
+import { listLeaveExtensions } from "@/services/leave/list-leave-extensions.service";
 
 export async function GET(
   request: Request,

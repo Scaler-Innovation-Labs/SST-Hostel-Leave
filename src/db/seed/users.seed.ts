@@ -2,6 +2,7 @@ import { eq, inArray } from "drizzle-orm";
 
 import { hostels, roles, userRoles, users } from "@/db";
 import type { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 export async function seedUsers(
   database: typeof db
@@ -83,7 +84,7 @@ export async function seedUsers(
     const userId = userMap[email];
     const roleId = roleMap[roleCode];
     if (!userId || !roleId) {
-      console.warn(`Skipping user_role: ${email} / ${roleCode} — missing reference`);
+      logger.warn("Skipping user_role", { email, roleCode });
       continue;
     }
     await database

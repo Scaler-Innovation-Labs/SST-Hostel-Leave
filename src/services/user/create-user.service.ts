@@ -1,5 +1,5 @@
-import { userRepository } from "@/db/repositories/user/user.repository";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
+import { userRepository } from "@/db/repositories/user/user.repository";
 import type { CreateUserDto } from "@/dto/user/create-user.dto";
 import { db } from "@/lib/db";
 import { ConflictError } from "@/lib/errors";

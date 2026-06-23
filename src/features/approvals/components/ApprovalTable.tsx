@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-
+import { format, parseISO } from "date-fns";
+import { ArrowRight, Calendar, ChevronRight, Eye } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -12,9 +13,8 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { approveLeave, rejectLeave } from "@/lib/api/approval-api";
+import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
-import { format, parseISO } from "date-fns";
-import { ArrowRight, Calendar, ChevronRight, Eye } from "lucide-react";
 
 type ApprovalItem = {
   id: string;
@@ -110,7 +110,7 @@ export function ApprovalTable({
     } catch (error) {
       const message = error instanceof Error ? error.message : "Action failed";
       setActionError(message);
-      console.error("[ApprovalTable] Action failed:", error);
+      logger.error("Approval action failed", { error: message });
     } finally {
       setActionLoading(false);
     }

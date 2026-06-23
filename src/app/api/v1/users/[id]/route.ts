@@ -5,7 +5,7 @@ import { ROLES } from "@/lib/auth/roles";
 import { getUser } from "@/services/user/get-user.service";
 
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
