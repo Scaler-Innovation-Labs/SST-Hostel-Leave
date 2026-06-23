@@ -8,7 +8,7 @@ type ExtensionStatus =
   | "rejected"
   | "cancelled";
 
-interface ExtensionStatusBadgeProps {
+type ExtensionStatusBadgeProps = {
   status: ExtensionStatus;
 }
 

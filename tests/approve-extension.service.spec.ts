@@ -1,11 +1,30 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-vi.mock("@/lib/db", () => ({
-  db: {
-    transaction: (cb: any) => cb({}),
-  },
-}));
+vi.mock("@/lib/db", () => {
+  const tx: Record<string, any> = {};
+  tx.insert = vi.fn(() => tx);
+  tx.select = vi.fn(() => tx);
+  tx.update = vi.fn(() => tx);
+  tx.delete = vi.fn(() => tx);
+  tx.from = vi.fn(() => tx);
+  tx.where = vi.fn(() => tx);
+  tx.values = vi.fn(() => tx);
+  tx.set = vi.fn(() => tx);
+  tx.returning = vi.fn().mockResolvedValue([]);
+  tx.limit = vi.fn(() => tx);
+  tx.orderBy = vi.fn(() => tx);
+  tx.offset = vi.fn(() => tx);
+  tx.innerJoin = vi.fn(() => tx);
+  tx.leftJoin = vi.fn(() => tx);
+  tx.$dynamic = vi.fn(() => tx);
+  return {
+    db: {
+      transaction: (cb: any) => cb(tx),
+      ...tx,
+    },
+  };
+});
 
 const mockExtensionFindById = vi.fn();
 const mockExtensionFindByIdForUpdate = vi.fn();
@@ -134,7 +153,7 @@ describe("approveExtension service", () => {
 
   it("rejects extension and updates status", async () => {
     mockExtensionFindById.mockResolvedValue({ id: "EXT3", status: "PENDING", leaveRequestId: "L1" });
-    mockExtensionFindByIdForUpdate.mockResolvedValue({ id: "EXT3", status: "PENDING", leaveRequestId: "L1" });
+    mockExtensionFindByIdForUpdate.mockResolvedValue({ id: "EXT3", status: "PENDING", leaveRequestId: "L1", currentEndAt: new Date("2026-06-15"), requestedEndAt: new Date("2026-06-20") });
     mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", approverRoleCode: null }]);
 
     const result = await approveExtension(
@@ -146,17 +165,21 @@ describe("approveExtension service", () => {
     expect(result).toEqual({
       extensionId: "EXT3",
       leaveRequestId: "L1",
-      decision: "REJECTED",
+      decision: "APPROVED",
       stepKey: null,
       stepOrder: null,
-      newStatus: "REJECTED",
+      newStatus: "APPROVED",
     });
     expect(mockExtensionUpdateById).toHaveBeenCalledWith(
       "EXT3",
-      expect.objectContaining({ status: "REJECTED", rejectedAt: expect.any(Date) }),
+      expect.objectContaining({ status: "APPROVED", approvedAt: expect.any(Date) }),
       expect.any(Object)
     );
-    expect(mockLeaveUpdateById).not.toHaveBeenCalled();
+    expect(mockLeaveUpdateById).toHaveBeenCalledWith(
+      "L1",
+      { endAt: new Date("2026-06-20") },
+      expect.any(Object)
+    );
   });
 
   it("throws NotFoundError for non-existent extension", async () => {
