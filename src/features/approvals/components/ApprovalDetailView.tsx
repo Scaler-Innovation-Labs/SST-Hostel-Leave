@@ -22,12 +22,13 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { useApprovalChain } from "@/features/approvals/hooks/use-approval-chain";
 import { useLeave } from "@/features/leaves/hooks/use-leaves";
 import { approveLeave, rejectLeave } from "@/lib/api/approval-api";
+import { logger } from "@/lib/logger";
+import { cn } from "@/lib/utils";
 
-interface ApprovalDetailViewProps {
+type ApprovalDetailViewProps = {
   leaveId: string;
   onBack: () => void;
 }
@@ -159,7 +160,7 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
     } catch (error) {
       const message = error instanceof Error ? error.message : "Action failed";
       setActionError(message);
-      console.error("[ApprovalDetailView] Action failed:", error);
+      logger.error("Approval detail action failed", { error: message });
     } finally {
       setActionLoading(false);
     }

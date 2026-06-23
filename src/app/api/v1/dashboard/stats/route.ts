@@ -1,5 +1,6 @@
 import { ApiResponse } from "@/lib/api/response";
 import { requireAuth } from "@/lib/auth/require-auth";
+import { logger } from "@/lib/logger";
 import { getDashboardStats } from "@/services/dashboard/get-dashboard-stats.service";
 
 export async function GET() {
@@ -10,7 +11,7 @@ export async function GET() {
 
     return ApiResponse.success(result);
   } catch (error) {
-    console.error("[DASHBOARD_STATS_GET]", error);
+    logger.error("Dashboard stats error", { error: error instanceof Error ? error.message : String(error) });
     return ApiResponse.fromError(error);
   }
 }

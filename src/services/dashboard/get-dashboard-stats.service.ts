@@ -1,8 +1,8 @@
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
-import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { movementEventRepository } from "@/db/repositories/movement/movement-event.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";

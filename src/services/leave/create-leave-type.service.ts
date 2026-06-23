@@ -1,5 +1,5 @@
-import type { CreateLeaveTypeDto } from "@/dto/leave/save-leave-type.dto";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
+import type { CreateLeaveTypeDto } from "@/dto/leave/save-leave-type.dto";
 import { ConflictError } from "@/lib/errors";
 
 export async function createLeaveType(dto: CreateLeaveTypeDto) {

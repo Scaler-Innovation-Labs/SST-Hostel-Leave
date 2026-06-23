@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 
 import { seedAcademicGroups } from "./academic-groups.seed";
 import { seedDepartments } from "./departments.seed";
@@ -38,9 +39,9 @@ async function main() {
 
   await seedNotificationRules();
 
-  console.log("Seed complete");
+  logger.info("Seed complete");
 }
 
 main()
-  .catch(console.error)
+  .catch((error) => { logger.error("Seed failed", { error: error instanceof Error ? error.message : String(error) }); })
   .finally(() => process.exit());

@@ -1,7 +1,7 @@
+import { ValidationError } from "@/lib/errors";
 import { createEmailProvider } from "@/services/notification/providers/email.provider";
 import { createSlackProvider } from "@/services/notification/providers/slack.provider";
 import { createSmsProvider } from "@/services/notification/providers/sms.provider";
-import { ValidationError } from "@/lib/errors";
 
 export type TestChannelInput = {
   channel: "email" | "sms" | "slack";

@@ -10,8 +10,8 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { POLICY_TYPES } from "@/dto/policy/save-policy.dto";
-import { usePolicies } from "@/hooks/use-policies";
 import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
+import { usePolicies } from "@/hooks/use-policies";
 import { savePolicy } from "@/lib/api/policy-api";
 import { cn } from "@/lib/utils";
 

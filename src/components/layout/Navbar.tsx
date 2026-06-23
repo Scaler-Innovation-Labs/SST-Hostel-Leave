@@ -6,11 +6,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ROUTES } from "@/constants/routes";
 import { cn } from "@/lib/utils";
 
-import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { ProfileMenu } from "./ProfileMenu";
 import { ThemeToggle } from "./ThemeToggle";
 
