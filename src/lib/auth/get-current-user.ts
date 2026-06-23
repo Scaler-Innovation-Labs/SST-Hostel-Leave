@@ -1,7 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 
-import { userRepository } from "@/db/repositories/user/user.repository";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
+import { userRepository } from "@/db/repositories/user/user.repository";
 
 import { isRole } from "./roles";
 import type { CurrentUser } from "./types";

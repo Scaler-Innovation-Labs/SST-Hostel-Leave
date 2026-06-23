@@ -1,7 +1,7 @@
 import { ZodError } from "zod";
 
-import { logger } from "@/lib/logger";
 import { AppError } from "@/lib/errors/app-error";
+import { logger } from "@/lib/logger";
 
 export class ApiResponse {
   static success<T>(data: T, status = 200) {

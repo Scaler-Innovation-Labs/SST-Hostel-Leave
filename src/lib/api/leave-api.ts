@@ -1,6 +1,6 @@
 import type { ListLeavesQuery } from "@/dto/leave/list-leaves.dto";
-import type { ApiResponse } from "@/types/api";
 import { buildQueryString } from "@/lib/api/query-string";
+import type { ApiResponse } from "@/types/api";
 
 const BASE = "/api/v1";
 

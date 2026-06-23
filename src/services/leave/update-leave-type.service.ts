@@ -1,5 +1,5 @@
-import type { SaveLeaveTypeDto } from "@/dto/leave/save-leave-type.dto";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
+import type { SaveLeaveTypeDto } from "@/dto/leave/save-leave-type.dto";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 
 export async function updateLeaveType(id: string, dto: Partial<SaveLeaveTypeDto>) {
