@@ -8,6 +8,7 @@ export const approveLeaveSchema = z.object({
     LEAVE_APPROVAL_DECISION.REJECTED,
   ]),
   comments: z.string().optional(),
+  forceOverride: z.boolean().optional(),
 });
 
 export type ApproveLeaveDto = z.infer<typeof approveLeaveSchema>;

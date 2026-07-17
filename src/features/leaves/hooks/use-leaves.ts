@@ -11,11 +11,11 @@ export type RawLeaveItem = {
     status: string;
     startAt: string;
     endAt: string;
-    expectedReturnAt?: string;
     reason: string;
     createdAt: string;
     requestNumber: string;
     isActive: boolean;
+    policyResult?: Record<string, unknown> | null;
   };
   leaveType: { name: string } | null;
   student: { rollNumber: string } | null;
@@ -28,7 +28,6 @@ function flattenLeaveItem(item: RawLeaveItem) {
     status: item.leave.status,
     startAt: item.leave.startAt,
     endAt: item.leave.endAt,
-    expectedReturnAt: item.leave.expectedReturnAt,
     reason: item.leave.reason,
     createdAt: item.leave.createdAt,
     requestNumber: item.leave.requestNumber,
@@ -40,6 +39,7 @@ function flattenLeaveItem(item: RawLeaveItem) {
     userEmail: item.user?.email ?? null,
     userPhone: item.user?.phone ?? null,
     studentRollNumber: item.student?.rollNumber ?? null,
+    policyResult: item.leave.policyResult as { checks?: Array<{ key: string; label: string; passed: boolean; message?: string }>; restrictions?: string[] } | null,
   };
 }
 
@@ -64,19 +64,6 @@ export function useLeaves(query?: Partial<ListLeavesQuery>) {
   };
 }
 
-// export function useLeave(id: string | undefined) {
-//   const { data, error, isLoading, mutate } = useSWR(
-//     id ? getLeaveUrl(id) : null,
-//   );
-
-//   return {
-//     leave: data?.data ?? null,
-//     isLoading,
-//     isError: !!error,
-//     error,
-//     mutate,
-//   };
-// }
 export function useLeave(id: string | undefined) {
   const { data, error, isLoading, mutate } = useSWR(
     id ? getLeaveUrl(id) : null,

@@ -2,7 +2,7 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { useDocuments } from "@/hooks/useDocuments";
+import { useDocuments } from "@/hooks/use-documents";
 
 describe("useDocuments", () => {
   it("returns empty array when leaveId is undefined", () => {

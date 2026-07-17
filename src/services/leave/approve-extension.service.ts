@@ -4,15 +4,21 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import type { ApproveLeaveDto } from "@/dto/leave/approve-leave.dto";
-import { requireApprovalAuthorization } from "@/lib/auth/authorization";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
+import {
+  checkParentOverride,
+  getApprovalAuditMeta,
+  handleNextStep,
+  updateApprovalAndAudit,
+} from "@/services/leave/shared-approval.service";
 
 export type ApproveExtensionResult = {
   extensionId: string;
@@ -21,6 +27,8 @@ export type ApproveExtensionResult = {
   stepKey: string | null;
   stepOrder: number | null;
   newStatus: string | null;
+  warning?: string;
+  requiresConfirmation?: boolean;
 };
 
 export async function approveExtension(
@@ -47,8 +55,9 @@ export async function approveExtension(
     }
 
     const pending =
-      await leaveApprovalRepository.findByLeaveExtensionAndDecision(
+      await leaveApprovalRepository.findByEntityAndDecision(
         extensionId,
+        leaveApprovals.leaveExtensionId,
         LEAVE_APPROVAL_DECISION.PENDING,
         tx
       );
@@ -59,59 +68,39 @@ export async function approveExtension(
 
     const current = pending[0]!;
 
-    requireApprovalAuthorization(current, currentUser);
-
-    const updatedApproval =
-      await leaveApprovalRepository.updateDecisionById(
-        current.id,
-        LEAVE_APPROVAL_DECISION.APPROVED,
-        currentUser.id,
-        dto.comments,
-        new Date(),
-        tx
-      );
-
-    if (!updatedApproval) {
-      throw new ConflictError("Approval already processed");
+    const override = checkParentOverride(current, dto, currentUser);
+    if (override?.requiresConfirmation) {
+      return { extensionId, leaveRequestId: extensionInTx.leaveRequestId, ...override };
     }
 
-    await auditService.record(
+    await updateApprovalAndAudit(
+      current,
+      LEAVE_APPROVAL_DECISION.APPROVED,
+      currentUser.id,
+      dto.comments,
       AUDIT_ACTION.APPROVE,
       AUDIT_ENTITY_TYPE.LEAVE_EXTENSION,
-      current.id,
-      currentUser.id,
-      {
-        leaveExtensionId: extensionId,
-        comments: dto.comments,
-      },
+      getApprovalAuditMeta(extensionId, dto.comments, override!.isParentOverride),
       tx
     );
 
-    const next =
-      await leaveApprovalRepository.findNextByDecisionForExtension(
-        extensionId,
-        current.stepOrder,
-        LEAVE_APPROVAL_DECISION.PENDING,
-        tx
-      );
-
-    if (next) {
-      await leaveExtensionRepository.updateCurrentStep(
-        extensionId,
-        next.stepKey,
-        next.stepOrder,
-        tx
-      );
-
-      return {
+    const nextResult = await handleNextStep(
+      extensionId,
+      leaveApprovals.leaveExtensionId,
+      current.stepOrder,
+      (id, stepKey, stepOrder, t) => leaveExtensionRepository.updateCurrentStep(id, stepKey, stepOrder, t),
+      (next) => ({
         extensionId,
         leaveRequestId: extensionInTx.leaveRequestId,
         decision: LEAVE_APPROVAL_DECISION.APPROVED,
         stepKey: next.stepKey,
         stepOrder: next.stepOrder,
         newStatus: null,
-      };
-    }
+      }),
+      tx
+    );
+
+    if (nextResult) return nextResult;
 
     await leaveExtensionRepository.updateById(
       extensionId,

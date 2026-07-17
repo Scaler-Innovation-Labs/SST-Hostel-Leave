@@ -6,6 +6,7 @@ import type { QrType } from "@/constants/movement/qr-type";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { sha256, toHex } from "@/lib/crypto";
@@ -61,6 +62,27 @@ export async function generateQrPass(
 			throw new ValidationError(
 				"Leave request must be approved to generate QR"
 			);
+		}
+
+		const leaveType = await leaveTypeRepository.findById(
+			leaveRequest.leaveTypeId,
+			tx
+		);
+
+		if (!leaveType) {
+			throw new NotFoundError("LeaveType");
+		}
+
+		if (leaveType.qrMode === "NONE") {
+			throw new ValidationError("QR generation is not allowed for this leave type");
+		}
+
+		if (leaveType.qrMode === "EXIT_ONLY" && input.qrType !== "LEAVE_EXIT") {
+			throw new ValidationError("Only exit QR can be generated for this leave type");
+		}
+
+		if (leaveType.qrMode === "RETURN_ONLY" && input.qrType !== "LEAVE_RETURN") {
+			throw new ValidationError("Only return QR can be generated for this leave type");
 		}
 
 		const existingPass = await qrPassRepository.findByLeaveRequestId(

@@ -6,6 +6,7 @@ import useSWR from "swr";
 
 import { DynamicFormBuilder } from "@/components/leaves/DynamicFormBuilder";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { LEAVE_WORKFLOW_MODE } from "@/constants/leave/workflow-mode";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -61,7 +62,7 @@ const EMPTY_DRAFT: Draft = {
   name: "",
   category: "HOME_PASS",
   description: "",
-  workflowMode: "HOSTEL",
+  workflowMode: LEAVE_WORKFLOW_MODE.HOSTEL,
   defaultWorkflowId: null,
   allowExtensions: false,
   maxExtensionCount: "",
@@ -361,8 +362,8 @@ export default function LeaveTypesPage() {
                   onChange={(e) => setDraft({ ...draft, workflowMode: e.target.value })}
                   className="h-9 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                 >
-                  <option value="HOSTEL">Hostel Default</option>
-                  <option value="ACADEMIC">Leave-Type Specific</option>
+                  <option value={LEAVE_WORKFLOW_MODE.HOSTEL}>Hostel Default</option>
+                  <option value={LEAVE_WORKFLOW_MODE.ACADEMIC}>Leave-Type Specific</option>
                 </select>
               </label>
               <label className="block text-sm">

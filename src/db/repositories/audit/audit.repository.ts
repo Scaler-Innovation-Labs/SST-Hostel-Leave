@@ -51,35 +51,4 @@ async findByEntity(
     );
 },
 
-async findByActor(
-  actorUserId: string,
-  dbClient: Pick<typeof db, "select"> = db
-): Promise<AuditLog[]> {
-  return dbClient
-    .select()
-    .from(auditLogs)
-    .where(
-      eq(
-        auditLogs.actorUserId,
-        actorUserId
-      )
-    )
-    .orderBy(
-      desc(auditLogs.createdAt)
-    );
-},
-
-async findRecent(
-  limit = 50,
-  dbClient: Pick<typeof db, "select"> = db
-): Promise<AuditLog[]> {
-  return dbClient
-    .select()
-    .from(auditLogs)
-    .orderBy(
-      desc(auditLogs.createdAt)
-    )
-    .limit(limit);
-},
-
 };

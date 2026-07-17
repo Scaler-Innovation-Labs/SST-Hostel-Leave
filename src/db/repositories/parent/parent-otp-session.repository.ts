@@ -1,5 +1,5 @@
 import type { InferSelectModel } from "drizzle-orm";
-import { and, eq, gte, isNull } from "drizzle-orm";
+import { and, eq, gte, isNull, lt } from "drizzle-orm";
 
 import { parentOtpSessions } from "@/db";
 import { db } from "@/lib/db";
@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 export type ParentOtpSession = InferSelectModel<typeof parentOtpSessions>;
 
 type OtpDbClient = Pick<typeof db, "insert" | "select" | "update">;
+type OtpDeleteDbClient = Pick<typeof db, "insert" | "select" | "update" | "delete">;
 
 export const parentOtpSessionRepository = {
   async create(
@@ -54,6 +55,18 @@ export const parentOtpSessionRepository = {
       .update(parentOtpSessions)
       .set({ verifiedAt: new Date() })
       .where(eq(parentOtpSessions.id, id));
+  },
+
+  async deleteExpired(
+    before: Date,
+    dbClient: OtpDeleteDbClient = db
+  ): Promise<number> {
+    const result = await dbClient
+      .delete(parentOtpSessions)
+      .where(lt(parentOtpSessions.expiresAt, before))
+      .returning({ id: parentOtpSessions.id });
+
+    return result.length;
   },
 
   async invalidateByParentId(

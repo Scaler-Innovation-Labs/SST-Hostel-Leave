@@ -4,6 +4,7 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { leaveApprovals } from "@/db";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import type { ApproveLeaveDto } from "@/dto/leave/approve-leave.dto";
@@ -12,6 +13,7 @@ import { db } from "@/lib/db";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
+import { updateApprovalAndAudit } from "@/services/leave/shared-approval.service";
 
 export type RejectExtensionResult = {
   extensionId: string;
@@ -46,8 +48,9 @@ export async function rejectExtension(
     }
 
     const pending =
-      await leaveApprovalRepository.findByLeaveExtensionAndDecision(
+      await leaveApprovalRepository.findByEntityAndDecision(
         extensionId,
+        leaveApprovals.leaveExtensionId,
         LEAVE_APPROVAL_DECISION.PENDING,
         tx
       );
@@ -60,25 +63,13 @@ export async function rejectExtension(
 
     requireApprovalAuthorization(current, currentUser);
 
-    const updatedApproval =
-      await leaveApprovalRepository.updateDecisionById(
-        current.id,
-        LEAVE_APPROVAL_DECISION.REJECTED,
-        currentUser.id,
-        dto.comments,
-        new Date(),
-        tx
-      );
-
-    if (!updatedApproval) {
-      throw new ConflictError("Approval already processed");
-    }
-
-    await auditService.record(
+    await updateApprovalAndAudit(
+      current,
+      LEAVE_APPROVAL_DECISION.REJECTED,
+      currentUser.id,
+      dto.comments,
       AUDIT_ACTION.REJECT,
       AUDIT_ENTITY_TYPE.LEAVE_EXTENSION,
-      current.id,
-      currentUser.id,
       {
         leaveExtensionId: extensionId,
         comments: dto.comments,
@@ -93,6 +84,19 @@ export async function rejectExtension(
         rejectedAt: new Date(),
         currentStepKey: null,
         currentStepOrder: null,
+      },
+      tx
+    );
+
+    await auditService.record(
+      AUDIT_ACTION.UPDATE,
+      AUDIT_ENTITY_TYPE.LEAVE_EXTENSION,
+      extensionId,
+      currentUser.id,
+      {
+        oldStatus: LEAVE_REQUEST_STATUS.PENDING,
+        newStatus: LEAVE_REQUEST_STATUS.REJECTED,
+        rejectedAt: new Date().toISOString(),
       },
       tx
     );

@@ -54,34 +54,6 @@ export const movementEventRepository = {
 		return rows[0] ?? null;
 	},
 
-	async findByStudentId(
-		studentId: string,
-		dbClient: Pick<typeof db, "select"> = db
-	): Promise<MovementEventRow[]> {
-		const rows = await dbClient
-			.select()
-			.from(movementEvents)
-			.where(eq(movementEvents.studentId, studentId))
-			.orderBy(movementEvents.occurredAt);
-
-		return rows;
-	},
-
-	async findByLeaveRequestId(
-		leaveRequestId: string,
-		dbClient: Pick<typeof db, "select"> = db
-	): Promise<MovementEventRow[]> {
-		const rows = await dbClient
-			.select()
-			.from(movementEvents)
-			.where(
-				eq(movementEvents.leaveRequestId, leaveRequestId)
-			)
-			.orderBy(movementEvents.occurredAt);
-
-		return rows;
-	},
-
 	async findLatestByStudentId(
 		studentId: string,
 		dbClient: Pick<typeof db, "select"> = db

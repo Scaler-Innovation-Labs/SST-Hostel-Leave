@@ -1,5 +1,4 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { eq } from "drizzle-orm";
 
 import { qrScanLogs } from "@/db";
 import { db } from "@/lib/db";
@@ -22,17 +21,6 @@ export const qrScanLogRepository = {
 		return rows[0]!;
 	},
 
-	async findByQrPassId(
-		qrPassId: string,
-		dbClient: Pick<typeof db, "select"> = db
-	): Promise<QrScanLog[]> {
-		const rows = await dbClient
-			.select()
-			.from(qrScanLogs)
-			.where(eq(qrScanLogs.qrPassId, qrPassId));
-
-		return rows;
-	},
 };
 
 export default qrScanLogRepository;

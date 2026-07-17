@@ -135,7 +135,7 @@ describe("recordMovement service", () => {
       await recordMovement({
         studentId: "S1",
         fromState: "APPROVED_LEAVE",
-        toState: "CHECKED_OUT",
+        toState: "OUTSIDE_HOSTEL",
         eventType: "EXIT_HOSTEL",
         movementMethod: "QR",
       });

@@ -32,7 +32,6 @@ const RECIPIENT_LABELS: Record<string, string> = {
   CURRENT_APPROVER: "Current Approver",
   PREVIOUS_APPROVER: "Previous Approver",
   ALL_APPROVERS: "All Approvers",
-  WARDEN: "Warden",
   POC: "POC",
   ADMIN: "Admin",
   SUPER_ADMIN: "Super Admin",

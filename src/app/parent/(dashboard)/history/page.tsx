@@ -3,6 +3,7 @@
 import useSWR from "swr";
 
 import { ErrorState } from "@/components/shared/ErrorState";
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 
@@ -71,7 +72,7 @@ export default function ParentHistoryPage() {
               <div className="text-right">
                 <span
                   className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    item.decision === "APPROVED"
+                    item.decision === LEAVE_APPROVAL_DECISION.APPROVED
                       ? "bg-green-100 text-green-800"
                       : "bg-red-100 text-red-800"
                   }`}

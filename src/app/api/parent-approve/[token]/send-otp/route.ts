@@ -1,4 +1,4 @@
-import sendOtpSchema from "@/dto/parent/send-otp.dto";
+import { parentSendOtpSchema as sendOtpSchema } from "@/dto/auth/parent-send-otp.dto";
 import { ApiResponse } from "@/lib/api/response";
 import { rateLimit } from "@/lib/rate-limiter";
 import { sendParentOtp } from "@/services/parent/send-parent-otp.service";

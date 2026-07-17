@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { DocumentList } from "@/features/leaves/components/DocumentList";
 
 // Mock useDocuments hook
-vi.mock("@/hooks/useDocuments", () => ({
+vi.mock("@/hooks/use-documents", () => ({
   useDocuments: vi.fn(),
 }));
 
@@ -22,7 +22,7 @@ vi.mock("@/components/shared/ConfirmationDialog", () => ({
 
 
 
-import { useDocuments } from "@/hooks/useDocuments";
+import { useDocuments } from "@/hooks/use-documents";
 
 describe("DocumentList", () => {
   it("shows loading state", () => {

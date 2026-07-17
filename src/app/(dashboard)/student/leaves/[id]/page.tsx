@@ -37,6 +37,7 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { useApprovalChain } from "@/features/approvals/hooks/use-approval-chain";
 import { ExtensionForm } from "@/features/extensions/components/ExtensionForm";
 import { useLeaveExtensions } from "@/features/extensions/hooks/use-leave-extensions";
@@ -212,8 +213,8 @@ function ApprovalTimeline({ leaveId, leaveStatus }: { leaveId: string; leaveStat
         const isPending = decision === "pending";
         const isCancelled = decision === "cancelled"
           || decision === "pending" && leaveStatus === "cancelled";
-        const isApproved = decision === "approved" || decision === "APPROVED";
-        const isRejected = decision === "rejected" || decision === "REJECTED";
+        const isApproved = decision === "approved" || decision === LEAVE_APPROVAL_DECISION.APPROVED;
+        const isRejected = decision === "rejected" || decision === LEAVE_APPROVAL_DECISION.REJECTED;
 
         return (
           <div key={app.id} className="relative flex gap-4">
@@ -1164,16 +1165,6 @@ export default function StudentLeaveDetailPage() {
                   {formatDate(leave.endAt)}
                 </dd>
               </div>
-              {leave.expectedReturnAt && (
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                    Expected Return
-                  </dt>
-                  <dd className="mt-1 font-medium">
-                    {formatDate(leave.expectedReturnAt)}
-                  </dd>
-                </div>
-              )}
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   Duration

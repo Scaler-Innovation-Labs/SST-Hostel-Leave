@@ -28,12 +28,13 @@ export function useWorkflows(params?: {
           id: string;
           stepKey: string;
           stepOrder: number;
-          stepName: string;
+
           approverRoleName: string | null;
           approverRoleCode: string | null;
           isParentApproval: boolean;
           approvalMethod: string | null;
           isRequired: boolean;
+          metadata?: Record<string, unknown> | null;
         }>;
       }>;
       total: number;
