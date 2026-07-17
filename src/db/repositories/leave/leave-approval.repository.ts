@@ -1,14 +1,18 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, gt, gte, isNotNull, isNull, like, lte, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNotNull, isNull, like, lte, ne, or, sql } from "drizzle-orm";
 
 import { LEAVE_APPROVAL_SOURCE } from "@/constants/leave/approval-source";
 import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import type { LeaveRequestStatus } from "@/constants/leave/leave-status";
 import {
+  academicGroups,
+  departments,
+  hostels,
   leaveApprovals,
   leaveExtensions,
   leaveRequests,
+  leaveTypes,
   parents,
   roles,
   students,
@@ -44,6 +48,27 @@ export const leaveApprovalRepository = {
     return rows;
   },
 
+  async autoApprove(
+    id: string,
+    dbClient: Pick<typeof db, "update"> = db
+  ): Promise<LeaveApproval | null> {
+    const rows = await dbClient
+      .update(leaveApprovals)
+      .set({
+        decision: LEAVE_APPROVAL_DECISION.APPROVED,
+        actedAt: new Date(),
+        approvalSource: LEAVE_APPROVAL_SOURCE.SYSTEM,
+      })
+      .where(
+        and(
+          eq(leaveApprovals.id, id),
+          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING)
+        )
+      )
+      .returning();
+    return rows[0] ?? null;
+  },
+
   async findByFilters(
     filters: {
       status?: LeaveApprovalDecision;
@@ -52,6 +77,10 @@ export const leaveApprovalRepository = {
       dateTo?: Date;
       search?: string;
       excludeLeaveStatuses?: LeaveRequestStatus[];
+      waitingOn?: string;
+      hostelId?: string;
+      leaveTypeId?: string;
+      approverUserId?: string;
       page: number;
       limit: number;
     },
@@ -67,9 +96,17 @@ export const leaveApprovalRepository = {
           endAt: Date;
           reason: string;
           requestNumber: string;
+          submittedForm?: Record<string, unknown> | null;
+          currentStepKey?: string | null;
+          currentStepOrder?: number | null;
+          policyResult?: Record<string, unknown> | null;
         } | null;
         studentName: string | null;
         studentRollNumber: string | null;
+        roomNumber: string | null;
+        hostelName: string | null;
+        departmentName: string | null;
+        leaveTypeName: string | null;
       }
     >;
     total: number;
@@ -103,11 +140,24 @@ export const leaveApprovalRepository = {
         )
       );
     }
+    if (filters.waitingOn) {
+      conditions.push(eq(leaveRequests.currentStepKey, filters.waitingOn));
+    }
+    if (filters.hostelId) {
+      conditions.push(eq(users.hostelId, filters.hostelId));
+    }
+    if (filters.leaveTypeId) {
+      conditions.push(eq(leaveRequests.leaveTypeId, filters.leaveTypeId));
+    }
+
+    if (filters.approverUserId) {
+      conditions.push(eq(leaveApprovals.approverUserId, filters.approverUserId));
+    }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     const countResult = await dbClient
-      .select({ count: sql<number>`count(*)` })
+      .select({ count: sql<number>`count(DISTINCT ${leaveApprovals.leaveRequestId})` })
       .from(leaveApprovals)
       .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
@@ -120,6 +170,7 @@ export const leaveApprovalRepository = {
     const rows = await dbClient
       .select({
         approval: leaveApprovals,
+        stepOrder: leaveApprovals.stepOrder,
         roleCode: roles.code,
         leaveReqId: leaveRequests.id,
         leaveReqStatus: leaveRequests.status,
@@ -127,21 +178,48 @@ export const leaveApprovalRepository = {
         leaveReqEndAt: leaveRequests.endAt,
         leaveReqReason: leaveRequests.reason,
         leaveReqNumber: leaveRequests.requestNumber,
+        leaveReqSubmittedForm: leaveRequests.submittedForm,
+        leaveReqCurrentStepKey: leaveRequests.currentStepKey,
+        leaveReqCurrentStepOrder: leaveRequests.currentStepOrder,
+        leaveReqPolicyResult: leaveRequests.policyResult,
         studentName: users.fullName,
         studentRollNumber: students.rollNumber,
+        roomNumber: students.roomNumber,
+        hostelName: hostels.name,
+        departmentName: departments.name,
+        leaveTypeName: leaveTypes.name,
       })
       .from(leaveApprovals)
       .leftJoin(roles, eq(leaveApprovals.approverRoleId, roles.id))
       .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+      .leftJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
+      .leftJoin(hostels, eq(users.hostelId, hostels.id))
+      .leftJoin(academicGroups, eq(students.academicGroupId, academicGroups.id))
+      .leftJoin(departments, eq(academicGroups.departmentId, departments.id))
       .where(whereClause)
       .orderBy(desc(leaveApprovals.createdAt))
       .limit(filters.limit)
       .offset((filters.page - 1) * filters.limit);
 
+    const seenReqIds = new Set<string>();
+    const dedupedRows = rows
+      .sort((a, b) => {
+        const aCurrent = a.leaveReqCurrentStepKey === a.approval.stepKey ? 0 : 1;
+        const bCurrent = b.leaveReqCurrentStepKey === b.approval.stepKey ? 0 : 1;
+        if (aCurrent !== bCurrent) return aCurrent - bCurrent;
+        return (a.stepOrder ?? 999) - (b.stepOrder ?? 999);
+      })
+      .filter((row) => {
+        if (!row.leaveReqId) return true;
+        if (seenReqIds.has(row.leaveReqId)) return false;
+        seenReqIds.add(row.leaveReqId);
+        return true;
+      });
+
     return {
-      items: rows.map((row) => ({
+      items: dedupedRows.map((row) => ({
         ...row.approval,
         approverRoleCode: row.roleCode,
         leaveRequest: row.leaveReqId
@@ -152,10 +230,18 @@ export const leaveApprovalRepository = {
               endAt: row.leaveReqEndAt!,
               reason: row.leaveReqReason ?? "",
               requestNumber: row.leaveReqNumber ?? "",
+              submittedForm: row.leaveReqSubmittedForm as Record<string, unknown> | null ?? null,
+              currentStepKey: row.leaveReqCurrentStepKey ?? null,
+              currentStepOrder: row.leaveReqCurrentStepOrder ?? null,
+              policyResult: row.leaveReqPolicyResult as Record<string, unknown> | null ?? null,
             }
           : null,
         studentName: row.studentName,
         studentRollNumber: row.studentRollNumber,
+        roomNumber: row.roomNumber,
+        hostelName: row.hostelName,
+        departmentName: row.departmentName,
+        leaveTypeName: row.leaveTypeName,
       })),
       total,
       page: filters.page,
@@ -164,8 +250,9 @@ export const leaveApprovalRepository = {
     };
   },
 
-  async findByLeaveRequestAndDecision(
-    leaveRequestId: string,
+  async findByEntityAndDecision(
+    entityId: string,
+    column: typeof leaveApprovals.leaveRequestId | typeof leaveApprovals.leaveExtensionId,
     decision: LeaveApprovalDecision,
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<
@@ -190,10 +277,7 @@ export const leaveApprovalRepository = {
       )
       .where(
         and(
-          eq(
-            leaveApprovals.leaveRequestId,
-            leaveRequestId
-          ),
+          eq(column, entityId),
           eq(
             leaveApprovals.decision,
             decision
@@ -208,8 +292,9 @@ export const leaveApprovalRepository = {
     }));
   },
 
-  async findNextByDecision(
-    leaveRequestId: string,
+  async findNextByEntityAndDecision(
+    entityId: string,
+    column: typeof leaveApprovals.leaveRequestId | typeof leaveApprovals.leaveExtensionId,
     currentStepOrder: number,
     decision: LeaveApprovalDecision,
     dbClient: Pick<typeof db, "select"> = db
@@ -219,10 +304,7 @@ export const leaveApprovalRepository = {
       .from(leaveApprovals)
       .where(
         and(
-          eq(
-            leaveApprovals.leaveRequestId,
-            leaveRequestId
-          ),
+          eq(column, entityId),
           gt(
             leaveApprovals.stepOrder,
             currentStepOrder
@@ -268,16 +350,23 @@ export const leaveApprovalRepository = {
     approverUserId: string | null,
     comments: string | undefined,
     actedAt: Date,
-    dbClient: Pick<typeof db, "update"> = db
+    dbClient: Pick<typeof db, "update"> = db,
+    approvalSource?: string,
   ): Promise<LeaveApproval | null> {
+    const setData: Record<string, unknown> = {
+      decision,
+      approverUserId,
+      comments,
+      actedAt,
+    };
+
+    if (approvalSource) {
+      setData.approvalSource = approvalSource;
+    }
+
     const rows = await dbClient
       .update(leaveApprovals)
-      .set({
-        decision,
-        approverUserId,
-        comments,
-        actedAt,
-      })
+      .set(setData as any)
       .where(
   and(
     eq(
@@ -291,81 +380,6 @@ export const leaveApprovalRepository = {
   )
 )
       .returning();
-
-    return rows[0] ?? null;
-  },
-
-  async findByLeaveExtensionAndDecision(
-    leaveExtensionId: string,
-    decision: LeaveApprovalDecision,
-    dbClient: Pick<typeof db, "select"> = db
-  ): Promise<
-    Array<
-      LeaveApproval & {
-        approverRoleCode: string | null;
-      }
-    >
-  > {
-    const rows = await dbClient
-      .select({
-        approval: leaveApprovals,
-        roleCode: roles.code,
-      })
-      .from(leaveApprovals)
-      .leftJoin(
-        roles,
-        eq(
-          leaveApprovals.approverRoleId,
-          roles.id
-        )
-      )
-      .where(
-        and(
-          eq(
-            leaveApprovals.leaveExtensionId,
-            leaveExtensionId
-          ),
-          eq(
-            leaveApprovals.decision,
-            decision
-          )
-        )
-      )
-      .orderBy(leaveApprovals.stepOrder);
-
-    return rows.map((row) => ({
-      ...row.approval,
-      approverRoleCode: row.roleCode,
-    }));
-  },
-
-  async findNextByDecisionForExtension(
-    leaveExtensionId: string,
-    currentStepOrder: number,
-    decision: LeaveApprovalDecision,
-    dbClient: Pick<typeof db, "select"> = db
-  ): Promise<LeaveApproval | null> {
-    const rows = await dbClient
-      .select()
-      .from(leaveApprovals)
-      .where(
-        and(
-          eq(
-            leaveApprovals.leaveExtensionId,
-            leaveExtensionId
-          ),
-          gt(
-            leaveApprovals.stepOrder,
-            currentStepOrder
-          ),
-          eq(
-            leaveApprovals.decision,
-            decision
-          )
-        )
-      )
-      .orderBy(leaveApprovals.stepOrder)
-      .limit(1);
 
     return rows[0] ?? null;
   },
@@ -884,10 +898,11 @@ export const leaveApprovalRepository = {
     const parentRows = await dbClient
       .select({ id: parents.id })
       .from(parents)
-      .where(eq(parents.phone, phone))
-      .limit(1);
+      .where(eq(parents.phone, phone));
 
-    if (!parentRows[0]) return [];
+    if (parentRows.length === 0) return [];
+
+    const parentIds = parentRows.map((r) => r.id);
 
     const rows = await dbClient
       .select({
@@ -906,7 +921,7 @@ export const leaveApprovalRepository = {
       .leftJoin(users, eq(students.userId, users.id))
       .where(
         and(
-          eq(leaveApprovals.approverParentId, parentRows[0].id),
+          inArray(leaveApprovals.approverParentId, parentIds),
           eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
           sql`(${leaveApprovals.parentApprovalExpiresAt} IS NULL OR ${leaveApprovals.parentApprovalExpiresAt} > NOW())`
         )
