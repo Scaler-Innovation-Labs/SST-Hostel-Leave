@@ -11,11 +11,14 @@ export function ErrorState({ message = "Something went wrong", onRetry, classNam
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-2xl border border-border bg-muted/30 px-6 py-12 text-center",
+        "relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-destructive/20 bg-destructive/[0.02] px-6 py-12 text-center",
+        "before:absolute before:inset-x-0 before:top-0 before:h-[1px] before:bg-linear-to-r before:from-transparent before:via-destructive/30 before:to-transparent",
         className,
       )}
     >
-      <div className="mb-3 text-3xl">!</div>
+      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-xl font-bold text-destructive">
+        !
+      </div>
       <p className="text-sm text-muted-foreground">{message}</p>
       {onRetry && (
         <Button variant="outline" size="sm" className="mt-4" onClick={onRetry}>

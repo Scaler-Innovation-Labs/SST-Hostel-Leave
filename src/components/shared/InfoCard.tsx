@@ -13,7 +13,8 @@ export function InfoCard({ icon, label, value, className }: InfoCardProps) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-card p-4",
+        "relative overflow-hidden rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-md",
+        "before:absolute before:inset-x-0 before:top-0 before:h-0.5 before:bg-linear-to-r before:from-primary/40 before:to-primary/10",
         className,
       )}
     >
@@ -23,7 +24,7 @@ export function InfoCard({ icon, label, value, className }: InfoCardProps) {
           {label}
         </span>
       </div>
-      <p className="mt-2 text-2xl font-semibold">{value}</p>
+      <p className="mt-2 text-2xl font-semibold max-sm:text-xl">{value}</p>
     </div>
   );
 }

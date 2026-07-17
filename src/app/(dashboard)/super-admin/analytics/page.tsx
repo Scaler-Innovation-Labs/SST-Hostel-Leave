@@ -81,32 +81,26 @@ export default function SuperAdminAnalyticsPage() {
 
       {/* Secondary metrics */}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Total Users</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">
-            {s.totalUsers as number ?? 0}
-          </p>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Outside Hostel</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">
-            {s.studentsOutside as number ?? 0}
-          </p>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Approvals (7d)</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">
-            {s.recentApprovalsCount as number ?? 0}
-          </p>
-        </div>
-        <div className="rounded-xl border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Avg Approval Time</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">
-            {s.averageApprovalHours != null
-              ? `${s.averageApprovalHours}h`
-              : "—"}
-          </p>
-        </div>
+        <InfoCard
+          label="Total Users"
+          value={s.totalUsers as number ?? 0}
+          icon={<Users className="h-4 w-4" />}
+        />
+        <InfoCard
+          label="Outside Hostel"
+          value={s.studentsOutside as number ?? 0}
+          icon={<Route className="h-4 w-4" />}
+        />
+        <InfoCard
+          label="Approvals (7d)"
+          value={s.recentApprovalsCount as number ?? 0}
+          icon={<CheckCircle2 className="h-4 w-4" />}
+        />
+        <InfoCard
+          label="Avg Approval Time"
+          value={s.averageApprovalHours != null ? `${s.averageApprovalHours}h` : "—"}
+          icon={<Clock className="h-4 w-4" />}
+        />
       </section>
 
       {/* Charts */}

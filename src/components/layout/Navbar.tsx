@@ -52,12 +52,15 @@ export function Navbar({ items, logo }: NavbarProps) {
         scrolled ? "shadow-md" : "shadow-sm",
       )}
     >
-      <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
+      {/* Subtle gradient accent line */}
+      <div className="absolute inset-x-0 top-0 h-[1px] bg-linear-to-r from-transparent via-primary/30 to-transparent" />
+
+      <div className="flex h-16 items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6">
         {/* LEFT: Logo */}
-        <div className="flex items-center">{logo}</div>
+        <div className="flex shrink-0 items-center">{logo}</div>
 
         {/* CENTER: Desktop nav */}
-        <nav className="hidden items-center justify-center gap-1 md:flex">
+        <nav className="hidden items-center justify-center gap-0.5 md:flex">
           {items.map((item) => {
             const active = isActive(item.href);
             const Icon = item.icon;
@@ -66,14 +69,15 @@ export function Navbar({ items, logo }: NavbarProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200",
+                  "relative inline-flex items-center gap-1.5 rounded-xl px-2.5 lg:px-3 py-2 text-sm font-medium transition-all duration-200",
                   active
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-accent hover:text-foreground",
                 )}
               >
-                {Icon && <Icon className="h-4 w-4" />}
-                {item.label}
+                {Icon && <Icon className="h-4 w-4 shrink-0" />}
+                <span className="hidden lg:inline">{item.label}</span>
+                <span className="lg:hidden">{item.label.length > 8 ? item.label.slice(0, 7) + "…" : item.label}</span>
                 {active && (
                   <span className="absolute -bottom-[9px] left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-primary" />
                 )}
@@ -114,7 +118,10 @@ export function Navbar({ items, logo }: NavbarProps) {
               </button>
             </SheetTrigger>
 
-            <SheetContent side="right" className="flex w-72 flex-col p-0">
+            <SheetContent side="right" className="flex w-72 flex-col p-0 max-sm:w-full">
+              {/* Gradient header accent */}
+              <div className="absolute inset-x-0 top-0 h-[1px] bg-linear-to-r from-transparent via-primary/30 to-transparent" />
+
               {/* Mobile header */}
               <div className="flex items-center justify-between border-b border-border px-5 py-4">
                 {logo}
