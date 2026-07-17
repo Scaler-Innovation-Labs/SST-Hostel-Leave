@@ -1,11 +1,30 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-vi.mock("@/lib/db", () => ({
-  db: {
-    transaction: (cb: any) => cb({}),
-  },
-}));
+vi.mock("@/lib/db", () => {
+  const tx: Record<string, any> = {};
+  tx.insert = vi.fn(() => tx);
+  tx.select = vi.fn(() => tx);
+  tx.update = vi.fn(() => tx);
+  tx.delete = vi.fn(() => tx);
+  tx.from = vi.fn(() => tx);
+  tx.where = vi.fn(() => tx);
+  tx.values = vi.fn(() => tx);
+  tx.set = vi.fn(() => tx);
+  tx.returning = vi.fn().mockResolvedValue([]);
+  tx.limit = vi.fn(() => tx);
+  tx.orderBy = vi.fn(() => tx);
+  tx.offset = vi.fn(() => tx);
+  tx.innerJoin = vi.fn(() => tx);
+  tx.leftJoin = vi.fn(() => tx);
+  tx.$dynamic = vi.fn(() => tx);
+  return {
+    db: {
+      transaction: (cb: any) => cb(tx),
+      ...tx,
+    },
+  };
+});
 
 const mockFindById = vi.fn();
 const mockFindByIdForUpdate = vi.fn();
@@ -21,6 +40,12 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
     findById: (...args: any[]) => mockFindById(...args),
     findByIdForUpdate: (...args: any[]) => mockFindByIdForUpdate(...args),
     updateById: (...args: any[]) => mockUpdateById(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
+  leaveApprovalRepository: {
+    updateDecisionByLeaveRequestId: (...args: any[]) => mockUpdateById(...args),
   },
 }));
 
@@ -118,16 +143,7 @@ describe("cancelLeave service", () => {
       newStatus: "CANCELLED",
       qrInvalidated: false,
     });
-    expect(mockRecordMovement).toHaveBeenCalledWith({
-      studentId: "S1",
-      leaveRequestId: "L3",
-      fromState: "APPROVED_LEAVE",
-      toState: "IN_HOSTEL",
-      eventType: "QR_INVALIDATED",
-      movementMethod: "SYSTEM",
-      recordedBy: "U1",
-      dbClient: expect.any(Object),
-    });
+    expect(mockRecordMovement).not.toHaveBeenCalled();
   });
 
   it("blocks cancel when student has CHECKED_OUT", async () => {

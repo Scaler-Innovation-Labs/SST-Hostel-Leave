@@ -1,8 +1,8 @@
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision"
 import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event"
 import { OTP_EXPIRY_MINUTES } from "@/constants/parent/parent-approval"
-import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository"
 import { leaveRepository } from "@/db/repositories/leave/leave.repository"
+import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository"
 import { parentRepository } from "@/db/repositories/parent/parent.repository"
 import { parentOtpSessionRepository } from "@/db/repositories/parent/parent-otp-session.repository"
 import { sha256 } from "@/lib/crypto"
@@ -11,8 +11,8 @@ import {
   NotFoundError,
   ValidationError,
 } from "@/lib/errors"
+import { sendApprovalOtpViaMsg91,sendOtpViaMsg91 } from "@/lib/messaging/otp/msg91-otp"
 import { notificationService } from "@/services/notification/notification.service"
-import { sendOtpViaMsg91, sendApprovalOtpViaMsg91 } from "@/lib/messaging/otp/msg91-otp"
 
 export type SendOtpResult = {
   phoneLast4: string
@@ -22,12 +22,16 @@ function generateOtpCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000))
 }
 
-function useMsg91Otp(): boolean {
+function isMsg91OtpConfigured(): boolean {
   return !!process.env.MSG91_OTP_TEMPLATE_ID
 }
 
-function useMsg91ApprovalOtp(): boolean {
+function isMsg91ApprovalOtpConfigured(): boolean {
   return !!process.env.MSG91_OTP_APPROVAL_TEMPLATE_ID
+}
+
+function formatPhone(phone: string): string {
+  return phone.slice(-4)
 }
 
 export async function sendParentOtp(
@@ -115,7 +119,7 @@ export async function sendParentOtp(
     expiresAt,
   })
 
-  if (useMsg91ApprovalOtp()) {
+  if (isMsg91ApprovalOtpConfigured()) {
     await sendApprovalOtpViaMsg91(phone, otpCode, {
       studentName,
       dates,
@@ -123,7 +127,8 @@ export async function sendParentOtp(
       approvalLink,
       shortCode,
     })
-  } else if (useMsg91Otp()) {
+    return { phoneLast4: formatPhone(phone) }
+  } else if (isMsg91OtpConfigured()) {
     await Promise.all([
       sendOtpViaMsg91(phone, otpCode),
       notificationService.sendSms(phone, `${studentName} applied for a leave. Dates: ${dates}. Reason: ${reason}. Approve: ${approvalLink} or reply 1 ${shortCode} to approve, 2 ${shortCode} to reject.`, {

@@ -59,7 +59,8 @@ describe("GET /api/v1/approvals", () => {
     await GET(req);
 
     expect(mockListApprovals).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "PENDING" })
+      expect.objectContaining({ status: "PENDING" }),
+      expect.anything()
     );
   });
 

@@ -9,8 +9,14 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
   },
 }));
 
+vi.mock("@/services/shared/authorization.service", () => ({
+  verifyStudentOwnership: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { getLeave } from "@/services/leave/get-leave.service";
 import { NotFoundError } from "@/lib/errors";
+
+const currentUser = { id: "U1", roles: ["ADMIN"] };
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -19,15 +25,18 @@ beforeEach(() => {
 describe("getLeave service", () => {
   it("returns a leave request when found", async () => {
     const leave = {
-      id: "LR1",
-      requestNumber: "LR-2026-001",
-      status: "APPROVED",
+      leave: {
+        id: "LR1",
+        requestNumber: "LR-2026-001",
+        status: "APPROVED",
+        studentId: "S1",
+      },
       student: { id: "S1", name: "Test Student" },
       leaveType: { id: "LT1", code: "HOME_PASS" },
     };
     mockFindByIdWithRelations.mockResolvedValue(leave);
 
-    const result = await getLeave("LR1");
+    const result = await getLeave("LR1", currentUser);
 
     expect(result).toEqual(leave);
     expect(mockFindByIdWithRelations).toHaveBeenCalledWith("LR1");
@@ -37,15 +46,18 @@ describe("getLeave service", () => {
     mockFindByIdWithRelations.mockResolvedValue(null);
 
     await expect(
-      getLeave("NONEXISTENT")
+      getLeave("NONEXISTENT", currentUser)
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
   it("returns leave with approvals when relation is loaded", async () => {
     const leave = {
-      id: "LR2",
-      requestNumber: "LR-2026-002",
-      status: "PENDING",
+      leave: {
+        id: "LR2",
+        requestNumber: "LR-2026-002",
+        status: "PENDING",
+        studentId: "S1",
+      },
       approvals: [
         { id: "A1", stepOrder: 1, decision: "PENDING" },
         { id: "A2", stepOrder: 2, decision: "PENDING" },
@@ -53,7 +65,7 @@ describe("getLeave service", () => {
     };
     mockFindByIdWithRelations.mockResolvedValue(leave);
 
-    const result = await getLeave("LR2");
+    const result = await getLeave("LR2", currentUser);
 
     expect(result.approvals).toHaveLength(2);
     expect(result.approvals[0].stepOrder).toBe(1);
@@ -61,16 +73,19 @@ describe("getLeave service", () => {
 
   it("returns leave with documents when relation is loaded", async () => {
     const leave = {
-      id: "LR3",
-      requestNumber: "LR-2026-003",
-      status: "APPROVED",
+      leave: {
+        id: "LR3",
+        requestNumber: "LR-2026-003",
+        status: "APPROVED",
+        studentId: "S1",
+      },
       documents: [
         { id: "D1", fileName: "consent.pdf" },
       ],
     };
     mockFindByIdWithRelations.mockResolvedValue(leave);
 
-    const result = await getLeave("LR3");
+    const result = await getLeave("LR3", currentUser);
 
     expect(result.documents).toHaveLength(1);
     expect(result.documents[0].fileName).toBe("consent.pdf");

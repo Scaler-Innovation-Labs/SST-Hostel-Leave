@@ -1,8 +1,9 @@
 import { inArray } from "drizzle-orm";
+
+import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { workflowSteps } from "@/db";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { db } from "@/lib/db";
-import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 
 export async function listLeaveTypes() {
   const types = await leaveTypeRepository.findAll();
@@ -11,7 +12,7 @@ export async function listLeaveTypes() {
     .map((t) => t.defaultWorkflowId)
     .filter(Boolean) as string[];
 
-  let pocWorkflowIds = new Set<string>();
+  const pocWorkflowIds = new Set<string>();
 
   if (workflowIds.length > 0) {
     const steps = await db

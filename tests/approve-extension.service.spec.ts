@@ -49,7 +49,8 @@ vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
 
 vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
   leaveApprovalRepository: {
-    findByLeaveExtensionAndDecision: (...args: any[]) => mockFindPending(...args),
+    findByEntityAndDecision: (...args: any[]) => mockFindPending(...args),
+    findNextByEntityAndDecision: (...args: any[]) => mockFindNextByDecisionForExtension(...args),
     findNextByDecisionForExtension: (...args: any[]) => mockFindNextByDecisionForExtension(...args),
     updateDecisionById: (...args: any[]) => mockUpdateDecisionById(...args),
   },

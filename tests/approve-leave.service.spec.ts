@@ -1,11 +1,30 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-vi.mock("@/lib/db", () => ({
-  db: {
-    transaction: (cb: any) => cb({}),
-  },
-}));
+vi.mock("@/lib/db", () => {
+  const tx: Record<string, any> = {};
+  tx.insert = vi.fn(() => tx);
+  tx.select = vi.fn(() => tx);
+  tx.update = vi.fn(() => tx);
+  tx.delete = vi.fn(() => tx);
+  tx.from = vi.fn(() => tx);
+  tx.where = vi.fn(() => tx);
+  tx.values = vi.fn(() => tx);
+  tx.set = vi.fn(() => tx);
+  tx.returning = vi.fn().mockResolvedValue([]);
+  tx.limit = vi.fn(() => tx);
+  tx.orderBy = vi.fn(() => tx);
+  tx.offset = vi.fn(() => tx);
+  tx.innerJoin = vi.fn(() => tx);
+  tx.leftJoin = vi.fn(() => tx);
+  tx.$dynamic = vi.fn(() => tx);
+  return {
+    db: {
+      transaction: (cb: any) => cb(tx),
+      ...tx,
+    },
+  };
+});
 
 const mockFindById = vi.fn();
 const mockFindByIdForUpdate = vi.fn();
@@ -28,9 +47,9 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
 
 vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
   leaveApprovalRepository: {
-    findByLeaveRequestAndDecision: (...args: any[]) => mockFindPending(...args),
+    findByEntityAndDecision: (...args: any[]) => mockFindPending(...args),
     updateDecisionById: (...args: any[]) => mockUpdateDecisionById(...args),
-    findNextByDecision: (...args: any[]) => mockFindNextByDecision(...args),
+    findNextByEntityAndDecision: (...args: any[]) => mockFindNextByDecision(...args),
   },
 }));
 
@@ -78,7 +97,7 @@ describe("approveLeave service", () => {
       stepOrder: 2,
       newStatus: null,
     });
-    expect(mockUpdateDecisionById).toHaveBeenCalledWith("A1", "APPROVED", "U1", undefined, expect.any(Date), expect.any(Object), undefined);
+    expect(mockUpdateDecisionById).toHaveBeenCalledWith("A1", "APPROVED", "U1", undefined, expect.any(Date), expect.any(Object));
     expect(mockUpdateCurrentStep).toHaveBeenCalledWith("L1", "S2", 2, expect.any(Object));
     expect(mockRecordMovement).not.toHaveBeenCalled();
   });
@@ -101,18 +120,9 @@ describe("approveLeave service", () => {
       newStatus: "APPROVED",
     });
     expect(mockUpdateDecisionById).toHaveBeenCalled();
-    expect(mockFindNextByDecision).toHaveBeenCalledWith("L2", 1, expect.any(String), expect.any(Object));
+    expect(mockFindNextByDecision).toHaveBeenCalledWith("L2", expect.any(Object), 1, expect.any(String), expect.any(Object));
     expect(mockUpdateById).toHaveBeenCalled();
-    expect(mockRecordMovement).toHaveBeenCalledWith({
-      studentId: "S1",
-      leaveRequestId: "L2",
-      fromState: "IN_HOSTEL",
-      toState: "APPROVED_LEAVE",
-      eventType: "LEAVE_APPROVED",
-      movementMethod: "SYSTEM",
-      recordedBy: "U1",
-      dbClient: expect.any(Object),
-    });
+    expect(mockRecordMovement).not.toHaveBeenCalled();
   });
 
   it("rejects current step and sets leave to REJECTED", async () => {
@@ -131,7 +141,7 @@ describe("approveLeave service", () => {
       stepOrder: null,
       newStatus: "REJECTED",
     });
-    expect(mockUpdateDecisionById).toHaveBeenCalledWith("A1", "REJECTED", "U1", "Not ok", expect.any(Date), expect.any(Object), undefined);
+    expect(mockUpdateDecisionById).toHaveBeenCalledWith("A1", "REJECTED", "U1", "Not ok", expect.any(Date), expect.any(Object));
     expect(mockUpdateById).toHaveBeenCalled();
     expect(mockRecordMovement).not.toHaveBeenCalled();
   });
@@ -164,7 +174,7 @@ describe("approveLeave service", () => {
 
     await approveLeave("L6", { decision: "APPROVED" }, { id: "U1", roles: ["ADMIN"] });
 
-    expect(mockUpdateDecisionById).toHaveBeenCalledWith("A1", "APPROVED", "U1", undefined, expect.any(Date), expect.any(Object), undefined);
+    expect(mockUpdateDecisionById).toHaveBeenCalledWith("A1", "APPROVED", "U1", undefined, expect.any(Date), expect.any(Object));
     expect(mockUpdateCurrentStep).toHaveBeenCalledWith("L6", "S2", 2, expect.any(Object));
   });
 
@@ -194,17 +204,17 @@ describe("approveLeave service", () => {
       .rejects.toBeInstanceOf(ConflictError);
   });
 
-  it("final approval propagates recordMovement failure", async () => {
+  it("final approval completes successfully (movement recorded async by outbox handler)", async () => {
     mockFindById.mockResolvedValue({ id: "L9", status: "PENDING" });
     mockFindByIdForUpdate.mockResolvedValue({ id: "L9", status: "PENDING", studentId: "S1" });
     mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null }]);
     mockUpdateDecisionById.mockResolvedValue({ id: "A1", decision: "APPROVED" });
     mockFindNextByDecision.mockResolvedValue(null);
     mockUpdateById.mockResolvedValue({ id: "L9", status: "APPROVED" });
-    mockRecordMovement.mockRejectedValue(new ConflictError("Student state mismatch"));
 
-    await expect(
-      approveLeave("L9", { decision: "APPROVED" }, { id: "U1", roles: ["ADMIN"] })
-    ).rejects.toBeInstanceOf(ConflictError);
+    const result = await approveLeave("L9", { decision: "APPROVED" }, { id: "U1", roles: ["ADMIN"] });
+
+    expect(result.newStatus).toBe("APPROVED");
+    expect(mockRecordMovement).not.toHaveBeenCalled();
   });
 });

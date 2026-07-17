@@ -29,14 +29,14 @@ describe("policyEngine", () => {
   });
 
   it("returns hard policy restrictions", async () => {
-    findActiveByLeaveTypeId.mockResolvedValue([{ name: "Max leave", policyType: "MAX_DAYS", config: { maxDays: 7 } }]);
+    findActiveByLeaveTypeId.mockResolvedValue([{ name: "Max leave", policyType: "LIMIT", config: { type: "MAX_DAYS", maxDays: 7 } }]);
     const result = await policyEngine.evaluate(context);
     expect(result.allowed).toBe(false);
     expect(result.restrictions).toEqual(["Max leave: Max 7 days allowed"]);
   });
 
   it("records parent approval as a requirement instead of blocking", async () => {
-    findActiveByLeaveTypeId.mockResolvedValue([{ name: "Parent gate", policyType: "REQUIRE_PARENT_APPROVAL", config: {} }]);
+    findActiveByLeaveTypeId.mockResolvedValue([{ name: "Parent gate", policyType: "ELIGIBILITY", config: { type: "PARENT_APPROVAL_REQUIRED" } }]);
     const result = await policyEngine.evaluate(context);
     expect(result.allowed).toBe(true);
     expect(result.requirements).toEqual(["Parent gate: Parent approval required"]);
@@ -45,7 +45,7 @@ describe("policyEngine", () => {
   describe("department / batch year scoping", () => {
     it("applies policy when student matches department", async () => {
       const deptId = "11111111-1111-4111-8111-111111111111";
-      findActiveByLeaveTypeId.mockResolvedValue([{ name: "Dept rule", policyType: "MAX_DAYS", config: { maxDays: 3 }, departmentId: deptId, batchYear: null }]);
+      findActiveByLeaveTypeId.mockResolvedValue([{ name: "Dept rule", policyType: "LIMIT", config: { type: "MAX_DAYS", maxDays: 3 }, departmentId: deptId, batchYear: null }]);
       const result = await policyEngine.evaluate({ ...context, leaveDurationDays: 5, studentDepartmentId: deptId });
       expect(result.allowed).toBe(false);
       expect(result.restrictions).toEqual(["Dept rule: Max 3 days allowed"]);
@@ -60,7 +60,7 @@ describe("policyEngine", () => {
     });
 
     it("applies policy when student matches batch year", async () => {
-      findActiveByLeaveTypeId.mockResolvedValue([{ name: "Batch rule", policyType: "MAX_DAYS", config: { maxDays: 4 }, departmentId: null, batchYear: 2024 }]);
+      findActiveByLeaveTypeId.mockResolvedValue([{ name: "Batch rule", policyType: "LIMIT", config: { type: "MAX_DAYS", maxDays: 4 }, departmentId: null, batchYear: 2024 }]);
       const result = await policyEngine.evaluate({ ...context, leaveDurationDays: 6, studentBatchYear: 2024 });
       expect(result.allowed).toBe(false);
       expect(result.restrictions).toEqual(["Batch rule: Max 4 days allowed"]);
@@ -75,14 +75,14 @@ describe("policyEngine", () => {
     });
 
     it("applies unscoped policy to any department and batch", async () => {
-      findActiveByLeaveTypeId.mockResolvedValue([{ name: "Global rule", policyType: "MAX_DAYS", config: { maxDays: 5 }, departmentId: null, batchYear: null }]);
+      findActiveByLeaveTypeId.mockResolvedValue([{ name: "Global rule", policyType: "LIMIT", config: { type: "MAX_DAYS", maxDays: 5 }, departmentId: null, batchYear: null }]);
       const result = await policyEngine.evaluate({ ...context, leaveDurationDays: 7, studentDepartmentId: "11111111-1111-4111-8111-111111111111", studentBatchYear: 2024 });
       expect(result.allowed).toBe(false);
       expect(result.restrictions).toEqual(["Global rule: Max 5 days allowed"]);
     });
 
     it("matches policy when student has no department and policy has no department filter", async () => {
-      findActiveByLeaveTypeId.mockResolvedValue([{ name: "No dept", policyType: "MAX_DAYS", config: { maxDays: 3 }, departmentId: null, batchYear: null }]);
+      findActiveByLeaveTypeId.mockResolvedValue([{ name: "No dept", policyType: "LIMIT", config: { type: "MAX_DAYS", maxDays: 3 }, departmentId: null, batchYear: null }]);
       const result = await policyEngine.evaluate({ ...context, leaveDurationDays: 4, studentDepartmentId: null, studentBatchYear: null });
       expect(result.allowed).toBe(false);
       expect(result.restrictions).toEqual(["No dept: Max 3 days allowed"]);

@@ -10,7 +10,7 @@ vi.mock("@/db/repositories/auth/user-role.repository", () => ({
   },
 }));
 
-vi.mock("@/db/repositories/auth/user.repository", () => ({
+vi.mock("@/db/repositories/user/user.repository", () => ({
   userRepository: {
     findByClerkId: (...args: any[]) => mockFindByClerkId(...args),
   },

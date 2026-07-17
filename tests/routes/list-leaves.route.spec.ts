@@ -58,7 +58,8 @@ describe("GET /api/v1/leaves", () => {
     await GET(req);
 
     expect(mockListLeaves).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "PENDING", page: 1, limit: 10 })
+      expect.objectContaining({ status: "PENDING", page: 1, limit: 10 }),
+      expect.anything()
     );
   });
 

@@ -19,6 +19,7 @@ const mockParentFindById = vi.fn();
 const mockParentFindPrimaryByStudentId = vi.fn();
 const mockLeaveFindById = vi.fn();
 const mockNotify = vi.fn().mockResolvedValue(undefined);
+const mockSendSms = vi.fn().mockResolvedValue(undefined);
 const mockOutboxPublish = vi.fn().mockResolvedValue(undefined);
 const mockAuditRecord = vi.fn().mockResolvedValue({});
 const mockLeaveUpdateById = vi.fn().mockResolvedValue({ id: "LR1" });
@@ -57,7 +58,7 @@ vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
     updateParentApprovalToken: (...args: any[]) => mockUpdateParentApprovalToken(...args),
     updateParentApprovalVerified: (...args: any[]) => mockUpdateParentApprovalVerified(...args),
     updateParentDecision: (...args: any[]) => mockUpdateParentDecision(...args),
-    findNextByDecision: (...args: any[]) => mockFindNextByDecision(...args),
+    findNextByEntityAndDecision: (...args: any[]) => mockFindNextByDecision(...args),
     findNextByDecisionForExtension: (...args: any[]) => mockFindNextByDecisionForExtension(...args),
   },
 }));
@@ -84,6 +85,8 @@ vi.mock("@/db/repositories/parent/parent.repository", () => ({
 const mockOtpSendOtp = vi.fn().mockResolvedValue({ success: true, reqId: "REQ123" })
 const mockOtpVerifyOtp = vi.fn().mockResolvedValue({ success: true, identifier: "9492079771" })
 const mockSmsSend = vi.fn().mockResolvedValue({ success: true, messageId: "MSG123" })
+const mockMsg91SendOtp = vi.fn().mockResolvedValue(undefined)
+const mockMsg91VerifyOtp = vi.fn().mockResolvedValue(true)
 
 vi.mock("@/lib/messaging", () => ({
   createSmsProvider: () => ({ send: mockSmsSend }),
@@ -101,9 +104,26 @@ vi.mock("@/lib/messaging", () => ({
   }),
 }))
 
+vi.mock("@/lib/messaging/otp/msg91-otp", () => ({
+  sendOtpViaMsg91: (...args: any[]) => mockMsg91SendOtp(...args),
+  verifyOtpViaMsg91: (...args: any[]) => mockMsg91VerifyOtp(...args),
+  sendApprovalOtpViaMsg91: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.mock("@/services/notification/notification.service", () => ({
   notificationService: {
     notify: (...args: any[]) => mockNotify(...args),
+    sendSms: (...args: any[]) => mockSendSms(...args),
+  },
+}));
+
+const mockOtpSessionFindValidByPhone = vi.fn();
+vi.mock("@/db/repositories/parent/parent-otp-session.repository", () => ({
+  parentOtpSessionRepository: {
+    findValidByPhone: (...args: any[]) => mockOtpSessionFindValidByPhone(...args),
+    markVerified: vi.fn().mockResolvedValue(undefined),
+    create: vi.fn().mockResolvedValue({ id: "OS1" }),
+    invalidateByParentId: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -165,8 +185,7 @@ describe("sendParentOtp", () => {
     const result = await sendParentOtp(RAW_TOKEN, "9492079771");
 
     expect(result.phoneLast4).toBe("9771");
-    expect(mockOtpSendOtp).toHaveBeenCalled();
-    expect(outboxService.publish).toHaveBeenCalledTimes(1);
+    expect(mockSendSms).toHaveBeenCalled();
   });
 
   it("rejects OTP for wrong phone", async () => {
@@ -238,17 +257,14 @@ describe("sendParentOtp", () => {
     const result = await sendParentOtp(RAW_TOKEN, "9492079771");
 
     expect(result.phoneLast4).toBe("9771");
-    expect(mockOtpSendOtp).toHaveBeenCalled();
-    expect(outboxService.publish).toHaveBeenCalledTimes(1);
-    // Verify the outbox payload includes leaveExtensionId
-    const publishCall = outboxService.publish.mock.calls[0][0];
-    expect(publishCall.payload.leaveExtensionId).toBe("EXT1");
+    expect(mockSendSms).toHaveBeenCalled();
   });
 });
 
 describe("verifyParentOtp", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockOtpSessionFindValidByPhone.mockResolvedValue({ id: "OS1", otpHash: sha256("123456") });
   });
 
   it("verifies correct OTP", async () => {
@@ -323,6 +339,7 @@ describe("verifyParentOtp", () => {
   });
 
   it("verifies correct OTP for extension", async () => {
+    mockOtpSessionFindValidByPhone.mockResolvedValue({ id: "OS1", otpHash: sha256("654321") });
     const otp = "654321";
     const currentEnd = new Date("2026-06-15");
     const requestedEnd = new Date("2026-06-22");

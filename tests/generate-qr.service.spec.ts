@@ -1,26 +1,35 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-const mockTxClient = {
-  select: vi.fn().mockReturnThis(),
-  insert: vi.fn().mockReturnThis(),
-  update: vi.fn().mockReturnThis(),
-  from: vi.fn().mockReturnThis(),
-  where: vi.fn().mockReturnThis(),
-  set: vi.fn().mockReturnThis(),
-  values: vi.fn().mockResolvedValue([]),
-  returning: vi.fn().mockResolvedValue([]),
-  limit: vi.fn().mockResolvedValue([]),
-};
-
-vi.mock("@/lib/db", () => ({
-  db: {
-    transaction: (cb: any) => cb(mockTxClient),
-  },
-}));
+vi.mock("@/lib/db", () => {
+  const tx: Record<string, any> = {};
+  tx.insert = vi.fn(() => tx);
+  tx.select = vi.fn(() => tx);
+  tx.update = vi.fn(() => tx);
+  tx.delete = vi.fn(() => tx);
+  tx.from = vi.fn(() => tx);
+  tx.where = vi.fn(() => tx);
+  tx.values = vi.fn(() => tx);
+  tx.set = vi.fn(() => tx);
+  tx.returning = vi.fn().mockResolvedValue([]);
+  tx.limit = vi.fn(() => tx);
+  tx.orderBy = vi.fn(() => tx);
+  tx.offset = vi.fn(() => tx);
+  tx.innerJoin = vi.fn(() => tx);
+  tx.leftJoin = vi.fn(() => tx);
+  tx.$dynamic = vi.fn(() => tx);
+  return {
+    db: {
+      transaction: (cb: any) => cb(tx),
+      ...tx,
+    },
+  };
+});
 
 const mockFindByLeaveRequestId = vi.fn();
 const mockLeaveFindById = vi.fn();
+const mockLeaveTypeFindById = vi.fn();
+const mockStudentFindByUserId = vi.fn();
 const mockQrPassCreate = vi.fn();
 const mockQrPassRegenerate = vi.fn();
 const mockAuditRecord = vi.fn().mockResolvedValue({});
@@ -37,6 +46,18 @@ vi.mock("@/db/repositories/movement/qr-pass.repository", () => ({
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
     findById: (...args: any[]) => mockLeaveFindById(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/student/student.repository", () => ({
+  studentRepository: {
+    findByUserId: (...args: any[]) => mockStudentFindByUserId(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/leave/leave-type.repository", () => ({
+  leaveTypeRepository: {
+    findById: (...args: any[]) => mockLeaveTypeFindById(...args),
   },
 }));
 
@@ -65,8 +86,12 @@ const VALID_INPUT = {
 beforeEach(() => {
   vi.resetAllMocks();
   mockFindByLeaveRequestId.mockResolvedValue(null);
+  mockStudentFindByUserId.mockResolvedValue({ id: "S1" });
+  mockLeaveTypeFindById.mockResolvedValue({ id: "LT1", qrMode: "EXIT_ONLY" });
   mockLeaveFindById.mockResolvedValue({
     id: "LR1",
+    studentId: "S1",
+    leaveTypeId: "LT1",
     status: "APPROVED",
   });
   mockQrPassCreate.mockResolvedValue({
@@ -131,6 +156,8 @@ describe("generateQrPass service", () => {
     it("throws ValidationError when leave is not APPROVED", async () => {
       mockLeaveFindById.mockResolvedValue({
         id: "LR1",
+        studentId: "S1",
+        leaveTypeId: "LT1",
         status: "PENDING",
       });
 

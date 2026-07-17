@@ -2,18 +2,18 @@ import { AUDIT_ACTION } from "@/constants/audit/audit-action"
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type"
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision"
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository"
-import { parentOtpSessionRepository } from "@/db/repositories/parent/parent-otp-session.repository"
 import { parentRepository } from "@/db/repositories/parent/parent.repository"
+import { parentOtpSessionRepository } from "@/db/repositories/parent/parent-otp-session.repository"
 import { sha256 } from "@/lib/crypto"
-import { auditService } from "@/services/audit/audit.service"
 import {
   ConflictError,
   NotFoundError,
   ValidationError,
 } from "@/lib/errors"
 import { verifyOtpViaMsg91 } from "@/lib/messaging/otp/msg91-otp"
+import { auditService } from "@/services/audit/audit.service"
 
-function useMsg91Otp(): boolean {
+function isMsg91OtpConfigured(): boolean {
   return !!process.env.MSG91_OTP_TEMPLATE_ID
 }
 
@@ -73,7 +73,7 @@ export async function verifyParentOtp(
     throw new ValidationError("OTP session expired or not found")
   }
 
-  const valid = useMsg91Otp()
+  const valid = isMsg91OtpConfigured()
     ? await verifyOtpViaMsg91(parent.phone, otp)
     : (await sha256(otp)) === session.otpHash
 

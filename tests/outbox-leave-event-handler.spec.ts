@@ -27,6 +27,12 @@ vi.mock("@/db/repositories/user/user.repository", () => ({
   },
 }));
 
+vi.mock("@/db/repositories/leave/leave-type.repository", () => ({
+  leaveTypeRepository: {
+    findById: vi.fn(),
+  },
+}));
+
 vi.mock("@/db/repositories/hostel/parent.repository", () => ({
   parentRepository: {
     findById: vi.fn(),

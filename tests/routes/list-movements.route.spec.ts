@@ -59,7 +59,8 @@ describe("GET /api/v1/movements", () => {
     await GET(req);
 
     expect(mockListMovements).toHaveBeenCalledWith(
-      expect.objectContaining({ eventType: "EXIT_HOSTEL" })
+      expect.objectContaining({ eventType: "EXIT_HOSTEL" }),
+      expect.anything()
     );
   });
 

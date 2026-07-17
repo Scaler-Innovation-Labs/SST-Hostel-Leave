@@ -5,21 +5,21 @@ import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveApprovals } from "@/db";
-import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
+import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import type { ApproveLeaveDto } from "@/dto/leave/approve-leave.dto";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
 import { auditService } from "@/services/audit/audit.service";
-import { outboxService } from "@/services/outbox/outbox.service";
 import {
   checkParentOverride,
   getApprovalAuditMeta,
   handleNextStep,
   updateApprovalAndAudit,
 } from "@/services/leave/shared-approval.service";
+import { outboxService } from "@/services/outbox/outbox.service";
 
 export type ApproveLeaveResult = {
   leaveId: string;
@@ -77,11 +77,57 @@ export async function approveLeave(
       dto.decision,
       currentUser.id,
       dto.comments,
-      AUDIT_ACTION.APPROVE,
+      dto.decision === LEAVE_APPROVAL_DECISION.REJECTED ? AUDIT_ACTION.REJECT : AUDIT_ACTION.APPROVE,
       AUDIT_ENTITY_TYPE.LEAVE_APPROVAL,
       getApprovalAuditMeta(leaveId, dto.comments, override!.isParentOverride),
       tx
     );
+
+    if (dto.decision === LEAVE_APPROVAL_DECISION.REJECTED) {
+      const nextState = getNextState(leaveInTx.status, LEAVE_ACTION.REJECT);
+
+      await leaveRepository.updateById(
+        leaveId,
+        {
+          status: nextState,
+          rejectedAt: new Date(),
+          currentStepKey: null,
+          currentStepOrder: null,
+        },
+        tx
+      );
+
+      await auditService.record(
+        AUDIT_ACTION.UPDATE,
+        AUDIT_ENTITY_TYPE.LEAVE_REQUEST,
+        leaveId,
+        currentUser.id,
+        {
+          oldStatus: leaveInTx.status,
+          newStatus: nextState,
+        },
+        tx
+      );
+
+      await outboxService.publish({
+        eventType: OUTBOX_EVENT_TYPE.LEAVE_REJECTED,
+        aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
+        aggregateId: leaveId,
+        payload: {
+          leaveId,
+          studentId: leaveInTx.studentId,
+          decision: LEAVE_APPROVAL_DECISION.REJECTED,
+        },
+      }, tx);
+
+      return {
+        leaveId,
+        decision: LEAVE_APPROVAL_DECISION.REJECTED,
+        stepKey: null,
+        stepOrder: null,
+        newStatus: nextState,
+      };
+    }
 
     const nextResult = await handleNextStep(
       leaveId,
