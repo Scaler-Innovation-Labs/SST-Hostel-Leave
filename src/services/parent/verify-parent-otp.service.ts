@@ -1,79 +1,88 @@
-import { AUDIT_ACTION } from "@/constants/audit/audit-action";
-import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
-import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
-import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
-import { sha256 } from "@/lib/crypto";
+import { AUDIT_ACTION } from "@/constants/audit/audit-action"
+import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type"
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision"
+import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository"
+import { parentOtpSessionRepository } from "@/db/repositories/parent/parent-otp-session.repository"
+import { parentRepository } from "@/db/repositories/parent/parent.repository"
+import { sha256 } from "@/lib/crypto"
+import { auditService } from "@/services/audit/audit.service"
 import {
   ConflictError,
   NotFoundError,
   ValidationError,
-} from "@/lib/errors";
-import { auditService } from "@/services/audit/audit.service";
+} from "@/lib/errors"
+import { verifyOtpViaMsg91 } from "@/lib/messaging/otp/msg91-otp"
+
+function useMsg91Otp(): boolean {
+  return !!process.env.MSG91_OTP_TEMPLATE_ID
+}
 
 export type VerifyOtpResult = {
-  approvalId: string;
-  targetType: "LEAVE_REQUEST" | "LEAVE_EXTENSION";
-  leaveRequestId: string;
-  leaveExtensionId: string | null;
-  extensionNumber: number | null;
-  studentName: string;
-  studentRollNumber: string;
-  leaveReason: string;
-  leaveStartDate: Date;
-  leaveEndDate: Date;
-  submittedForm: Record<string, unknown> | null;
-};
+  approvalId: string
+  targetType: "LEAVE_REQUEST" | "LEAVE_EXTENSION"
+  leaveRequestId: string
+  leaveExtensionId: string | null
+  extensionNumber: number | null
+  studentName: string
+  studentRollNumber: string
+  leaveReason: string
+  leaveStartDate: Date
+  leaveEndDate: Date
+  submittedForm: Record<string, unknown> | null
+}
 
 export async function verifyParentOtp(
   rawToken: string,
   otp: string
 ): Promise<VerifyOtpResult> {
-  const tokenHash = await sha256(rawToken);
-
+  const tokenHash = await sha256(rawToken)
   const approval =
-    await leaveApprovalRepository.findByParentApprovalToken(
-      tokenHash
-    );
+    await leaveApprovalRepository.findByParentApprovalToken(tokenHash)
 
   if (!approval) {
-    throw new NotFoundError("Approval");
+    throw new NotFoundError("Approval")
   }
 
   if (
     approval.parentApprovalExpiresAt &&
     new Date(approval.parentApprovalExpiresAt) < new Date()
   ) {
-    throw new ConflictError("Approval link has expired");
+    throw new ConflictError("Approval link has expired")
   }
 
   if (approval.parentApprovalVerifiedAt) {
-    throw new ConflictError("Approval already verified");
+    throw new ConflictError("Approval already verified")
   }
 
   if (approval.decision !== LEAVE_APPROVAL_DECISION.PENDING) {
-    throw new ConflictError("Approval already processed");
+    throw new ConflictError("Approval already processed")
   }
 
-  if (!approval.parentApprovalOtpHash) {
-    throw new ValidationError("OTP not sent yet");
+  const parentId = approval.approverParentId
+  if (!parentId) {
+    throw new NotFoundError("Parent")
   }
 
-  if (
-    approval.parentApprovalExpiresAt &&
-    new Date(approval.parentApprovalExpiresAt) < new Date()
-  ) {
-    throw new ConflictError("OTP has expired");
+  const parent = await parentRepository.findById(parentId)
+  if (!parent) {
+    throw new NotFoundError("Parent")
   }
 
-  const otpHash = await sha256(otp);
-
-  if (otpHash !== approval.parentApprovalOtpHash) {
-    throw new ValidationError("Invalid OTP");
+  const session = await parentOtpSessionRepository.findValidByPhone(parent.phone)
+  if (!session) {
+    throw new ValidationError("OTP session expired or not found")
   }
 
-  await leaveApprovalRepository.updateParentApprovalVerified(
-    approval.id
-  );
+  const valid = useMsg91Otp()
+    ? await verifyOtpViaMsg91(parent.phone, otp)
+    : (await sha256(otp)) === session.otpHash
+
+  if (!valid) {
+    throw new ValidationError("Invalid OTP")
+  }
+
+  await parentOtpSessionRepository.markVerified(session.id)
+  await leaveApprovalRepository.updateParentApprovalVerified(approval.id)
 
   await auditService.record(
     AUDIT_ACTION.UPDATE,
@@ -85,22 +94,21 @@ export async function verifyParentOtp(
       leaveExtensionId: approval.leaveExtensionId,
       action: "PARENT_OTP_VERIFIED",
     }
-  );
+  )
 
-  // Determine target type and resolve details
-  const isExtension = !!approval.leaveExtensionId;
+  const isExtension = !!approval.leaveExtensionId
   const leaveRequestId = isExtension
-    ? approval.leaveExtension?.leaveRequestId ?? approval.leaveRequestId ?? ""
-    : approval.leaveRequestId ?? "";
+    ? (approval.leaveExtension?.leaveRequestId ?? approval.leaveRequestId ?? "")
+    : (approval.leaveRequestId ?? "")
 
   if (!leaveRequestId) {
-    throw new NotFoundError("LeaveRequest");
+    throw new NotFoundError("LeaveRequest")
   }
 
   if (isExtension) {
-    const ext = approval.leaveExtension;
+    const ext = approval.leaveExtension
     if (!ext) {
-      throw new NotFoundError("LeaveExtension");
+      throw new NotFoundError("LeaveExtension")
     }
 
     return {
@@ -115,23 +123,25 @@ export async function verifyParentOtp(
       leaveStartDate: ext.currentEndAt,
       leaveEndDate: ext.requestedEndAt,
       submittedForm: ext.submittedForm,
-    };
+    }
   }
 
-  const lr = approval.leaveRequest;
+  const lr = approval.leaveRequest
   if (!lr) {
-    throw new NotFoundError("LeaveRequest");
-  }    return {
-      approvalId: approval.id,
-      targetType: "LEAVE_REQUEST",
-      leaveRequestId,
-      leaveExtensionId: null,
-      extensionNumber: null,
-      studentName: approval.studentName ?? "",
-      studentRollNumber: approval.studentRollNumber ?? "",
-      leaveReason: lr.reason,
-      leaveStartDate: lr.startAt,
-      leaveEndDate: lr.endAt,
-      submittedForm: lr.submittedForm,
-    };
+    throw new NotFoundError("LeaveRequest")
+  }
+
+  return {
+    approvalId: approval.id,
+    targetType: "LEAVE_REQUEST",
+    leaveRequestId,
+    leaveExtensionId: null,
+    extensionNumber: null,
+    studentName: approval.studentName ?? "",
+    studentRollNumber: approval.studentRollNumber ?? "",
+    leaveReason: lr.reason,
+    leaveStartDate: lr.startAt,
+    leaveEndDate: lr.endAt,
+    submittedForm: lr.submittedForm,
+  }
 }

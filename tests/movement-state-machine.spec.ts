@@ -97,13 +97,13 @@ describe("movement-state-machine", () => {
 			).toBe("APPROVED_LEAVE");
 		});
 
-		it("transitions APPROVED_LEAVE -> CHECKED_OUT", () => {
+		it("transitions APPROVED_LEAVE -> OUTSIDE_HOSTEL", () => {
 			expect(
 				getNextState(
 					"APPROVED_LEAVE",
 					MOVEMENT_ACTION.EXIT_HOSTEL
 				)
-			).toBe("CHECKED_OUT");
+			).toBe("OUTSIDE_HOSTEL");
 		});
 
 		it("transitions APPROVED_LEAVE -> IN_HOSTEL (invalidate QR)", () => {

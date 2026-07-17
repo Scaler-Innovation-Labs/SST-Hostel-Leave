@@ -26,12 +26,13 @@ async function hashToken(token: string): Promise<string> {
 export type ScanQrInput = {
 	token: string;
 	scannedBy: string;
-	scanType: "EXIT_SCAN" | "RETURN_SCAN";
+	scanType?: "EXIT_SCAN" | "RETURN_SCAN";
 }
 
 export type ScanResult = {
 	scanLogId: string;
 	success: boolean;
+	scanType?: "EXIT_SCAN" | "RETURN_SCAN";
 	movementEventId?: string;
 	failureReason?: string;
 }
@@ -48,7 +49,7 @@ export async function scanQrPass(
 		const log = await qrScanLogRepository.create({
 			qrPassId: null,
 			scannedBy: input.scannedBy,
-			scanType: input.scanType,
+			scanType: input.scanType ?? "EXIT_SCAN",
 			scanResult: "FAILED",
 			failureReason: "QR token not found",
 		});
@@ -56,6 +57,7 @@ export async function scanQrPass(
 		return {
 			scanLogId: log.id,
 			success: false,
+			scanType: input.scanType ?? "EXIT_SCAN",
 			failureReason: "QR token not found",
 		};
 	}
@@ -64,7 +66,7 @@ export async function scanQrPass(
 		const log = await qrScanLogRepository.create({
 			qrPassId: pass.id,
 			scannedBy: input.scannedBy,
-			scanType: input.scanType,
+			scanType: input.scanType ?? "EXIT_SCAN",
 			scanResult: "FAILED",
 			failureReason: `QR pass status is ${pass.status}`,
 		});
@@ -72,6 +74,7 @@ export async function scanQrPass(
 		return {
 			scanLogId: log.id,
 			success: false,
+			scanType: input.scanType ?? "EXIT_SCAN",
 			failureReason: `QR pass status is ${pass.status}`,
 		};
 	}
@@ -82,7 +85,7 @@ export async function scanQrPass(
 		const log = await qrScanLogRepository.create({
 			qrPassId: pass.id,
 			scannedBy: input.scannedBy,
-			scanType: input.scanType,
+			scanType: input.scanType ?? "EXIT_SCAN",
 			scanResult: "FAILED",
 			failureReason: "QR pass has expired",
 		});
@@ -90,8 +93,34 @@ export async function scanQrPass(
 		return {
 			scanLogId: log.id,
 			success: false,
+			scanType: input.scanType ?? "EXIT_SCAN",
 			failureReason: "QR pass has expired",
 		};
+	}
+
+	// Auto-detect scan type from QR pass state if not provided
+	if (!input.scanType) {
+		if (pass.qrType === "LEAVE_RETURN") {
+			input = { ...input, scanType: "RETURN_SCAN" };
+		} else if (!pass.firstScanAt) {
+			input = { ...input, scanType: "EXIT_SCAN" };
+		} else if (!pass.closedAt) {
+			input = { ...input, scanType: "RETURN_SCAN" };
+		} else {
+			const log = await qrScanLogRepository.create({
+				qrPassId: pass.id,
+				scannedBy: input.scannedBy,
+				scanType: "RETURN_SCAN",
+				scanResult: "FAILED",
+				failureReason: "QR pass has already been fully used",
+			});
+
+			return {
+				scanLogId: log.id,
+				success: false,
+				failureReason: "QR pass has already been fully used",
+			};
+		}
 	}
 
 	if (input.scanType === "EXIT_SCAN" && pass.firstScanAt) {
@@ -106,6 +135,7 @@ export async function scanQrPass(
 		return {
 			scanLogId: log.id,
 			success: false,
+			scanType: "EXIT_SCAN",
 			failureReason: "QR pass has already been used for exit",
 		};
 	}
@@ -122,11 +152,12 @@ export async function scanQrPass(
 		return {
 			scanLogId: log.id,
 			success: false,
+			scanType: "RETURN_SCAN",
 			failureReason: "QR pass has already been used for return",
 		};
 	}
 
-	if (input.scanType === "RETURN_SCAN" && !pass.firstScanAt) {
+	if (input.scanType === "RETURN_SCAN" && !pass.firstScanAt && pass.qrType !== "LEAVE_RETURN") {
 		const log = await qrScanLogRepository.create({
 			qrPassId: pass.id,
 			scannedBy: input.scannedBy,
@@ -138,6 +169,7 @@ export async function scanQrPass(
 		return {
 			scanLogId: log.id,
 			success: false,
+			scanType: "RETURN_SCAN",
 			failureReason: "Student has not exited yet",
 		};
 	}
@@ -147,7 +179,7 @@ export async function scanQrPass(
 			const log = await qrScanLogRepository.create({
 				qrPassId: pass.id,
 				scannedBy: input.scannedBy,
-				scanType: input.scanType,
+				scanType: "EXIT_SCAN",
 				scanResult: "SUCCESS",
 			}, tx);
 
@@ -158,7 +190,7 @@ export async function scanQrPass(
 				leaveRequestId: pass.leaveRequestId,
 				qrPassId: pass.id,
 				fromState: MOVEMENT_STATE.APPROVED_LEAVE,
-				toState: MOVEMENT_STATE.CHECKED_OUT,
+				toState: MOVEMENT_STATE.OUTSIDE_HOSTEL,
 				eventType: "EXIT_HOSTEL",
 				movementMethod: "QR",
 				recordedBy: input.scannedBy,
@@ -171,7 +203,7 @@ export async function scanQrPass(
 				pass.id,
 				input.scannedBy,
 				{
-					scanType: input.scanType,
+					scanType: "EXIT_SCAN",
 					scanResult: "SUCCESS",
 					qrPassId: pass.id,
 				},
@@ -186,7 +218,7 @@ export async function scanQrPass(
 					qrPassId: pass.id,
 					leaveRequestId: pass.leaveRequestId,
 					studentId: pass.studentId,
-					scanType: input.scanType,
+					scanType: "EXIT_SCAN",
 					scanResult: "SUCCESS",
 				},
 			}, tx);
@@ -194,6 +226,7 @@ export async function scanQrPass(
 			return {
 				scanLogId: log.id,
 				success: true,
+				scanType: "EXIT_SCAN",
 				movementEventId: movementEvent.id,
 			};
 		});
@@ -212,7 +245,7 @@ export async function scanQrPass(
 			const log = await qrScanLogRepository.create({
 				qrPassId: pass.id,
 				scannedBy: input.scannedBy,
-				scanType: input.scanType,
+				scanType: "RETURN_SCAN",
 				scanResult: "SUCCESS",
 			}, tx);
 
@@ -263,7 +296,7 @@ export async function scanQrPass(
 				pass.id,
 				input.scannedBy,
 				{
-					scanType: input.scanType,
+					scanType: "RETURN_SCAN",
 					scanResult: "SUCCESS",
 					qrPassId: pass.id,
 				},
@@ -289,7 +322,7 @@ export async function scanQrPass(
 					qrPassId: pass.id,
 					leaveRequestId: pass.leaveRequestId,
 					studentId: pass.studentId,
-					scanType: input.scanType,
+					scanType: "RETURN_SCAN",
 					scanResult: "SUCCESS",
 				},
 			}, tx);
@@ -297,6 +330,7 @@ export async function scanQrPass(
 			return {
 				scanLogId: log.id,
 				success: true,
+				scanType: "RETURN_SCAN",
 				movementEventId: movementEvent.id,
 			};
 		});
@@ -305,12 +339,13 @@ export async function scanQrPass(
 	const log = await qrScanLogRepository.create({
 		qrPassId: pass.id,
 		scannedBy: input.scannedBy,
-		scanType: input.scanType,
+		scanType: input.scanType ?? "EXIT_SCAN",
 		scanResult: "SUCCESS",
 	});
 
 	return {
 		scanLogId: log.id,
 		success: true,
+		scanType: input.scanType ?? "EXIT_SCAN",
 	};
 }

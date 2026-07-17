@@ -4,7 +4,7 @@ import type { UpdateParentDto } from "@/dto/admin/update-parent.dto";
 import { NotFoundError } from "@/lib/errors";
 
 export const parentManagementService = {
-  async list(filters: { search?: string; page: number; limit: number }) {
+  async list(filters: { search?: string; studentId?: string; page: number; limit: number }) {
     return parentRepository.findAll(filters);
   },
 

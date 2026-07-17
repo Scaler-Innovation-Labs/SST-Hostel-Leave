@@ -45,6 +45,20 @@ export const outboxRepository = {
     return rows;
   },
 
+  async findFailed(
+    limit: number = 50,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<OutboxEvent[]> {
+    const rows = await dbClient
+      .select()
+      .from(outboxEvents)
+      .where(eq(outboxEvents.status, OUTBOX_STATUS.FAILED))
+      .orderBy(asc(outboxEvents.createdAt))
+      .limit(limit);
+
+    return rows;
+  },
+
   async findPending(
     limit: number = 50,
     dbClient: Pick<typeof db, "select"> = db
@@ -105,6 +119,24 @@ export const outboxRepository = {
         lastError: error,
       })
       .where(eq(outboxEvents.id, id))
+      .returning();
+
+    return rows[0] ?? null;
+  },
+
+  async markForRetry(
+    id: string,
+    dbClient: Pick<typeof db, "update"> = db
+  ): Promise<OutboxEvent | null> {
+    const rows = await dbClient
+      .update(outboxEvents)
+      .set({ status: OUTBOX_STATUS.PENDING })
+      .where(
+        and(
+          eq(outboxEvents.id, id),
+          eq(outboxEvents.status, OUTBOX_STATUS.FAILED)
+        )
+      )
       .returning();
 
     return rows[0] ?? null;

@@ -9,9 +9,9 @@ export const createLeaveSchema = z
 
     endAt: z.string().datetime(),
 
-    expectedReturnAt: z.string().datetime().optional(),
-
     submittedForm: z.record(z.string(), z.unknown()).optional(),
+
+    pocId: z.string().uuid().optional(),
   })
   .refine(
     (data) =>

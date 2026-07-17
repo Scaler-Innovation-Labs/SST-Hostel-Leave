@@ -94,6 +94,7 @@ export const leaveCategoryEnum = pgEnum(
     "LOCAL_OUTING",
     "NIGHT_OUT",
     "ACADEMIC",
+    "HOSTEL",
   ]
 );
 
@@ -234,6 +235,7 @@ export const notificationEventEnum =
       "LEAVE_OVERDUE",
       "PARENT_APPROVAL_REQUESTED",
       "QR_GENERATED",
+      "QR_SCANNED",
       "QR_INVALIDATED",
     ]
   );
@@ -292,19 +294,35 @@ export const sheetSyncStatusEnum =
   );
 
 // =====================================================
+// QR MODE
+// =====================================================
+
+export const qrModeEnum = pgEnum(
+  "qr_mode",
+  [
+    "NONE",
+    "EXIT_ONLY",
+    "RETURN_ONLY",
+    "BOTH",
+    "OPTIONAL",
+  ]
+);
+
+// =====================================================
 // POLICY
 // =====================================================
 
 export const policyTypeEnum = pgEnum(
   "policy_type",
   [
-    "MAX_DAYS",
-    "BLOCK_DURING_PERIOD",
-    "RESTRICT_BATCH",
-    "REQUIRE_PARENT_APPROVAL",
-    "CURFEW_RESTRICTION",
-    "MAX_EXTENSION_COUNT",
-    "FORM_FIELD_RESTRICTION",
+    "FORM_VALIDATION",
+    "ELIGIBILITY",
+    "LIMIT",
+    "WORKFLOW",
+    "DOCUMENT_REQUIREMENT",
+    "QR_RULE",
+    "TIME_WINDOW",
+    "FEATURE_FLAG",
   ]
 );
 
@@ -324,6 +342,13 @@ export const auditEntityTypeEnum =
       "POLICY",
       "USER",
       "STUDENT",
+      "HOSTEL",
+      "DEPARTMENT",
+      "ACADEMIC_GROUP",
+      "WORKFLOW",
+      "NOTIFICATION_TEMPLATE",
+      "NOTIFICATION_RULE",
+      "LEAVE_TYPE",
     ]
   );
 

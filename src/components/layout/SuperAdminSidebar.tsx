@@ -3,8 +3,11 @@
 import {
   BarChart3,
   Bell,
+  Building2,
   ClipboardList,
   FileText,
+  GraduationCap,
+  Hotel,
   Settings,
   ShieldCheck,
   Users,
@@ -47,6 +50,9 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { label: "Leave Types", href: ROUTES.SUPER_ADMIN_LEAVE_TYPES, icon: ClipboardList },
       { label: "Workflows", href: ROUTES.SUPER_ADMIN_WORKFLOWS, icon: Workflow },
       { label: "Policies", href: ROUTES.SUPER_ADMIN_POLICIES, icon: ShieldCheck },
+      { label: "Hostels", href: ROUTES.SUPER_ADMIN_HOSTELS, icon: Hotel },
+      { label: "Departments", href: ROUTES.SUPER_ADMIN_DEPARTMENTS, icon: Building2 },
+      { label: "Academic Groups", href: ROUTES.SUPER_ADMIN_ACADEMIC_GROUPS, icon: GraduationCap },
     ],
   },
   {
@@ -61,6 +67,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     title: "People",
     items: [
       { label: "Users", href: ROUTES.SUPER_ADMIN_USERS, icon: Users },
+      { label: "Students", href: ROUTES.SUPER_ADMIN_STUDENTS, icon: GraduationCap },
       { label: "Parents", href: ROUTES.SUPER_ADMIN_PARENTS, icon: ShieldCheck },
     ],
   },

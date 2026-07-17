@@ -4,15 +4,22 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { leaveApprovals } from "@/db";
+import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import type { ApproveLeaveDto } from "@/dto/leave/approve-leave.dto";
-import { requireApprovalAuthorization } from "@/lib/auth/authorization";
 import { transaction } from "@/lib/db/transaction";
-import { ConflictError, NotFoundError } from "@/lib/errors";
+import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
+import {
+  checkParentOverride,
+  getApprovalAuditMeta,
+  handleNextStep,
+  updateApprovalAndAudit,
+} from "@/services/leave/shared-approval.service";
 
 export type ApproveLeaveResult = {
   leaveId: string;
@@ -20,6 +27,8 @@ export type ApproveLeaveResult = {
   stepKey: string | null;
   stepOrder: number | null;
   newStatus: string | null;
+  warning?: string;
+  requiresConfirmation?: boolean;
 };
 
 export async function approveLeave(
@@ -36,9 +45,18 @@ export async function approveLeave(
       throw new ConflictError("Leave is not in a state that can be approved");
     }
 
+    if (dto.decision === LEAVE_APPROVAL_DECISION.APPROVED) {
+      const leaveType = await leaveTypeRepository.findById(leaveInTx.leaveTypeId, tx);
+      const isSpecial = (leaveType?.uiConfig as Record<string, unknown> | null)?.isSpecial === true;
+      if (isSpecial && dto.documentsVerified !== true) {
+        throw new ValidationError("Documents must be verified before approving a special leave");
+      }
+    }
+
     const pending =
-      await leaveApprovalRepository.findByLeaveRequestAndDecision(
+      await leaveApprovalRepository.findByEntityAndDecision(
         leaveId,
+        leaveApprovals.leaveRequestId,
         LEAVE_APPROVAL_DECISION.PENDING,
         tx
       );
@@ -49,58 +67,38 @@ export async function approveLeave(
 
     const current = pending[0]!;
 
-    requireApprovalAuthorization(current, currentUser);
-
-    const updatedApproval =
-      await leaveApprovalRepository.updateDecisionById(
-        current.id,
-        dto.decision,
-        currentUser.id,
-        dto.comments,
-        new Date(),
-        tx
-      );
-
-    if (!updatedApproval) {
-      throw new ConflictError("Approval already processed");
+    const override = checkParentOverride(current, dto, currentUser);
+    if (override?.requiresConfirmation) {
+      return { leaveId, ...override };
     }
 
-    await auditService.record(
+    await updateApprovalAndAudit(
+      current,
+      dto.decision,
+      currentUser.id,
+      dto.comments,
       AUDIT_ACTION.APPROVE,
       AUDIT_ENTITY_TYPE.LEAVE_APPROVAL,
-      current.id,
-      currentUser.id,
-      {
-        leaveRequestId: leaveId,
-        comments: dto.comments,
-      },
+      getApprovalAuditMeta(leaveId, dto.comments, override!.isParentOverride),
       tx
     );
 
-    const next =
-      await leaveApprovalRepository.findNextByDecision(
-        leaveId,
-        current.stepOrder,
-        LEAVE_APPROVAL_DECISION.PENDING,
-        tx
-      );
-
-    if (next) {
-      await leaveRepository.updateCurrentStep(
-        leaveId,
-        next.stepKey,
-        next.stepOrder,
-        tx
-      );
-
-      return {
+    const nextResult = await handleNextStep(
+      leaveId,
+      leaveApprovals.leaveRequestId,
+      current.stepOrder,
+      (id, stepKey, stepOrder, t) => leaveRepository.updateCurrentStep(id, stepKey, stepOrder, t),
+      (next) => ({
         leaveId,
         decision: LEAVE_APPROVAL_DECISION.APPROVED,
         stepKey: next.stepKey,
         stepOrder: next.stepOrder,
         newStatus: null,
-      };
-    }
+      }),
+      tx
+    );
+
+    if (nextResult) return nextResult;
 
     const nextState = getNextState(
       leaveInTx.status,

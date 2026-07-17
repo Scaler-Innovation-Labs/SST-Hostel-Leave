@@ -5,7 +5,6 @@
 
 import {
   boolean,
-  date,
   index,
   integer,
   jsonb,
@@ -126,8 +125,6 @@ export const students = pgTable("students", {
     .references(() => movementStates.code, {
       onDelete: "restrict",
     }),
-
-  joinedAt: date("joined_at"),
 
   metadata: jsonb("metadata"),
 

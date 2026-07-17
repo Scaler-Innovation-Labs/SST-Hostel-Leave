@@ -5,6 +5,7 @@ import { useState } from "react";
 import useSWR from "swr";
 
 import { ErrorState } from "@/components/shared/ErrorState";
+import { LEAVE_APPROVAL_DECISION, type LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { ROUTES } from "@/constants/routes";
 
@@ -25,7 +26,7 @@ type Props = {
 
 export default function ParentApprovalDetailPage({ params }: Props) {
   const router = useRouter();
-  const [decision, setDecision] = useState<"APPROVED" | "REJECTED" | null>(null);
+  const [decision, setDecision] = useState<LeaveApprovalDecision | null>(null);
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -94,7 +95,7 @@ export default function ParentApprovalDetailPage({ params }: Props) {
           </p>
           <p className="mt-2 text-muted-foreground">
             You chose to{" "}
-            <strong>{decision === "APPROVED" ? "approve" : "reject"}</strong>{" "}
+            <strong>{decision === LEAVE_APPROVAL_DECISION.APPROVED ? "approve" : "reject"}</strong>{" "}
             this leave request.
           </p>
           <button
@@ -141,9 +142,9 @@ export default function ParentApprovalDetailPage({ params }: Props) {
         <div className="space-y-4">
           <div className="flex gap-3">
             <button
-              onClick={() => setDecision("APPROVED")}
+              onClick={() => setDecision(LEAVE_APPROVAL_DECISION.APPROVED)}
               className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium ${
-                decision === "APPROVED"
+                decision === LEAVE_APPROVAL_DECISION.APPROVED
                   ? "bg-primary text-primary-foreground"
                   : "border border-border bg-background hover:bg-muted"
               }`}
@@ -151,9 +152,9 @@ export default function ParentApprovalDetailPage({ params }: Props) {
               Approve
             </button>
             <button
-              onClick={() => setDecision("REJECTED")}
+              onClick={() => setDecision(LEAVE_APPROVAL_DECISION.REJECTED)}
               className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium ${
-                decision === "REJECTED"
+                decision === LEAVE_APPROVAL_DECISION.REJECTED
                   ? "bg-destructive/10 text-destructive border border-destructive/30"
                   : "border border-border bg-background hover:bg-muted"
               }`}

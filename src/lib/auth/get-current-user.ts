@@ -15,7 +15,34 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   const email = clerkUser.emailAddresses[0]?.emailAddress ?? null;
 
-  const dbUser = await userRepository.findByClerkId(clerkUser.id);
+  let dbUser: Awaited<ReturnType<typeof userRepository.findByClerkId>> | null = null;
+
+  try {
+    dbUser = await userRepository.findByClerkId(clerkUser.id);
+
+    if (!dbUser && email) {
+      dbUser = await userRepository.findByEmail(email);
+      if (dbUser) {
+        await userRepository.updateClerkId(dbUser.id, clerkUser.id);
+      }
+    }
+
+    if (!dbUser && email) {
+      const fullName = clerkUser.firstName && clerkUser.lastName
+        ? `${clerkUser.firstName} ${clerkUser.lastName}`
+        : clerkUser.firstName ?? clerkUser.username ?? "Unknown";
+
+      dbUser = await userRepository.create({
+        clerkId: clerkUser.id,
+        fullName,
+        email,
+        profileImageUrl: clerkUser.imageUrl,
+      });
+    }
+  } catch (err) {
+    console.error("[getCurrentUser] DB query failed:", err instanceof Error ? err.message : String(err));
+    return null;
+  }
 
   if (!dbUser) {
     return null;

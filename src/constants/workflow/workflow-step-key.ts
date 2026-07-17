@@ -1,0 +1,37 @@
+export const WORKFLOW_STEP_KEYS = [
+  "POC_APPROVAL",
+  "ADMIN_APPROVAL",
+  "PARENT_APPROVAL",
+  "AUTO_APPROVAL",
+  "NOTIFICATION",
+  "QR_EXIT",
+  "QR_RETURN",
+  "COMPLETE",
+] as const;
+
+export type WorkflowStepKey = (typeof WORKFLOW_STEP_KEYS)[number];
+
+export const WORKFLOW_STEP_KEY = {
+  POC_APPROVAL: "POC_APPROVAL",
+  ADMIN_APPROVAL: "ADMIN_APPROVAL",
+  PARENT_APPROVAL: "PARENT_APPROVAL",
+  AUTO_APPROVAL: "AUTO_APPROVAL",
+  NOTIFICATION: "NOTIFICATION",
+  QR_EXIT: "QR_EXIT",
+  QR_RETURN: "QR_RETURN",
+  COMPLETE: "COMPLETE",
+} as const;
+
+export const VIEW_STEP_KEYS = [
+  "POLICY",
+  "SUBMITTED",
+  "COMPLETE",
+] as const;
+
+export type ViewStepKey = (typeof VIEW_STEP_KEYS)[number];
+
+export const VIEW_STEP_KEY = {
+  POLICY: "POLICY",
+  SUBMITTED: "SUBMITTED",
+  COMPLETE: "COMPLETE",
+} as const;

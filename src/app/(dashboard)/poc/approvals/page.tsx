@@ -1,77 +1,148 @@
 "use client";
 
-import { Search } from "lucide-react";
 import { useState } from "react";
+import useSWR from "swr";
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((r) => r.data ?? r);
 
 import { PageHeader } from "@/components/shared/PageHeader";
-import { ApprovalTable } from "@/features/approvals/components/ApprovalTable";
+import { ApprovalDetailWorkspace } from "@/features/approvals/components/ApprovalDetailWorkspace";
+import { ApprovalFilters, type FilterState } from "@/features/approvals/components/ApprovalFilters";
+import { ApprovalMetricCards } from "@/features/approvals/components/ApprovalMetricCards";
+import { ApprovalQueue } from "@/features/approvals/components/ApprovalQueue";
+import { computeDateRange } from "@/lib/date-utils";
 import { useApprovals } from "@/features/approvals/hooks/use-approvals";
-
-const STATUS_TABS = [
-  { value: "", label: "All" },
-  { value: "PENDING", label: "Pending" },
-  { value: "APPROVED", label: "Approved" },
-  { value: "REJECTED", label: "Rejected" },
-] as const;
+import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
+import { useWorkflows } from "@/features/workflows/hooks/use-workflows";
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
+import { cn } from "@/lib/utils";
 
 export default function POCApprovalsPage() {
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
-  const [statusTab, setStatusTab] = useState("");
-  const { approvals, total, isLoading, isError, error, mutate } = useApprovals({ page, limit: 20, status: statusTab || undefined, search: search || undefined });
-  const totalPages = Math.ceil(total / 20);
+  const [filters, setFilters] = useState<FilterState>({
+    status: LEAVE_APPROVAL_DECISION.PENDING,
+    search: "",
+    leaveTypeId: "",
+    hostelId: "",
+    workflowId: "",
+    parentPending: "",
+    overdue: "",
+    dateRange: "today",
+  });
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Fetch filter data
+  const { leaveTypes } = useLeaveTypes();
+  const { data: hostels } = useSWR<Array<{ id: string; name: string; code: string }>>("/api/v1/hostels", fetcher);
+  const { data: workflowsData } = useWorkflows({ limit: 100 });
+
+  // Derive API-ready date range from the friendly range label
+  const dateRange = computeDateRange(filters.dateRange);
+
+  const { approvals, total, totalPages, isLoading, mutate } =
+    useApprovals({
+      page,
+      limit: 20,
+      status: filters.status || undefined,
+      search: filters.search || undefined,
+      hostelId: filters.hostelId || undefined,
+      leaveTypeId: filters.leaveTypeId || undefined,
+      dateFrom: dateRange.dateFrom,
+      dateTo: dateRange.dateTo,
+    });
+
+  const handleSelect = (id: string) => {
+    setSelectedId(id);
+    setMobileOpen(true);
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Approval Inbox"
+        title="Approvals"
         description="Review and process leave requests."
       />
 
-      <div className="mb-4 flex items-center gap-2">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => {
-              setStatusTab(tab.value);
-              setPage(1);
-            }}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-              statusTab === tab.value
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-        <div className="relative ml-auto">
-          <input
-            type="text"
-            placeholder="Search student..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            className="h-9 w-48 rounded-lg border border-border bg-background px-3 pl-8 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+      {/* Metrics */}
+      <ApprovalMetricCards
+        pendingCount={approvals.filter((a: any) => a.decision === LEAVE_APPROVAL_DECISION.PENDING).length}
+        approvedToday={approvals.filter((a: any) => a.decision === LEAVE_APPROVAL_DECISION.APPROVED).length}
+        rejectedToday={approvals.filter((a: any) => a.decision === LEAVE_APPROVAL_DECISION.REJECTED).length}
+        averageSlaHours={null}
+        overdueCount={0}
+        parentPendingCount={0}
+      />
+
+      {/* Filters */}
+      <ApprovalFilters
+        filters={filters}
+        onFiltersChange={(f) => {
+          setFilters(f);
+          setPage(1);
+          setSelectedId(null);
+        }}
+        leaveTypes={leaveTypes}
+        hostels={hostels ?? []}
+        workflows={workflowsData?.items ?? []}
+      />
+
+      {/* Split-panel layout */}
+      <div className="relative grid grid-cols-1 gap-6 xl:grid-cols-[480px_1fr]">
+        {/* Queue (left panel) */}
+        <div className={cn(mobileOpen && "hidden xl:block")}>
+          <ApprovalQueue
+            items={approvals.map((a: any) => ({
+              id: a.id,
+              studentName: a.studentName,
+              studentRollNumber: a.studentRollNumber,
+              decision: a.decision,
+              approverRoleCode: a.approverRoleCode,
+              createdAt: a.createdAt,
+              stepKey: a.stepKey,
+              stepOrder: a.stepOrder,
+              parentApprovalVerifiedAt: a.parentApprovalVerifiedAt,
+              approverParentId: a.approverParentId,
+              parentName: a.parentName,
+              parentPhone: a.parentPhone,
+              leaveRequest: a.leaveRequest,
+            }))}
+            selectedId={selectedId}
+            onSelect={handleSelect}
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            onPageChange={setPage}
+            isLoading={isLoading}
           />
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        </div>
+
+        {/* Detail workspace (right panel) */}
+        <div className={cn(!mobileOpen && "hidden xl:block")}>
+          {selectedId ? (
+            <ApprovalDetailWorkspace
+              leaveId={selectedId}
+              onBack={() => {
+                setSelectedId(null);
+                setMobileOpen(false);
+              }}
+              onActionComplete={() => {
+                mutate();
+                setSelectedId(null);
+                setMobileOpen(false);
+              }}
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-24 text-center">
+              <h3 className="text-base font-medium">Select a request</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Click on a request from the queue to review it here.
+              </p>
+            </div>
+          )}
         </div>
       </div>
-
-      <ApprovalTable
-        approvals={approvals}
-        total={total}
-        page={page}
-        totalPages={totalPages}
-        isLoading={isLoading}
-        isError={isError}
-        error={error}
-        onPageChange={setPage}
-        onMutate={() => mutate()}
-        basePath="/poc/approvals"
-      />
     </div>
   );
 }

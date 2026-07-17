@@ -2,6 +2,7 @@ import { eq, inArray } from "drizzle-orm";
 
 import { hostels, roles, userRoles, users } from "@/db";
 import type { db } from "@/lib/db";
+import { ROLES } from "@/lib/auth/roles";
 import { logger } from "@/lib/logger";
 
 export async function seedUsers(
@@ -10,7 +11,7 @@ export async function seedUsers(
   const roleRows = await database
     .select({ id: roles.id, code: roles.code })
     .from(roles)
-    .where(inArray(roles.code, ["SUPER_ADMIN", "ADMIN", "POC", "STUDENT", "GUARD"]));
+    .where(inArray(roles.code, [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.POC, ROLES.STUDENT, ROLES.GUARD]));
 
   const roleMap = Object.fromEntries(
     roleRows.map((r) => [r.code, r.id])
@@ -73,11 +74,11 @@ export async function seedUsers(
   }
 
   const assignments: { email: string; roleCode: string }[] = [
-    { email: "n.vedvarshit@gmail.com", roleCode: "SUPER_ADMIN" },
-    { email: "vedavarshitn@gmail.com", roleCode: "ADMIN" },
-    { email: "vedavarshitn@gmail.com", roleCode: "POC" },
-    { email: "neerasa.24bcs10005@sst.scaler.com", roleCode: "STUDENT" },
-    { email: "vedavarshitn@gmail.com", roleCode: "GUARD" },
+    { email: "n.vedvarshit@gmail.com", roleCode: ROLES.SUPER_ADMIN },
+    { email: "vedavarshitn@gmail.com", roleCode: ROLES.ADMIN },
+    { email: "vedavarshitn@gmail.com", roleCode: ROLES.POC },
+    { email: "neerasa.24bcs10005@sst.scaler.com", roleCode: ROLES.STUDENT },
+    { email: "vedavarshitn@gmail.com", roleCode: ROLES.GUARD },
   ];
 
   for (const { email, roleCode } of assignments) {

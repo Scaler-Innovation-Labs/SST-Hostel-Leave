@@ -48,6 +48,19 @@ export const notificationTemplateRepository = {
 		return rows[0] ?? null;
 	},
 
+	async findByCode(
+		code: string,
+		dbClient: Pick<typeof db, "select"> = db
+	): Promise<NotificationTemplate | null> {
+		const rows = await dbClient
+			.select()
+			.from(notificationTemplates)
+			.where(eq(notificationTemplates.code, code))
+			.limit(1);
+
+		return rows[0] ?? null;
+	},
+
 	async findByIds(
 		ids: string[],
 		dbClient: Pick<typeof db, "select"> = db

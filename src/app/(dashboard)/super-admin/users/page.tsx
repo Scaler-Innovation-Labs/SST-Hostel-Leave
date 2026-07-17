@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useUsers } from "@/hooks/use-users";
+import { ROLES } from "@/lib/auth/roles";
 import { getAvatarColor, getInitials } from "@/lib/user-utils";
 
 const ROLE_STYLES: Record<string, string> = {
@@ -55,6 +56,7 @@ export default function SuperAdminUsersPage() {
     page,
     limit: 20,
     role: role || undefined,
+    excludeRole: role ? undefined : "STUDENT",
     isActive: isActive || undefined,
     search: search || undefined,
   });
@@ -67,11 +69,11 @@ export default function SuperAdminUsersPage() {
   const roleFilters = useMemo(
     () => [
       { value: "", label: "All Roles" },
-      { value: "STUDENT", label: "Student" },
-      { value: "POC", label: "POC" },
-      { value: "ADMIN", label: "Admin" },
-      { value: "SUPER_ADMIN", label: "Super Admin" },
-      { value: "GUARD", label: "Guard" },
+      { value: ROLES.STUDENT, label: "Student" },
+      { value: ROLES.POC, label: "POC" },
+      { value: ROLES.ADMIN, label: "Admin" },
+      { value: ROLES.SUPER_ADMIN, label: "Super Admin" },
+      { value: ROLES.GUARD, label: "Guard" },
     ],
     [],
   );

@@ -1,37 +1,46 @@
-import { logger } from "@/lib/logger";
-import { sendSms } from "@/lib/twilio";
+import { logger } from "@/lib/logger"
+import { SmsTemplate, createSmsProvider as createMessagingSmsProvider } from "@/lib/messaging"
 
 import type {
   NotificationPayload,
   NotificationSendResult,
-} from "./notification-provider";
+} from "./notification-provider"
+
+let provider: ReturnType<typeof createMessagingSmsProvider> | null = null
+
+function getProvider() {
+  if (!provider) {
+    provider = createMessagingSmsProvider()
+  }
+  return provider
+}
 
 export function createSmsProvider() {
   return {
     async send(
       payload: NotificationPayload,
     ): Promise<NotificationSendResult> {
-      const twilioConfigured =
-        !!process.env.TWILIO_ACCOUNT_SID &&
-        !!process.env.TWILIO_AUTH_TOKEN &&
-        (!!process.env.TWILIO_PHONE_NUMBER || !!process.env.TWILIO_FROM_NUMBER || !!process.env.TWILIO_MESSAGING_SERVICE_SID);
+      try {
+        const result = await getProvider().send({
+          to: payload.to,
+          body: payload.body,
+          template: payload.templateCode as SmsTemplate | undefined,
+          variables: payload.metadata as Record<string, string> | undefined,
+          providerMetadata: payload.providerMetadata,
+        })
 
-      if (!twilioConfigured) {
-        logger.warn("SMS not configured — SMS STUB", { to: payload.to });
+        return {
+          success: result.success,
+          messageId: result.messageId ?? `msg91-${Date.now()}`,
+          error: result.error,
+        }
+      } catch (error) {
+        logger.error("SMS provider send failed", { error: error instanceof Error ? error.message : String(error) })
         return {
           success: false,
-          error:
-            "Twilio is not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER (or TWILIO_MESSAGING_SERVICE_SID).",
-        };
+          error: error instanceof Error ? error.message : "Unknown error",
+        }
       }
-
-      const result = await sendSms(payload.to, payload.body);
-
-      return {
-        success: result.success,
-        messageId: result.messageId ?? `twilio-${Date.now()}`,
-        error: result.error,
-      };
     },
-  };
+  }
 }

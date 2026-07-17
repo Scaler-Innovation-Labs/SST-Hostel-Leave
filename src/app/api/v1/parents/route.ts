@@ -12,8 +12,9 @@ export async function GET(request: Request) {
     const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
     const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit")) || 20));
     const search = url.searchParams.get("search") ?? undefined;
+    const studentId = url.searchParams.get("studentId") ?? undefined;
 
-    const result = await parentManagementService.list({ search, page, limit });
+    const result = await parentManagementService.list({ search, studentId, page, limit });
 
     return ApiResponse.success(result);
   } catch (error) {

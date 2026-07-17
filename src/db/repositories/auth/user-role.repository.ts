@@ -28,32 +28,6 @@ export const userRoleRepository = {
       );
   },
 
-  async findByRoleId(
-    roleId: string,
-    dbClient: Pick<typeof db, "select"> = db
-  ) {
-    const rows = await dbClient
-      .select()
-      .from(roles)
-      .where(eq(roles.id, roleId))
-      .limit(1);
-
-    return rows[0] ?? null;
-  },
-
-  async findRoleByCode(
-    code: string,
-    dbClient: Pick<typeof db, "select"> = db
-  ) {
-    const rows = await dbClient
-      .select()
-      .from(roles)
-      .where(eq(roles.code, code))
-      .limit(1);
-
-    return rows[0] ?? null;
-  },
-
   async findRolesByCodes(
     codes: string[],
     dbClient: Pick<typeof db, "select"> = db

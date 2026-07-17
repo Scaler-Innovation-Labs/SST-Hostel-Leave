@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, lte, sql } from "drizzle-orm";
 
 import { QR_STATUS } from "@/constants/movement/qr-status";
 import type { QrType } from "@/constants/movement/qr-type";
@@ -161,6 +161,23 @@ export const qrPassRepository = {
 			.returning();
 
 		return rows[0] ?? null;
+  },
+
+  async findExpired(
+    before: Date,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<QrPass[]> {
+    const rows = await dbClient
+      .select()
+      .from(qrPasses)
+      .where(
+        and(
+          eq(qrPasses.status, QR_STATUS.ACTIVE),
+          lte(qrPasses.expiresAt, before)
+        )
+      );
+
+    return rows;
   },
 
   async countActive(

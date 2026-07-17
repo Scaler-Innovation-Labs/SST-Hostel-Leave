@@ -7,20 +7,39 @@ import { ConflictError } from "@/lib/errors";
 export async function createUser(dto: CreateUserDto) {
   return await db.transaction(async (tx) => {
     if (dto.email) {
-      const existing = await userRepository.findByEmail(dto.email, tx);
-      if (existing) {
+      const existingEmail = await userRepository.findByEmail(dto.email, tx);
+      if (existingEmail) {
         throw new ConflictError("Email is already in use");
       }
     }
 
-    const user = await userRepository.create({
-      fullName: dto.fullName,
-      email: dto.email || undefined,
-      phone: dto.phone || undefined,
-      gender: dto.gender ?? null,
-      hostelId: dto.hostelId || undefined,
-      isActive: dto.isActive,
-    }, tx);
+    if (dto.phone) {
+      const existingPhone = await userRepository.findByPhone(dto.phone, tx);
+      if (existingPhone) {
+        throw new ConflictError("Phone number is already in use");
+      }
+    }
+
+    let user;
+    try {
+      user = await userRepository.create({
+        fullName: dto.fullName,
+        email: dto.email || undefined,
+        phone: dto.phone || undefined,
+        gender: dto.gender ?? null,
+        hostelId: dto.hostelId || undefined,
+        isActive: dto.isActive,
+      }, tx);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      if (message.includes("users_phone_unique") || message.includes("duplicate key") && message.includes("phone")) {
+        throw new ConflictError("Phone number is already in use");
+      }
+      if (message.includes("users_email_unique") || message.includes("duplicate key") && message.includes("email")) {
+        throw new ConflictError("Email is already in use");
+      }
+      throw err;
+    }
 
     if (dto.roleCodes && dto.roleCodes.length > 0) {
       const rolesByCode = new Map(

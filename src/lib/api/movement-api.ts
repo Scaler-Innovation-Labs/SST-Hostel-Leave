@@ -1,5 +1,4 @@
 import type { ListMovementsQuery } from "@/dto/movement/list-movements.dto";
-import type { ScanQrDto } from "@/dto/movement/scan-qr.dto";
 import { buildQueryString } from "@/lib/api/query-string";
 import type { ApiResponse } from "@/types/api";
 
@@ -53,12 +52,11 @@ export async function invalidateQr(
 
 export async function scanQr(
   token: string,
-  scanType: ScanQrDto["scanType"] = "EXIT_SCAN",
 ): Promise<unknown> {
   const res = await fetch(`${BASE}/movements/scan`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, scanType }),
+    body: JSON.stringify({ token }),
   });
   const json: ApiResponse = await res.json();
   if (!res.ok || !json.success) {

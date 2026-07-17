@@ -78,7 +78,7 @@ describe("approveLeave service", () => {
       stepOrder: 2,
       newStatus: null,
     });
-    expect(mockUpdateDecisionById).toHaveBeenCalledWith("A1", "APPROVED", "U1", undefined, expect.any(Date), expect.any(Object));
+    expect(mockUpdateDecisionById).toHaveBeenCalledWith("A1", "APPROVED", "U1", undefined, expect.any(Date), expect.any(Object), undefined);
     expect(mockUpdateCurrentStep).toHaveBeenCalledWith("L1", "S2", 2, expect.any(Object));
     expect(mockRecordMovement).not.toHaveBeenCalled();
   });
@@ -131,7 +131,7 @@ describe("approveLeave service", () => {
       stepOrder: null,
       newStatus: "REJECTED",
     });
-    expect(mockUpdateDecisionById).toHaveBeenCalledWith("A1", "REJECTED", "U1", "Not ok", expect.any(Date), expect.any(Object));
+    expect(mockUpdateDecisionById).toHaveBeenCalledWith("A1", "REJECTED", "U1", "Not ok", expect.any(Date), expect.any(Object), undefined);
     expect(mockUpdateById).toHaveBeenCalled();
     expect(mockRecordMovement).not.toHaveBeenCalled();
   });
@@ -164,7 +164,7 @@ describe("approveLeave service", () => {
 
     await approveLeave("L6", { decision: "APPROVED" }, { id: "U1", roles: ["ADMIN"] });
 
-    expect(mockUpdateDecisionById).toHaveBeenCalledWith("A1", "APPROVED", "U1", undefined, expect.any(Date), expect.any(Object));
+    expect(mockUpdateDecisionById).toHaveBeenCalledWith("A1", "APPROVED", "U1", undefined, expect.any(Date), expect.any(Object), undefined);
     expect(mockUpdateCurrentStep).toHaveBeenCalledWith("L6", "S2", 2, expect.any(Object));
   });
 

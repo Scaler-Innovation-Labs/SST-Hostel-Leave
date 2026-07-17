@@ -11,7 +11,6 @@ import {
   pgTable,
   text,
   timestamp,
-  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm/sql/sql";
@@ -70,13 +69,6 @@ export const notificationTemplates = pgTable(
       .notNull(),
   },
   (table) => ({
-  eventChannelUnique: unique(
-    "notification_template_event_channel_unq"
-  ).on(
-    table.eventKey,
-    table.channel
-  ),
-
   eventKeyIndex: index(
   "notification_template_event_key_idx"
 ).on(table.eventKey),

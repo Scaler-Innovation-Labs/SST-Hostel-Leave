@@ -10,6 +10,10 @@ const workflowStepSchema = z
       .nullable()
       .optional(),
     isRequired: z.boolean().default(true),
+    condition: z.string().max(500).nullable().optional(),
+    timeoutHours: z.number().int().positive().nullable().optional(),
+    escalateToStepKey: z.string().max(100).nullable().optional(),
+    notes: z.string().max(1000).nullable().optional(),
   })
   .refine((step) => step.isParentApproval || Boolean(step.approverRoleCode), {
     message: "Each step requires an approver role or parent approval",

@@ -23,6 +23,12 @@ async function resolveSteps(dto: SaveWorkflowDto, tx: Parameters<Parameters<type
       throw new ValidationError(`Unknown approver role: ${step.approverRoleCode}`);
     }
 
+    const metadata: Record<string, unknown> = {};
+    if (step.condition) metadata.condition = step.condition;
+    if (step.timeoutHours) metadata.timeoutHours = step.timeoutHours;
+    if (step.escalateToStepKey) metadata.escalateToStepKey = step.escalateToStepKey;
+    if (step.notes) metadata.notes = step.notes;
+
     steps.push({
       stepKey: step.stepKey,
       stepOrder: index + 1,
@@ -30,6 +36,7 @@ async function resolveSteps(dto: SaveWorkflowDto, tx: Parameters<Parameters<type
       isParentApproval: step.isParentApproval,
       approvalMethod: step.approvalMethod ?? null,
       isRequired: step.isRequired,
+      metadata: Object.keys(metadata).length > 0 ? metadata : null,
     });
   }
 

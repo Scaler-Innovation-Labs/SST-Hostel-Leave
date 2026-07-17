@@ -19,7 +19,7 @@ export default function UnauthorizedPage() {
 			<div className="flex flex-col items-center gap-3">
 				<SignOutTimer seconds={5} redirectUrl="/login" />
 
-				<SignInButton mode="modal"><button className="rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary/90">Sign In with a different account</button></SignInButton>
+				<SignInButton mode="modal" />
 			</div>
 		</main>
 	);

@@ -1,3 +1,4 @@
+import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
 import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
@@ -5,7 +6,7 @@ import {
   NOTIFICATION_EVENT,
   type NotificationEvent,
 } from "@/constants/notification/notification-event";
-import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
@@ -85,9 +86,11 @@ async function resolveContext(
   let phone: string | undefined;
   let hostelId: string | undefined;
 
+  let studentRollNumber: string | undefined;
   if (resolvedStudentId) {
     const student = await studentRepository.findById(resolvedStudentId);
     if (student) {
+      studentRollNumber = student.rollNumber ?? undefined;
       const user = await userRepository.findById(student.userId);
       if (user) {
         studentName = user.fullName;
@@ -109,13 +112,28 @@ async function resolveContext(
 
   if (leave) {
     variables.dates = `${formatDate(leave.startAt)} – ${formatDate(leave.endAt)}`;
-    if (leave.expectedReturnAt) {
-      variables.expectedReturnDate = formatDate(leave.expectedReturnAt);
+    variables.startDate = formatDate(leave.startAt);
+    variables.endDate = formatDate(leave.endAt);
+
+    const leaveType = await leaveTypeRepository.findById(leave.leaveTypeId);
+    if (leaveType) {
+      variables.leaveCategory = leaveType.category;
+      variables.leaveTypeName = leaveType.name;
     }
   }
 
   if (payload.reason) variables.reason = String(payload.reason);
   if (payload.decision) variables.decision = String(payload.decision);
+  if (studentRollNumber) variables.rollNumber = studentRollNumber;
+
+  // Attach QR dashboard link for approval notifications
+  if (
+    eventType === OUTBOX_EVENT_TYPE.LEAVE_APPROVED ||
+    eventType === OUTBOX_EVENT_TYPE.LEAVE_EXTENSION_APPROVED
+  ) {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+    variables.qrDashboardUrl = `${baseUrl}/student/qr`;
+  }
 
   return {
     email,

@@ -4,6 +4,7 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import type { ApproveLeaveDto } from "@/dto/leave/approve-leave.dto";
@@ -13,6 +14,10 @@ import { ConflictError, NotFoundError } from "@/lib/errors";
 import { getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
+import {
+  getApprovalAuditMeta,
+  updateApprovalAndAudit,
+} from "@/services/leave/shared-approval.service";
 
 export type RejectLeaveResult = {
   leaveId: string;
@@ -37,8 +42,9 @@ export async function rejectLeave(
     }
 
     const pending =
-      await leaveApprovalRepository.findByLeaveRequestAndDecision(
+      await leaveApprovalRepository.findByEntityAndDecision(
         leaveId,
+        leaveApprovals.leaveRequestId,
         LEAVE_APPROVAL_DECISION.PENDING,
         tx
       );
@@ -51,29 +57,14 @@ export async function rejectLeave(
 
     requireApprovalAuthorization(current, currentUser);
 
-    const updatedApproval =
-      await leaveApprovalRepository.updateDecisionById(
-        current.id,
-        LEAVE_APPROVAL_DECISION.REJECTED,
-        currentUser.id,
-        dto.comments,
-        new Date(),
-        tx
-      );
-
-    if (!updatedApproval) {
-      throw new ConflictError("Approval already processed");
-    }
-
-    await auditService.record(
+    await updateApprovalAndAudit(
+      current,
+      LEAVE_APPROVAL_DECISION.REJECTED,
+      currentUser.id,
+      dto.comments,
       AUDIT_ACTION.REJECT,
       AUDIT_ENTITY_TYPE.LEAVE_APPROVAL,
-      current.id,
-      currentUser.id,
-      {
-        leaveRequestId: leaveId,
-        comments: dto.comments,
-      },
+      getApprovalAuditMeta(leaveId, dto.comments, false),
       tx
     );
 

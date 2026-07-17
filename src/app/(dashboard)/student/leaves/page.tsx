@@ -132,7 +132,7 @@ export default function StudentLeavesPage() {
             {items.map((item) => {
               const startDate = parseISO(item.startAt);
               const endDate = parseISO(item.endAt);
-              const isOverdue = isPast(addDays(endDate, 1)) && item.status === "APPROVED";
+              const isOverdue = isPast(addDays(endDate, 1)) && item.status === LEAVE_REQUEST_STATUS.APPROVED;
 
               return (
                 <button

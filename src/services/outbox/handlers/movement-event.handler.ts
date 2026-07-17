@@ -13,6 +13,7 @@ import type { OutboxEventRow } from "@/types/outbox/outbox-event";
 
 const MOVEMENT_EVENT_TO_NOTIFICATION: Record<string, NotificationEvent> = {
   QR_GENERATED: NOTIFICATION_EVENT.QR_GENERATED,
+  QR_SCANNED: NOTIFICATION_EVENT.QR_SCANNED,
 };
 
 type ResolvedContext = {
@@ -82,6 +83,16 @@ async function resolveContext(
   }
 
   if (studentName) variables.studentName = studentName;
+
+  // 3. Set scan context for QR_SCANNED events
+  const scanType = payload.scanType as string | undefined;
+  if (scanType) {
+    variables.scanType = scanType === "EXIT_SCAN" ? "exit" : "return";
+    variables.time = new Date().toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
 
   return { email, phone, variables };
 }

@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+import { LEAVE_CATEGORIES } from "@/constants/leave/leave-category";
+import { QR_MODES } from "@/constants/leave/qr-mode";
+import { LEAVE_WORKFLOW_MODES } from "@/constants/leave/workflow-mode";
+
 const LEAVE_FORM_FIELD_TYPES = ["text", "textarea", "tel", "email", "number", "select", "checkbox", "date"] as const;
 
 const formFieldSchema = z.object({
@@ -13,15 +17,20 @@ const formFieldSchema = z.object({
   maxLength: z.number().int().min(0).max(10000).optional(),
 });
 
-const LEAVE_CATEGORIES = ["HOME_PASS", "MEDICAL", "LOCAL_OUTING", "NIGHT_OUT"] as const;
-const WORKFLOW_MODES = ["HOSTEL", "ACADEMIC"] as const;
+const requiredDocumentSchema = z.object({
+  code: z.string().min(1).max(50),
+  label: z.string().min(1).max(200),
+  required: z.boolean(),
+  acceptedTypes: z.array(z.string().max(20)).optional(),
+});
 
 const leaveTypeBaseSchema = z.object({
   code: z.string().min(2).max(50).transform((v) => v.toUpperCase().replace(/\s+/g, "_")),
   name: z.string().min(2).max(200),
   category: z.enum(LEAVE_CATEGORIES),
   description: z.string().max(1000).optional().nullable(),
-  workflowMode: z.enum(WORKFLOW_MODES),
+  workflowMode: z.enum(LEAVE_WORKFLOW_MODES),
+  qrMode: z.enum(QR_MODES).optional().default("BOTH"),
   defaultWorkflowId: z.string().uuid().optional().nullable(),
   allowExtensions: z.boolean().default(false),
   maxExtensionCount: z.number().int().min(0).max(100).optional().nullable(),
@@ -29,7 +38,12 @@ const leaveTypeBaseSchema = z.object({
   formSchema: z.object({
     fields: z.array(formFieldSchema).min(1, "At least one form field is required"),
   }),
+  requiredDocuments: z.array(requiredDocumentSchema).optional().nullable(),
+  notificationConfig: z.record(z.string(), z.unknown()).optional().nullable(),
+  uiConfig: z.record(z.string(), z.unknown()).optional().nullable(),
+  useGlobalNotificationRules: z.boolean().optional().default(true),
   policyConfig: z.record(z.string(), z.unknown()).optional().nullable().default({}),
+  metadata: z.record(z.string(), z.unknown()).optional().nullable(),
 });
 
 export const createLeaveTypeSchema = leaveTypeBaseSchema.refine(

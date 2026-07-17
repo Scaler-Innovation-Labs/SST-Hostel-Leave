@@ -3,6 +3,8 @@ export type NotificationPayload = {
 	subject?: string;
 	body: string;
 	metadata?: Record<string, unknown>;
+	templateCode?: string;
+	providerMetadata?: Record<string, unknown>;
 };
 
 export type NotificationSendResult = {

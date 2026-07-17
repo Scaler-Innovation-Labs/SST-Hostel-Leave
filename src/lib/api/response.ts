@@ -40,7 +40,18 @@ export class ApiResponse {
       return this.error("VALIDATION_ERROR", error.message, 400);
     }
 
-    logger.error("Unhandled API error", { error: error instanceof Error ? error.message : String(error) });
+    if (error instanceof Error) {
+      const meta: Record<string, unknown> = { error: error.message, name: error.name };
+      if ("cause" in error && error.cause instanceof Error) {
+        meta.cause = error.cause.message;
+        meta.causeStack = error.cause.stack;
+      }
+      if ("query" in error) meta.query = (error as any).query;
+      if ("params" in error) meta.params = (error as any).params;
+      logger.error("Unhandled API error", meta);
+    } else {
+      logger.error("Unhandled API error", { error: String(error) });
+    }
     return this.error("INTERNAL_ERROR", "An unexpected error occurred", 500);
   }
 }

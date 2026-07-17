@@ -81,6 +81,26 @@ vi.mock("@/db/repositories/parent/parent.repository", () => ({
   },
 }));
 
+const mockOtpSendOtp = vi.fn().mockResolvedValue({ success: true, reqId: "REQ123" })
+const mockOtpVerifyOtp = vi.fn().mockResolvedValue({ success: true, identifier: "9492079771" })
+const mockSmsSend = vi.fn().mockResolvedValue({ success: true, messageId: "MSG123" })
+
+vi.mock("@/lib/messaging", () => ({
+  createSmsProvider: () => ({ send: mockSmsSend }),
+  createOtpProvider: () => ({
+    sendOtp: mockOtpSendOtp,
+    verifyOtp: mockOtpVerifyOtp,
+    resendOtp: vi.fn(),
+  }),
+  createEmailProvider: () => ({ send: vi.fn() }),
+  getConfig: () => ({
+    sms: { provider: "msg91", msg91: { authKey: "test", senderId: "TEST", flowIds: {} } },
+    email: { provider: "ses" },
+    otp: { provider: "msg91-widget" },
+    defaults: { testMode: false },
+  }),
+}))
+
 vi.mock("@/services/notification/notification.service", () => ({
   notificationService: {
     notify: (...args: any[]) => mockNotify(...args),
@@ -145,7 +165,7 @@ describe("sendParentOtp", () => {
     const result = await sendParentOtp(RAW_TOKEN, "9492079771");
 
     expect(result.phoneLast4).toBe("9771");
-    expect(mockUpdateParentApprovalOtp).toHaveBeenCalled();
+    expect(mockOtpSendOtp).toHaveBeenCalled();
     expect(outboxService.publish).toHaveBeenCalledTimes(1);
   });
 
@@ -218,7 +238,7 @@ describe("sendParentOtp", () => {
     const result = await sendParentOtp(RAW_TOKEN, "9492079771");
 
     expect(result.phoneLast4).toBe("9771");
-    expect(mockUpdateParentApprovalOtp).toHaveBeenCalled();
+    expect(mockOtpSendOtp).toHaveBeenCalled();
     expect(outboxService.publish).toHaveBeenCalledTimes(1);
     // Verify the outbox payload includes leaveExtensionId
     const publishCall = outboxService.publish.mock.calls[0][0];
@@ -233,7 +253,6 @@ describe("verifyParentOtp", () => {
 
   it("verifies correct OTP", async () => {
     const otp = "123456";
-    const otpHash = sha256(otp);
 
     mockFindByParentApprovalToken.mockResolvedValue({
       id: "LA1",
@@ -244,7 +263,6 @@ describe("verifyParentOtp", () => {
       parentApprovalExpiresAt: new Date(Date.now() + 3600000),
       parentApprovalVerifiedAt: null,
       decision: "PENDING",
-      parentApprovalOtpHash: otpHash,
       studentName: "Test Student",
       studentRollNumber: "24BCS10005",
       leaveRequest: {
@@ -256,6 +274,10 @@ describe("verifyParentOtp", () => {
         submittedForm: { destination: "Vizag" },
       },
     });
+    mockParentFindById.mockResolvedValue({
+      id: "P1",
+      phone: "9492079771",
+    });
 
     const result = await verifyParentOtp(RAW_TOKEN, otp);
 
@@ -266,6 +288,8 @@ describe("verifyParentOtp", () => {
   });
 
   it("rejects wrong OTP", async () => {
+    mockOtpVerifyOtp.mockResolvedValueOnce({ success: false, error: "Invalid OTP" })
+
     mockFindByParentApprovalToken.mockResolvedValue({
       id: "LA1",
       leaveRequestId: "LR1",
@@ -275,10 +299,13 @@ describe("verifyParentOtp", () => {
       parentApprovalExpiresAt: new Date(Date.now() + 3600000),
       parentApprovalVerifiedAt: null,
       decision: "PENDING",
-      parentApprovalOtpHash: sha256("123456"),
       studentName: "Test",
       studentRollNumber: "001",
       leaveRequest: { id: "LR1", reason: "r", startAt: new Date(), endAt: new Date(), status: "PENDING", submittedForm: null },
+    });
+    mockParentFindById.mockResolvedValue({
+      id: "P1",
+      phone: "9492079771",
     });
 
     await expect(verifyParentOtp(RAW_TOKEN, "999999")).rejects.toThrow("Invalid OTP");
@@ -297,7 +324,6 @@ describe("verifyParentOtp", () => {
 
   it("verifies correct OTP for extension", async () => {
     const otp = "654321";
-    const otpHash = sha256(otp);
     const currentEnd = new Date("2026-06-15");
     const requestedEnd = new Date("2026-06-22");
 
@@ -319,10 +345,13 @@ describe("verifyParentOtp", () => {
       parentApprovalExpiresAt: new Date(Date.now() + 3600000),
       parentApprovalVerifiedAt: null,
       decision: "PENDING",
-      parentApprovalOtpHash: otpHash,
       studentName: "Test Student",
       studentRollNumber: "24BCS10005",
       leaveRequest: null,
+    });
+    mockParentFindById.mockResolvedValue({
+      id: "P1",
+      phone: "9492079771",
     });
 
     const result = await verifyParentOtp(RAW_TOKEN, otp);

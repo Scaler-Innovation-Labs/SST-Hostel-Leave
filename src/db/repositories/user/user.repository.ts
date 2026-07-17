@@ -1,5 +1,5 @@
 import type { InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, not, or, sql } from "drizzle-orm";
 
 import { roles, userRoles, users } from "@/db";
 import { db } from "@/lib/db";
@@ -18,9 +18,12 @@ export type UserWithRoles = User & {
 export type UserFilters = {
   search?: string;
   role?: string;
+  excludeRole?: string;
   isActive?: boolean;
   page: number;
   limit: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 };
 
 type UserReadDb = Pick<typeof db, "select">;
@@ -59,6 +62,15 @@ export const userRepository = {
       conditions.push(inArray(users.id, userWithRole));
     }
 
+    if (filters.excludeRole) {
+      const userWithExcludedRole = dbClient
+        .select({ userId: userRoles.userId })
+        .from(userRoles)
+        .innerJoin(roles, eq(userRoles.roleId, roles.id))
+        .where(eq(roles.code, filters.excludeRole));
+      conditions.push(not(inArray(users.id, userWithExcludedRole)));
+    }
+
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     const countResult = await dbClient
@@ -69,11 +81,18 @@ export const userRepository = {
     const total = Number(countResult[0]?.count ?? 0);
     const totalPages = Math.ceil(total / filters.limit);
 
+    const orderByColumn =
+      filters.sortBy === "fullName" ? users.fullName :
+      filters.sortBy === "email" ? users.email :
+      filters.sortBy === "phone" ? users.phone :
+      users.createdAt;
+    const orderByDirection = filters.sortOrder === "asc" ? asc : desc;
+
     const rows = await dbClient
       .select()
       .from(users)
       .where(whereClause)
-      .orderBy(desc(users.createdAt))
+      .orderBy(orderByDirection(orderByColumn))
       .limit(filters.limit)
       .offset((filters.page - 1) * filters.limit);
 
@@ -179,6 +198,19 @@ export const userRepository = {
       .select()
       .from(users)
       .where(eq(users.email, email))
+      .limit(1);
+
+    return rows[0] ?? null;
+  },
+
+  async findByPhone(
+    phone: string,
+    dbClient: UserReadDb = db
+  ): Promise<User | null> {
+    const rows = await dbClient
+      .select()
+      .from(users)
+      .where(eq(users.phone, phone))
       .limit(1);
 
     return rows[0] ?? null;

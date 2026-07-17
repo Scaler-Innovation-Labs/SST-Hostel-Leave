@@ -9,15 +9,25 @@ export async function handleClerkWebhookEvent(evt: WebhookEvent): Promise<void> 
       const email = email_addresses?.[0]?.email_address ?? null;
       const fullName = [first_name, last_name].filter(Boolean).join(" ") || "Unknown";
 
-      const existingUser = await userRepository.findByClerkId(id);
-      if (!existingUser) {
-        await userRepository.create({
-          clerkId: id,
-          fullName,
-          email: email ?? undefined,
-          profileImageUrl: image_url ?? undefined,
-        });
+      const existingByClerkId = await userRepository.findByClerkId(id);
+      if (existingByClerkId) {
+        break;
       }
+
+      if (email) {
+        const existingByEmail = await userRepository.findByEmail(email);
+        if (existingByEmail) {
+          await userRepository.updateClerkId(existingByEmail.id, id);
+          break;
+        }
+      }
+
+      await userRepository.create({
+        clerkId: id,
+        fullName,
+        email: email ?? undefined,
+        profileImageUrl: image_url ?? undefined,
+      });
       break;
     }
 

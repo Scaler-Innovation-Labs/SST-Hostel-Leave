@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, gte, isNull, like, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, like, lte, or, sql } from "drizzle-orm";
 
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { leaveRequests, leaveTypes, students, users } from "@/db";
@@ -30,6 +30,8 @@ export type LeaveFilters = {
   search?: string;
   page: number;
   limit: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 };
 
 export type PaginatedResult<T> = {
@@ -76,17 +78,18 @@ export const leaveRepository = {
 
 	async findOverlappingLeaves(
 		studentId: string,
+		leaveTypeId: string,
 		startAt: Date,
 		endAt: Date,
 		dbClient: Pick<typeof db, "select"> = db
 	): Promise<LeaveRequest[]> {
-		// overlap if existing.end_at >= startAt AND existing.start_at <= endAt
 		const rows = await dbClient
 			.select()
 			.from(leaveRequests)
 			.where(
 				and(
 					eq(leaveRequests.studentId, studentId),
+					eq(leaveRequests.leaveTypeId, leaveTypeId),
 					gte(leaveRequests.endAt, startAt),
 					lte(leaveRequests.startAt, endAt)
 				)
@@ -188,6 +191,14 @@ export const leaveRepository = {
     const total = Number(countResult[0]?.count ?? 0);
     const totalPages = Math.ceil(total / filters.limit);
 
+    const orderByColumn =
+      filters.sortBy === "startAt" ? leaveRequests.startAt :
+      filters.sortBy === "endAt" ? leaveRequests.endAt :
+      filters.sortBy === "status" ? leaveRequests.status :
+      filters.sortBy === "requestNumber" ? leaveRequests.requestNumber :
+      leaveRequests.createdAt;
+    const orderByDirection = filters.sortOrder === "asc" ? asc : desc;
+
     const rows = await dbClient
       .select()
       .from(leaveRequests)
@@ -195,7 +206,7 @@ export const leaveRepository = {
       .leftJoin(users, eq(students.userId, users.id))
       .leftJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
       .where(whereClause)
-      .orderBy(desc(leaveRequests.createdAt))
+      .orderBy(orderByDirection(orderByColumn))
       .limit(filters.limit)
       .offset((filters.page - 1) * filters.limit);
 

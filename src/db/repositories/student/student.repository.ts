@@ -1,12 +1,14 @@
-import type { InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, like, or, sql } from "drizzle-orm";
+import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { and, asc, desc, eq, like, or, sql } from "drizzle-orm";
 
 import { academicGroups, movementStates, students, users } from "@/db";
 import { db } from "@/lib/db";
 
 export type Student = InferSelectModel<typeof students>;
+export type NewStudent = InferInsertModel<typeof students>;
 
 type StudentDbClient = Pick<typeof db, "select">;
+type StudentWriteClient = Pick<typeof db, "insert" | "update" | "delete">;
 
 export type StudentWithRelations = {
   student: Student;
@@ -20,6 +22,8 @@ export type StudentFilters = {
   search?: string;
   page: number;
   limit: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 };
 
 export const studentRepository = {
@@ -130,13 +134,19 @@ export const studentRepository = {
     const total = Number(countResult[0]?.count ?? 0);
     const totalPages = Math.ceil(total / filters.limit);
 
+    const orderByColumn =
+      filters.sortBy === "rollNumber" ? students.rollNumber :
+      filters.sortBy === "currentLocationState" ? students.currentLocationState :
+      students.createdAt;
+    const orderByDirection = filters.sortOrder === "asc" ? asc : desc;
+
     const rows = await dbClient
       .select()
       .from(students)
       .leftJoin(users, eq(students.userId, users.id))
       .leftJoin(movementStates, eq(students.currentLocationState, movementStates.code))
       .where(whereClause)
-      .orderBy(desc(students.createdAt))
+      .orderBy(orderByDirection(orderByColumn))
       .limit(filters.limit)
       .offset((filters.page - 1) * filters.limit);
 
@@ -175,6 +185,18 @@ export const studentRepository = {
     };
   },
 
+  async findByLocationState(
+    state: string,
+    dbClient: StudentDbClient = db
+  ): Promise<Student[]> {
+    const rows = await dbClient
+      .select()
+      .from(students)
+      .where(eq(students.currentLocationState, state));
+
+    return rows;
+  },
+
   async countAll(
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<number> {
@@ -182,6 +204,31 @@ export const studentRepository = {
       .select({ count: sql<number>`count(*)` })
       .from(students);
     return Number(result[0]?.count ?? 0);
+  },
+
+  async create(
+    data: NewStudent,
+    dbClient: StudentWriteClient = db
+  ): Promise<Student> {
+    const rows = await dbClient.insert(students).values(data).returning();
+    return rows[0]!;
+  },
+
+  async updateById(
+    id: string,
+    data: Partial<NewStudent>,
+    dbClient: StudentWriteClient = db
+  ): Promise<Student | null> {
+    const rows = await dbClient
+      .update(students)
+      .set(data)
+      .where(eq(students.id, id))
+      .returning();
+    return rows[0] ?? null;
+  },
+
+  async deleteById(id: string, dbClient: StudentWriteClient = db): Promise<void> {
+    await dbClient.delete(students).where(eq(students.id, id));
   },
 
   async countByLocationState(

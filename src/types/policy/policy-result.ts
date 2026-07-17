@@ -1,3 +1,10 @@
+export type PolicyCheckEntry = {
+  key: string;
+  label: string;
+  passed: boolean;
+  message?: string;
+};
+
 export type PolicyResult = {
   allowed: boolean;
 
@@ -6,4 +13,6 @@ export type PolicyResult = {
   restrictions: string[];
 
   requirements: string[];
+
+  checks: PolicyCheckEntry[];
 };
