@@ -12,6 +12,11 @@ type TemplateSeed = {
   templateBody: string;
 };
 
+const QR_SECTION =
+  `<br>\n<img src="{{qrCodeUrl}}" alt="QR Code" style="display:block;margin:20px auto" />\n` +
+  `<a href="{{leaveUrl}}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#fff;text-decoration:none;border-radius:6px">View Leave Details</a>\n` +
+  `<br>\n<small>The same QR Code is also available on your Dashboard: <a href="{{qrDashboardUrl}}" style="color:#2563eb">click here</a></small>\n\n`;
+
 const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
   RE_EXAM: [
     {
@@ -24,6 +29,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "This is to inform you that your Re-Exam Leave request submitted for the period from {{startDate}} to {{endDate}}, for the reason \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "You are requested to adhere to the approved leave schedule and comply with all hostel rules and regulations during your leave period.\n\n" +
         "We wish you all the best for your examination.\n\n" +
+        QR_SECTION +
         "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
     },
     {
@@ -103,6 +109,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "This is to inform you that your Long Leave request submitted for the period from {{startDate}} to {{endDate}}, for the reason \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "You are requested to adhere to the approved leave schedule and ensure compliance with all hostel rules and regulations during your leave period.\n\n" +
         "We wish you a safe journey.\n\n" +
+        QR_SECTION +
         "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
     },
     {
@@ -169,6 +176,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Dear {{studentName}},\n\n" +
         "This is to inform you that your Late Entry request for {{startDate}}, submitted for the reason \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "You may enter the hostel within the approved time. Kindly ensure that you comply with all hostel rules and regulations.\n\n" +
+        QR_SECTION +
         "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
     },
     {
@@ -235,6 +243,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Dear {{studentName}},\n\n" +
         "This is to inform you that your request to stay late at college for {{startDate}}, submitted for the reason \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "You may stay on campus as per the approved request. Kindly ensure that you comply with all hostel rules and regulations.\n\n" +
+        QR_SECTION +
         "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
     },
     {
@@ -299,6 +308,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Dear {{studentName}},\n\n" +
         "This is to inform you that your request to stay at a different hostel from {{startDate}} to {{endDate}}, submitted for the reason \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "You may stay at the approved hostel during the approved period. Kindly ensure that you comply with all hostel rules and regulations.\n\n" +
+        QR_SECTION +
         "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
     },
     {
@@ -366,6 +376,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "This is to inform you that your Holiday Leave request submitted for the period from {{startDate}} to {{endDate}}, for the reason \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "You are requested to adhere to the approved leave schedule and ensure compliance with all hostel rules and regulations during your leave period.\n\n" +
         "We wish you a safe journey.\n\n" +
+        QR_SECTION +
         "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
     },
     {
@@ -406,6 +417,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "This is to inform you that your Internship Leave request submitted for the period from {{startDate}} to {{endDate}}, for the reason \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "You are requested to adhere to the approved leave schedule and ensure compliance with all hostel rules and regulations during your leave period.\n\n" +
         "We wish you all the best for your internship.\n\n" +
+        QR_SECTION +
         "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
     },
     {
@@ -496,6 +508,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Dear {{studentName}},\n\n" +
         "This is to inform you that your Special Leave request submitted for the period from {{startDate}} to {{endDate}}, for the reason \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "You are requested to adhere to the approved leave schedule and ensure compliance with all hostel rules and regulations during your leave period.\n\n" +
+        QR_SECTION +
         "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
     },
     {

@@ -37,7 +37,7 @@ export class SstEmailProvider implements EmailProvider {
 
     const toAddresses = Array.from(new Set(Array.isArray(payload.to) ? payload.to : [payload.to]))
 
-    const descriptionHtml = payload.html ?? (payload.text ? payload.text.split("\n").map((l) => `<p>${this.escapeHtml(l)}</p>`).join("") : undefined)
+    const descriptionHtml = payload.html ?? (payload.text ? payload.text.split("\n").map((l) => `<p>${l}</p>`).join("") : undefined)
 
     try {
       const response = await fetch(`${this.baseUrl}/v1/send`, {
@@ -80,14 +80,5 @@ export class SstEmailProvider implements EmailProvider {
       logger.error("SST email service request failed", { error: error instanceof Error ? error.message : String(error) })
       return { success: false, error: error instanceof Error ? error.message : "Failed to send via SST email service" }
     }
-  }
-
-  private escapeHtml(str: string): string {
-    return str
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;")
   }
 }

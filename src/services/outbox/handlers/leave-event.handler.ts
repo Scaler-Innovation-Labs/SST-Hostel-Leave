@@ -122,17 +122,21 @@ async function resolveContext(
     }
   }
 
-  if (payload.reason) variables.reason = String(payload.reason);
+  if (leave?.reason) variables.reason = leave.reason;
+  else if (payload.reason) variables.reason = String(payload.reason);
   if (payload.decision) variables.decision = String(payload.decision);
   if (studentRollNumber) variables.rollNumber = studentRollNumber;
 
-  // Attach QR dashboard link for approval notifications
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+
+  // Attach QR dashboard link, leave link, and QR code image for approval notifications
   if (
     eventType === OUTBOX_EVENT_TYPE.LEAVE_APPROVED ||
     eventType === OUTBOX_EVENT_TYPE.LEAVE_EXTENSION_APPROVED
   ) {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
     variables.qrDashboardUrl = `${baseUrl}/student/qr`;
+    variables.leaveUrl = `${baseUrl}/student/leaves/${leaveId}`;
+    variables.qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${baseUrl}/student/qr`)}`;
   }
 
   return {

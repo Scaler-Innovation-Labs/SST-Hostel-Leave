@@ -6,15 +6,6 @@ import type {
   NotificationSendResult,
 } from "./notification-provider"
 
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;")
-}
-
 const DEV_REDIRECT_EMAIL = "n.vedvarshit@gmail.com"
 
 let provider: ReturnType<typeof createMessagingEmailProvider> | null = null
@@ -42,7 +33,7 @@ export function createEmailProvider() {
           to: actualTo,
           subject: payload.subject ?? "No Subject",
           text: payload.body,
-          html: payload.body.split("\n").map((line) => `<p>${escapeHtml(line)}</p>`).join(""),
+          html: payload.body.split("\n").map((line) => `<p>${line}</p>`).join(""),
         })
 
         return {
