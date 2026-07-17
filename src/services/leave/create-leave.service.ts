@@ -2,6 +2,8 @@ import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
+import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
@@ -16,6 +18,7 @@ import { AuthorizationError, ConflictError, NotFoundError, ValidationError } fro
 import { resolveApprovalSource } from "@/lib/workflows/resolve-approval-source";
 import { auditService } from "@/services/audit/audit.service";
 import { validateLeaveSubmittedForm } from "@/services/leave/validate-leave-form.service";
+import { notificationService } from "@/services/notification/notification.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 import { policyEngine } from "@/services/policy/policy-engine";
 import { workflowEngine } from "@/services/workflow/workflow-engine";
@@ -46,6 +49,58 @@ export async function createLeave(
     throw new ValidationError("Leave type has no configured workflow");
   }
 
+  const leaveDurationDays = Math.ceil(
+    (new Date(dto.endAt).getTime() - new Date(dto.startAt).getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
+
+  const policyResult =
+    await policyEngine.evaluate(
+      {
+        leaveType,
+        leaveDurationDays,
+        studentBatchYear: studentPolicyContext?.studentBatchYear,
+        hostelId: studentPolicyContext?.hostelId,
+        startAt: new Date(dto.startAt),
+        endAt: new Date(dto.endAt),
+        submittedForm,
+      },
+    );
+
+  if (!policyResult.allowed) {
+    const user = await userRepository.findById(currentUser.id);
+    const studentName = user?.fullName ?? "Student";
+    const studentRollNumber = student?.rollNumber ?? "";
+    const formatDate = (date: Date) =>
+      date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+
+    const policyTemplateCode = getPolicyRejectionTemplateCode(leaveType.code);
+    if (policyTemplateCode) {
+      await notificationService.notify(
+        NOTIFICATION_EVENT.LEAVE_REJECTED,
+        {
+          leaveTypeId: leaveType.id,
+          studentId: student.id,
+          recipientEmail: user?.email ?? undefined,
+          recipientPhone: user?.phone ?? undefined,
+          userId: user?.id,
+          templateCode: policyTemplateCode,
+          variables: {
+            studentName,
+            rollNumber: studentRollNumber,
+            startDate: formatDate(new Date(dto.startAt)),
+            endDate: formatDate(new Date(dto.endAt)),
+            reason: policyResult.restrictions.join(", "),
+            leaveTypeName: leaveType.name,
+            leaveCategory: leaveType.category,
+          },
+        },
+      );
+    }
+
+    throw new ConflictError("Policy restricted: " + policyResult.restrictions.join(", "));
+  }
+
   const requestNumber = `LR-${Date.now()}`;
 
   const created = await db.transaction(async (tx) => {
@@ -53,6 +108,7 @@ export async function createLeave(
 
     const overlapping = await leaveRepository.findOverlappingLeaves(
       student.id,
+      dto.leaveTypeId,
       new Date(dto.startAt),
       new Date(dto.endAt),
       tx
@@ -60,29 +116,6 @@ export async function createLeave(
 
     if (overlapping.length > 0) {
       throw new ConflictError("Overlapping leave exists");
-    }
-
-    const leaveDurationDays = Math.ceil(
-      (new Date(dto.endAt).getTime() - new Date(dto.startAt).getTime()) /
-        (1000 * 60 * 60 * 24)
-    );
-
-    const policyResult =
-      await policyEngine.evaluate(
-        {
-          leaveType,
-          leaveDurationDays,
-          studentBatchYear: studentPolicyContext?.studentBatchYear,
-          hostelId: studentPolicyContext?.hostelId,
-          startAt: new Date(dto.startAt),
-          endAt: new Date(dto.endAt),
-          expectedReturnAt: dto.expectedReturnAt ? new Date(dto.expectedReturnAt) : new Date(dto.endAt),
-          submittedForm,
-        },
-        tx
-      );
-    if (!policyResult.allowed) {
-      throw new ConflictError("Policy restricted: " + policyResult.restrictions.join(", "));
     }
 
     const { steps: approvalSteps } =
@@ -116,13 +149,6 @@ export async function createLeave(
 
       endAt: new Date(dto.endAt),
 
-      expectedReturnAt:
-        dto.expectedReturnAt
-          ? new Date(
-              dto.expectedReturnAt
-            )
-          : undefined,
-
       submittedForm:
         submittedForm,
 
@@ -146,15 +172,23 @@ export async function createLeave(
       parentId = parent?.id ?? null;
     }
 
-    const approvalsToCreate = approvalSteps.map((step) => ({
-      leaveRequestId: createdLeave.id,
-      stepKey: step.stepKey,
-      stepOrder: step.stepOrder,
-      approverRoleId: step.approverRoleId ?? null,
-      approverParentId: step.isParentApproval ? parentId : null,
-      decision: LEAVE_APPROVAL_DECISION.PENDING,
-      approvalSource: resolveApprovalSource(step.approvalMethod ?? null, step.isParentApproval),
-    }));
+    const approvalsToCreate = approvalSteps.map((step) => {
+      let approverUserId: string | null = null;
+      if (step.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL && dto.pocId) {
+        approverUserId = dto.pocId;
+      }
+
+      return {
+        leaveRequestId: createdLeave.id,
+        stepKey: step.stepKey,
+        stepOrder: step.stepOrder,
+        approverRoleId: step.approverRoleId ?? null,
+        approverUserId,
+        approverParentId: step.isParentApproval ? parentId : null,
+        decision: LEAVE_APPROVAL_DECISION.PENDING,
+        approvalSource: resolveApprovalSource(step.approvalMethod ?? null, step.isParentApproval),
+      };
+    });
 
     const createdApprovals = await leaveApprovalRepository.createMany(approvalsToCreate, tx);
 
@@ -200,6 +234,11 @@ export async function createLeave(
             currentStepKey: null,
             currentStepOrder: null,
           }, tx);
+
+          const approvalId = stepKeyToApprovalId.get(step.stepKey);
+          if (approvalId) {
+            await leaveApprovalRepository.autoApprove(approvalId, tx);
+          }
 
           await outboxService.publish({
             eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVED,
@@ -255,4 +294,19 @@ export async function createLeave(
   });
 
   return created;
+}
+
+const POLICY_REJECTION_TEMPLATES: Record<string, string> = {
+  RE_EXAM: "leave_rejected_email_re_exam_policy",
+  LONG_LEAVE: "leave_rejected_email_long_leave_admin",
+  LATE_ENTRY: "leave_rejected_email_late_entry_admin",
+  LATE_STAY_COLLEGE: "leave_rejected_email_late_stay_admin",
+  DIFFERENT_HOSTEL: "leave_rejected_email_diff_hostel_admin",
+  HOLIDAY: "leave_rejected_email_holiday_admin",
+  INTERNSHIP: "leave_rejected_email_internship_admin",
+  MARRIAGE_BEREAVEMENT: "leave_rejected_email_marriage_policy",
+};
+
+function getPolicyRejectionTemplateCode(leaveTypeCode: string): string | null {
+  return POLICY_REJECTION_TEMPLATES[leaveTypeCode] ?? null;
 }

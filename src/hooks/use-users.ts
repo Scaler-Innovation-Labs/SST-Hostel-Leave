@@ -7,6 +7,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((r) => r.
 export function useUsers(params?: {
   search?: string;
   role?: string;
+  excludeRole?: string;
   isActive?: string;
   page?: number;
   limit?: number;

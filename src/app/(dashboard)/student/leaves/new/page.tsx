@@ -24,6 +24,7 @@ type LeaveTypeItem = {
   code: string;
   name: string;
   category: string;
+  requiresPoc?: boolean;
   formSchema?: { fields: Array<Record<string, unknown>> };
 };
 
@@ -32,11 +33,19 @@ function toDatetimeLocal(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
+type PocUser = {
+  id: string;
+  fullName: string;
+  email: string | null;
+};
+
 export default function NewLeavePage() {
   const router = useRouter();
   const { leaveTypes, isLoading: typesLoading, isError: typesError } = useLeaveTypes();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [pocUsers, setPocUsers] = useState<PocUser[]>([]);
+  const [pocLoading, setPocLoading] = useState(false);
 
   const {
     register,
@@ -58,11 +67,25 @@ export default function NewLeavePage() {
   const selectedLeaveType = leaveTypes.find(
     (leaveType: LeaveTypeItem) => leaveType.id === selectedLeaveTypeId,
   );
+  const needsPoc = (selectedLeaveType as LeaveTypeItem | undefined)?.requiresPoc ?? false;
   const dynamicSchema = parseLeaveFormSchema(selectedLeaveType?.formSchema);
 
   useEffect(() => {
     unregister("submittedForm");
   }, [selectedLeaveTypeId, unregister]);
+
+  useEffect(() => {
+    if (needsPoc && pocUsers.length === 0) {
+      setPocLoading(true);
+      fetch("/api/v1/users/pocs")
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success) setPocUsers(data.data ?? []);
+        })
+        .catch(() => {})
+        .finally(() => setPocLoading(false));
+    }
+  }, [needsPoc, pocUsers.length]);
 
   if (typesLoading) return <LoadingState count={3} />;
   if (typesError) return <ErrorState message="Failed to load leave types" />;
@@ -72,16 +95,16 @@ export default function NewLeavePage() {
   setSubmitError(null);
 
   try {
+    if (needsPoc && !data.pocId) {
+      throw new Error("Please select a Point of Contact (POC) for this leave type");
+    }
+
     const payload: CreateLeaveDto = {
       ...data,
 
       startAt: new Date(data.startAt).toISOString(),
 
       endAt: new Date(data.endAt).toISOString(),
-
-      expectedReturnAt: data.expectedReturnAt
-        ? new Date(data.expectedReturnAt).toISOString()
-        : undefined,
     };
 
     const result = await createLeave(payload) as { id?: string };
@@ -171,24 +194,37 @@ export default function NewLeavePage() {
               </div>
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium">
-                Expected Return (optional)
-              </label>
-              <input
-                type="datetime-local"
-                {...register("expectedReturnAt")}
-                min={startAt ? toDatetimeLocal(new Date(startAt)) : undefined}
-                className="h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-              />
-              {errors.expectedReturnAt && (
-                <p className="mt-1 text-xs text-destructive">{errors.expectedReturnAt.message}</p>
-              )}
-            </div>
           </div>
         </div>
 
         <DynamicLeaveFields schema={dynamicSchema} register={register} />
+
+        {needsPoc && (
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <h3 className="mb-4 text-base font-semibold">Point of Contact</h3>
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                Select POC <span className="text-destructive">*</span>
+              </label>
+              <select
+                {...register("pocId")}
+                className="h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <option value="">
+                  {pocLoading ? "Loading POCs..." : "Select a POC..."}
+                </option>
+                {pocUsers.map((poc) => (
+                  <option key={poc.id} value={poc.id}>
+                    {poc.fullName}{poc.email ? ` (${poc.email})` : ""}
+                  </option>
+                ))}
+              </select>
+              {errors.pocId && (
+                <p className="mt-1 text-xs text-destructive">{errors.pocId.message}</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {submitError && (
           <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
