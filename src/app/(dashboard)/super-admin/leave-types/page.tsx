@@ -6,6 +6,7 @@ import useSWR from "swr";
 
 import { DynamicFormBuilder } from "@/components/leaves/DynamicFormBuilder";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { CATEGORY_COLORS } from "@/constants/leave/leave-category";
 import { LEAVE_WORKFLOW_MODE } from "@/constants/leave/workflow-mode";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -54,6 +55,7 @@ type Draft = {
   allowExtensions: boolean;
   maxExtensionCount: string;
   isActive: boolean;
+  isSpecial: boolean;
   formSchema: { fields: Array<FormField> };
 };
 
@@ -67,6 +69,7 @@ const EMPTY_DRAFT: Draft = {
   allowExtensions: false,
   maxExtensionCount: "",
   isActive: true,
+  isSpecial: false,
   formSchema: {
     fields: [
       { key: "destination", label: "Destination", type: "text", required: true, maxLength: 200 },
@@ -80,6 +83,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   MEDICAL: "Medical",
   LOCAL_OUTING: "Local Outing",
   NIGHT_OUT: "Night Out",
+  ACADEMIC: "Academic",
+  HOSTEL: "Hostel",
 };
 
 export default function LeaveTypesPage() {
@@ -121,6 +126,8 @@ export default function LeaveTypesPage() {
       maxLength: f.maxLength as number | undefined,
     }));
 
+    const uiConfig = (lt as Record<string, unknown>).uiConfig as Record<string, unknown> | null ?? {};
+
     setDraft({
       id: lt.id,
       code: lt.code,
@@ -132,6 +139,7 @@ export default function LeaveTypesPage() {
       allowExtensions: lt.allowExtensions,
       maxExtensionCount: lt.maxExtensionCount != null ? String(lt.maxExtensionCount) : "",
       isActive: lt.isActive,
+      isSpecial: (uiConfig.isSpecial as boolean) ?? false,
       formSchema: { fields: normalizedFields },
     });
     setMessage(null);
@@ -161,6 +169,7 @@ export default function LeaveTypesPage() {
         ...draft,
         maxExtensionCount: draft.maxExtensionCount ? Number(draft.maxExtensionCount) : null,
         description: draft.description || null,
+        uiConfig: { isSpecial: draft.isSpecial },
       };
 
       const url = draft.id
@@ -215,7 +224,11 @@ export default function LeaveTypesPage() {
           {isLoading ? (
             <LoadingState count={4} />
           ) : (
-            leaveTypes?.map((lt) => (
+            leaveTypes?.map((lt) => {
+              const ltUiConfig = (lt as Record<string, unknown>).uiConfig as Record<string, boolean> | null;
+              const isSpecial = ltUiConfig?.isSpecial === true;
+
+              return (
               <button
                 key={lt.id}
                 onClick={() => edit(lt)}
@@ -231,9 +244,14 @@ export default function LeaveTypesPage() {
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[lt.category] ?? "bg-muted text-muted-foreground"}`}>
                       {CATEGORY_LABELS[lt.category] ?? lt.category}
                     </span>
+                    {isSpecial && (
+                      <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-medium text-yellow-800">
+                        Special
+                      </span>
+                    )}
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                         lt.isActive
@@ -250,7 +268,8 @@ export default function LeaveTypesPage() {
                   {lt.allowExtensions ? ` · ${lt.maxExtensionCount ?? "?"} max extensions` : " · No extensions"}
                 </p>
               </button>
-            ))
+              );
+            })
           )}
         </section>
 
@@ -345,6 +364,25 @@ export default function LeaveTypesPage() {
                     className="h-9 w-32 rounded-lg border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                   />
                 </label>
+              )}
+            </div>
+
+            <div className="mt-4 space-y-3 rounded-lg border bg-muted/10 p-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={draft.isSpecial}
+                  onChange={(e) => setDraft({ ...draft, isSpecial: e.target.checked })}
+                  className="rounded"
+                />
+                <span>
+                  Mark as <strong>Special leave</strong>
+                </span>
+              </label>
+              {draft.isSpecial && (
+                <p className="text-xs text-muted-foreground">
+                  Admin will be required to confirm document verification before approving this leave type.
+                </p>
               )}
             </div>
           </div>

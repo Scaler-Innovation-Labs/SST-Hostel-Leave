@@ -24,12 +24,13 @@ export function getApprovalsUrl(query?: Partial<ListApprovalsQuery>): string {
 export async function approveLeave(
   id: string,
   comments?: string,
-  internalNote?: boolean
+  internalNote?: boolean,
+  documentsVerified?: boolean
 ): Promise<unknown> {
   const res = await fetch(`${BASE}/leaves/${id}/approve`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ decision: "APPROVED", comments, internalNote }),
+    body: JSON.stringify({ decision: "APPROVED", comments, internalNote, documentsVerified }),
   });
   const json: ApiResponse = await res.json();
   if (!res.ok || !json.success) {

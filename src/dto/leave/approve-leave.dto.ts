@@ -9,6 +9,7 @@ export const approveLeaveSchema = z.object({
   ]),
   comments: z.string().optional(),
   forceOverride: z.boolean().optional(),
+  documentsVerified: z.boolean().optional(),
 });
 
 export type ApproveLeaveDto = z.infer<typeof approveLeaveSchema>;

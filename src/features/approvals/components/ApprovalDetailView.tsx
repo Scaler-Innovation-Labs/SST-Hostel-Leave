@@ -71,6 +71,7 @@ import { useApprovalChain } from "@/features/approvals/hooks/use-approval-chain"
 import { useDocuments } from "@/hooks/use-documents";
 import { useMovement } from "@/hooks/use-movement";
 import { useLeaves } from "@/features/leaves/hooks/use-leaves";
+import { CATEGORY_COLORS } from "@/constants/leave/leave-category";
 import { approveLeave, rejectLeave } from "@/lib/api/approval-api";
 import { getLeaveUrl } from "@/lib/api/leave-api";
 import { logger } from "@/lib/logger";
@@ -405,7 +406,11 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
   const leave = rawLeave?.leave ?? null;
   const student = rawLeave?.student ?? null;
   const user = rawLeave?.user ?? null;
-  const leaveTypeName = (rawLeave?.leaveType as Record<string, unknown> | null)?.name as string | undefined;
+  const leaveTypeRecord = rawLeave?.leaveType as Record<string, unknown> | null ?? {};
+  const leaveTypeName = leaveTypeRecord.name as string | undefined;
+  const leaveTypeCategory = leaveTypeRecord.category as string | undefined;
+  const leaveTypeUiConfig = leaveTypeRecord.uiConfig as Record<string, unknown> | null ?? {};
+  const isSpecialLeave = (leaveTypeUiConfig.isSpecial as boolean) ?? false;
 
   // Student leave stats
   const studentId = leave?.studentId as string | undefined;
@@ -445,6 +450,7 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
   const [needsResubmission, setNeedsResubmission] = useState(false);
   const [notifyParent, setNotifyParent] = useState(true);
   const [notifyStudent, setNotifyStudent] = useState(true);
+  const [documentsVerified, setDocumentsVerified] = useState(false);
 
   // ── Computed data ──
   const sortedApprovals = useMemo(() => {
@@ -498,7 +504,7 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
     setActionError("");
     try {
       if (actionTarget === "approve") {
-        await approveLeave(leaveId, comments || undefined);
+        await approveLeave(leaveId, comments || undefined, undefined, isSpecialLeave ? documentsVerified : undefined);
         toast.success("Leave approved successfully");
       } else {
         await rejectLeave(leaveId, rejectionCategory ? `[${rejectionCategory}] ${comments}`.trim() : comments || undefined);
@@ -510,6 +516,7 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
       setNeedsResubmission(false);
       setNotifyParent(true);
       setNotifyStudent(true);
+      setDocumentsVerified(false);
       await Promise.all([leaveMutate(), chainMutate()]);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Action failed";
@@ -518,7 +525,7 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
     } finally {
       setActionLoading(false);
     }
-  }, [actionTarget, comments, rejectionCategory, leaveId, leaveMutate, chainMutate]);
+  }, [actionTarget, comments, rejectionCategory, leaveId, leaveMutate, chainMutate, documentsVerified, isSpecialLeave]);
 
   // ── Early returns ──
   if (isLoading) return <LoadingState count={6} />;
@@ -720,7 +727,14 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
               {/* Leave Details */}
               <SectionCard title="Leave Details" icon={FileText}>
                 <dl className="space-y-3">
-                  <DetailRow label="Leave Type">{leaveType}</DetailRow>
+                  <DetailRow label="Leave Type">
+                    <span className="flex items-center gap-2">
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[leaveTypeCategory ?? ""] ?? "bg-muted text-muted-foreground"}`}>
+                        {leaveTypeCategory ?? "—"}
+                      </span>
+                      {leaveType}
+                    </span>
+                  </DetailRow>
                   <DetailRow label="Duration">{getDuration(startAt, endAt)}</DetailRow>
                   {destination && <DetailRow label="Destination">{destination}</DetailRow>}
                   <DetailRow label="Period">
@@ -1398,6 +1412,22 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
                 />
                 <span className="text-sm">Notify parent</span>
               </label>
+              {isSpecialLeave && (
+                <label className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950">
+                  <input
+                    type="checkbox"
+                    checked={documentsVerified}
+                    onChange={(e) => setDocumentsVerified(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-input text-amber-600 focus:ring-amber-500"
+                  />
+                  <span className="text-sm">
+                    <strong>I confirm that the documents have been verified</strong>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      This leave type requires document verification before approval.
+                    </p>
+                  </span>
+                </label>
+              )}
             </div>
 
             {actionError && (

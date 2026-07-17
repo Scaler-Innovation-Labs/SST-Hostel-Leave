@@ -5,11 +5,12 @@ import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveApprovals } from "@/db";
+import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import type { ApproveLeaveDto } from "@/dto/leave/approve-leave.dto";
 import { transaction } from "@/lib/db/transaction";
-import { ConflictError, NotFoundError } from "@/lib/errors";
+import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
@@ -42,6 +43,14 @@ export async function approveLeave(
 
     if (leaveInTx.status !== LEAVE_REQUEST_STATUS.PENDING) {
       throw new ConflictError("Leave is not in a state that can be approved");
+    }
+
+    if (dto.decision === LEAVE_APPROVAL_DECISION.APPROVED) {
+      const leaveType = await leaveTypeRepository.findById(leaveInTx.leaveTypeId, tx);
+      const isSpecial = (leaveType?.uiConfig as Record<string, unknown> | null)?.isSpecial === true;
+      if (isSpecial && dto.documentsVerified !== true) {
+        throw new ValidationError("Documents must be verified before approving a special leave");
+      }
     }
 
     const pending =
