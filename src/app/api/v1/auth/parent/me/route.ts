@@ -1,5 +1,5 @@
 import { ApiResponse } from "@/lib/api/response";
-import { getParentProfile } from "@/services/auth/get-parent-profile.service";
+import { getParentProfile } from "@/services/parent/get-parent-profile.service";
 
 export async function GET(request: Request) {
   try {

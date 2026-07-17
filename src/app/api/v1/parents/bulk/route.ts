@@ -1,9 +1,10 @@
+import { studentRepository } from "@/db/repositories/student/student.repository";
+import { userRepository } from "@/db/repositories/user/user.repository";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
-import { studentRepository } from "@/db/repositories/student/student.repository";
-import { userRepository } from "@/db/repositories/user/user.repository";
+import { NotFoundError,ValidationError } from "@/lib/errors";
 import { bulkCreateParents } from "@/services/parent/bulk-create-parents.service";
 
 function parseCsv(text: string): Array<Record<string, unknown>> {
@@ -48,18 +49,17 @@ export async function POST(request: Request) {
       const relationship = String(row.relationship ?? row["Relationship"] ?? "").trim();
       const isPrimaryRaw = String(row.isPrimary ?? row["Is Primary"] ?? row.is_primary ?? "").trim().toLowerCase();
 
-      if (!studentEmail) throw new Error(`Row ${i + 1}: studentEmail is required`);
+      if (!studentEmail) throw new ValidationError(`Row ${i + 1}: studentEmail is required`);
 
       const user = await userRepository.findByEmail(studentEmail);
-      if (!user) throw new Error(`Row ${i + 1}: no user found with email "${studentEmail}"`);
+      if (!user) throw new NotFoundError(`Row ${i + 1}: user with email "${studentEmail}"`);
       const student = await studentRepository.findByUserId(user.id);
-      if (!student) throw new Error(`Row ${i + 1}: user "${studentEmail}" is not a student`);
+      if (!student) throw new NotFoundError(`Row ${i + 1}: user "${studentEmail}" is not a student`);
       const studentId = student.id;
 
-      if (!name) throw new Error(`Row ${i + 1}: name is required`);
-      if (!name) throw new Error(`Row ${i + 1}: name is required`);
-      if (!phone) throw new Error(`Row ${i + 1}: phone is required`);
-      if (!relationship) throw new Error(`Row ${i + 1}: relationship is required`);
+      if (!name) throw new ValidationError(`Row ${i + 1}: name is required`);
+      if (!phone) throw new ValidationError(`Row ${i + 1}: phone is required`);
+      if (!relationship) throw new ValidationError(`Row ${i + 1}: relationship is required`);
 
       const isPrimary = isPrimaryRaw === "true" || isPrimaryRaw === "1" || isPrimaryRaw === "yes";
 

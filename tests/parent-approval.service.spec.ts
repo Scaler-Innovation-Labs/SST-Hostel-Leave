@@ -51,15 +51,19 @@ vi.mock("@/lib/db", () => {
   };
 });
 
-vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
-  leaveApprovalRepository: {
+vi.mock("@/db/repositories/leave/leave-parent-approval.repository", () => ({
+  leaveParentApprovalRepository: {
     findByParentApprovalToken: (...args: any[]) => mockFindByParentApprovalToken(...args),
     updateParentApprovalOtp: (...args: any[]) => mockUpdateParentApprovalOtp(...args),
     updateParentApprovalToken: (...args: any[]) => mockUpdateParentApprovalToken(...args),
     updateParentApprovalVerified: (...args: any[]) => mockUpdateParentApprovalVerified(...args),
     updateParentDecision: (...args: any[]) => mockUpdateParentDecision(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
+  leaveApprovalRepository: {
     findNextByEntityAndDecision: (...args: any[]) => mockFindNextByDecision(...args),
-    findNextByDecisionForExtension: (...args: any[]) => mockFindNextByDecisionForExtension(...args),
   },
 }));
 

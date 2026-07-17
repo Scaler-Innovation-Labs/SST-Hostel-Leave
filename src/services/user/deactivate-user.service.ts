@@ -1,8 +1,8 @@
-import { userRepository } from "@/db/repositories/user/user.repository";
+import { type User,userRepository } from "@/db/repositories/user/user.repository";
 import { db } from "@/lib/db";
 import { NotFoundError } from "@/lib/errors";
 
-export async function deactivateUser(id: string) {
+export async function deactivateUser(id: string): Promise<User> {
   const user = await userRepository.deactivate(id, db);
 
   if (!user) {
@@ -12,7 +12,7 @@ export async function deactivateUser(id: string) {
   return user;
 }
 
-export async function activateUser(id: string) {
+export async function activateUser(id: string): Promise<User> {
   const user = await userRepository.activate(id, db);
 
   if (!user) {

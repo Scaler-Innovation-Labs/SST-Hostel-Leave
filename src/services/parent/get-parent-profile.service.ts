@@ -2,7 +2,15 @@ import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { AuthenticationError } from "@/lib/errors";
 import { PARENT_JWT_COOKIE, verifyParentJwt } from "@/lib/jwt";
 
-export async function getParentProfile(cookieHeader: string) {
+export async function getParentProfile(cookieHeader: string): Promise<{
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  relationship: string;
+  studentId: string;
+  isPrimary: boolean;
+}> {
   const cookies = Object.fromEntries(
     cookieHeader.split(";").map((c) => {
       const [k, ...v] = c.trim().split("=");

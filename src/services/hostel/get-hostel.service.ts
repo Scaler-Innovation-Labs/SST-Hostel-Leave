@@ -1,8 +1,5 @@
-import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { hostels } from "@/db/schema/hostel";
+import { type Hostel,hostelRepository } from "@/db/repositories/hostel/hostel.repository";
 
-export async function getHostelById(id: string) {
-  const [row] = await db.select().from(hostels).where(eq(hostels.id, id));
-  return row ?? null;
+export async function getHostelById(id: string): Promise<Hostel | null> {
+  return hostelRepository.findById(id);
 }

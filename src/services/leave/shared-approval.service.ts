@@ -1,12 +1,15 @@
-import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
-import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
-import { requireAnyRole, requireApprovalAuthorization } from "@/lib/auth/authorization";
-import type { CurrentUser } from "@/lib/auth/types";
-import { ROLES } from "@/lib/auth/roles";
 import type { AuditAction } from "@/constants/audit/audit-action";
 import type { AuditEntityType } from "@/constants/audit/audit-entity-type";
-import { ConflictError } from "@/lib/errors";
+import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
+import { type leaveApprovals } from "@/db";
+import type { LeaveApproval } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
+import { requireAnyRole, requireApprovalAuthorization } from "@/lib/auth/authorization";
+import { ROLES } from "@/lib/auth/roles";
+import type { CurrentUser } from "@/lib/auth/types";
+import type { DbClient } from "@/lib/db/transaction";
+import { ConflictError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 
 export function checkParentOverride(
@@ -45,7 +48,7 @@ export async function updateApprovalAndAudit(
   auditAction: AuditAction,
   auditEntityType: AuditEntityType,
   auditMeta: Record<string, unknown>,
-  tx: any
+  tx: DbClient
 ): Promise<void> {
   const updated = await leaveApprovalRepository.updateDecisionById(
     current.id,
@@ -70,14 +73,14 @@ export async function updateApprovalAndAudit(
   );
 }
 
-export async function handleNextStep(
+export async function handleNextStep<T>(
   entityId: string,
-  column: any,
+  column: typeof leaveApprovals.leaveRequestId | typeof leaveApprovals.leaveExtensionId,
   currentStepOrder: number | null,
-  updateCurrentStep: (entityId: string, stepKey: string, stepOrder: number, tx: any) => Promise<any>,
-  buildResult: (next: { stepKey: string; stepOrder: number | null }) => any,
-  tx: any
-): Promise<any | null> {
+  updateCurrentStep: (entityId: string, stepKey: string, stepOrder: number, tx: DbClient) => Promise<{ id: string } | null>,
+  buildResult: (next: LeaveApproval) => T,
+  tx: DbClient
+): Promise<T | null> {
   const next = await leaveApprovalRepository.findNextByEntityAndDecision(
     entityId,
     column,

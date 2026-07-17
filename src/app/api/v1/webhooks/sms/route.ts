@@ -1,3 +1,5 @@
+import { InboundSmsSchema } from "@/dto/notification/inbound-sms.dto"
+import { ApiResponse } from "@/lib/api/response"
 import { createSmsWebhookAdapter } from "@/lib/messaging/sms/webhook"
 import { handleIncomingSms } from "@/services/parent/inbound-sms.service"
 
@@ -20,14 +22,10 @@ export async function POST(request: Request) {
 
     const isValid = await adapter.validate(request, rawBody)
     if (!isValid) {
-      return new Response("Unauthorized", { status: 403 })
+      return ApiResponse.error("UNAUTHORIZED", "Unauthorized", 403)
     }
 
-    const inbound = adapter.parse(parsed)
-
-    if (!inbound.from || !inbound.body) {
-      return new Response("Invalid request", { status: 200 })
-    }
+    const inbound = InboundSmsSchema.parse(adapter.parse(parsed))
 
     const isDuplicate = inbound.providerMessageId
       ? await adapter.isDuplicate(inbound.providerMessageId)
@@ -48,12 +46,9 @@ export async function POST(request: Request) {
       })
     }
 
-    return new Response(JSON.stringify({ success: true, message: result.message }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    })
-  } catch {
-    return new Response("Internal server error", { status: 500 })
+    return ApiResponse.success({ message: result.message })
+  } catch (error) {
+    return ApiResponse.fromError(error)
   }
 }
 

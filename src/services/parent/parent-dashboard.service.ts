@@ -8,27 +8,28 @@ import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
+import { leaveParentApprovalRepository } from "@/db/repositories/leave/leave-parent-approval.repository";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError,NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 
 export const parentDashboardService = {
-  async getStats(parentId: string) {
+  async getStats(parentId: string): Promise<{ pendingCount: number; approvedCount: number; rejectedCount: number }> {
     const [pendingCount, approvedCount, rejectedCount] = await Promise.all([
-      leaveApprovalRepository.countByParentIdAndDecision(parentId, LEAVE_APPROVAL_DECISION.PENDING),
-      leaveApprovalRepository.countByParentIdAndDecision(parentId, LEAVE_APPROVAL_DECISION.APPROVED),
-      leaveApprovalRepository.countByParentIdAndDecision(parentId, LEAVE_APPROVAL_DECISION.REJECTED),
+      leaveParentApprovalRepository.countByParentIdAndDecision(parentId, LEAVE_APPROVAL_DECISION.PENDING),
+      leaveParentApprovalRepository.countByParentIdAndDecision(parentId, LEAVE_APPROVAL_DECISION.APPROVED),
+      leaveParentApprovalRepository.countByParentIdAndDecision(parentId, LEAVE_APPROVAL_DECISION.REJECTED),
     ]);
 
     return { pendingCount, approvedCount, rejectedCount };
   },
 
-  async getPendingApprovals(parentId: string) {
-    return leaveApprovalRepository.findPendingByParentId(parentId);
+  async getPendingApprovals(parentId: string): Promise<Awaited<ReturnType<typeof leaveParentApprovalRepository.findPendingByParentId>>> {
+    return leaveParentApprovalRepository.findPendingByParentId(parentId);
   },
 
-  async getApprovalDetail(approvalId: string, parentId: string) {
+  async getApprovalDetail(approvalId: string, parentId: string): Promise<Awaited<ReturnType<typeof leaveApprovalRepository.findById>>> {
     const approval = await leaveApprovalRepository.findById(approvalId);
 
     if (!approval) throw new NotFoundError("Approval");
@@ -42,14 +43,14 @@ export const parentDashboardService = {
     parentId: string,
     decision: typeof LEAVE_APPROVAL_DECISION.APPROVED | typeof LEAVE_APPROVAL_DECISION.REJECTED,
     comments?: string
-  ) {
+  ): Promise<{ approvalId: string; decision: string }> {
     return await transaction(async (tx) => {
       const approval = await leaveApprovalRepository.findById(approvalId, tx);
 
       if (!approval) throw new NotFoundError("Approval");
       if (approval.approverParentId !== parentId) throw new ConflictError("Not your approval");
 
-      await leaveApprovalRepository.updateParentDecision(
+      await leaveParentApprovalRepository.updateParentDecision(
         approvalId,
         parentId,
         decision,
@@ -120,7 +121,7 @@ export const parentDashboardService = {
     });
   },
 
-  async getHistory(parentId: string) {
-    return leaveApprovalRepository.findHistoryByParentId(parentId);
+  async getHistory(parentId: string): Promise<Awaited<ReturnType<typeof leaveParentApprovalRepository.findHistoryByParentId>>> {
+    return leaveParentApprovalRepository.findHistoryByParentId(parentId);
   },
 };

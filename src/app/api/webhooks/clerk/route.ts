@@ -1,8 +1,8 @@
 import type { WebhookEvent } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
-import { NextResponse } from "next/server";
 import { Webhook } from "svix";
 
+import { ApiResponse } from "@/lib/api/response";
 import { ConfigurationError,ValidationError } from "@/lib/errors";
 import { handleClerkWebhookEvent } from "@/services/user/clerk-webhook.service";
 
@@ -37,11 +37,8 @@ export async function POST(request: Request) {
 
     await handleClerkWebhookEvent(evt);
 
-    return NextResponse.json({ success: true });
+    return ApiResponse.success({});
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: "Invalid signature" },
-      { status: 400 },
-    );
+    return ApiResponse.fromError(error);
   }
 }

@@ -1,5 +1,5 @@
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
-import { workflowRepository } from "@/db/repositories/workflow/workflow.repository";
+import { type WorkflowDefinitionWithSteps,workflowRepository } from "@/db/repositories/workflow/workflow.repository";
 import type { SaveWorkflowDto } from "@/dto/workflow/save-workflow.dto";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
@@ -43,7 +43,7 @@ async function resolveSteps(dto: SaveWorkflowDto, tx: Parameters<Parameters<type
   return steps;
 }
 
-export async function createWorkflow(dto: SaveWorkflowDto) {
+export async function createWorkflow(dto: SaveWorkflowDto): Promise<WorkflowDefinitionWithSteps | null> {
   return db.transaction(async (tx) => {
     if (await workflowRepository.findDefinitionByCode(dto.code, tx)) {
       throw new ConflictError("A workflow with this code already exists");
@@ -64,7 +64,7 @@ export async function createWorkflow(dto: SaveWorkflowDto) {
   });
 }
 
-export async function updateWorkflow(id: string, dto: SaveWorkflowDto) {
+export async function updateWorkflow(id: string, dto: SaveWorkflowDto): Promise<WorkflowDefinitionWithSteps | null> {
   return db.transaction(async (tx) => {
     const existing = await workflowRepository.findDefinitionById(id, tx);
     if (!existing) throw new NotFoundError("WorkflowDefinition");

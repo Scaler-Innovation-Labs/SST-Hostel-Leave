@@ -4,7 +4,7 @@ import { students, users } from "@/db";
 import { transaction } from "@/lib/db/transaction";
 import { NotFoundError } from "@/lib/errors";
 
-export async function deleteStudent(id: string) {
+export async function deleteStudent(id: string): Promise<{ deleted: boolean }> {
   return transaction(async (tx) => {
     const existing = await tx
       .select()

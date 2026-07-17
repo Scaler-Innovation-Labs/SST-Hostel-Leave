@@ -9,6 +9,7 @@ import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types"
 import { leaveApprovals } from "@/db"
 import { leaveRepository } from "@/db/repositories/leave/leave.repository"
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository"
+import { leaveParentApprovalRepository } from "@/db/repositories/leave/leave-parent-approval.repository"
 import { parentRepository } from "@/db/repositories/parent/parent.repository"
 import { transaction } from "@/lib/db/transaction"
 import { parseSmsAction } from "@/lib/messaging/sms/webhook"
@@ -31,7 +32,7 @@ export async function handleIncomingSms(from: string, body: string): Promise<Inb
     return { message: "Phone number not registered with any parent." }
   }
 
-  const pendingApprovals = await leaveApprovalRepository.findPendingByParentPhone(from)
+  const pendingApprovals = await leaveParentApprovalRepository.findPendingByParentPhone(from)
 
   if (pendingApprovals.length === 0) {
     return { message: "No pending leave requests found." }
@@ -58,7 +59,7 @@ export async function handleIncomingSms(from: string, body: string): Promise<Inb
   const matchingParent = (parents.find((p) => p.id === approval.approverParentId) ?? parents[0])!
 
   await transaction(async (tx) => {
-    const updated = await leaveApprovalRepository.updateParentDecision(
+    const updated = await leaveParentApprovalRepository.updateParentDecision(
       approval.id,
       matchingParent.id,
       isApproved ? LEAVE_APPROVAL_DECISION.APPROVED : LEAVE_APPROVAL_DECISION.REJECTED,

@@ -61,7 +61,7 @@ export async function createNotificationRule(
     leaveTypeId,
   });
   const row = await notificationRuleRepository.findById(id);
-  if (!row) throw new Error("Failed to create notification rule");
+  if (!row) throw new NotFoundError("NotificationRule");
   return toResponse(row);
 }
 

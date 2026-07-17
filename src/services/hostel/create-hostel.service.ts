@@ -1,21 +1,19 @@
-import { eq } from "drizzle-orm";
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
-import { hostels } from "@/db/schema/hostel";
+import { type Hostel,hostelRepository } from "@/db/repositories/hostel/hostel.repository";
 import type { SaveHostelInput } from "@/dto/hostel/save-hostel.dto";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 
-export async function createHostel(input: SaveHostelInput, currentUser: { id: string }) {
+export async function createHostel(input: SaveHostelInput, currentUser: { id: string }): Promise<Hostel> {
   return transaction(async (tx) => {
-    const existing = await tx.select().from(hostels).where(eq(hostels.code, input.code)).limit(1);
-    if (existing.length > 0) {
+    const existing = await hostelRepository.findByCode(input.code, tx);
+    if (existing) {
       throw new ConflictError(`Hostel with code ${input.code} already exists`);
     }
 
-    const [row] = await tx.insert(hostels).values(input).returning();
-    if (!row) throw new Error("Failed to create hostel");
+    const row = await hostelRepository.create(input, tx);
 
     await auditService.record(
       AUDIT_ACTION.CREATE,

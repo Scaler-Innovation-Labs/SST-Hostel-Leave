@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
     const isValid = await validateTwilioRequest(request, text);
     if (!isValid) {
-      return new Response("Invalid signature", { status: 403 });
+      return ApiResponse.error("UNAUTHORIZED", "Invalid signature", 403);
     }
 
     const params = new URLSearchParams(text);

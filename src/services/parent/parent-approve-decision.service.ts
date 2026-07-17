@@ -13,9 +13,10 @@ import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
+import { leaveParentApprovalRepository } from "@/db/repositories/leave/leave-parent-approval.repository";
 import type { ParentDecisionDto } from "@/dto/parent/parent-decision.dto";
 import { sha256 } from "@/lib/crypto";
-import { transaction } from "@/lib/db/transaction";
+import { type DbClient, transaction } from "@/lib/db/transaction";
 import {
   ConflictError,
   NotFoundError,
@@ -37,7 +38,7 @@ export async function parentApproveDecision(
 
   return await transaction(async (tx) => {
     const approval =
-      await leaveApprovalRepository.findByParentApprovalToken(
+      await leaveParentApprovalRepository.findByParentApprovalToken(
         tokenHash,
         tx
       );
@@ -57,7 +58,7 @@ export async function parentApproveDecision(
     const isExtension = !!approval.leaveExtensionId;
 
     const updatedApproval =
-      await leaveApprovalRepository.updateParentDecision(
+      await leaveParentApprovalRepository.updateParentDecision(
         approval.id,
         approval.approverParentId ?? "",
         dto.decision as LeaveApprovalDecision,
@@ -94,9 +95,9 @@ export async function parentApproveDecision(
 }
 
 async function handleLeaveDecision(
-  approval: NonNullable<Awaited<ReturnType<typeof leaveApprovalRepository.findByParentApprovalToken>>>,
+  approval: NonNullable<Awaited<ReturnType<typeof leaveParentApprovalRepository.findByParentApprovalToken>>>,
   dto: ParentDecisionDto,
-  tx: any
+  tx: DbClient
 ): Promise<ParentDecisionResult> {
   if (dto.decision === LEAVE_APPROVAL_DECISION.REJECTED) {
     await leaveRepository.updateById(
@@ -195,9 +196,9 @@ async function handleLeaveDecision(
 }
 
 async function handleExtensionDecision(
-  approval: NonNullable<Awaited<ReturnType<typeof leaveApprovalRepository.findByParentApprovalToken>>>,
+  approval: NonNullable<Awaited<ReturnType<typeof leaveParentApprovalRepository.findByParentApprovalToken>>>,
   dto: ParentDecisionDto,
-  tx: any
+  tx: DbClient
 ): Promise<ParentDecisionResult> {
   const extensionId = approval.leaveExtensionId!;
   const leaveRequestId = approval.leaveExtension?.leaveRequestId ?? approval.leaveRequestId ?? "";

@@ -5,7 +5,7 @@ import { markOverdue } from "@/services/movement/mark-overdue.service";
 
 const SYSTEM_USER = { id: "SYSTEM" };
 
-export async function runMarkOverdueJob() {
+export async function runMarkOverdueJob(): Promise<{ job: string; total: number; marked: number; skipped: number; errors: string[] }> {
   const eligibleStates = [
     MOVEMENT_STATE.CHECKED_OUT,
     MOVEMENT_STATE.OUTSIDE_HOSTEL,

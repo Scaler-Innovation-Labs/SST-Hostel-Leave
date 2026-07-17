@@ -1,19 +1,18 @@
-import { eq } from "drizzle-orm";
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
-import { hostels } from "@/db/schema/hostel";
+import { hostelRepository } from "@/db/repositories/hostel/hostel.repository";
 import { transaction } from "@/lib/db/transaction";
 import { NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 
-export async function deleteHostel(id: string, currentUser: { id: string }) {
+export async function deleteHostel(id: string, currentUser: { id: string }): Promise<void> {
   return transaction(async (tx) => {
-    const existing = await tx.select().from(hostels).where(eq(hostels.id, id)).limit(1);
-    if (existing.length === 0) {
+    const existing = await hostelRepository.findById(id, tx);
+    if (!existing) {
       throw new NotFoundError("Hostel not found");
     }
 
-    await tx.delete(hostels).where(eq(hostels.id, id));
+    await hostelRepository.deleteById(id, tx);
 
     await auditService.record(
       AUDIT_ACTION.DELETE,

@@ -1,7 +1,7 @@
 import { QR_STATUS } from "@/constants/movement/qr-status";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 
-export async function runCleanupQrJob() {
+export async function runCleanupQrJob(): Promise<{ job: string; expired: number }> {
   const expired = await qrPassRepository.findExpired(new Date());
   let expiredCount = 0;
 

@@ -1,10 +1,12 @@
 import { ApiResponse } from "@/lib/api/response";
+import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
+import { ROLES } from "@/lib/auth/roles";
 import { listUsers } from "@/services/user/list-users.service";
 
 export async function GET() {
   try {
-    await requireAuth();
+    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.POC]);
 
     const result = await listUsers({
       page: 1,

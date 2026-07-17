@@ -1,20 +1,19 @@
-import { eq } from "drizzle-orm";
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
-import { hostels } from "@/db/schema/hostel";
+import { type Hostel,hostelRepository } from "@/db/repositories/hostel/hostel.repository";
 import type { SaveHostelInput } from "@/dto/hostel/save-hostel.dto";
 import { transaction } from "@/lib/db/transaction";
 import { NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 
-export async function updateHostel(id: string, input: SaveHostelInput, currentUser: { id: string }) {
+export async function updateHostel(id: string, input: SaveHostelInput, currentUser: { id: string }): Promise<Hostel> {
   return transaction(async (tx) => {
-    const existing = await tx.select().from(hostels).where(eq(hostels.id, id)).limit(1);
-    if (existing.length === 0) {
+    const existing = await hostelRepository.findById(id, tx);
+    if (!existing) {
       throw new NotFoundError("Hostel not found");
     }
 
-    const [row] = await tx.update(hostels).set(input).where(eq(hostels.id, id)).returning();
+    const row = await hostelRepository.updateById(id, input, tx);
 
     await auditService.record(
       AUDIT_ACTION.UPDATE,
@@ -25,6 +24,6 @@ export async function updateHostel(id: string, input: SaveHostelInput, currentUs
       tx
     );
 
-    return row;
+    return row!;
   });
 }

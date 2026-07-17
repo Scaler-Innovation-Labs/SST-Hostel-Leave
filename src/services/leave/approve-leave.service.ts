@@ -69,7 +69,8 @@ export async function approveLeave(
 
     const override = checkParentOverride(current, dto, currentUser);
     if (override?.requiresConfirmation) {
-      return { leaveId, ...override };
+      const { isParentOverride: _, ...overrideFields } = override;
+      return { leaveId, ...overrideFields } as ApproveLeaveResult;
     }
 
     await updateApprovalAndAudit(

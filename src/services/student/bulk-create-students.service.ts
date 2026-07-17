@@ -16,7 +16,7 @@ type BulkStudentRow = {
   hostelId?: string | null;
 };
 
-export async function bulkCreateStudents(rows: BulkStudentRow[]) {
+export async function bulkCreateStudents(rows: BulkStudentRow[]): Promise<{ rollNumber: string; success: boolean; error?: string }[]> {
   const results: { rollNumber: string; success: boolean; error?: string }[] = [];
 
   const [roleRow] = await db

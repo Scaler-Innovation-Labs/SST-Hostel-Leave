@@ -1,11 +1,8 @@
-import { inArray } from "drizzle-orm";
-
 import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
-import { workflowSteps } from "@/db";
-import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
-import { db } from "@/lib/db";
+import { type LeaveType,leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
+import { workflowRepository } from "@/db/repositories/workflow/workflow.repository";
 
-export async function listLeaveTypes() {
+export async function listLeaveTypes(): Promise<(LeaveType & { requiresPoc: boolean })[]> {
   const types = await leaveTypeRepository.findAll();
 
   const workflowIds = types
@@ -15,12 +12,7 @@ export async function listLeaveTypes() {
   const pocWorkflowIds = new Set<string>();
 
   if (workflowIds.length > 0) {
-    const steps = await db
-      .select()
-      .from(workflowSteps)
-      .where(
-        inArray(workflowSteps.workflowDefinitionId, workflowIds),
-      );
+    const steps = await workflowRepository.findStepsByWorkflowIds(workflowIds);
 
     for (const step of steps) {
       if (step.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL) {

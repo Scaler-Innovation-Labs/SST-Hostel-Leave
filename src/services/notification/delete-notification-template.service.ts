@@ -1,7 +1,7 @@
 import { notificationTemplateRepository } from "@/db/repositories/notification/notification-template.repository";
 import { NotFoundError } from "@/lib/errors";
 
-export async function deleteNotificationTemplate(id: string) {
+export async function deleteNotificationTemplate(id: string): Promise<{ deleted: boolean }> {
   const existing = await notificationTemplateRepository.findById(id);
   if (!existing) throw new NotFoundError("NotificationTemplate");
 

@@ -1,4 +1,4 @@
-import { studentRepository } from "@/db/repositories/student/student.repository";
+import { type Student,studentRepository } from "@/db/repositories/student/student.repository";
 import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
 import { AuthorizationError } from "@/lib/errors";
@@ -17,7 +17,7 @@ export async function verifyStudentOwnership(
   }
 }
 
-export async function requireCurrentUserStudent(currentUser: CurrentUser) {
+export async function requireCurrentUserStudent(currentUser: CurrentUser): Promise<Student> {
   if (currentUser.roles.some(r => r === ROLES.ADMIN || r === ROLES.POC || r === ROLES.SUPER_ADMIN)) {
     throw new AuthorizationError("Only students can perform this action");
   }

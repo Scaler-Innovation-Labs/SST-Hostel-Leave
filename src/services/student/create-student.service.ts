@@ -2,12 +2,13 @@ import { eq } from "drizzle-orm";
 
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { roles, students, userRoles, users } from "@/db";
+import type { Student } from "@/db/repositories/student/student.repository";
+import type { CreateStudentDto } from "@/dto/student/create-student.dto";
 import { ROLES } from "@/lib/auth/roles";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError } from "@/lib/errors";
-import type { CreateStudentDto } from "@/dto/student/create-student.dto";
 
-export async function createStudent(dto: CreateStudentDto) {
+export async function createStudent(dto: CreateStudentDto): Promise<Student> {
   return transaction(async (tx) => {
     const existingRoll = await tx
       .select()
@@ -36,7 +37,7 @@ export async function createStudent(dto: CreateStudentDto) {
       })
       .returning();
 
-    if (!userRows[0]) throw new Error("Failed to create user");
+    if (!userRows[0]) throw new ConflictError("Failed to create user");
     const user = userRows[0];
 
     const [student] = await tx
@@ -57,6 +58,6 @@ export async function createStudent(dto: CreateStudentDto) {
         .onConflictDoNothing();
     }
 
-    return student;
+    return student!;
   });
 }

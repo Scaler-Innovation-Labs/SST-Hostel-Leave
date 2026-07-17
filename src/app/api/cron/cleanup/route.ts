@@ -1,3 +1,4 @@
+import { ApiResponse } from "@/lib/api/response";
 import { runCleanupOtpJob } from "@/services/cron/cleanup-otp.job";
 import { runCleanupQrJob } from "@/services/cron/cleanup-qr.job";
 
@@ -7,18 +8,14 @@ export async function GET(request: Request) {
     const cronSecret = process.env.CRON_SECRET;
 
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return ApiResponse.error("UNAUTHORIZED", "Unauthorized", 401);
     }
 
     const otpResult = await runCleanupOtpJob();
     const qrResult = await runCleanupQrJob();
 
-    return Response.json({
-      success: true,
-      results: [otpResult, qrResult],
-    }, { status: 200 });
+    return ApiResponse.success({ results: [otpResult, qrResult] });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return Response.json({ success: false, error: message }, { status: 500 });
+    return ApiResponse.fromError(error);
   }
 }

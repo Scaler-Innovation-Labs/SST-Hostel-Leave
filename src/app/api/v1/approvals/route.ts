@@ -3,7 +3,7 @@ import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
-import { listApprovals } from "@/services/approval/list-approvals.service";
+import { listApprovals } from "@/services/leave/list-approvals.service";
 
 export async function GET(request: Request) {
   try {

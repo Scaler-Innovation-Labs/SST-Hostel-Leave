@@ -197,14 +197,24 @@ Never create database columns for individual leave form fields.
 
 ---
 
-## Parents Are Not Auth Users
+## Parent Auth & Dashboards
 
-Parents approve through:
+Parents are authenticated users through a dedicated OTP-based login flow.
 
-* SMS
-* Email
+Parents have access to:
+* Web dashboard (approvals, history, stats)
+* SMS-based approval (via inbound SMS parsing)
+* Email-based approval (via tokenized links with OTP verification)
 
-Do not introduce parent login systems unless explicitly required.
+Parent auth infrastructure:
+* OTP is sent via SMS/Email, verified against a session record
+* A signed JWT cookie is issued for the parent web session (7-day expiry)
+* No Clerk or social auth — parent auth is self-contained in `services/auth/parent-auth.service.ts`
+
+Parent approval sources are tracked via the `LEAVE_APPROVAL_SOURCE` constant:
+* `SMS`, `EMAIL`, `PORTAL` — each records how the parent approved/rejected
+
+Do not introduce additional parent authentication mechanisms without strong justification.
 
 ---
 

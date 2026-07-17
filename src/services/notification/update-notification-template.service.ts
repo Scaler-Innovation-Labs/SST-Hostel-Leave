@@ -1,11 +1,11 @@
-import { notificationTemplateRepository } from "@/db/repositories/notification/notification-template.repository";
+import { type NotificationTemplate,notificationTemplateRepository } from "@/db/repositories/notification/notification-template.repository";
 import type { SaveNotificationTemplateDto } from "@/dto/notification/save-notification-template.dto";
 import { NotFoundError } from "@/lib/errors";
 
 export async function updateNotificationTemplate(
   id: string,
   dto: Partial<SaveNotificationTemplateDto>
-) {
+): Promise<NotificationTemplate | null> {
   const existing = await notificationTemplateRepository.findById(id);
   if (!existing) throw new NotFoundError("NotificationTemplate");
 

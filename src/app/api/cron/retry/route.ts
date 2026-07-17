@@ -1,3 +1,4 @@
+import { ApiResponse } from "@/lib/api/response";
 import { runRetryOutboxJob } from "@/services/cron/retry-outbox.job";
 
 export async function GET(request: Request) {
@@ -6,14 +7,13 @@ export async function GET(request: Request) {
     const cronSecret = process.env.CRON_SECRET;
 
     if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      return Response.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return ApiResponse.error("UNAUTHORIZED", "Unauthorized", 401);
     }
 
     const result = await runRetryOutboxJob();
 
-    return Response.json({ success: true, result }, { status: 200 });
+    return ApiResponse.success({ result });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    return Response.json({ success: false, error: message }, { status: 500 });
+    return ApiResponse.fromError(error);
   }
 }

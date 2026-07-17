@@ -1,11 +1,11 @@
 import type { LeaveRequestStatus } from "@/constants/leave/leave-status";
-import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { leaveRepository, type LeaveWithRelations, type PaginatedResult } from "@/db/repositories/leave/leave.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import type { ListLeavesQuery } from "@/dto/leave/list-leaves.dto";
 import { ROLES } from "@/lib/auth/roles";
 import { AuthorizationError } from "@/lib/errors";
 
-export async function listLeaves(query: ListLeavesQuery, currentUser?: { id: string; roles: string[] }) {
+export async function listLeaves(query: ListLeavesQuery, currentUser?: { id: string; roles: string[] }): Promise<PaginatedResult<LeaveWithRelations>> {
   if (currentUser && currentUser.roles.includes(ROLES.STUDENT)) {
     const student = await studentRepository.findByUserId(currentUser.id);
     if (!student) {

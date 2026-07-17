@@ -15,7 +15,7 @@ vi.mock("@/lib/auth/authorization", () => ({
   requireAnyRole: vi.fn().mockReturnValue({ id: "U1", roles: ["ADMIN"] }),
 }));
 
-vi.mock("@/services/approval/list-approvals.service", () => ({
+vi.mock("@/services/leave/list-approvals.service", () => ({
   listApprovals: (...args: any[]) => mockListApprovals(...args),
 }));
 

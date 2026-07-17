@@ -1,16 +1,16 @@
+import { ListParentsSchema } from "@/dto/parent/list-parents.dto";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
-import { parentManagementService } from "@/services/admin/parent-management.service";
+import { parentManagementService } from "@/services/parent/parent-management.service";
 
 export async function GET(request: Request) {
   try {
     requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
     const url = new URL(request.url);
-    const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
-    const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit")) || 20));
+    const { page, limit } = ListParentsSchema.parse(Object.fromEntries(url.searchParams));
     const search = url.searchParams.get("search") ?? undefined;
     const studentId = url.searchParams.get("studentId") ?? undefined;
 

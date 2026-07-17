@@ -2,7 +2,7 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
-import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
+import { leaveApprovalAnalyticsRepository } from "@/db/repositories/leave/leave-approval-analytics.repository";
 import { movementEventRepository } from "@/db/repositories/movement/movement-event.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
@@ -113,22 +113,22 @@ async function getStaffStats(): Promise<StaffDashboardStats> {
     leaves30dRaw,
     approvals7dRaw,
   ] = await Promise.all([
-    leaveApprovalRepository.countByDecision(LEAVE_APPROVAL_DECISION.PENDING),
+    leaveApprovalAnalyticsRepository.countByDecision(LEAVE_APPROVAL_DECISION.PENDING),
     studentRepository.countAll(),
     studentRepository.countByLocationState(MOVEMENT_STATE.OUTSIDE_HOSTEL),
     studentRepository.countByLocationState(MOVEMENT_STATE.OVERDUE),
     userRepository.count(),
     leaveRepository.countAll(),
     leaveRepository.countByStatus(LEAVE_REQUEST_STATUS.APPROVED),
-    leaveApprovalRepository.countRecent(sevenDaysAgo),
+    leaveApprovalAnalyticsRepository.countRecent(sevenDaysAgo),
     leaveRepository.countByLeaveType(),
     leaveRepository.countByStatus(LEAVE_REQUEST_STATUS.REJECTED),
-    leaveApprovalRepository.averageApprovalTime(thirtyDaysAgo),
+    leaveApprovalAnalyticsRepository.averageApprovalTime(thirtyDaysAgo),
     qrPassRepository.countActive(),
     movementEventRepository.countRecent(sevenDaysAgo),
     leaveRepository.countByDateRange(sevenDaysAgo, now),
     leaveRepository.countByDateRange(thirtyDaysAgo, now),
-    leaveApprovalRepository.countByDateRange(sevenDaysAgo, now),
+    leaveApprovalAnalyticsRepository.countByDateRange(sevenDaysAgo, now),
   ]);
 
   return {

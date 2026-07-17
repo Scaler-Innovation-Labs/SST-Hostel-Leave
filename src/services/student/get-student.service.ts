@@ -1,7 +1,7 @@
-import { studentRepository } from "@/db/repositories/student/student.repository";
+import { studentRepository, type StudentWithRelations } from "@/db/repositories/student/student.repository";
 import { NotFoundError } from "@/lib/errors";
 
-export async function getStudent(id: string) {
+export async function getStudent(id: string): Promise<StudentWithRelations> {
   const result = await studentRepository.findByIdWithRelations(id);
 
   if (!result) {

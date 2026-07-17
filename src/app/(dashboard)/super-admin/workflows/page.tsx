@@ -1,16 +1,16 @@
 "use client";
 
-import { ArrowDown, ArrowUp, GripVertical, Plus, Save, Timer, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, GripVertical, Plus, Save, Search, Timer, Trash2, X } from "lucide-react";
+import { useCallback, useState } from "react";
 
 import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
+import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { useWorkflows } from "@/features/workflows/hooks/use-workflows";
 import { deleteWorkflow, saveWorkflow } from "@/lib/api/workflow-api";
 import { ROLES } from "@/lib/auth/roles";
-import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 
 type StepDraft = {
   stepKey: string;
@@ -45,12 +45,36 @@ const ROLE_OPTIONS = [ROLES.POC, ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.GUARD];
 const METHOD_OPTIONS = ["PORTAL", "SMS_REPLY", "SMS_LINK", "SMS_AND_LINK", "AUTO"];
 
 export default function SuperAdminWorkflowsPage() {
-  const { data, isLoading, isError, error, mutate } = useWorkflows({ page: 1, limit: 100 });
+  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [filterActive, setFilterActive] = useState<string>("");
+  const [page, setPage] = useState(1);
+  const { data, isLoading, isError, error, mutate } = useWorkflows({
+    search: search || undefined,
+    isActive: filterActive || undefined,
+    page,
+    limit: 10,
+  });
   const [draft, setDraft] = useState<WorkflowDraft>(EMPTY_DRAFT);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+
+  const handleSearch = useCallback(() => {
+    setSearch(searchInput);
+    setPage(1);
+  }, [searchInput]);
+
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter") handleSearch();
+  }, [handleSearch]);
+
+  const clearSearch = useCallback(() => {
+    setSearchInput("");
+    setSearch("");
+    setPage(1);
+  }, []);
 
   const edit = (workflow: NonNullable<typeof data>["items"][number]) => {
     setDraft({
@@ -166,8 +190,39 @@ export default function SuperAdminWorkflowsPage() {
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold">Definitions</h2>
-            <Button variant="outline" onClick={() => setDraft(EMPTY_DRAFT)}><Plus className="size-4" /> New</Button>
+            <Button variant="outline" onClick={() => { setDraft(EMPTY_DRAFT); clearSearch(); }}><Plus className="size-4" /> New</Button>
           </div>
+
+          {/* Search & filter */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search workflows..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                className="h-9 w-full rounded-lg border bg-background pl-9 pr-8 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+              />
+              {searchInput && (
+                <button onClick={clearSearch} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  <X className="size-4" />
+                </button>
+              )}
+            </div>
+            <select
+              value={filterActive}
+              onChange={(e) => { setFilterActive(e.target.value); setPage(1); }}
+              className="h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+            >
+              <option value="">All status</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+            <Button variant="secondary" size="sm" onClick={handleSearch} className="h-9">Search</Button>
+          </div>
+
           {isLoading ? <LoadingState count={4} /> : data?.items.map((workflow) => (
             <div key={workflow.id} className="group flex rounded-xl border bg-card hover:border-primary">
               <button onClick={() => edit(workflow)} className="flex-1 p-4 text-left">
@@ -185,6 +240,24 @@ export default function SuperAdminWorkflowsPage() {
               </Button>
             </div>
           ))}
+
+          {/* Pagination */}
+          {data && data.totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2 text-sm text-muted-foreground">
+              <span>{data.total} workflow{data.total !== 1 ? "s" : ""}</span>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="icon" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                  <ChevronLeft className="size-4" />
+                </Button>
+                <span className="min-w-[5rem] text-center">
+                  Page {data.page} of {data.totalPages}
+                </span>
+                <Button variant="outline" size="icon" disabled={page >= data.totalPages} onClick={() => setPage((p) => p + 1)}>
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Editor */}

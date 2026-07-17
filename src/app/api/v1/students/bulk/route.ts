@@ -2,6 +2,7 @@ import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
+import { ValidationError } from "@/lib/errors";
 import { bulkCreateStudents } from "@/services/student/bulk-create-students.service";
 
 export async function POST(request: Request) {
@@ -33,9 +34,9 @@ export async function POST(request: Request) {
       const roomNumber = String(row.roomNumber ?? row["Room Number"] ?? row.room_number ?? "").trim() || null;
       const hostelId = String(row.hostelId ?? row["Hostel ID"] ?? row.hostel_id ?? "").trim() || null;
 
-      if (!rollNumber) throw new Error(`Row ${i + 1}: rollNumber is required`);
-      if (!fullName) throw new Error(`Row ${i + 1}: fullName is required`);
-      if (!academicGroupId) throw new Error(`Row ${i + 1}: academicGroupId is required`);
+      if (!rollNumber) throw new ValidationError(`Row ${i + 1}: rollNumber is required`);
+      if (!fullName) throw new ValidationError(`Row ${i + 1}: fullName is required`);
+      if (!academicGroupId) throw new ValidationError(`Row ${i + 1}: academicGroupId is required`);
 
       const gender = ["MALE", "FEMALE", "OTHER"].includes(genderRaw) ? (genderRaw as "MALE" | "FEMALE" | "OTHER") : null;
 

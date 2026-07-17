@@ -1,11 +1,12 @@
 import { eq } from "drizzle-orm";
 
 import { movementStates, students, users } from "@/db";
+import type { StudentWithRelations } from "@/db/repositories/student/student.repository";
+import type { UpdateStudentDto } from "@/dto/student/update-student.dto";
 import { transaction } from "@/lib/db/transaction";
 import { NotFoundError } from "@/lib/errors";
-import type { UpdateStudentDto } from "@/dto/student/update-student.dto";
 
-export async function updateStudent(id: string, dto: UpdateStudentDto) {
+export async function updateStudent(id: string, dto: UpdateStudentDto): Promise<StudentWithRelations> {
   return transaction(async (tx) => {
     const existing = await tx
       .select()

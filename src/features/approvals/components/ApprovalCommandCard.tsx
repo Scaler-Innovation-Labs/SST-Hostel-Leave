@@ -18,16 +18,16 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
+import { Button } from "@/components/ui/button";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { VIEW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
+import type { ApprovalQueueItem } from "@/features/approvals/hooks/use-approvals";
 import { approveLeave, rejectLeave } from "@/lib/api/approval-api";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
-import type { ApprovalQueueItem } from "../hooks/use-approvals";
 import { AuditDrawer } from "./AuditDrawer";
 import { AutoPreviewModal } from "./AutoPreviewModal";
 import { WorkflowProgress } from "./WorkflowProgress";

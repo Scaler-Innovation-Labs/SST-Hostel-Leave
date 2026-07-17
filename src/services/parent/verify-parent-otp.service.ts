@@ -1,7 +1,7 @@
 import { AUDIT_ACTION } from "@/constants/audit/audit-action"
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type"
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision"
-import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository"
+import { leaveParentApprovalRepository } from "@/db/repositories/leave/leave-parent-approval.repository"
 import { parentRepository } from "@/db/repositories/parent/parent.repository"
 import { parentOtpSessionRepository } from "@/db/repositories/parent/parent-otp-session.repository"
 import { sha256 } from "@/lib/crypto"
@@ -37,7 +37,7 @@ export async function verifyParentOtp(
 ): Promise<VerifyOtpResult> {
   const tokenHash = await sha256(rawToken)
   const approval =
-    await leaveApprovalRepository.findByParentApprovalToken(tokenHash)
+    await leaveParentApprovalRepository.findByParentApprovalToken(tokenHash)
 
   if (!approval) {
     throw new NotFoundError("Approval")
@@ -82,7 +82,7 @@ export async function verifyParentOtp(
   }
 
   await parentOtpSessionRepository.markVerified(session.id)
-  await leaveApprovalRepository.updateParentApprovalVerified(approval.id)
+  await leaveParentApprovalRepository.updateParentApprovalVerified(approval.id)
 
   await auditService.record(
     AUDIT_ACTION.UPDATE,

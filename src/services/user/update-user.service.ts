@@ -1,10 +1,10 @@
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
-import { userRepository } from "@/db/repositories/user/user.repository";
+import { userRepository, type UserWithRoles } from "@/db/repositories/user/user.repository";
 import type { UpdateUserDto } from "@/dto/user/update-user.dto";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 
-export async function updateUser(id: string, dto: UpdateUserDto) {
+export async function updateUser(id: string, dto: UpdateUserDto): Promise<UserWithRoles | null> {
   const existing = await userRepository.findById(id, db);
 
   if (!existing) {

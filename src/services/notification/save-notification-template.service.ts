@@ -1,7 +1,7 @@
-import { notificationTemplateRepository } from "@/db/repositories/notification/notification-template.repository";
+import { type NotificationTemplate,notificationTemplateRepository } from "@/db/repositories/notification/notification-template.repository";
 import type { SaveNotificationTemplateDto } from "@/dto/notification/save-notification-template.dto";
 
-export async function saveNotificationTemplate(dto: SaveNotificationTemplateDto) {
+export async function saveNotificationTemplate(dto: SaveNotificationTemplateDto): Promise<NotificationTemplate> {
   return notificationTemplateRepository.create({
     code: dto.code,
     eventKey: dto.eventKey,

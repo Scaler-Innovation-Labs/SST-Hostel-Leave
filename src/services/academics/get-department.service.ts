@@ -1,8 +1,5 @@
-import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { departments } from "@/db/schema/academics";
+import { type Department,departmentRepository } from "@/db/repositories/academics/department.repository";
 
-export async function getDepartmentById(id: string) {
-  const [row] = await db.select().from(departments).where(eq(departments.id, id));
-  return row ?? null;
+export async function getDepartmentById(id: string): Promise<Department | null> {
+  return departmentRepository.findById(id);
 }

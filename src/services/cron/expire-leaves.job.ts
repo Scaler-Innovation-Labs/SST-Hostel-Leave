@@ -1,8 +1,8 @@
-import { expireOverdueLeaves } from "@/services/leave/expire-leave.service";
+import { type ExpireBatchResult,expireOverdueLeaves } from "@/services/leave/expire-leave.service";
 
 const SYSTEM_USER = { id: "SYSTEM" };
 
-export async function runExpireLeavesJob() {
+export async function runExpireLeavesJob(): Promise<{ job: string } & ExpireBatchResult> {
   const result = await expireOverdueLeaves(SYSTEM_USER);
 
   return {

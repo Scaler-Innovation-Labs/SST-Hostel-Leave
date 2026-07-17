@@ -12,13 +12,13 @@ import type { ApproveLeaveDto } from "@/dto/leave/approve-leave.dto";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
-import { outboxService } from "@/services/outbox/outbox.service";
 import {
   checkParentOverride,
   getApprovalAuditMeta,
   handleNextStep,
   updateApprovalAndAudit,
 } from "@/services/leave/shared-approval.service";
+import { outboxService } from "@/services/outbox/outbox.service";
 
 export type ApproveExtensionResult = {
   extensionId: string;
@@ -70,7 +70,8 @@ export async function approveExtension(
 
     const override = checkParentOverride(current, dto, currentUser);
     if (override?.requiresConfirmation) {
-      return { extensionId, leaveRequestId: extensionInTx.leaveRequestId, ...override };
+      const { isParentOverride: _, ...overrideFields } = override;
+      return { extensionId, leaveRequestId: extensionInTx.leaveRequestId, ...overrideFields } as ApproveExtensionResult;
     }
 
     await updateApprovalAndAudit(

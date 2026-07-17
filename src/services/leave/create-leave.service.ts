@@ -2,10 +2,11 @@ import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
-import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
+import type { LeaveRequest } from "@/db/repositories/leave/leave.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
@@ -26,7 +27,7 @@ import { workflowEngine } from "@/services/workflow/workflow-engine";
 export async function createLeave(
   dto: CreateLeaveDto,
   currentUser: { id: string }
-) {
+): Promise<LeaveRequest> {
   const student = await studentRepository.findByUserId(currentUser.id);
 
   if (!student) {

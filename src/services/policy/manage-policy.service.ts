@@ -1,6 +1,6 @@
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
-import { policyRepository } from "@/db/repositories/policy/policy.repository";
+import { type Policy,policyRepository } from "@/db/repositories/policy/policy.repository";
 import type { SavePolicyDto } from "@/dto/policy/save-policy.dto";
 import { db } from "@/lib/db";
 import { NotFoundError } from "@/lib/errors";
@@ -18,17 +18,17 @@ function toPolicyInput(dto: SavePolicyDto) {
   };
 }
 
-export async function listPolicies() {
+export async function listPolicies(): Promise<Policy[]> {
   return policyRepository.findAll();
 }
 
-export async function getPolicyById(id: string) {
+export async function getPolicyById(id: string): Promise<Policy> {
   const policy = await policyRepository.findById(id);
   if (!policy) throw new NotFoundError("Policy");
   return policy;
 }
 
-export async function createPolicy(dto: SavePolicyDto, actorUserId: string) {
+export async function createPolicy(dto: SavePolicyDto, actorUserId: string): Promise<Policy> {
   return db.transaction(async (tx) => {
     const policy = await policyRepository.create(toPolicyInput(dto), tx);
     await auditService.record(AUDIT_ACTION.CREATE, AUDIT_ENTITY_TYPE.POLICY, policy.id, actorUserId, { name: policy.name, policyType: policy.policyType }, tx);
@@ -36,7 +36,7 @@ export async function createPolicy(dto: SavePolicyDto, actorUserId: string) {
   });
 }
 
-export async function updatePolicy(id: string, dto: SavePolicyDto, actorUserId: string) {
+export async function updatePolicy(id: string, dto: SavePolicyDto, actorUserId: string): Promise<Policy | null> {
   return db.transaction(async (tx) => {
     if (!await policyRepository.findById(id, tx)) throw new NotFoundError("Policy");
     const policy = await policyRepository.update(id, toPolicyInput(dto), tx);
@@ -45,7 +45,7 @@ export async function updatePolicy(id: string, dto: SavePolicyDto, actorUserId: 
   });
 }
 
-export async function deletePolicy(id: string, actorUserId: string) {
+export async function deletePolicy(id: string, actorUserId: string): Promise<void> {
   return db.transaction(async (tx) => {
     if (!await policyRepository.findById(id, tx)) throw new NotFoundError("Policy");
     await policyRepository.deleteById(id, tx);

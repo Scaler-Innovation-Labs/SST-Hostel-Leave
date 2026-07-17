@@ -9,7 +9,7 @@ type BulkParentRow = {
   isPrimary: boolean;
 };
 
-export async function bulkCreateParents(rows: BulkParentRow[]) {
+export async function bulkCreateParents(rows: BulkParentRow[]): Promise<Array<{ row: number; success: boolean; error?: string }>> {
   const results: { row: number; success: boolean; error?: string }[] = [];
 
   for (let i = 0; i < rows.length; i++) {

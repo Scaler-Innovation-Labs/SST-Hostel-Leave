@@ -1,8 +1,5 @@
-import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { academicGroups } from "@/db/schema/academics";
+import { academicGroupRepository, type AcademicGroupRow } from "@/db/repositories/academics/academic-group.repository";
 
-export async function getAcademicGroupById(id: string) {
-  const [row] = await db.select().from(academicGroups).where(eq(academicGroups.id, id));
-  return row ?? null;
+export async function getAcademicGroupById(id: string): Promise<AcademicGroupRow | null> {
+  return academicGroupRepository.findById(id);
 }

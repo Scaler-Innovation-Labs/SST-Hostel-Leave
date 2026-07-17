@@ -2,7 +2,7 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event"
 import { OTP_EXPIRY_MINUTES } from "@/constants/parent/parent-approval"
 import { leaveRepository } from "@/db/repositories/leave/leave.repository"
-import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository"
+import { leaveParentApprovalRepository } from "@/db/repositories/leave/leave-parent-approval.repository"
 import { parentRepository } from "@/db/repositories/parent/parent.repository"
 import { parentOtpSessionRepository } from "@/db/repositories/parent/parent-otp-session.repository"
 import { sha256 } from "@/lib/crypto"
@@ -40,7 +40,7 @@ export async function sendParentOtp(
 ): Promise<SendOtpResult> {
   const tokenHash = await sha256(rawToken)
   const approval =
-    await leaveApprovalRepository.findByParentApprovalToken(tokenHash)
+    await leaveParentApprovalRepository.findByParentApprovalToken(tokenHash)
 
   if (!approval) {
     throw new NotFoundError("Approval")

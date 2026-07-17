@@ -3,7 +3,7 @@ import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { PARENT_APPROVAL_TOKEN_EXPIRY_HOURS } from "@/constants/parent/parent-approval";
-import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
+import { leaveParentApprovalRepository } from "@/db/repositories/leave/leave-parent-approval.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { sha256, toHex } from "@/lib/crypto";
 import { transaction } from "@/lib/db/transaction";
@@ -51,7 +51,7 @@ export async function generateParentApproval(
   );
 
   await transaction(async (tx) => {
-    await leaveApprovalRepository.updateParentApprovalToken(
+    await leaveParentApprovalRepository.updateParentApprovalToken(
       approvalStep.id,
       tokenHash,
       expiresAt,

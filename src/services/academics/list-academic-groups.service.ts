@@ -1,7 +1,5 @@
-import { asc } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { academicGroups } from "@/db/schema/academics";
+import { academicGroupRepository, type AcademicGroupRow } from "@/db/repositories/academics/academic-group.repository";
 
-export async function listAcademicGroups() {
-  return db.select().from(academicGroups).orderBy(asc(academicGroups.name));
+export async function listAcademicGroups(): Promise<AcademicGroupRow[]> {
+  return academicGroupRepository.findAll();
 }

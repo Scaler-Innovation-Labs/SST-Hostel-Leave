@@ -2,7 +2,7 @@ import { outboxRepository } from "@/db/repositories/outbox/outbox.repository";
 import { logger } from "@/lib/logger";
 import { processPendingEvents } from "@/services/outbox/outbox-worker.service";
 
-export async function runRetryOutboxJob() {
+export async function runRetryOutboxJob(): Promise<{ job: string; resetCount: number; processed: number; failed: number; skipped: number }> {
   const failedEvents = await outboxRepository.findFailed(100);
 
   let resetCount = 0;

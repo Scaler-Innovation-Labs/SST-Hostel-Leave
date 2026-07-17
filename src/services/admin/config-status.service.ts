@@ -1,22 +1,16 @@
 import { getConfig } from "@/lib/messaging"
 
-export type ProviderHealthStatus = {
-  healthy: boolean
-  provider: string
-}
-
 export type ConfigStatus = {
-  sms: {
-    configured: boolean
-    provider: string
-    authKey: boolean
-    senderId: boolean
-  }
   email: {
     configured: boolean
-    provider: string
-    region: boolean
+    apiKey: boolean
     fromEmail: boolean
+  }
+  sms: {
+    configured: boolean
+    accountSid: boolean
+    authToken: boolean
+    phoneNumber: boolean
   }
   slack: {
     configured: boolean
@@ -33,17 +27,14 @@ export type ConfigStatus = {
 export function getConfigStatus(): ConfigStatus {
   const config = getConfig()
 
-  const smsAuthKey = !!config.sms.msg91?.authKey
-  const smsSenderId = !!config.sms.msg91?.senderId
-  const smsConfigured = config.sms.provider === "twilio"
-    ? (!!config.sms.twilio?.accountSid && !!config.sms.twilio?.authToken && !!config.sms.twilio?.fromNumber)
-    : (smsAuthKey && smsSenderId)
+  const emailApiKey = !!config.email.resend?.apiKey
+  const emailFromEmail = !!config.email.resend?.fromEmail
+  const emailConfigured = emailApiKey && emailFromEmail
 
-  const emailRegion = !!config.email.ses?.region
-  const emailFromEmail = !!config.email.ses?.fromEmail
-  const emailConfigured = config.email.provider === "resend"
-    ? (!!config.email.resend?.apiKey && !!config.email.resend?.fromEmail)
-    : (emailRegion && emailFromEmail)
+  const smsAccountSid = !!config.sms.twilio?.accountSid
+  const smsAuthToken = !!config.sms.twilio?.authToken
+  const smsPhoneNumber = !!config.sms.twilio?.fromNumber
+  const smsConfigured = smsAccountSid && smsAuthToken && smsPhoneNumber
 
   const slackBotToken = !!process.env.SLACK_BOT_TOKEN
   const slackChannelId = !!process.env.SLACK_CHANNEL_ID
@@ -52,17 +43,16 @@ export function getConfigStatus(): ConfigStatus {
   const authSecret = !!process.env.AUTH_SECRET
 
   return {
-    sms: {
-      configured: smsConfigured,
-      provider: config.sms.provider,
-      authKey: smsAuthKey,
-      senderId: smsSenderId,
-    },
     email: {
       configured: emailConfigured,
-      provider: config.email.provider,
-      region: emailRegion,
+      apiKey: emailApiKey,
       fromEmail: emailFromEmail,
+    },
+    sms: {
+      configured: smsConfigured,
+      accountSid: smsAccountSid,
+      authToken: smsAuthToken,
+      phoneNumber: smsPhoneNumber,
     },
     slack: {
       configured: slackBotToken && slackChannelId,

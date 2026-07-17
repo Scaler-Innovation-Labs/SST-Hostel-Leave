@@ -156,6 +156,19 @@ export const workflowRepository = {
     return rows[0] ?? null;
   },
 
+  async findStepsByWorkflowIds(
+    ids: string[],
+    dbClient: WorkflowDbClient = db
+  ): Promise<WorkflowStep[]> {
+    const rows = await dbClient
+      .select()
+      .from(workflowSteps)
+      .where(inArray(workflowSteps.workflowDefinitionId, ids))
+      .orderBy(workflowSteps.stepOrder);
+
+    return rows;
+  },
+
   async findStepsByWorkflowId(
     workflowId: string,
     dbClient: WorkflowDbClient = db
