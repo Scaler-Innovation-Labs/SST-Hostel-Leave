@@ -4,13 +4,16 @@ import { NOTIFICATION_CHANNEL } from "@/constants/notification/notification-chan
 import type { NotificationDeliveryStatus } from "@/constants/notification/notification-delivery-status";
 import { NOTIFICATION_DELIVERY_STATUS } from "@/constants/notification/notification-delivery-status";
 import type { NotificationEvent } from "@/constants/notification/notification-event";
+import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event";
 import type { NotificationRecipientType } from "@/constants/notification/notification-recipient-type";
 import { NOTIFICATION_RECIPIENT_TYPE } from "@/constants/notification/notification-recipient-type";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
+import { ROLES } from "@/lib/auth/roles";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { notificationLogRepository } from "@/db/repositories/notification/notification-log.repository";
 import { notificationRuleRepository } from "@/db/repositories/notification/notification-rule.repository";
 import { notificationTemplateRepository } from "@/db/repositories/notification/notification-template.repository";
+import type { NotificationTemplate } from "@/db/repositories/notification/notification-template.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
@@ -31,6 +34,7 @@ export type NotificationContext = {
 	hostelId?: string;
 	recipientEmail?: string;
 	recipientPhone?: string;
+	templateCode?: string;
 	variables: Record<string, string>;
 };
 
@@ -149,7 +153,7 @@ async function resolveRecipientContacts(
 		case NOTIFICATION_RECIPIENT_TYPE.POC: {
 			const hostelId = context.hostelId ?? null;
 			if (!hostelId) return [];
-			const roleCode = recipientType === NOTIFICATION_RECIPIENT_TYPE.WARDEN ? "WARDEN" : "POC";
+			const roleCode = recipientType === NOTIFICATION_RECIPIENT_TYPE.WARDEN ? "WARDEN" : ROLES.POC;
 			const roleUserIds = await userRoleRepository.findUserIdsByRoleCode(roleCode);
 			if (roleUserIds.length === 0) return [];
 			const hostelUsers = await userRepository.findByIds(roleUserIds);
@@ -160,7 +164,7 @@ async function resolveRecipientContacts(
 
 		case NOTIFICATION_RECIPIENT_TYPE.ADMIN:
 		case NOTIFICATION_RECIPIENT_TYPE.SUPER_ADMIN: {
-			const roleCode = recipientType === NOTIFICATION_RECIPIENT_TYPE.ADMIN ? "ADMIN" : "SUPER_ADMIN";
+			const roleCode = recipientType === NOTIFICATION_RECIPIENT_TYPE.ADMIN ? ROLES.ADMIN : ROLES.SUPER_ADMIN;
 			const roleUserIds = await userRoleRepository.findUserIdsByRoleCode(roleCode);
 			if (roleUserIds.length === 0) return [];
 			const adminUsers = await userRepository.findByIds(roleUserIds);
@@ -198,7 +202,7 @@ async function getRecipientForChannel(
 async function deliverToRecipient(
 	eventType: NotificationEvent,
 	context: NotificationContext,
-	template: { templateBody: string; subject: string | null },
+	template: NotificationTemplate,
 	channel: NotificationChannel,
 	recipient: string,
 	userId?: string,
@@ -212,11 +216,16 @@ async function deliverToRecipient(
 		? resolveTemplate(template.subject, context.variables)
 		: undefined;
 
+	const providerMetadata: Record<string, unknown> | undefined =
+		(template.metadata as { providerMetadata?: Record<string, unknown> })?.providerMetadata;
+
 	const result: NotificationSendResult = await provider.send({
 		to: recipient,
 		subject: resolvedSubject,
 		body: resolvedBody,
 		metadata: context.variables,
+		templateCode: template.code,
+		providerMetadata,
 	});
 
 	const deliveryStatus: NotificationDeliveryStatus = result.success
@@ -247,6 +256,21 @@ export const notificationService = {
 		const failures: string[] = [];
 
 		try {
+			if (context.templateCode) {
+				const template = await notificationTemplateRepository.findByCode(context.templateCode);
+				if (template) {
+					const channel = template.channel as NotificationChannel;
+					const recipient = await getRecipientForChannel(
+						{ email: context.recipientEmail, phone: context.recipientPhone, userId: context.userId },
+						channel,
+					);
+					if (recipient) {
+						await deliverToRecipient(eventType, context, template, channel, recipient, context.userId, context.parentId);
+					}
+				}
+				return { success: true, failures };
+			}
+
 			const rules = await notificationRuleRepository.findActiveByEvent(
 				eventType,
 				context.leaveTypeId,
@@ -302,9 +326,36 @@ export const notificationService = {
 		return { success: failures.length === 0, failures };
 	},
 
-	async sendSms(to: string, body: string): Promise<void> {
+	async sendSms(
+		to: string,
+		body: string,
+		context?: {
+			eventType?: NotificationEvent;
+			leaveRequestId?: string;
+			leaveExtensionId?: string;
+			parentId?: string;
+			metadata?: Record<string, unknown>;
+		},
+	): Promise<void> {
 		const provider = createSmsProvider();
-		await provider.send({ to, body });
+		const result = await provider.send({ to, body });
+
+		await notificationLogRepository.create({
+			leaveRequestId: context?.leaveRequestId ?? null,
+			leaveExtensionId: context?.leaveExtensionId ?? null,
+			userId: null,
+			parentId: context?.parentId ?? null,
+			channel: NOTIFICATION_CHANNEL.SMS,
+			eventType: context?.eventType ?? NOTIFICATION_EVENT.LEAVE_SUBMITTED,
+			recipient: to,
+			deliveryStatus: result.success
+				? NOTIFICATION_DELIVERY_STATUS.SENT
+				: NOTIFICATION_DELIVERY_STATUS.FAILED,
+			providerResponse: result.error ?? null,
+			providerMessageId: result.messageId ?? null,
+			sentAt: result.success ? new Date() : null,
+			metadata: context?.metadata ?? null,
+		});
 	},
 
 	async notifyViaTemplates(

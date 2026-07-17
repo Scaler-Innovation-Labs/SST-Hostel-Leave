@@ -9,6 +9,7 @@ import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
@@ -119,8 +120,9 @@ async function handleLeaveDecision(
     }, tx);
   } else {
     const next =
-      await leaveApprovalRepository.findNextByDecision(
+      await leaveApprovalRepository.findNextByEntityAndDecision(
         approval.leaveRequestId!,
+        leaveApprovals.leaveRequestId,
         approval.stepOrder,
         LEAVE_APPROVAL_DECISION.PENDING,
         tx
@@ -224,8 +226,9 @@ async function handleExtensionDecision(
     }, tx);
   } else {
     const next =
-      await leaveApprovalRepository.findNextByDecisionForExtension(
+      await leaveApprovalRepository.findNextByEntityAndDecision(
         extensionId,
+        leaveApprovals.leaveExtensionId,
         approval.stepOrder,
         LEAVE_APPROVAL_DECISION.PENDING,
         tx

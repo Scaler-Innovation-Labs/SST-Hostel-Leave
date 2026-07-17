@@ -23,6 +23,10 @@ const pool =
 		connectionString: databaseUrl,
 	});
 
+pool.on("error", (err: unknown) => {
+	console.error("[db] Pool error:", err instanceof Error ? err.message : String(err));
+});
+
 const db =
 	globalForDb.db ??
 	drizzle(pool, {

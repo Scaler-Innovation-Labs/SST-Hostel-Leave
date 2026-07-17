@@ -5,6 +5,7 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { transaction } from "@/lib/db/transaction";
@@ -39,7 +40,7 @@ export const parentDashboardService = {
   async submitDecision(
     approvalId: string,
     parentId: string,
-    decision: "APPROVED" | "REJECTED",
+    decision: typeof LEAVE_APPROVAL_DECISION.APPROVED | typeof LEAVE_APPROVAL_DECISION.REJECTED,
     comments?: string
   ) {
     return await transaction(async (tx) => {
@@ -58,7 +59,7 @@ export const parentDashboardService = {
       );
 
       await auditService.record(
-        decision === "APPROVED" ? AUDIT_ACTION.APPROVE : AUDIT_ACTION.REJECT,
+        decision === LEAVE_APPROVAL_DECISION.APPROVED ? AUDIT_ACTION.APPROVE : AUDIT_ACTION.REJECT,
         AUDIT_ENTITY_TYPE.LEAVE_APPROVAL,
         approvalId,
         parentId,
@@ -70,7 +71,7 @@ export const parentDashboardService = {
 
       const now = new Date();
 
-      if (decision === "REJECTED") {
+      if (decision === LEAVE_APPROVAL_DECISION.REJECTED) {
         await leaveRepository.updateById(
           approval.leaveRequestId,
           { status: LEAVE_REQUEST_STATUS.REJECTED, rejectedAt: now, currentStepKey: null, currentStepOrder: null },
@@ -84,8 +85,9 @@ export const parentDashboardService = {
           payload: { leaveRequestId: approval.leaveRequestId },
         }, tx);
       } else {
-        const next = await leaveApprovalRepository.findNextByDecision(
+        const next = await leaveApprovalRepository.findNextByEntityAndDecision(
           approval.leaveRequestId,
+          leaveApprovals.leaveRequestId,
           approval.stepOrder,
           LEAVE_APPROVAL_DECISION.PENDING,
           tx
