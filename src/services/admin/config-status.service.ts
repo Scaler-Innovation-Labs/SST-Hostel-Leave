@@ -27,8 +27,8 @@ export type ConfigStatus = {
 export function getConfigStatus(): ConfigStatus {
   const config = getConfig()
 
-  const emailApiKey = !!config.email.resend?.apiKey
-  const emailFromEmail = !!config.email.resend?.fromEmail
+  const emailApiKey = !!process.env.EMAIL_SERVICE_API_KEY
+  const emailFromEmail = !!process.env.EMAIL_SERVICE_URL
   const emailConfigured = emailApiKey && emailFromEmail
 
   const smsAccountSid = !!config.sms.twilio?.accountSid

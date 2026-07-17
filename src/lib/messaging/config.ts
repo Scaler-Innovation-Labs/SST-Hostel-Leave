@@ -1,6 +1,6 @@
 export type SmsProviderType = "msg91" | "twilio"
 
-export type EmailProviderType = "ses" | "resend"
+export type EmailProviderType = "ses" | "resend" | "sst"
 
 export type MessagingConfig = {
   sms: {

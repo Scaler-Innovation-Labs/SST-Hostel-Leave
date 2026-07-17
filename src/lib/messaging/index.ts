@@ -2,6 +2,7 @@ import { getConfig } from "./config"
 import type { EmailProvider } from "./email/provider"
 import { ResendEmailProvider } from "./email/resend"
 import { SesEmailProvider } from "./email/ses"
+import { SstEmailProvider } from "./email/sst-service"
 import type { SmsProvider } from "./sms/provider"
 import { Msg91SmsProvider } from "./sms/msg91"
 import { TwilioSmsProvider } from "./sms/twilio"
@@ -42,6 +43,9 @@ export function createEmailProvider(): EmailProvider {
         break
       case "resend":
         emailProviderInstance = new ResendEmailProvider()
+        break
+      case "sst":
+        emailProviderInstance = new SstEmailProvider()
         break
       default:
         throw new Error(`Unknown email provider: ${config.email.provider}`)
