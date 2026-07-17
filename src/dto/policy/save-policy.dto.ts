@@ -1,13 +1,14 @@
 import { z } from "zod";
 
 export const POLICY_TYPES = [
-  "MAX_DAYS",
-  "BLOCK_DURING_PERIOD",
-  "RESTRICT_BATCH",
-  "REQUIRE_PARENT_APPROVAL",
-  "CURFEW_RESTRICTION",
-  "MAX_EXTENSION_COUNT",
-  "FORM_FIELD_RESTRICTION",
+  "FORM_VALIDATION",
+  "ELIGIBILITY",
+  "LIMIT",
+  "WORKFLOW",
+  "DOCUMENT_REQUIREMENT",
+  "QR_RULE",
+  "TIME_WINDOW",
+  "FEATURE_FLAG",
 ] as const;
 
 export const savePolicySchema = z.object({
@@ -23,16 +24,10 @@ export const savePolicySchema = z.object({
   startsAt: z.string().datetime().nullable().optional(),
   endsAt: z.string().datetime().nullable().optional(),
 }).superRefine((value, context) => {
-  const requiredConfig: Partial<Record<(typeof POLICY_TYPES)[number], string>> = {
-    MAX_DAYS: "maxDays",
-    BLOCK_DURING_PERIOD: "blockedPeriods",
-    RESTRICT_BATCH: "blockedBatchYears",
-    CURFEW_RESTRICTION: "latestReturnTime",
-    MAX_EXTENSION_COUNT: "maxExtensionCount",
-  };
-  const key = requiredConfig[value.policyType];
-  if (key && value.config[key] === undefined) {
-    context.addIssue({ code: "custom", path: ["config", key], message: `${key} is required` });
+  if (value.policyType === "TIME_WINDOW" && value.config.type === "BLOCKED_PERIOD") {
+    if (value.config.blockedPeriods === undefined) {
+      context.addIssue({ code: "custom", path: ["config", "blockedPeriods"], message: "blockedPeriods is required for BLOCKED_PERIOD" });
+    }
   }
   if (value.startsAt && value.endsAt && new Date(value.startsAt) >= new Date(value.endsAt)) {
     context.addIssue({ code: "custom", path: ["endsAt"], message: "endsAt must be after startsAt" });

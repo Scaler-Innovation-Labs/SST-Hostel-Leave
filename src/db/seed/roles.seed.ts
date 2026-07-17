@@ -1,5 +1,6 @@
 import { roles } from "@/db";
 import type { db } from "@/lib/db";
+import { ROLES } from "@/lib/auth/roles";
 
 export async function seedRoles(
   database: typeof db
@@ -8,23 +9,23 @@ export async function seedRoles(
     .insert(roles)
     .values([
       {
-        code: "SUPER_ADMIN",
+        code: ROLES.SUPER_ADMIN,
         name: "Super Admin",
       },
       {
-        code: "ADMIN",
+        code: ROLES.ADMIN,
         name: "Hostel Admin",
       },
       {
-        code: "POC",
+        code: ROLES.POC,
         name: "Point Of Contact",
       },
       {
-        code: "STUDENT",
+        code: ROLES.STUDENT,
         name: "Student",
       },
       {
-        code: "GUARD",
+        code: ROLES.GUARD,
         name: "Guard",
       },
     ])

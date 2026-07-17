@@ -25,6 +25,7 @@ import {
   leaveCategoryEnum,
   leaveDocumentStatusEnum,
   leaveStatusEnum,
+  qrModeEnum,
   workflowModeEnum,
 } from "./enums";
 import { hostels, parents } from "./hostel";
@@ -48,6 +49,10 @@ export const leaveTypes = pgTable("leave_types", {
   description: text("description"),
 
   formSchema: jsonb("form_schema").notNull(),
+
+  qrMode: qrModeEnum("qr_mode")
+    .default("BOTH")
+    .notNull(),
 
   policyConfig: jsonb("policy_config"),
 
@@ -158,10 +163,6 @@ export const leaveRequests = pgTable("leave_requests", {
   endAt: timestamp("end_at", {
     withTimezone: true,
   }).notNull(),
-
-  expectedReturnAt: timestamp("expected_return_at", {
-    withTimezone: true,
-  }),
 
   actualReturnAt: timestamp("actual_return_at", {
     withTimezone: true,

@@ -2,7 +2,7 @@ import { operationalPeriodRepository } from "@/db/repositories/policy/operationa
 import type { Policy } from "@/db/repositories/policy/policy.repository";
 import { policyRepository } from "@/db/repositories/policy/policy.repository";
 import { db } from "@/lib/db";
-import type { PolicyResult } from "@/types/policy/policy-result";
+import type { PolicyCheckEntry, PolicyResult } from "@/types/policy/policy-result";
 
 type PolicyEvaluationContext = {
   leaveType: {
@@ -16,7 +16,6 @@ type PolicyEvaluationContext = {
   studentBatchYear?: number;
   startAt?: Date;
   endAt?: Date;
-  expectedReturnAt?: Date;
   extensionCount?: number;
   hostelId?: string | null;
   studentDepartmentId?: string | null;
@@ -29,110 +28,154 @@ function evaluatePolicy(
   policy: Policy,
   context: PolicyEvaluationContext
 ): string | null {
+  const config = policy.config as Record<string, unknown>;
+  const ruleType = config.type as string | undefined;
+
   switch (policy.policyType) {
-    case "MAX_DAYS": {
-      const maxDays = (policy.config as { maxDays?: number }).maxDays;
-      if (
-        maxDays != null &&
-        context.leaveDurationDays != null &&
-        context.leaveDurationDays > maxDays
-      ) {
-        return `${policy.name}: Max ${maxDays} days allowed`;
-      }
-      return null;
-    }
-
-    case "RESTRICT_BATCH": {
-      const blockedBatchYears = (policy.config as { blockedBatchYears?: number[] })
-        .blockedBatchYears;
-      if (
-        blockedBatchYears?.length &&
-        context.studentBatchYear != null &&
-        blockedBatchYears.includes(context.studentBatchYear)
-      ) {
-        return `${policy.name}: Batch ${context.studentBatchYear} is restricted`;
-      }
-      return null;
-    }
-
-    case "CURFEW_RESTRICTION": {
-      const latestReturnTime = (policy.config as { latestReturnTime?: string })
-        .latestReturnTime;
-      if (!latestReturnTime || !context.expectedReturnAt) {
+    case "LIMIT": {
+      if (ruleType === "MAX_DAYS") {
+        const maxDays = config.maxDays as number | undefined;
+        if (
+          maxDays != null &&
+          context.leaveDurationDays != null &&
+          context.leaveDurationDays > maxDays
+        ) {
+          return `${policy.name}: Max ${maxDays} days allowed`;
+        }
         return null;
       }
 
-      const parts = latestReturnTime.split(":").map(Number);
-      if (parts.length !== 2 || parts.some(isNaN)) {
+      if (ruleType === "MAX_EXTENSION_COUNT") {
+        const maxExtensionCount = config.maxExtensionCount as number | undefined;
+        const effectiveMax = maxExtensionCount ?? context.leaveType.maxExtensionCount;
+        if (
+          effectiveMax != null &&
+          context.extensionCount != null &&
+          context.extensionCount >= effectiveMax
+        ) {
+          return `${policy.name}: Maximum ${effectiveMax} extensions allowed`;
+        }
         return null;
       }
-      const curfewHour = parts[0]!;
-      const curfewMinute = parts[1]!;
-      const returnHour = context.expectedReturnAt.getHours();
-      const returnMinute = context.expectedReturnAt.getMinutes();
+      return null;
+    }
 
-      if (
-        returnHour > curfewHour ||
-        (returnHour === curfewHour && returnMinute > curfewMinute)
-      ) {
-        return `${policy.name}: Expected return after curfew ${latestReturnTime}`;
+    case "ELIGIBILITY": {
+      if (ruleType === "BATCH_RESTRICTION") {
+        const blockedBatchYears = config.blockedBatchYears as number[] | undefined;
+        if (
+          blockedBatchYears?.length &&
+          context.studentBatchYear != null &&
+          blockedBatchYears.includes(context.studentBatchYear)
+        ) {
+          return `${policy.name}: Batch ${context.studentBatchYear} is restricted`;
+        }
+        return null;
       }
       return null;
     }
 
-    case "MAX_EXTENSION_COUNT": {
-      const maxExtensionCount = (policy.config as { maxExtensionCount?: number })
-        .maxExtensionCount;
-      const effectiveMax = maxExtensionCount ?? context.leaveType.maxExtensionCount;
-      if (
-        effectiveMax != null &&
-        context.extensionCount != null &&
-        context.extensionCount >= effectiveMax
-      ) {
-        return `${policy.name}: Maximum ${effectiveMax} extensions allowed`;
-      }
-      return null;
-    }
-
-    case "FORM_FIELD_RESTRICTION": {
-      const restrictions = (policy.config as { fieldRestrictions?: Array<{ fieldKey: string; disallowedValues?: string[]; patterns?: Array<{ regex: string; message: string }> }> }).fieldRestrictions;
-      if (!restrictions?.length || !context.submittedForm) return null;
-
-      for (const restriction of restrictions) {
-        const value = context.submittedForm[restriction.fieldKey];
-        if (!value || typeof value !== "string") continue;
-
-        if (restriction.disallowedValues?.includes(value)) {
-          return `${policy.name}: Value "${value}" is not allowed for this field`;
+    case "TIME_WINDOW": {
+      if (ruleType === "CURFEW") {
+        const latestReturnTime = config.latestReturnTime as string | undefined;
+        if (!latestReturnTime || !context.endAt) {
+          return null;
         }
 
-        if (restriction.patterns) {
-          for (const pattern of restriction.patterns) {
-            try {
-              if (new RegExp(pattern.regex).test(value)) {
-                return `${policy.name}: ${pattern.message}`;
+        const parts = latestReturnTime.split(":").map(Number);
+        if (parts.length !== 2 || parts.some(isNaN)) {
+          return null;
+        }
+        const curfewHour = parts[0]!;
+        const curfewMinute = parts[1]!;
+        const returnHour = context.endAt.getHours();
+        const returnMinute = context.endAt.getMinutes();
+
+        if (
+          returnHour > curfewHour ||
+          (returnHour === curfewHour && returnMinute > curfewMinute)
+        ) {
+          return `${policy.name}: Expected return after curfew ${latestReturnTime}`;
+        }
+        return null;
+      }
+
+      if (ruleType === "LEAVE_EXPIRY") {
+        return null;
+      }
+      return null;
+    }
+
+    case "FORM_VALIDATION": {
+      if (ruleType === "FIELD_RESTRICTION") {
+        const restrictions = config.fieldRestrictions as Array<{ fieldKey: string; disallowedValues?: string[]; patterns?: Array<{ regex: string; message: string }> }> | undefined;
+        if (!restrictions?.length || !context.submittedForm) return null;
+
+        for (const restriction of restrictions) {
+          const value = context.submittedForm[restriction.fieldKey];
+          if (!value || typeof value !== "string") continue;
+
+          if (restriction.disallowedValues?.includes(value)) {
+            return `${policy.name}: Value "${value}" is not allowed for this field`;
+          }
+
+          if (restriction.patterns) {
+            for (const pattern of restriction.patterns) {
+              try {
+                if (new RegExp(pattern.regex).test(value)) {
+                  return `${policy.name}: ${pattern.message}`;
+                }
+              } catch {
+                // Skip invalid regex
               }
-            } catch {
-              // Skip invalid regex
             }
           }
         }
+        return null;
+      }
+
+      if (ruleType === "WITHIN_DAYS") {
+        const maxDays = config.maxDays as number | undefined;
+        if (!maxDays || !context.submittedForm) return null;
+
+        const field = config.field as string | undefined;
+        if (!field) return null;
+
+        const dateStr = context.submittedForm[field] as string | undefined;
+        if (!dateStr) return null;
+
+        const targetDate = new Date(dateStr);
+        const now = new Date();
+        const diffMs = targetDate.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+        if (diffDays > maxDays) {
+          const message = (config.message as string) ?? `${field} must be within ${maxDays} days (${diffDays} days away)`;
+          return `${policy.name}: ${message}`;
+        }
+        return null;
       }
       return null;
     }
+
+    case "FEATURE_FLAG":
+    case "WORKFLOW":
+    case "DOCUMENT_REQUIREMENT":
+    case "QR_RULE":
+      return null;
 
     default:
       return null;
   }
 }
 
-async function evaluateBlockDuringPeriod(
+async function evaluateBlockedPeriod(
   policy: Policy,
   context: PolicyEvaluationContext,
   dbClient: PolicyDbClient,
 ): Promise<string | null> {
-  const blockedPeriods = (policy.config as { blockedPeriods?: string[] })
-    .blockedPeriods;
+  const config = policy.config as Record<string, unknown>;
+  const blockedPeriods = config.blockedPeriods as string[] | undefined;
   if (!blockedPeriods?.length || !context.startAt || !context.endAt) {
     return null;
   }
@@ -152,6 +195,17 @@ async function evaluateBlockDuringPeriod(
   return null;
 }
 
+const POLICY_TYPE_LABELS: Record<string, string> = {
+  FORM_VALIDATION: "Form Validation",
+  ELIGIBILITY: "Eligibility",
+  LIMIT: "Limit",
+  WORKFLOW: "Workflow",
+  DOCUMENT_REQUIREMENT: "Document Requirement",
+  QR_RULE: "QR Rule",
+  TIME_WINDOW: "Time Window",
+  FEATURE_FLAG: "Feature Flag",
+};
+
 export const policyEngine = {
   async evaluate(
     context: PolicyEvaluationContext,
@@ -170,16 +224,24 @@ export const policyEngine = {
 
     const restrictions: string[] = [];
     const requirements: string[] = [];
+    const checks: PolicyCheckEntry[] = [];
 
     for (const policy of activePolicies) {
-      if (policy.policyType === "REQUIRE_PARENT_APPROVAL") {
+      if (policy.policyType === "ELIGIBILITY" && (policy.config as Record<string, unknown>).type === "PARENT_APPROVAL_REQUIRED") {
         requirements.push(`${policy.name}: Parent approval required`);
+        checks.push({
+          key: policy.id,
+          label: POLICY_TYPE_LABELS[policy.policyType] ?? policy.name,
+          passed: true,
+          message: "Parent approval required",
+        });
         continue;
       }
+
       let restriction: string | null = null;
 
-      if (policy.policyType === "BLOCK_DURING_PERIOD") {
-        restriction = await evaluateBlockDuringPeriod(
+      if (policy.policyType === "TIME_WINDOW" && (policy.config as Record<string, unknown>).type === "BLOCKED_PERIOD") {
+        restriction = await evaluateBlockedPeriod(
           policy,
           context,
           dbClient
@@ -187,6 +249,13 @@ export const policyEngine = {
       } else {
         restriction = evaluatePolicy(policy, context);
       }
+
+      checks.push({
+        key: policy.id,
+        label: POLICY_TYPE_LABELS[policy.policyType] ?? policy.name,
+        passed: !restriction,
+        message: restriction ?? undefined,
+      });
 
       if (restriction) {
         restrictions.push(restriction);
@@ -198,6 +267,7 @@ export const policyEngine = {
       workflowId: context.leaveType.defaultWorkflowId,
       restrictions,
       requirements,
+      checks,
     };
   },
 };

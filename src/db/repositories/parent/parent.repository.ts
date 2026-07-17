@@ -24,6 +24,17 @@ export const parentRepository = {
     return rows[0] ?? null;
   },
 
+  async findByStudentId(
+    studentId: string,
+    dbClient: ParentReadClient = db
+  ): Promise<Parent[]> {
+    return await dbClient
+      .select()
+      .from(parents)
+      .where(eq(parents.studentId, studentId))
+      .orderBy(desc(parents.isPrimary), desc(parents.createdAt));
+  },
+
   async findPrimaryByStudentId(
     studentId: string,
     dbClient: ParentReadClient = db
@@ -55,9 +66,20 @@ export const parentRepository = {
     return rows[0] ?? null;
   },
 
+  async findAllByPhone(
+    phone: string,
+    dbClient: ParentReadClient = db
+  ): Promise<Parent[]> {
+    return await dbClient
+      .select()
+      .from(parents)
+      .where(eq(parents.phone, phone));
+  },
+
   async findAll(
     filters: {
       search?: string;
+      studentId?: string;
       page: number;
       limit: number;
     },
@@ -69,6 +91,10 @@ export const parentRepository = {
     totalPages: number;
   }> {
     const conditions: ReturnType<typeof and>[] = [];
+
+    if (filters.studentId) {
+      conditions.push(eq(parents.studentId, filters.studentId));
+    }
 
     if (filters.search) {
       const pattern = `%${filters.search}%`;

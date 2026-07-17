@@ -117,40 +117,84 @@ export const policies = pgTable("policies", {
 );
   
 // =====================================================
-// POLICY TYPES (REFERENCE)
+// POLICY TYPES
 // =====================================================
 
-// MAX_DAYS
-// BLOCK_DURING_PERIOD
-// RESTRICT_BATCH
-// REQUIRE_PARENT_APPROVAL
-// CURFEW_RESTRICTION
-// MAX_EXTENSION_COUNT
+// Generic types: FORM_VALIDATION, ELIGIBILITY, LIMIT,
+//   WORKFLOW, DOCUMENT_REQUIREMENT, QR_RULE, TIME_WINDOW,
+//   FEATURE_FLAG
+// Each uses config.type to specify the rule variant.
 
 // =====================================================
 // CONFIG EXAMPLES
 // =====================================================
 
-// MAX_DAYS
-// ----------
+// FORM_VALIDATION | type: WITHIN_DAYS
+// ------------------------------------
 // {
+//   "type": "WITHIN_DAYS",
+//   "field": "examDate",
+//   "maxDays": 30,
+//   "message": "Exam date must be within 30 days from today."
+// }
+
+// FORM_VALIDATION | type: FIELD_RESTRICTION
+// -------------------------------------------
+// {
+//   "type": "FIELD_RESTRICTION",
+//   "fieldRestrictions": [{ "fieldKey": "destination", "disallowedValues": [...] }]
+// }
+
+// LIMIT | type: MAX_DAYS
+// ------------------------
+// {
+//   "type": "MAX_DAYS",
 //   "maxDays": 7
 // }
 
-// BLOCK_DURING_PERIOD
-// --------------------
+// LIMIT | type: MAX_EXTENSION_COUNT
+// -----------------------------------
 // {
-//   "blockedPeriods": ["MID_EXAMS"]
+//   "type": "MAX_EXTENSION_COUNT",
+//   "maxExtensionCount": 2
 // }
 
-// RESTRICT_BATCH
-// ----------------
+// ELIGIBILITY | type: BATCH_RESTRICTION
+// ---------------------------------------
 // {
+//   "type": "BATCH_RESTRICTION",
 //   "blockedBatchYears": [2027]
 // }
 
-// CURFEW_RESTRICTION
-// -------------------
+// ELIGIBILITY | type: PARENT_APPROVAL_REQUIRED
+// ----------------------------------------------
 // {
+//   "type": "PARENT_APPROVAL_REQUIRED"
+// }
+
+// TIME_WINDOW | type: BLOCKED_PERIOD
+// ------------------------------------
+// {
+//   "type": "BLOCKED_PERIOD",
+//   "blockedPeriods": ["MID_EXAMS"]
+// }
+
+// TIME_WINDOW | type: CURFEW
+// ----------------------------
+// {
+//   "type": "CURFEW",
 //   "latestReturnTime": "20:00"
+// }
+
+// TIME_WINDOW | type: LEAVE_EXPIRY
+// ----------------------------------
+// {
+//   "type": "LEAVE_EXPIRY",
+//   "expireAfterHours": 24
+// }
+
+// FEATURE_FLAG
+// --------------
+// {
+//   "type": "some_flag"
 // }

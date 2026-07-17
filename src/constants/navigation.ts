@@ -141,6 +141,11 @@ export const NAVIGATION = {
       icon: Users,
     },
     {
+      label: "Students",
+      href: ROUTES.SUPER_ADMIN_STUDENTS,
+      icon: Users,
+    },
+    {
       label: "Parents",
       href: ROUTES.SUPER_ADMIN_PARENTS,
       icon: ShieldCheck,

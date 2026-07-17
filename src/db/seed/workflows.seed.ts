@@ -4,6 +4,83 @@ import {
   workflowSteps,
 } from "@/db";
 import type { db } from "@/lib/db";
+import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
+
+type WorkflowDef = {
+  code: string;
+  name: string;
+};
+
+type WorkflowStep = {
+  workflowCode: string;
+  stepKey: string;
+  stepOrder: number;
+  approverRoleCode?: string;
+  isParentApproval?: boolean;
+  approvalMethod?: string;
+};
+
+const WORKFLOW_DEFS: WorkflowDef[] = [
+  { code: "RE_EXAM", name: "Re Exam Workflow" },
+  { code: "LONG_LEAVE", name: "Long Leave Workflow" },
+  { code: "LATE_ENTRY", name: "Late Entry Workflow" },
+  { code: "LATE_STAY_COLLEGE", name: "Late Stay At College Workflow" },
+  { code: "DIFFERENT_HOSTEL", name: "Staying At Different Hostel Workflow" },
+  { code: "HOLIDAY", name: "Holidays Workflow" },
+  { code: "INTERNSHIP", name: "Internship Workflow" },
+  { code: "MARRIAGE_BEREAVEMENT", name: "Marriage / Relative Expired Workflow" },
+];
+
+const WORKFLOW_STEPS: WorkflowStep[] = [
+  // ==========================
+  // RE EXAM
+  // ==========================
+  { workflowCode: "RE_EXAM", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_AND_LINK" },
+  { workflowCode: "RE_EXAM", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 2, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
+
+  // ==========================
+  // LONG LEAVE
+  // ==========================
+  { workflowCode: "LONG_LEAVE", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_AND_LINK" },
+  { workflowCode: "LONG_LEAVE", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 2, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
+
+  // ==========================
+  // LATE ENTRY
+  // ==========================
+  { workflowCode: "LATE_ENTRY", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_AND_LINK" },
+  { workflowCode: "LATE_ENTRY", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 2, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
+
+  // ==========================
+  // LATE STAY COLLEGE
+  // ==========================
+  { workflowCode: "LATE_STAY_COLLEGE", stepKey: WORKFLOW_STEP_KEY.POC_APPROVAL, stepOrder: 1, approverRoleCode: "POC", approvalMethod: "PORTAL" },
+  { workflowCode: "LATE_STAY_COLLEGE", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 2, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
+
+  // ==========================
+  // DIFFERENT HOSTEL
+  // ==========================
+  { workflowCode: "DIFFERENT_HOSTEL", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_AND_LINK" },
+  { workflowCode: "DIFFERENT_HOSTEL", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 2, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
+
+  // ==========================
+  // HOLIDAY
+  // ==========================
+  { workflowCode: "HOLIDAY", stepKey: WORKFLOW_STEP_KEY.AUTO_APPROVAL, stepOrder: 1, approvalMethod: "AUTO" },
+
+  // ==========================
+  // INTERNSHIP
+  // ==========================
+  { workflowCode: "INTERNSHIP", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_AND_LINK" },
+  { workflowCode: "INTERNSHIP", stepKey: WORKFLOW_STEP_KEY.POC_APPROVAL, stepOrder: 2, approverRoleCode: "POC", approvalMethod: "PORTAL" },
+  { workflowCode: "INTERNSHIP", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 3, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
+
+  // ==========================
+  // MARRIAGE BEREAVEMENT
+  // ==========================
+  { workflowCode: "MARRIAGE_BEREAVEMENT", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_AND_LINK" },
+  { workflowCode: "MARRIAGE_BEREAVEMENT", stepKey: WORKFLOW_STEP_KEY.POC_APPROVAL, stepOrder: 2, approverRoleCode: "POC", approvalMethod: "PORTAL" },
+  { workflowCode: "MARRIAGE_BEREAVEMENT", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 3, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
+];
 
 export async function seedWorkflows(
   database: typeof db
@@ -19,42 +96,9 @@ export async function seedWorkflows(
     ])
   );
 
-  const pocRoleId =
-    roleMap.get("POC");
-
-  const adminRoleId =
-    roleMap.get("ADMIN");
-
-  if (!pocRoleId || !adminRoleId) {
-    throw new Error(
-      "Required roles not seeded"
-    );
-  }
-
   await database
     .insert(workflowDefinitions)
-    .values([
-      {
-        code: "HOME_PASS_SIMPLE",
-        name: "Home Pass Simple Workflow",
-      },
-      {
-        code: "HOME_PASS_EXTENDED",
-        name: "Home Pass Extended Workflow",
-      },
-      {
-        code: "MEDICAL_STANDARD",
-        name: "Medical Leave Workflow",
-      },
-      {
-        code: "LOCAL_OUTING_STANDARD",
-        name: "Local Outing Workflow",
-      },
-      {
-        code: "NIGHT_OUT_STANDARD",
-        name: "Night Out Workflow",
-      },
-    ])
+    .values(WORKFLOW_DEFS)
     .onConflictDoNothing();
 
   const definitions =
@@ -69,138 +113,22 @@ export async function seedWorkflows(
     ])
   );
 
+  const steps = WORKFLOW_STEPS.map((step) => ({
+    workflowDefinitionId:
+      workflowMap.get(
+        step.workflowCode
+      )!,
+    stepKey: step.stepKey,
+    stepOrder: step.stepOrder,
+    approverRoleId: step.approverRoleCode
+      ? roleMap.get(step.approverRoleCode)
+      : null,
+    isParentApproval: step.isParentApproval ?? false,
+    approvalMethod: step.approvalMethod as "SMS_REPLY" | "SMS_AND_LINK" | "SMS_LINK" | "PORTAL" | "AUTO" | undefined,
+  }));
+
   await database
     .insert(workflowSteps)
-    .values([
-      // ==================================
-      // HOME PASS SIMPLE
-      // ==================================
-
-      {
-        workflowDefinitionId:
-          workflowMap.get(
-            "HOME_PASS_SIMPLE"
-          )!,
-        stepKey: "POC_APPROVAL",
-        stepOrder: 1,
-        approverRoleId:
-          pocRoleId,
-        approvalMethod: "PORTAL",
-      },
-
-      // ==================================
-      // HOME PASS EXTENDED
-      // ==================================
-
-      {
-        workflowDefinitionId:
-          workflowMap.get(
-            "HOME_PASS_EXTENDED"
-          )!,
-        stepKey: "POC_APPROVAL",
-        stepOrder: 1,
-        approverRoleId:
-          pocRoleId,
-        approvalMethod: "PORTAL",
-      },
-
-      {
-        workflowDefinitionId:
-          workflowMap.get(
-            "HOME_PASS_EXTENDED"
-          )!,
-        stepKey: "ADMIN_APPROVAL",
-        stepOrder: 2,
-        approverRoleId:
-          adminRoleId,
-        approvalMethod: "PORTAL",
-      },
-
-      // ==================================
-      // MEDICAL
-      // ==================================
-
-      {
-        workflowDefinitionId:
-          workflowMap.get(
-            "MEDICAL_STANDARD"
-          )!,
-        stepKey:
-          "PARENT_APPROVAL",
-        stepOrder: 1,
-        isParentApproval: true,
-        approvalMethod: "SMS_AND_LINK",
-      },
-
-      {
-        workflowDefinitionId:
-          workflowMap.get(
-            "MEDICAL_STANDARD"
-          )!,
-        stepKey: "POC_APPROVAL",
-        stepOrder: 2,
-        approverRoleId:
-          pocRoleId,
-        approvalMethod: "PORTAL",
-      },
-
-      {
-        workflowDefinitionId:
-          workflowMap.get(
-            "MEDICAL_STANDARD"
-          )!,
-        stepKey:
-          "ADMIN_APPROVAL",
-        stepOrder: 3,
-        approverRoleId:
-          adminRoleId,
-        approvalMethod: "PORTAL",
-      },
-
-      // ==================================
-      // LOCAL OUTING
-      // ==================================
-
-      {
-        workflowDefinitionId:
-          workflowMap.get(
-            "LOCAL_OUTING_STANDARD"
-          )!,
-        stepKey: "POC_APPROVAL",
-        stepOrder: 1,
-        approverRoleId:
-          pocRoleId,
-        approvalMethod: "PORTAL",
-      },
-
-      // ==================================
-      // NIGHT OUT
-      // ==================================
-
-      {
-        workflowDefinitionId:
-          workflowMap.get(
-            "NIGHT_OUT_STANDARD"
-          )!,
-        stepKey: "POC_APPROVAL",
-        stepOrder: 1,
-        approverRoleId:
-          pocRoleId,
-        approvalMethod: "PORTAL",
-      },
-
-      {
-        workflowDefinitionId:
-          workflowMap.get(
-            "NIGHT_OUT_STANDARD"
-          )!,
-        stepKey:
-          "ADMIN_APPROVAL",
-        stepOrder: 2,
-        approverRoleId:
-          adminRoleId,
-        approvalMethod: "PORTAL",
-      },
-    ])
+    .values(steps)
     .onConflictDoNothing();
 }
