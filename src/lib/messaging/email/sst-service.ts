@@ -51,7 +51,7 @@ export class SstEmailProvider implements EmailProvider {
       }
     }
 
-    async function trySend(content: Record<string, unknown>): Promise<{ ok: boolean; json: SstSendResponse | SstErrorResponse }> {
+    const trySend = async (content: Record<string, unknown>): Promise<{ ok: boolean; json: SstSendResponse | SstErrorResponse }> => {
       const response = await fetch(`${this.baseUrl}/v1/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-API-Key": this.apiKey },

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const superadminOverrideSchema = z.object({
   mode: z.enum(["ONE_STEP", "ALL"], {
-    required_error: "mode is required (ONE_STEP or ALL)",
+    message: "mode must be ONE_STEP or ALL",
   }),
   comments: z.string().optional(),
 });
