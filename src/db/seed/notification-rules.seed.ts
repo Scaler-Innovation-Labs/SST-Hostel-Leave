@@ -1,4 +1,4 @@
-import { count, isNotNull } from "drizzle-orm";
+import { inArray, isNotNull } from "drizzle-orm";
 
 import { NOTIFICATION_CHANNEL } from "@/constants/notification/notification-channel";
 import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event";
@@ -42,7 +42,7 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
       {
         eventType: NOTIFICATION_EVENT.LEAVE_APPROVED,
         templateCode: "leave_approved_email_re_exam",
-        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT],
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT, NOTIFICATION_RECIPIENT_TYPE.PARENT],
         channels: [NOTIFICATION_CHANNEL.EMAIL],
         enabled: true,
         customRecipients: null,
@@ -71,7 +71,7 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
       {
         eventType: NOTIFICATION_EVENT.LEAVE_APPROVED,
         templateCode: "leave_approved_email_long_leave",
-        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT],
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT, NOTIFICATION_RECIPIENT_TYPE.PARENT],
         channels: [NOTIFICATION_CHANNEL.EMAIL],
         enabled: true,
         customRecipients: null,
@@ -100,7 +100,7 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
       {
         eventType: NOTIFICATION_EVENT.LEAVE_APPROVED,
         templateCode: "leave_approved_email_late_entry",
-        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT],
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT, NOTIFICATION_RECIPIENT_TYPE.PARENT],
         channels: [NOTIFICATION_CHANNEL.EMAIL],
         enabled: true,
         customRecipients: null,
@@ -129,7 +129,7 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
       {
         eventType: NOTIFICATION_EVENT.LEAVE_APPROVED,
         templateCode: "leave_approved_email_late_stay",
-        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT],
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT, NOTIFICATION_RECIPIENT_TYPE.PARENT],
         channels: [NOTIFICATION_CHANNEL.EMAIL],
         enabled: true,
         customRecipients: null,
@@ -150,7 +150,7 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
       {
         eventType: NOTIFICATION_EVENT.LEAVE_APPROVED,
         templateCode: "leave_approved_email_diff_hostel",
-        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT],
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT, NOTIFICATION_RECIPIENT_TYPE.PARENT],
         channels: [NOTIFICATION_CHANNEL.EMAIL],
         enabled: true,
         customRecipients: null,
@@ -179,7 +179,7 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
       {
         eventType: NOTIFICATION_EVENT.LEAVE_APPROVED,
         templateCode: "leave_approved_email_holiday",
-        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT],
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT, NOTIFICATION_RECIPIENT_TYPE.PARENT],
         channels: [NOTIFICATION_CHANNEL.EMAIL],
         enabled: true,
         customRecipients: null,
@@ -200,7 +200,7 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
       {
         eventType: NOTIFICATION_EVENT.LEAVE_APPROVED,
         templateCode: "leave_approved_email_internship",
-        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT],
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT, NOTIFICATION_RECIPIENT_TYPE.PARENT],
         channels: [NOTIFICATION_CHANNEL.EMAIL],
         enabled: true,
         customRecipients: null,
@@ -229,7 +229,7 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
       {
         eventType: NOTIFICATION_EVENT.LEAVE_APPROVED,
         templateCode: "leave_approved_email_marriage",
-        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT],
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT, NOTIFICATION_RECIPIENT_TYPE.PARENT],
         channels: [NOTIFICATION_CHANNEL.EMAIL],
         enabled: true,
         customRecipients: null,
@@ -247,14 +247,18 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
 ];
 
 export async function seedNotificationRules() {
-  const [row] = await db
-    .select({ count: count() })
+  const existingRules = await db
+    .select()
     .from(notificationRules)
     .where(isNotNull(notificationRules.leaveTypeId));
 
-  if (row?.count && row.count > 0) {
-    logger.info("Notification rules already exist — skipping");
-    return;
+  // Wipe existing rules to allow re-seeding after template changes
+  if (existingRules.length > 0) {
+    const existingIds = existingRules.map((r) => r.id);
+    await db.delete(notificationRuleChannels).where(inArray(notificationRuleChannels.ruleId, existingIds));
+    await db.delete(notificationRuleRecipients).where(inArray(notificationRuleRecipients.ruleId, existingIds));
+    await db.delete(notificationRules).where(inArray(notificationRules.id, existingIds));
+    logger.info("Re-seeding notification rules", { removed: existingRules.length });
   }
 
   const templates = await db.select().from(notificationTemplates);

@@ -1,4 +1,3 @@
-import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
 import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
@@ -6,8 +5,9 @@ import {
   NOTIFICATION_EVENT,
   type NotificationEvent,
 } from "@/constants/notification/notification-event";
-import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
+import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
@@ -218,18 +218,24 @@ export async function handleLeaveEvent(
     const currentState = student?.currentLocationState;
 
     if (eventType === OUTBOX_EVENT_TYPE.LEAVE_APPROVED) {
-      try {
-        await recordMovement({
-          studentId,
-          leaveRequestId: leaveId,
-          fromState: MOVEMENT_STATE.IN_HOSTEL,
-          toState: MOVEMENT_STATE.APPROVED_LEAVE,
-          eventType: MOVEMENT_EVENT.LEAVE_APPROVED,
-          movementMethod: MOVEMENT_METHOD.SYSTEM,
-        });
-        logger.info("Movement recorded for leave approval", { leaveId });
-      } catch (error) {
-        logger.error("Failed to record movement for leave approval", { leaveId, error: error instanceof Error ? error.message : String(error) });
+      if (currentState === MOVEMENT_STATE.APPROVED_LEAVE) {
+        logger.warn("Student already in APPROVED_LEAVE state — skipping movement recording for overlapping leave approval", { leaveId, studentId });
+      } else if (currentState !== MOVEMENT_STATE.IN_HOSTEL) {
+        logger.warn("Unexpected student state for leave approval — expected IN_HOSTEL or APPROVED_LEAVE, found", { currentState, leaveId, studentId });
+      } else {
+        try {
+          await recordMovement({
+            studentId,
+            leaveRequestId: leaveId,
+            fromState: MOVEMENT_STATE.IN_HOSTEL,
+            toState: MOVEMENT_STATE.APPROVED_LEAVE,
+            eventType: MOVEMENT_EVENT.LEAVE_APPROVED,
+            movementMethod: MOVEMENT_METHOD.SYSTEM,
+          });
+          logger.info("Movement recorded for leave approval", { leaveId });
+        } catch (error) {
+          logger.error("Failed to record movement for leave approval", { leaveId, error: error instanceof Error ? error.message : String(error) });
+        }
       }
     }
 

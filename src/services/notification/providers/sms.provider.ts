@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logger"
-import { SmsTemplate, createSmsProvider as createMessagingSmsProvider } from "@/lib/messaging"
+import { createSmsProvider as createMessagingSmsProvider,type SmsTemplate } from "@/lib/messaging"
 
 import type {
   NotificationPayload,
@@ -22,7 +22,7 @@ export function createSmsProvider() {
     ): Promise<NotificationSendResult> {
       try {
         const result = await getProvider().send({
-          to: payload.to,
+          to: payload.to as string,
           body: payload.body,
           template: payload.templateCode as SmsTemplate | undefined,
           variables: payload.metadata as Record<string, string> | undefined,

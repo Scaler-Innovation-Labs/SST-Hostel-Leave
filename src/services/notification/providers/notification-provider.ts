@@ -1,5 +1,5 @@
 export type NotificationPayload = {
-	to: string;
+	to: string | string[];
 	subject?: string;
 	body: string;
 	metadata?: Record<string, unknown>;

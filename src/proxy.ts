@@ -45,6 +45,8 @@ const isParentApproveRoute = createRouteMatcher([
 
 export default clerkMiddleware(
   async (auth, request: NextRequest) => {
+    const pathname = request.nextUrl.pathname;
+
     // ── Unauthenticated parent routes ───────────────────────────────
     // Parent login pages and OTP verification endpoints handle their
     // own auth internally. No proxy-level checks needed.
@@ -75,6 +77,15 @@ export default clerkMiddleware(
     // These use per-request tokens from SMS/email links.
     // Validation happens in the route handlers themselves.
     if (isParentApproveRoute(request)) {
+      return NextResponse.next();
+    }
+
+    // ── Root path — redirect authenticated users to their dashboard ─
+    if (pathname === "/") {
+      const authObj = await auth();
+      if (authObj.userId) {
+        return NextResponse.redirect(new URL("/redirect", request.url));
+      }
       return NextResponse.next();
     }
 

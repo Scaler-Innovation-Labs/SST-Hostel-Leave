@@ -8,15 +8,15 @@ import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event"
 import type { NotificationRecipientType } from "@/constants/notification/notification-recipient-type";
 import { NOTIFICATION_RECIPIENT_TYPE } from "@/constants/notification/notification-recipient-type";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
-import { ROLES } from "@/lib/auth/roles";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { notificationLogRepository } from "@/db/repositories/notification/notification-log.repository";
 import { notificationRuleRepository } from "@/db/repositories/notification/notification-rule.repository";
-import { notificationTemplateRepository } from "@/db/repositories/notification/notification-template.repository";
 import type { NotificationTemplate } from "@/db/repositories/notification/notification-template.repository";
+import { notificationTemplateRepository } from "@/db/repositories/notification/notification-template.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
+import { ROLES } from "@/lib/auth/roles";
 
 import { createEmailProvider } from "./providers/email.provider";
 import { createInAppProvider } from "./providers/in-app.provider";
@@ -204,7 +204,7 @@ async function deliverToRecipient(
 	context: NotificationContext,
 	template: NotificationTemplate,
 	channel: NotificationChannel,
-	recipient: string,
+	recipient: string | string[],
 	userId?: string,
 	parentId?: string,
 ): Promise<void> {
@@ -239,7 +239,7 @@ async function deliverToRecipient(
 		parentId: parentId ?? context.parentId ?? null,
 		channel,
 		eventType,
-		recipient,
+		recipient: Array.isArray(recipient) ? recipient.join(", ") : recipient,
 		deliveryStatus,
 		providerResponse: result.error ?? null,
 		providerMessageId: result.messageId ?? null,
@@ -291,29 +291,61 @@ export const notificationService = {
 
 				const resolvedChannels = rule.channels.map((c) => c.channel as NotificationChannel);
 
-				for (const rType of rule.recipients) {
-					const recipientType = rType.recipientType as NotificationRecipientType;
-					const contacts = await resolveRecipientContacts(recipientType, context);
+				// Resolve all recipient contacts for this rule
+				const recipientTypes = rule.recipients.map((r) => r.recipientType as NotificationRecipientType);
+				const allContacts: Array<{ type: NotificationRecipientType; email?: string; phone?: string; userId?: string; parentId?: string }> = [];
+				for (const rType of recipientTypes) {
+					const contacts = await resolveRecipientContacts(rType, context);
+					for (const c of contacts) {
+						allContacts.push({ type: rType, ...c });
+					}
+				}
 
-					for (const contact of contacts) {
-						for (const channel of resolvedChannels) {
-							const recipient = await getRecipientForChannel(contact, channel);
-							if (!recipient) continue;
+				for (const channel of resolvedChannels) {
+					// For email: batch all recipients into one send (student + parent get the same email)
+					if (channel === NOTIFICATION_CHANNEL.EMAIL) {
+						const emailAddresses = allContacts
+							.filter((c) => c.email)
+							.map((c) => c.email!);
+						const uniqueEmails = [...new Set(emailAddresses)];
+						if (uniqueEmails.length === 0) continue;
 
-							try {
-								await deliverToRecipient(
-									eventType,
-									context,
-									template,
-									channel,
-									recipient,
-									contact.userId,
-									contact.parentId,
-								);
-							} catch (deliveryError) {
-								const msg = `Failed to deliver ${channel} to ${recipient}: ${deliveryError instanceof Error ? deliveryError.message : String(deliveryError)}`;
-								failures.push(msg);
-							}
+						try {
+							const primaryContact = allContacts.find((c) => c.userId) ?? allContacts[0]!;
+							await deliverToRecipient(
+								eventType,
+								context,
+								template,
+								channel,
+								uniqueEmails,
+								primaryContact.userId,
+								primaryContact.parentId,
+							);
+						} catch (deliveryError) {
+							const msg = `Failed to deliver ${channel} to ${uniqueEmails.join(", ")}: ${deliveryError instanceof Error ? deliveryError.message : String(deliveryError)}`;
+							failures.push(msg);
+						}
+						continue;
+					}
+
+					// For non-email channels: send individually
+					for (const contact of allContacts) {
+						const recipient = await getRecipientForChannel(contact, channel);
+						if (!recipient) continue;
+
+						try {
+							await deliverToRecipient(
+								eventType,
+								context,
+								template,
+								channel,
+								recipient,
+								contact.userId,
+								contact.parentId,
+							);
+						} catch (deliveryError) {
+							const msg = `Failed to deliver ${channel} to ${recipient}: ${deliveryError instanceof Error ? deliveryError.message : String(deliveryError)}`;
+							failures.push(msg);
 						}
 					}
 				}

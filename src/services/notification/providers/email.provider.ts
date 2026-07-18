@@ -23,9 +23,10 @@ export function createEmailProvider() {
       payload: NotificationPayload,
     ): Promise<NotificationSendResult> {
       const actualTo = process.env.NODE_ENV === "development" ? DEV_REDIRECT_EMAIL : payload.to
+      const originalTo = Array.isArray(payload.to) ? payload.to.join(", ") : payload.to
 
-      if (process.env.NODE_ENV === "development" && actualTo !== payload.to) {
-        logger.info("Dev mode email redirect", { from: payload.to, to: actualTo, subject: payload.subject })
+      if (process.env.NODE_ENV === "development" && payload.to !== DEV_REDIRECT_EMAIL) {
+        logger.info("Dev mode email redirect", { from: originalTo, to: actualTo, subject: payload.subject })
       }
 
       try {
