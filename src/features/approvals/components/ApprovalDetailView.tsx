@@ -3,15 +3,24 @@
 import { format, formatDistanceToNow, parseISO } from "date-fns";
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowLeft,
+  Ban,
   Bell,
   Calendar,
   Check,
   CheckCircle2,
   Clock,
   Download,
+  ExternalLink,
+  Eye,
+  File,
+  FileArchive,
+  FileSpreadsheet,
   FileText,
   History,
+  Image,
+  Info,
   Loader2,
   Mail,
   MapPin,
@@ -19,26 +28,22 @@ import {
   Phone,
   QrCode,
   RefreshCw,
+  Send,
   Shield,
+  ShieldAlert,
   User,
   Users,
   X,
   XCircle,
-  Eye,
-  File,
-  Image,
-  FileSpreadsheet,
-  FileArchive,
-  ExternalLink,
-  AlertTriangle,
-  Info,
-  Send,
-  Ban,
+  Zap,
 } from "lucide-react";
-import { useMemo, useState, useCallback } from "react";
+import { useCallback,useMemo, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 
+import { ErrorState } from "@/components/shared/ErrorState";
+import { LoadingState } from "@/components/shared/LoadingState";
+import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -49,7 +54,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-
 import {
   Select,
   SelectContent,
@@ -63,16 +67,13 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { ErrorState } from "@/components/shared/ErrorState";
+import { CATEGORY_COLORS } from "@/constants/leave/leave-category";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
-import { LoadingState } from "@/components/shared/LoadingState";
-import { StatusBadge } from "@/components/shared/StatusBadge";
 import { useApprovalChain } from "@/features/approvals/hooks/use-approval-chain";
+import { useLeaves } from "@/features/leaves/hooks/use-leaves";
 import { useDocuments } from "@/hooks/use-documents";
 import { useMovement } from "@/hooks/use-movement";
-import { useLeaves } from "@/features/leaves/hooks/use-leaves";
-import { CATEGORY_COLORS } from "@/constants/leave/leave-category";
-import { approveLeave, rejectLeave } from "@/lib/api/approval-api";
+import { approveLeave, rejectLeave, superadminOverrideLeave } from "@/lib/api/approval-api";
 import { getLeaveUrl } from "@/lib/api/leave-api";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
@@ -452,6 +453,12 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
   const [notifyStudent, setNotifyStudent] = useState(true);
   const [documentsVerified, setDocumentsVerified] = useState(false);
 
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [overrideMode, setOverrideMode] = useState<"ONE_STEP" | "ALL">("ONE_STEP");
+  const [overrideLoading, setOverrideLoading] = useState(false);
+  const [overrideError, setOverrideError] = useState("");
+  const [overrideComments, setOverrideComments] = useState("");
+
   // ── Computed data ──
   const sortedApprovals = useMemo(() => {
     if (!approvals) return [];
@@ -476,6 +483,13 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
   const allApproved = useMemo(
     () => sortedApprovals.length > 0 && sortedApprovals.every((a) => a.decision === "approved" || a.decision === "auto_approved"),
     [sortedApprovals],
+  );
+
+  const [now] = useState(() => Date.now());
+
+  const hoursSinceCreation = useMemo(
+    () => createdAt ? Math.floor((now - new Date(createdAt).getTime()) / 3600000) : null,
+    [createdAt, now],
   );
 
   const hasParentApproval = !!parentApproval;
@@ -526,6 +540,23 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
       setActionLoading(false);
     }
   }, [actionTarget, comments, rejectionCategory, leaveId, leaveMutate, chainMutate, documentsVerified, isSpecialLeave]);
+
+  const handleOverride = useCallback(async () => {
+    setOverrideLoading(true);
+    setOverrideError("");
+    try {
+      await superadminOverrideLeave(leaveId, overrideMode, overrideComments || undefined);
+      toast.success(`Leave ${overrideMode === "ONE_STEP" ? "advanced one step" : "fully approved"}`);
+      setOverrideOpen(false);
+      setOverrideComments("");
+      await Promise.all([leaveMutate(), chainMutate()]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Override failed";
+      setOverrideError(message);
+    } finally {
+      setOverrideLoading(false);
+    }
+  }, [leaveId, overrideMode, overrideComments, leaveMutate, chainMutate]);
 
   // ── Early returns ──
   if (isLoading) return <LoadingState count={6} />;
@@ -1257,7 +1288,7 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
                 <span className="text-muted-foreground">SLA</span>
                 <span className="flex items-center gap-1 font-medium text-amber-600">
                   <Clock className="h-3 w-3" />
-                  {createdAt ? `${Math.floor((Date.now() - new Date(createdAt).getTime()) / 3600000)}h` : "—"}
+                  {hoursSinceCreation !== null ? `${hoursSinceCreation}h` : "—"}
                 </span>
               </div>
               {hasParentApproval && (
@@ -1322,6 +1353,17 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
                   <Download className="h-3.5 w-3.5" />
                   Download PDF
                 </Button>
+                <div className="border-t border-border pt-2.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setOverrideOpen(true); setOverrideError(""); }}
+                    className="w-full gap-1.5 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                    Superadmin Override
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -1562,6 +1604,88 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
                 <>
                   <XCircle className="h-4 w-4" />
                   Reject
+                </>
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ════════════ OVERRIDE DIALOG ════════════ */}
+      <AlertDialog open={overrideOpen} onOpenChange={setOverrideOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
+                <ShieldAlert className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <AlertDialogTitle className="text-lg">Superadmin Override</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Force-advance this leave request through the approval workflow.
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
+                Override Mode
+              </label>
+              <Select value={overrideMode} onValueChange={(v) => setOverrideMode(v as "ONE_STEP" | "ALL")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ONE_STEP">Advance One Step</SelectItem>
+                  <SelectItem value="ALL">Approve All (Finalize)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {overrideMode === "ONE_STEP"
+                  ? "Advances the leave to the next approval step. Workflow continues normally."
+                  : "Approves all pending steps and finalizes the leave. This is irreversible."}
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
+                Comment <span className="text-muted-foreground/50">(optional)</span>
+              </label>
+              <textarea
+                value={overrideComments}
+                onChange={(e) => setOverrideComments(e.target.value)}
+                placeholder="Reason for override..."
+                rows={2}
+                className="w-full rounded-lg border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-ring focus:ring-1 focus:ring-ring"
+              />
+            </div>
+
+            {overrideError && (
+              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+                {overrideError}
+              </div>
+            )}
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={overrideLoading}>Cancel</AlertDialogCancel>
+            <Button
+              variant="default"
+              onClick={handleOverride}
+              disabled={overrideLoading}
+              className="gap-2 bg-amber-600 hover:bg-amber-700"
+            >
+              {overrideLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Zap className="h-4 w-4" />
+                  {overrideMode === "ONE_STEP" ? "Advance One Step" : "Approve All"}
                 </>
               )}
             </Button>

@@ -19,13 +19,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ApprovalCommandCard } from "@/features/approvals/components/ApprovalCommandCard";
-import { computeDateRange, DATE_RANGE_OPTIONS } from "@/lib/date-utils";
-import { useApprovals } from "@/features/approvals/hooks/use-approvals";
-import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { VIEW_STEP_KEY, WORKFLOW_STEP_KEY, WORKFLOW_STEP_KEYS } from "@/constants/workflow/workflow-step-key";
+import { ApprovalCommandCard } from "@/features/approvals/components/ApprovalCommandCard";
+import { useApprovals } from "@/features/approvals/hooks/use-approvals";
+import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
+import { computeDateRange, DATE_RANGE_OPTIONS } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 
 // ── Step display mapping ──
@@ -115,6 +115,8 @@ export default function AdminApprovalsPage() {
     search: "",
   });
 
+  const [now] = useState(() => Date.now());
+
   const { leaveTypes } = useLeaveTypes();
   const { data: hostels } = useSWR<Array<{ id: string; name: string; code: string }>>("/api/v1/hostels", fetcher);
 
@@ -154,7 +156,7 @@ export default function AdminApprovalsPage() {
       items = items.filter((a) => {
         if (a.decision !== LEAVE_APPROVAL_DECISION.PENDING) return false;
         const created = new Date(a.createdAt);
-        const hoursSince = (Date.now() - created.getTime()) / (1000 * 60 * 60);
+        const hoursSince = (now - created.getTime()) / (1000 * 60 * 60);
         return hoursSince > OVERDUE_HOURS;
       });
     }
@@ -168,7 +170,7 @@ export default function AdminApprovalsPage() {
     }
 
     return items;
-  }, [approvals, filters.status, filters.waitingOn]);
+  }, [approvals, filters.status, filters.waitingOn, now]);
 
   // ── Step grouping for top cards ──
   const stepGroups = useMemo(() => {
@@ -196,9 +198,9 @@ export default function AdminApprovalsPage() {
       filteredApprovals.filter((a) => {
         if (a.decision !== LEAVE_APPROVAL_DECISION.PENDING) return false;
         const created = new Date(a.createdAt);
-        return (Date.now() - created.getTime()) / (1000 * 60 * 60) > OVERDUE_HOURS;
+        return (now - created.getTime()) / (1000 * 60 * 60) > OVERDUE_HOURS;
       }).length,
-    [filteredApprovals],
+    [filteredApprovals, now],
   );
 
   const hasActiveFilters = Object.values(filters).some((v) => v !== "");

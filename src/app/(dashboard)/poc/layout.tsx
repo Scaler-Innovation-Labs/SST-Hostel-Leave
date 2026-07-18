@@ -19,7 +19,7 @@ export default async function POCLayout({
 		redirect("/unauthorized");
 	}
 
-	if (!user.roles.includes(ROLES.POC)) {
+	if (!user.roles.some((r) => r === ROLES.POC || r === ROLES.ADMIN || r === ROLES.SUPER_ADMIN)) {
 		redirect("/unauthorized");
 	}
 

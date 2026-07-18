@@ -5,6 +5,7 @@ import {
   Bell,
   Building2,
   ClipboardList,
+  Eye,
   FileText,
   GraduationCap,
   Hotel,
@@ -69,6 +70,13 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { label: "Users", href: ROUTES.SUPER_ADMIN_USERS, icon: Users },
       { label: "Students", href: ROUTES.SUPER_ADMIN_STUDENTS, icon: GraduationCap },
       { label: "Parents", href: ROUTES.SUPER_ADMIN_PARENTS, icon: ShieldCheck },
+    ],
+  },
+  {
+    title: "POC View",
+    items: [
+      { label: "Dashboard", href: ROUTES.POC_DASHBOARD, icon: Eye },
+      { label: "Approvals", href: ROUTES.POC_APPROVALS, icon: FileText },
     ],
   },
   {

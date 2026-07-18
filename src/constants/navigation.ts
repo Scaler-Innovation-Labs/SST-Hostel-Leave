@@ -81,6 +81,16 @@ export const NAVIGATION = {
       href: ROUTES.ADMIN_SCANNER,
       icon: QrCode,
     },
+    {
+      label: "POC Dashboard",
+      href: ROUTES.POC_DASHBOARD,
+      icon: LayoutDashboard,
+    },
+    {
+      label: "POC Approvals",
+      href: ROUTES.POC_APPROVALS,
+      icon: FileText,
+    },
   ],
 
   poc: [

@@ -1,6 +1,5 @@
 import type { ListApprovalsQuery } from "@/dto/approval/list-approvals.dto";
 import { buildQueryString } from "@/lib/api/query-string";
-
 import type { ApiResponse } from "@/types/api";
 
 const BASE = "/api/v1";
@@ -35,6 +34,23 @@ export async function approveLeave(
   const json: ApiResponse = await res.json();
   if (!res.ok || !json.success) {
     throw new Error(json.error?.message ?? "Failed to approve leave");
+  }
+  return json.data;
+}
+
+export async function superadminOverrideLeave(
+  id: string,
+  mode: "ONE_STEP" | "ALL",
+  comments?: string
+): Promise<unknown> {
+  const res = await fetch(`${BASE}/admin/leaves/${id}/override`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode, comments }),
+  });
+  const json: ApiResponse = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message ?? "Failed to override leave");
   }
   return json.data;
 }

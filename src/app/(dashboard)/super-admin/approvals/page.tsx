@@ -3,7 +3,12 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((r) => r.data ?? r);
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) return [];
+  const r = await res.json();
+  return r.data ?? [];
+};
 
 const OVERDUE_LIMIT = 200;
 
@@ -19,13 +24,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ApprovalCommandCard } from "@/features/approvals/components/ApprovalCommandCard";
-import { computeDateRange, DATE_RANGE_OPTIONS } from "@/lib/date-utils";
-import { useApprovals } from "@/features/approvals/hooks/use-approvals";
-import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { VIEW_STEP_KEY, WORKFLOW_STEP_KEY, WORKFLOW_STEP_KEYS } from "@/constants/workflow/workflow-step-key";
+import { ApprovalCommandCard } from "@/features/approvals/components/ApprovalCommandCard";
+import { useApprovals } from "@/features/approvals/hooks/use-approvals";
+import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
+import { computeDateRange, DATE_RANGE_OPTIONS } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 
 // ── Step display mapping ──
@@ -116,6 +121,8 @@ export default function SuperAdminApprovalsPage() {
     search: "",
   });
 
+  const [now] = useState(() => Date.now());
+
   const { leaveTypes } = useLeaveTypes();
   const { data: hostels } = useSWR<Array<{ id: string; name: string; code: string }>>("/api/v1/hostels", fetcher);
 
@@ -155,7 +162,7 @@ export default function SuperAdminApprovalsPage() {
       items = items.filter((a) => {
         if (a.decision !== LEAVE_APPROVAL_DECISION.PENDING) return false;
         const created = new Date(a.createdAt);
-        const hoursSince = (Date.now() - created.getTime()) / (1000 * 60 * 60);
+        const hoursSince = (now - created.getTime()) / (1000 * 60 * 60);
         return hoursSince > OVERDUE_HOURS;
       });
     }
@@ -169,7 +176,7 @@ export default function SuperAdminApprovalsPage() {
     }
 
     return items;
-  }, [approvals, filters.status, filters.waitingOn]);
+  }, [approvals, filters.status, filters.waitingOn, now]);
 
   // ── Step grouping for top cards ──
   const stepGroups = useMemo(() => {
@@ -197,9 +204,9 @@ export default function SuperAdminApprovalsPage() {
       filteredApprovals.filter((a) => {
         if (a.decision !== LEAVE_APPROVAL_DECISION.PENDING) return false;
         const created = new Date(a.createdAt);
-        return (Date.now() - created.getTime()) / (1000 * 60 * 60) > OVERDUE_HOURS;
+        return (now - created.getTime()) / (1000 * 60 * 60) > OVERDUE_HOURS;
       }).length,
-    [filteredApprovals],
+    [filteredApprovals, now],
   );
 
   const hasActiveFilters = Object.values(filters).some((v) => v !== "");
