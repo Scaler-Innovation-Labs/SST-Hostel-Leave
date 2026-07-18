@@ -37,44 +37,63 @@ export class SstEmailProvider implements EmailProvider {
 
     const toAddresses = Array.from(new Set(Array.isArray(payload.to) ? payload.to : [payload.to]))
 
-    const descriptionHtml = payload.html ?? (payload.text ? payload.text.split("\n").map((l) => `<p>${l}</p>`).join("") : undefined)
+    function announcementContent(): Record<string, unknown> {
+      const descriptionHtml = (payload.html ?? payload.text ?? "").split("\n").map((l) => `<p>${l}</p>`).join("")
+      return {
+        templateId: "announcement",
+        variables: {
+          title: payload.subject,
+          authorName: "SST Hostel Leave",
+          dashboardUrl: process.env.NEXT_PUBLIC_BASE_URL ?? "https://sst-dashboard.com",
+          descriptionHtml,
+          category: payload.template ? payload.template.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) : "Notification",
+        },
+      }
+    }
 
-    try {
+    async function trySend(content: Record<string, unknown>): Promise<{ ok: boolean; json: SstSendResponse | SstErrorResponse }> {
       const response = await fetch(`${this.baseUrl}/v1/send`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-Key": this.apiKey,
-        },
+        headers: { "Content-Type": "application/json", "X-API-Key": this.apiKey },
         body: JSON.stringify({
           to: toAddresses,
           subject: payload.subject,
           replyTo: payload.replyTo,
           idempotencyKey: payload.template ? `${payload.template}-${Date.now()}` : undefined,
-          content: {
-            templateId: "announcement",
-            variables: {
-              title: payload.subject,
-              authorName: "SST Hostel Leave",
-              dashboardUrl: process.env.NEXT_PUBLIC_BASE_URL ?? "https://sst-dashboard.com",
-              descriptionHtml,
-              category: payload.template ? payload.template.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) : "Notification",
-            },
-          },
+          content,
         }),
       })
-
       const json = await response.json() as SstSendResponse | SstErrorResponse
+      return { ok: response.ok && json.success, json }
+    }
 
-      if (!response.ok || !json.success) {
-        const err = json as SstErrorResponse
-        logger.error("SST email service send failed", { status: response.status, code: err.code, message: err.message })
-        return { success: false, error: err.message ?? `SST email service returned ${response.status}` }
+    try {
+      let content: Record<string, unknown>
+      // Prefer raw HTML when payload.html is provided (requires raw-html scope on API key)
+      if (payload.html) {
+        content = { html: payload.html, text: payload.text ?? "" }
+        const result = await trySend(content)
+        if (result.ok) {
+          const data = (result.json as SstSendResponse).data
+          logger.info("SST email queued", { jobId: data.jobId, recipients: data.totalRecipients })
+          return { success: true, messageId: data.jobId }
+        }
+        const err = result.json as SstErrorResponse
+        logger.warn("Raw HTML send failed — falling back to announcement template", { status: err.status, code: err.code })
+        content = announcementContent()
+      } else {
+        content = announcementContent()
       }
 
-      const data = json.data
-      logger.info("SST email queued", { jobId: data.jobId, recipients: data.totalRecipients })
+      const { ok, json } = await trySend(content)
+      if (!ok) {
+        const err = json as SstErrorResponse
+        logger.error("SST email service send failed", { status: err.status, code: err.code, message: err.message })
+        return { success: false, error: err.message ?? `SST email service returned ${err.status}` }
+      }
 
+      const data = (json as SstSendResponse).data
+      logger.info("SST email queued", { jobId: data.jobId, recipients: data.totalRecipients })
       return { success: true, messageId: data.jobId }
     } catch (error) {
       logger.error("SST email service request failed", { error: error instanceof Error ? error.message : String(error) })

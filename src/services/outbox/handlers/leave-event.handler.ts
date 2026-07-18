@@ -37,6 +37,7 @@ type ResolvedContext = {
   phone?: string;
   variables: Record<string, string>;
   studentId?: string;
+  parentId?: string;
   leaveTypeId?: string;
   hostelId?: string;
 };
@@ -87,6 +88,7 @@ async function resolveContext(
   let hostelId: string | undefined;
 
   let studentRollNumber: string | undefined;
+  let parentId: string | undefined;
   if (resolvedStudentId) {
     const student = await studentRepository.findById(resolvedStudentId);
     if (student) {
@@ -97,6 +99,11 @@ async function resolveContext(
         email = user.email ?? undefined;
         phone = user.phone ?? undefined;
         hostelId = user.hostelId ?? undefined;
+      }
+      // Resolve parent for parent notification delivery
+      const parent = await parentRepository.findPrimaryByStudentId(resolvedStudentId);
+      if (parent) {
+        parentId = parent.id;
       }
     }
   }
@@ -144,6 +151,7 @@ async function resolveContext(
     phone,
     variables,
     studentId: resolvedStudentId,
+    parentId,
     leaveTypeId: leave?.leaveTypeId ?? undefined,
     hostelId,
   };
@@ -174,6 +182,7 @@ export async function handleLeaveEvent(
       leaveExtensionId: payload.extensionId as string | undefined,
       leaveTypeId: context.leaveTypeId,
       studentId: context.studentId ?? studentId,
+      parentId: context.parentId,
       hostelId: context.hostelId,
       userId: payload.userId as string | undefined,
       recipientEmail: context.email,

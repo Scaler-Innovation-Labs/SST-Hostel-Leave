@@ -14,9 +14,11 @@ type TemplateSeed = {
 
 const QR_SECTION =
   `<br>\n` +
+  `<img src="{{qrCodeUrl}}" alt="QR Code for Leave" style="display:block;margin:16px auto;max-width:200px;height:auto;" />\n` +
+  `<br>\n` +
   `<strong>QR Code for Leave:</strong> <a href="{{qrDashboardUrl}}">View your QR Code on Dashboard</a>\n` +
   `<br>\n<a href="{{leaveUrl}}">View Leave Details</a>\n` +
-  `<br>\n<small>Open the QR Code from your Dashboard when entering/exiting the hostel.</small>\n\n`;
+  `<br>\n<small>Scan or open the QR Code from your Dashboard when entering/exiting the hostel.</small>\n\n`;
 
 const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
   RE_EXAM: [

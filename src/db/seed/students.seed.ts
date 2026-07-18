@@ -43,12 +43,32 @@ export async function seedStudents(
     .onConflictDoNothing({ target: students.rollNumber })
     .returning({ id: students.id });
 
+  let studentId: string;
+
   if (studentRows.length === 0) {
-    logger.warn("Student already exists, skipping parent insert");
-    return;
+    // Student already exists – find their id to ensure parent is linked
+    const existing = await database
+      .select({ id: students.id })
+      .from(students)
+      .where(eq(students.userId, userId))
+      .limit(1);
+    if (existing.length === 0) return;
+    studentId = existing[0]!.id;
+  } else {
+    studentId = studentRows[0]!.id;
   }
 
-  const studentId = studentRows[0]!.id;
+  // Check if parent already exists for this student
+  const parentRows = await database
+    .select({ id: parents.id })
+    .from(parents)
+    .where(eq(parents.studentId, studentId))
+    .limit(1);
+
+  if (parentRows.length > 0) {
+    logger.info("Parent already exists for student, skipping parent insert");
+    return;
+  }
 
   await database.insert(parents).values({
     studentId,
@@ -58,4 +78,6 @@ export async function seedStudents(
     relationship: "Father",
     isPrimary: true,
   });
+
+  logger.info("Parent inserted for student", { studentId });
 }
