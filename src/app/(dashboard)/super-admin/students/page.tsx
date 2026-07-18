@@ -2,6 +2,7 @@
 
 import { Plus, Save, Search, Trash2, Upload, UserPlus, Users } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
 import useSWR from "swr";
 import * as XLSX from "xlsx";
 
@@ -202,8 +203,8 @@ export default function SuperAdminStudentsPage() {
         setDraft(EMPTY_DRAFT);
         await mutate();
       }
-    } catch {
-      /* ignore */
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save student");
     } finally {
       setSaving(null);
     }
@@ -217,8 +218,8 @@ export default function SuperAdminStudentsPage() {
       if (!json.success) throw new Error(json.error?.message);
       if (draft.id === id) setDraft(EMPTY_DRAFT);
       await mutate();
-    } catch {
-      /* ignore */
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete student");
     }
   };
 
@@ -242,8 +243,8 @@ export default function SuperAdminStudentsPage() {
       if (!json.success) throw new Error(json.error?.message);
       setParentForm(EMPTY_PARENT_FORM);
       await mutateParents();
-    } catch {
-      /* ignore */
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to add parent");
     } finally {
       setSavingParent(false);
     }
@@ -256,8 +257,8 @@ export default function SuperAdminStudentsPage() {
       const json = await res.json();
       if (!json.success) throw new Error(json.error?.message);
       await mutateParents();
-    } catch {
-      /* ignore */
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete parent");
     }
   };
 

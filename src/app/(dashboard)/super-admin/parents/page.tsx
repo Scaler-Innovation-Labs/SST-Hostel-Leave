@@ -2,6 +2,7 @@
 
 import { Plus, Save, Search, Trash2, Upload, X } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
 import useSWR from "swr";
 import * as XLSX from "xlsx";
 
@@ -142,8 +143,8 @@ export default function SuperAdminParentsPage() {
         setDraft(EMPTY_DRAFT);
         await mutate();
       }
-    } catch {
-      /* ignore */
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save parent");
     } finally {
       setSaving(null);
     }
@@ -157,8 +158,8 @@ export default function SuperAdminParentsPage() {
       if (!json.success) throw new Error(json.error?.message);
       if (draft.id === id) setDraft(EMPTY_DRAFT);
       await mutate();
-    } catch {
-      /* ignore */
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete parent");
     }
   };
 

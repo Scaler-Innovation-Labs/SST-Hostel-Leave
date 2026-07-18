@@ -37,7 +37,11 @@ export class ApiResponse {
     }
 
     if (error instanceof ZodError) {
-      return this.error("VALIDATION_ERROR", error.message, 400);
+      const messages = error.issues.map((issue) => {
+        const field = issue.path.length > 0 ? `${issue.path.join(".")}: ` : "";
+        return `${field}${issue.message}`;
+      });
+      return this.error("VALIDATION_ERROR", messages.join("; "), 400);
     }
 
     if (error instanceof Error) {

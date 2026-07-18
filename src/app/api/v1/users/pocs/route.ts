@@ -6,7 +6,7 @@ import { listUsers } from "@/services/user/list-users.service";
 
 export async function GET() {
   try {
-    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.POC]);
+    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.POC, ROLES.STUDENT]);
 
     const result = await listUsers({
       page: 1,
