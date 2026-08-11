@@ -8,6 +8,7 @@ import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event"
 import type { NotificationRecipientType } from "@/constants/notification/notification-recipient-type";
 import { NOTIFICATION_RECIPIENT_TYPE } from "@/constants/notification/notification-recipient-type";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
+import { hostelRepository } from "@/db/repositories/hostel/hostel.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { notificationLogRepository } from "@/db/repositories/notification/notification-log.repository";
 import { notificationRuleRepository } from "@/db/repositories/notification/notification-rule.repository";
@@ -35,6 +36,8 @@ export type NotificationContext = {
 	recipientEmail?: string;
 	recipientPhone?: string;
 	templateCode?: string;
+	/** Emails to CC on emails dispatched for this event. */
+	cc?: string[];
 	variables: Record<string, string>;
 };
 
@@ -199,6 +202,19 @@ async function getRecipientForChannel(
 	}
 }
 
+/**
+ * Slack ids to CC on messages tied to a hostel: the hostel's admin and POC
+ * user groups (configured on the hostel). Empty when unset.
+ */
+async function resolveSlackMentions(hostelId?: string): Promise<string[]> {
+	if (!hostelId) return [];
+	const hostel = await hostelRepository.findById(hostelId);
+	if (!hostel) return [];
+	return [hostel.slackAdminGroupId, hostel.slackPocGroupId].filter(
+		(id): id is string => !!id && id.length > 0
+	);
+}
+
 async function deliverToRecipient(
 	eventType: NotificationEvent,
 	context: NotificationContext,
@@ -219,6 +235,16 @@ async function deliverToRecipient(
 	const providerMetadata: Record<string, unknown> | undefined =
 		(template.metadata as { providerMetadata?: Record<string, unknown> })?.providerMetadata;
 
+	const mentions =
+		channel === NOTIFICATION_CHANNEL.SLACK
+			? await resolveSlackMentions(context.hostelId)
+			: [];
+
+	const cc =
+		channel === NOTIFICATION_CHANNEL.EMAIL && context.cc && context.cc.length > 0
+			? context.cc
+			: undefined;
+
 	const result: NotificationSendResult = await provider.send({
 		to: recipient,
 		subject: resolvedSubject,
@@ -226,11 +252,17 @@ async function deliverToRecipient(
 		metadata: context.variables,
 		templateCode: template.code,
 		providerMetadata,
+		mentions,
+		cc,
 	});
 
 	const deliveryStatus: NotificationDeliveryStatus = result.success
 		? NOTIFICATION_DELIVERY_STATUS.SENT
 		: NOTIFICATION_DELIVERY_STATUS.FAILED;
+
+	const logMetadata = { ...context.variables };
+	if (mentions.length > 0) logMetadata.slackMentions = mentions.join(", ");
+	if (cc && cc.length > 0) logMetadata.ccEmails = cc.join(", ");
 
 	await notificationLogRepository.create({
 		leaveRequestId: context.leaveRequestId ?? null,
@@ -244,7 +276,7 @@ async function deliverToRecipient(
 		providerResponse: result.error ?? null,
 		providerMessageId: result.messageId ?? null,
 		sentAt: result.success ? new Date() : null,
-		metadata: context.variables,
+		metadata: logMetadata,
 	});
 }
 

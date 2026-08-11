@@ -48,7 +48,10 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     return null;
   }
 
-  const roleCodes = await userRoleRepository.findRoleCodesByUserId(dbUser.id);
+  const [roleCodes, roleScopes] = await Promise.all([
+    userRoleRepository.findRoleCodesByUserId(dbUser.id),
+    userRoleRepository.findRoleScopesByUserId(dbUser.id),
+  ]);
   const roles = roleCodes.filter(isRole);
 
   const currentUserValue: CurrentUser = {
@@ -56,6 +59,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     clerkId: clerkUser.id,
     email,
     roles,
+    roleScopes,
   };
 
   return currentUserValue;

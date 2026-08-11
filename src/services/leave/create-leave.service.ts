@@ -255,7 +255,7 @@ export async function createLeave(
         continue;
       }
 
-      if (step.isParentApproval && (!method || method === "SMS_REPLY" || method === "SMS_AND_LINK")) {
+      if (step.isParentApproval) {
         const approvalId = stepKeyToApprovalId.get(step.stepKey);
         if (!approvalId) continue;
 

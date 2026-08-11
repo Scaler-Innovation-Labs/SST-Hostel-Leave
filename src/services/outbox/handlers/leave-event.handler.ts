@@ -40,6 +40,7 @@ type ResolvedContext = {
   parentId?: string;
   leaveTypeId?: string;
   hostelId?: string;
+  cc?: string[];
 };
 
 function formatDate(date: Date): string {
@@ -136,14 +137,21 @@ async function resolveContext(
 
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
 
+  // CC recipients supplied at approval time (e.g. extra recipients on the
+  // student email). Only string emails are honoured.
+  const rawCc = payload.ccEmails;
+  const cc = Array.isArray(rawCc)
+    ? rawCc.filter((email): email is string => typeof email === "string" && email.trim().length > 0)
+    : undefined;
+
   // Attach QR dashboard link, leave link, and QR code image for approval notifications
   if (
     eventType === OUTBOX_EVENT_TYPE.LEAVE_APPROVED ||
     eventType === OUTBOX_EVENT_TYPE.LEAVE_EXTENSION_APPROVED
   ) {
-    variables.qrDashboardUrl = `${baseUrl}/student/qr`;
+    variables.qrDashboardUrl = `${baseUrl}/student/dashboard`;
     variables.leaveUrl = `${baseUrl}/student/leaves/${leaveId}`;
-    variables.qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${baseUrl}/student/qr`)}`;
+    variables.qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${baseUrl}/student/dashboard`)}`;
   }
 
   return {
@@ -154,6 +162,7 @@ async function resolveContext(
     parentId,
     leaveTypeId: leave?.leaveTypeId ?? undefined,
     hostelId,
+    cc,
   };
 }
 
@@ -187,6 +196,7 @@ export async function handleLeaveEvent(
       userId: payload.userId as string | undefined,
       recipientEmail: context.email,
       recipientPhone: context.phone,
+      cc: context.cc,
       variables: context.variables,
     });
 

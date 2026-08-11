@@ -2,13 +2,17 @@ import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import { QR_STATUS } from "@/constants/movement/qr-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
+import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import type { ApproveLeaveDto } from "@/dto/leave/approve-leave.dto";
+import type { CurrentUser } from "@/lib/auth/types";
+import { sha256, toHex } from "@/lib/crypto";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
@@ -20,6 +24,7 @@ import {
   updateApprovalAndAudit,
 } from "@/services/leave/shared-approval.service";
 import { outboxService } from "@/services/outbox/outbox.service";
+import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
 export type ApproveLeaveResult = {
   leaveId: string;
@@ -34,12 +39,14 @@ export type ApproveLeaveResult = {
 export async function approveLeave(
   leaveId: string,
   dto: ApproveLeaveDto,
-  currentUser: { id: string; roles: string[] }
+  currentUser: CurrentUser
 ): Promise<ApproveLeaveResult> {
   return await transaction(async (tx) => {
     const leaveInTx = await leaveRepository.findByIdForUpdate(leaveId, tx);
 
     if (!leaveInTx) throw new NotFoundError("LeaveRequest");
+
+    await assertCanAccessLeave(currentUser, leaveInTx);
 
     if (leaveInTx.status !== LEAVE_REQUEST_STATUS.PENDING) {
       throw new ConflictError("Leave is not in a state that can be approved");
@@ -183,8 +190,38 @@ export async function approveLeave(
         leaveId,
         studentId: leaveInTx.studentId,
         decision: LEAVE_APPROVAL_DECISION.APPROVED,
+        ccEmails: dto.ccEmails ?? [],
       },
     }, tx);
+
+    const leaveType = await leaveTypeRepository.findById(leaveInTx.leaveTypeId, tx);
+    if (leaveType && leaveType.qrMode !== "NONE") {
+      const raw = new Uint8Array(32);
+      crypto.getRandomValues(raw);
+      const token = toHex(raw);
+      const tokenHash = await sha256(token);
+      const qrType = leaveType.qrMode === "RETURN_ONLY" ? "LEAVE_RETURN" : "LEAVE_EXIT";
+
+      await qrPassRepository.create({
+        leaveRequestId: leaveId,
+        studentId: leaveInTx.studentId,
+        qrType,
+        tokenHash,
+        status: QR_STATUS.ACTIVE,
+        expiresAt: null,
+      }, tx);
+
+      await outboxService.publish({
+        eventType: OUTBOX_EVENT_TYPE.QR_GENERATED,
+        aggregateType: AGGREGATE_TYPE.QR_PASS,
+        aggregateId: leaveId,
+        payload: {
+          leaveRequestId: leaveId,
+          studentId: leaveInTx.studentId,
+          qrType,
+        },
+      }, tx);
+    }
 
     return {
       leaveId,

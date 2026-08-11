@@ -35,6 +35,7 @@ export function createEmailProvider() {
           subject: payload.subject ?? "No Subject",
           text: payload.body,
           html: payload.body.split("\n").map((line) => `<p>${line}</p>`).join(""),
+          cc: payload.cc && payload.cc.length > 0 ? payload.cc : undefined,
         })
 
         return {

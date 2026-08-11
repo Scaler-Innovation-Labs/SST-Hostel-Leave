@@ -68,6 +68,10 @@ vi.mock("@/services/audit/audit.service", () => ({
   },
 }));
 
+vi.mock("@/services/shared/authorization.service", () => ({
+  assertCanAccessLeave: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("@/services/movement/record-movement.service", () => ({
   recordMovement: (...args: any[]) => mockRecordMovement(...args),
 }));

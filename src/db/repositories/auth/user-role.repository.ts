@@ -1,9 +1,9 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 import { roles, userRoles } from "@/db";
 import { db } from "@/lib/db";
 
-type DbClient = Pick<typeof db, "select" | "insert">;
+type DbClient = Pick<typeof db, "select" | "insert" | "delete">;
 
 export const userRoleRepository = {
   async findRoleCodesByUserId(
@@ -28,6 +28,40 @@ export const userRoleRepository = {
       );
   },
 
+  /**
+   * Returns each role assignment with its scope (if any).
+   * A row with a null scope means unrestricted access for that role.
+   */
+  async findRoleScopesByUserId(
+    userId: string,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<
+    Array<{
+      roleCode: string;
+      scopeType: string | null;
+      scopeId: string | null;
+    }>
+  > {
+    const rows = await dbClient
+      .select({
+        roleCode: roles.code,
+        scopeType: userRoles.scopeType,
+        scopeId: userRoles.scopeId,
+      })
+      .from(userRoles)
+      .innerJoin(
+        roles,
+        eq(userRoles.roleId, roles.id)
+      )
+      .where(eq(userRoles.userId, userId));
+
+    return rows.map((row) => ({
+      roleCode: row.roleCode,
+      scopeType: row.scopeType ?? null,
+      scopeId: row.scopeId ?? null,
+    }));
+  },
+
   async findRolesByCodes(
     codes: string[],
     dbClient: Pick<typeof db, "select"> = db
@@ -42,11 +76,22 @@ export const userRoleRepository = {
   async create(
     userId: string,
     roleId: string,
-    dbClient: DbClient = db
+    dbClient: DbClient = db,
+    assignment?: {
+      scopeType?: string | null;
+      scopeId?: string | null;
+      assignedBy?: string | null;
+    }
   ) {
     const rows = await dbClient
       .insert(userRoles)
-      .values({ userId, roleId })
+      .values({
+        userId,
+        roleId,
+        scopeType: assignment?.scopeType ?? null,
+        scopeId: assignment?.scopeId ?? null,
+        assignedBy: assignment?.assignedBy ?? null,
+      })
       .onConflictDoNothing()
       .returning();
 
@@ -63,6 +108,45 @@ export const userRoleRepository = {
       .innerJoin(roles, eq(userRoles.roleId, roles.id))
       .where(eq(roles.code, roleCode));
     return rows.map((r) => r.userId);
+  },
+
+  /**
+   * Replaces the scoped assignment rows for a (user, role, scopeType)
+   * triplet. Scope ids list is the full desired set — rows outside the
+   * set are deleted, absent rows are inserted.
+   */
+  async replaceRoleScopes(
+    userId: string,
+    roleId: string,
+    scopeType: string,
+    scopeIds: string[],
+    dbClient: DbClient = db,
+    assignedBy?: string | null
+  ): Promise<void> {
+    await dbClient
+      .delete(userRoles)
+      .where(
+        and(
+          eq(userRoles.userId, userId),
+          eq(userRoles.roleId, roleId),
+          eq(userRoles.scopeType, scopeType)
+        )
+      );
+
+    if (scopeIds.length > 0) {
+      await dbClient
+        .insert(userRoles)
+        .values(
+          scopeIds.map((scopeId) => ({
+            userId,
+            roleId,
+            scopeType,
+            scopeId,
+            assignedBy: assignedBy ?? null,
+          }))
+        )
+        .onConflictDoNothing();
+    }
   },
 };
 

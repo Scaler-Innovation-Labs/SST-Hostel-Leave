@@ -8,9 +8,9 @@ import {
   index,
   jsonb,
   pgTable,
-  primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -103,6 +103,8 @@ export const roles = pgTable("roles", {
 export const userRoles = pgTable(
   "user_roles",
   {
+    id: uuid("id").defaultRandom().primaryKey(),
+
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, {
@@ -115,6 +117,20 @@ export const userRoles = pgTable(
         onDelete: "cascade",
       }),
 
+    /**
+     * Optional scope limiting this role assignment's visibility,
+     * e.g. HOSTEL / DEPARTMENT / CAMPUS. Null means unrestricted (ALL).
+     */
+    scopeType: text("scope_type"),
+
+    /** Id of the scope entity (hostel id, department id, campus id...). */
+    scopeId: uuid("scope_id"),
+
+    /** User who assigned this role (audit trail). */
+    assignedBy: uuid("assigned_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+
     assignedAt: timestamp("assigned_at", {
       withTimezone: true,
     })
@@ -122,9 +138,14 @@ export const userRoles = pgTable(
       .notNull(),
   },
   (table) => ({
-    pk: primaryKey({
-      columns: [table.userId, table.roleId],
-    }),
+    // A user may hold the same role multiple times with different scopes
+    // (e.g. ADMIN over Hostel A and Hostel B).
+    userRoleScopeUnq: uniqueIndex("user_roles_user_role_scope_unq").on(
+      table.userId,
+      table.roleId,
+      table.scopeType,
+      table.scopeId
+    ),
   })
 );
 

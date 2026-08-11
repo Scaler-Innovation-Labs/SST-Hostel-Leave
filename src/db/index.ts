@@ -4,6 +4,7 @@ export * from "./schema/auth";
 export * from "./schema/enums";
 export * from "./schema/hostel";
 export * from "./schema/leave";
+export * from "./schema/leave-question";
 export * from "./schema/movement";
 export * from "./schema/notification";
 export * from "./schema/notification-rules";

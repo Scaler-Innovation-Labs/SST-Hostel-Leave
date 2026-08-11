@@ -11,6 +11,7 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
 
 vi.mock("@/services/shared/authorization.service", () => ({
   verifyStudentOwnership: vi.fn().mockResolvedValue(undefined),
+  assertCanAccessLeave: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { getLeave } from "@/services/leave/get-leave.service";

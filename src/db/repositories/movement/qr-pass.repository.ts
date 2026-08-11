@@ -1,9 +1,9 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, eq, lte, sql } from "drizzle-orm";
+import { and, eq, inArray, lte, sql } from "drizzle-orm";
 
 import { QR_STATUS } from "@/constants/movement/qr-status";
 import type { QrType } from "@/constants/movement/qr-type";
-import { qrPasses } from "@/db";
+import { leaveRequests, qrPasses, students, users } from "@/db";
 import { db } from "@/lib/db";
 
 export type QrPass = InferSelectModel<typeof qrPasses>;
@@ -181,12 +181,20 @@ export const qrPassRepository = {
   },
 
   async countActive(
+    hostelIds?: string[],
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [eq(qrPasses.status, QR_STATUS.ACTIVE)];
+    if (hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, hostelIds));
+    }
     const result = await dbClient
       .select({ count: sql<number>`count(*)` })
       .from(qrPasses)
-      .where(eq(qrPasses.status, QR_STATUS.ACTIVE));
+      .leftJoin(leaveRequests, eq(qrPasses.leaveRequestId, leaveRequests.id))
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions));
     return Number(result[0]?.count ?? 0);
   },
 };

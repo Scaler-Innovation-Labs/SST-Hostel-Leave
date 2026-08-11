@@ -27,6 +27,7 @@ vi.mock("@/lib/db", () => {
 });
 
 const mockFindById = vi.fn();
+const mockPublish = vi.fn();
 const mockFindByIdForUpdate = vi.fn();
 const mockFindPending = vi.fn();
 const mockUpdateDecisionById = vi.fn();
@@ -65,7 +66,7 @@ vi.mock("@/services/movement/record-movement.service", () => ({
 
 vi.mock("@/services/outbox/outbox.service", () => ({
   outboxService: {
-    publish: vi.fn().mockResolvedValue(undefined),
+    publish: (...args: any[]) => mockPublish(...args),
     publishMany: vi.fn().mockResolvedValue(undefined),
   },
 }));
@@ -77,6 +78,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockAuditRecord.mockResolvedValue({});
   mockRecordMovement.mockResolvedValue({ id: "ME1" });
+  mockPublish.mockResolvedValue(undefined);
 });
 
 describe("approveLeave service", () => {
@@ -216,5 +218,28 @@ describe("approveLeave service", () => {
 
     expect(result.newStatus).toBe("APPROVED");
     expect(mockRecordMovement).not.toHaveBeenCalled();
+  });
+
+  it("passes ccEmails into the LEAVE_APPROVED outbox payload", async () => {
+    mockFindById.mockResolvedValue({ id: "L10", status: "PENDING" });
+    mockFindByIdForUpdate.mockResolvedValue({ id: "L10", status: "PENDING", studentId: "S1" });
+    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null }]);
+    mockUpdateDecisionById.mockResolvedValue({ id: "A1", decision: "APPROVED" });
+    mockFindNextByDecision.mockResolvedValue(null);
+    mockUpdateById.mockResolvedValue({ id: "L10", status: "APPROVED" });
+
+    await approveLeave(
+      "L10",
+      { decision: "APPROVED", ccEmails: ["warden@example.com", "poc@example.com"] },
+      { id: "U1", roles: ["ADMIN"] }
+    );
+
+    expect(mockPublish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "LEAVE_APPROVED",
+        payload: expect.objectContaining({ ccEmails: ["warden@example.com", "poc@example.com"] }),
+      }),
+      expect.any(Object)
+    );
   });
 });

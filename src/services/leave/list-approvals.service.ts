@@ -5,7 +5,7 @@ import { type LeaveApproval,leaveApprovalRepository } from "@/db/repositories/le
 import type { ListApprovalsQuery } from "@/dto/approval/list-approvals.dto";
 import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
-import { verifyStudentOwnership } from "@/services/shared/authorization.service";
+import { getScopedHostelIds, isStaffScopeRestricted, verifyStudentOwnership } from "@/services/shared/authorization.service";
 
 export async function listApprovals(
   query: ListApprovalsQuery,
@@ -26,6 +26,11 @@ export async function listApprovals(
 
   const isPoc = currentUser.roles.includes(ROLES.POC);
 
+  // Staff visibility: HOSTEL-scoped roles see only approvals for students
+  // in their hostels. No scopes = unrestricted (ALL).
+  const hostelIds =
+    isStaffScopeRestricted(currentUser) ? getScopedHostelIds(currentUser) : undefined;
+
   return leaveApprovalRepository.findByFilters({
     status: query.status as LeaveApprovalDecision | undefined,
     leaveRequestId: query.leaveRequestId,
@@ -34,6 +39,7 @@ export async function listApprovals(
     search: query.search,
     waitingOn: query.waitingOn,
     hostelId: query.hostelId,
+    hostelIds,
     leaveTypeId: query.leaveTypeId,
     approverUserId: isPoc ? currentUser.id : undefined,
     excludeLeaveStatuses: [LEAVE_REQUEST_STATUS.CANCELLED],

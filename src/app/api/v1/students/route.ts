@@ -1,15 +1,15 @@
-import listStudentsSchema from "@/dto/student/list-students.dto";
 import createStudentSchema from "@/dto/student/create-student.dto";
+import listStudentsSchema from "@/dto/student/list-students.dto";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
-import { listStudents } from "@/services/student/list-students.service";
 import { createStudent } from "@/services/student/create-student.service";
+import { listStudents } from "@/services/student/list-students.service";
 
 export async function GET(request: Request) {
   try {
-    requireAnyRole(await requireAuth(), [
+    const currentUser = requireAnyRole(await requireAuth(), [
       ROLES.POC,
       ROLES.ADMIN,
       ROLES.SUPER_ADMIN,
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const query = listStudentsSchema.parse(Object.fromEntries(url.searchParams));
 
-    const result = await listStudents(query);
+    const result = await listStudents(query, currentUser);
 
     return ApiResponse.success(result);
   } catch (error) {

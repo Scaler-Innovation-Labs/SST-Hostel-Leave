@@ -58,6 +58,16 @@ export function createSlackProvider() {
 					}
 				}
 
+				if (payload.mentions && payload.mentions.length > 0) {
+					blocks.push({
+						type: "section",
+						text: {
+							type: "mrkdwn",
+							text: `CC: ${payload.mentions.map((id) => `<@${id}>`).join(" ")}`,
+						},
+					});
+				}
+
 				const result = await client.chat.postMessage({
 					channel: channelId,
 					text: payload.subject ?? payload.body,

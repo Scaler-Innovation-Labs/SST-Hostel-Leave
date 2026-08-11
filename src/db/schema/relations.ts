@@ -31,6 +31,7 @@ import {
   leaveTypes,
   operationalPeriods,
 } from "./leave";
+import { leaveQuestions } from "./leave-question";
 import {
   movementEvents,
   movementStates,
@@ -67,6 +68,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   userRoles: many(userRoles),
 
   leaveApprovals: many(leaveApprovals),
+
+  leaveQuestions: many(leaveQuestions),
 
   uploadedDocuments: many(leaveDocuments),
 
@@ -229,6 +232,8 @@ export const leaveRequestsRelations = relations(
 
     leaveApprovals: many(leaveApprovals),
 
+    leaveQuestions: many(leaveQuestions),
+
     leaveDocuments: many(leaveDocuments),
 
     qrPasses: many(qrPasses),
@@ -240,6 +245,21 @@ export const leaveRequestsRelations = relations(
     inboundSmsLogs: many(inboundSmsLogs),
 
     sheetSyncLogs: many(sheetSyncLogs),
+  })
+);
+
+export const leaveQuestionsRelations = relations(
+  leaveQuestions,
+  ({ one }) => ({
+    leaveRequest: one(leaveRequests, {
+      fields: [leaveQuestions.leaveRequestId],
+      references: [leaveRequests.id],
+    }),
+
+    asker: one(users, {
+      fields: [leaveQuestions.askedBy],
+      references: [users.id],
+    }),
   })
 );
 

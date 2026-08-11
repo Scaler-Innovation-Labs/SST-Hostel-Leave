@@ -3,7 +3,7 @@ import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { movementEventRepository, type MovementEventRow } from "@/db/repositories/movement/movement-event.repository";
 import type { ListMovementsQuery } from "@/dto/movement/list-movements.dto";
 import type { CurrentUser } from "@/lib/auth/types";
-import { verifyStudentOwnership } from "@/services/shared/authorization.service";
+import { getScopedHostelIds, isStaffScopeRestricted, verifyStudentOwnership } from "@/services/shared/authorization.service";
 
 export async function listMovements(
   query: ListMovementsQuery,
@@ -22,6 +22,9 @@ export async function listMovements(
     }
   }
 
+  const hostelIds =
+    isStaffScopeRestricted(currentUser) ? getScopedHostelIds(currentUser) : undefined;
+
   return movementEventRepository.findByFilters({
     studentId: query.studentId,
     eventType: query.eventType as MovementEvent | undefined,
@@ -29,6 +32,7 @@ export async function listMovements(
     search: query.search,
     dateFrom: query.dateFrom ? new Date(query.dateFrom) : undefined,
     dateTo: query.dateTo ? new Date(query.dateTo) : undefined,
+    hostelIds,
     page: query.page,
     limit: query.limit,
   });

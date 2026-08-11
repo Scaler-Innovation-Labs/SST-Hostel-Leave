@@ -4,4 +4,5 @@ export { leaveApprovalAnalyticsRepository } from "./leave-approval-analytics.rep
 export { leaveDocumentRepository } from "./leave-document.repository";
 export { leaveExtensionRepository } from "./leave-extension.repository";
 export { leaveParentApprovalRepository } from "./leave-parent-approval.repository";
+export { leaveQuestionRepository } from "./leave-question.repository";
 export { leaveTypeRepository } from "./leave-type.repository";

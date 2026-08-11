@@ -5,11 +5,19 @@ const mockFindByEventKey = vi.fn();
 const mockLogCreate = vi.fn();
 const mockFindActiveByEvent = vi.fn();
 const mockFindRuleById = vi.fn();
+const mockSlackSend = vi.fn();
+const mockHostelFindById = vi.fn();
 
 vi.mock("@/db/repositories/notification/notification-template.repository", () => ({
   notificationTemplateRepository: {
     findActiveByEventKey: (...args: any[]) => mockFindByEventKey(...args),
     findById: (...args: any[]) => mockFindRuleById(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/hostel/hostel.repository", () => ({
+  hostelRepository: {
+    findById: (...args: any[]) => mockHostelFindById(...args),
   },
 }));
 
@@ -43,12 +51,20 @@ vi.mock("@/services/notification/providers/in-app.provider", () => ({
   }),
 }));
 
+vi.mock("@/services/notification/providers/slack.provider", () => ({
+  createSlackProvider: () => ({
+    send: (...args: any[]) => mockSlackSend(...args),
+  }),
+}));
+
 import { notificationService } from "@/services/notification/notification.service";
 
 beforeEach(() => {
   vi.resetAllMocks();
   mockLogCreate.mockResolvedValue({ id: "NL1" });
   mockFindActiveByEvent.mockResolvedValue([]);
+  mockSlackSend.mockResolvedValue({ success: true, messageId: "slack-1" });
+  mockHostelFindById.mockResolvedValue(null);
 });
 
 describe("notificationService", () => {
@@ -225,5 +241,57 @@ describe("notificationService", () => {
     });
 
     expect(mockLogCreate).toHaveBeenCalledTimes(2);
+  });
+
+  it("CCs the hostel admin and POC slack groups on slack notifications", async () => {
+    mockFindByEventKey.mockResolvedValue([
+      {
+        id: "T8",
+        eventKey: "LEAVE_SUBMITTED",
+        channel: "SLACK",
+        templateBody: "New leave {{leaveId}} submitted",
+        isActive: true,
+      },
+    ]);
+    mockHostelFindById.mockResolvedValue({ id: "H1", slackAdminGroupId: "SADM", slackPocGroupId: "SPOC" });
+
+    await notificationService.notify("LEAVE_SUBMITTED", {
+      leaveRequestId: "L9",
+      hostelId: "H1",
+      userId: "U1",
+      variables: { leaveId: "L9" },
+    });
+
+    expect(mockSlackSend).toHaveBeenCalledWith(expect.objectContaining({ mentions: ["SADM", "SPOC"] }));
+    expect(mockLogCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: "SLACK",
+        metadata: expect.objectContaining({ slackMentions: "SADM, SPOC" }),
+      })
+    );
+  });
+
+  it("does not CC slack groups when the hostel resolves to none", async () => {
+    mockFindByEventKey.mockResolvedValue([
+      {
+        id: "T9",
+        eventKey: "LEAVE_CANCELLED",
+        channel: "SLACK",
+        templateBody: "Leave {{leaveId}} cancelled",
+        isActive: true,
+      },
+    ]);
+    mockHostelFindById.mockResolvedValue({ id: "H1", slackAdminGroupId: null, slackPocGroupId: null });
+
+    await notificationService.notify("LEAVE_CANCELLED", {
+      leaveRequestId: "L10",
+      hostelId: "H1",
+      variables: { leaveId: "L10" },
+    });
+
+    expect(mockSlackSend).toHaveBeenCalledWith(expect.objectContaining({ mentions: [] }));
+    expect(mockLogCreate).not.toHaveBeenCalledWith(
+      expect.objectContaining({ metadata: expect.objectContaining({ slackMentions: expect.any(String) }) })
+    );
   });
 });

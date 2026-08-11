@@ -9,15 +9,17 @@ import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import type { ApproveLeaveDto } from "@/dto/leave/approve-leave.dto";
 import { requireApprovalAuthorization } from "@/lib/auth/authorization";
+import type { CurrentUser } from "@/lib/auth/types";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
 import { auditService } from "@/services/audit/audit.service";
-import { outboxService } from "@/services/outbox/outbox.service";
 import {
   getApprovalAuditMeta,
   updateApprovalAndAudit,
 } from "@/services/leave/shared-approval.service";
+import { outboxService } from "@/services/outbox/outbox.service";
+import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
 export type RejectLeaveResult = {
   leaveId: string;
@@ -30,12 +32,14 @@ export type RejectLeaveResult = {
 export async function rejectLeave(
   leaveId: string,
   dto: ApproveLeaveDto,
-  currentUser: { id: string; roles: string[] }
+  currentUser: CurrentUser
 ): Promise<RejectLeaveResult> {
   return await transaction(async (tx) => {
     const leaveInTx = await leaveRepository.findByIdForUpdate(leaveId, tx);
 
     if (!leaveInTx) throw new NotFoundError("LeaveRequest");
+
+    await assertCanAccessLeave(currentUser, leaveInTx);
 
     if (leaveInTx.status !== LEAVE_REQUEST_STATUS.PENDING) {
       throw new ConflictError("Leave is not in a state that can be rejected");

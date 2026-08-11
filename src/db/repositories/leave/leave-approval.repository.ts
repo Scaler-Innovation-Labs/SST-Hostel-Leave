@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, gt, gte, isNotNull, isNull, like, lte, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNotNull, isNull, like, lte, ne, or, sql } from "drizzle-orm";
 
 import type { LeaveApprovalSource } from "@/constants/leave/approval-source";
 import { LEAVE_APPROVAL_SOURCE } from "@/constants/leave/approval-source";
@@ -79,6 +79,8 @@ export const leaveApprovalRepository = {
       excludeLeaveStatuses?: LeaveRequestStatus[];
       waitingOn?: string;
       hostelId?: string;
+      /** Restrict to students whose user belongs to one of these hostels. */
+      hostelIds?: string[];
       leaveTypeId?: string;
       approverUserId?: string;
       page: number;
@@ -145,6 +147,9 @@ export const leaveApprovalRepository = {
     }
     if (filters.hostelId) {
       conditions.push(eq(users.hostelId, filters.hostelId));
+    }
+    if (filters.hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, filters.hostelIds));
     }
     if (filters.leaveTypeId) {
       conditions.push(eq(leaveRequests.leaveTypeId, filters.leaveTypeId));
@@ -388,6 +393,8 @@ export const leaveApprovalRepository = {
     filters: {
       status?: LeaveApprovalDecision;
       search?: string;
+      /** Restrict to students whose user belongs to one of these hostels. */
+      hostelIds?: string[];
       page: number;
       limit: number;
     },
@@ -434,6 +441,9 @@ export const leaveApprovalRepository = {
           like(users.fullName, searchPattern)
         )
       );
+    }
+    if (filters.hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, filters.hostelIds));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

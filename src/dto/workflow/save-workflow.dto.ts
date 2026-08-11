@@ -6,7 +6,7 @@ const workflowStepSchema = z
     approverRoleCode: z.string().trim().min(2).max(100).nullable().optional(),
     isParentApproval: z.boolean().default(false),
     approvalMethod: z
-      .enum(["SMS_REPLY", "SMS_AND_LINK", "SMS_LINK", "PORTAL", "AUTO"])
+      .enum(["SMS_LINK", "PORTAL", "AUTO"])
       .nullable()
       .optional(),
     isRequired: z.boolean().default(true),

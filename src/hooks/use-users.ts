@@ -32,6 +32,8 @@ export function useUsers(params?: {
           roleCode: string;
           roleName: string;
           assignedAt: string;
+          scopeType?: string | null;
+          scopeId?: string | null;
         }>;
       }>;
       total: number;
@@ -65,6 +67,8 @@ export function useUser(id: string) {
         roleCode: string;
         roleName: string;
         assignedAt: string;
+        scopeType?: string | null;
+        scopeId?: string | null;
       }>;
     } | null,
     isLoading,

@@ -150,6 +150,22 @@ describe("handleLeaveEvent", () => {
     }));
   });
 
+  it("passes payload ccEmails into the notification context", async () => {
+    await handleLeaveEvent(makeEvent("LEAVE_APPROVED", { ccEmails: ["warden@example.com", "poc@example.com"] }));
+
+    expect(mockNotify).toHaveBeenCalledWith(
+      "LEAVE_APPROVED",
+      expect.objectContaining({ cc: ["warden@example.com", "poc@example.com"] })
+    );
+  });
+
+  it("omits cc from the notification context when payload has no ccEmails", async () => {
+    await handleLeaveEvent(makeEvent("LEAVE_APPROVED"));
+
+    const context = mockNotify.mock.calls.find(([type]) => type === "LEAVE_APPROVED")?.[1];
+    expect(context.cc).toBeUndefined();
+  });
+
   it("does not throw for unmapped event types", async () => {
     const event = makeEvent("UNMAPPED_EVENT");
 

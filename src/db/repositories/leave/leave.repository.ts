@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, asc, desc, eq, gte, isNull, like, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, like, lte, or, sql } from "drizzle-orm";
 
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { leaveRequests, leaveTypes, students, users } from "@/db";
@@ -25,9 +25,12 @@ export type LeaveFilters = {
   studentId?: string;
   status?: LeaveRequestStatus;
   leaveTypeId?: string;
+  hostelId?: string;
   startDate?: Date;
   endDate?: Date;
   search?: string;
+  /** Restrict to students whose user belongs to one of these hostels. */
+  hostelIds?: string[];
   page: number;
   limit: number;
   sortBy?: string;
@@ -163,6 +166,9 @@ export const leaveRepository = {
     if (filters.leaveTypeId) {
       conditions.push(eq(leaveRequests.leaveTypeId, filters.leaveTypeId));
     }
+    if (filters.hostelId) {
+      conditions.push(eq(users.hostelId, filters.hostelId));
+    }
     if (filters.startDate) {
       conditions.push(gte(leaveRequests.startAt, filters.startDate));
     }
@@ -177,6 +183,9 @@ export const leaveRepository = {
           like(users.fullName, searchPattern)
         )
       );
+    }
+    if (filters.hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, filters.hostelIds));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -249,8 +258,15 @@ export const leaveRepository = {
   },
 
   async countByLeaveType(
+    hostelIds?: string[],
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<Array<{ name: string; count: number }>> {
+    const conditions: ReturnType<typeof and>[] = [];
+    if (hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, hostelIds));
+    }
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
     const rows = await dbClient
       .select({
         name: leaveTypes.name,
@@ -258,6 +274,9 @@ export const leaveRepository = {
       })
       .from(leaveRequests)
       .innerJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(whereClause)
       .groupBy(leaveTypes.id, leaveTypes.name);
 
     return rows;
@@ -265,12 +284,19 @@ export const leaveRepository = {
 
   async countByStatus(
     status: LeaveRequestStatus,
+    hostelIds?: string[],
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [eq(leaveRequests.status, status)];
+    if (hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, hostelIds));
+    }
     const result = await dbClient
       .select({ count: sql<number>`count(*)` })
       .from(leaveRequests)
-      .where(eq(leaveRequests.status, status));
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions));
     return Number(result[0]?.count ?? 0);
   },
 
@@ -278,6 +304,7 @@ export const leaveRepository = {
     startDate: Date,
     endDate: Date,
     status?: LeaveRequestStatus,
+    hostelIds?: string[],
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<Array<{ date: string; count: number }>> {
     const conditions = [
@@ -287,6 +314,9 @@ export const leaveRepository = {
     if (status) {
       conditions.push(eq(leaveRequests.status, status));
     }
+    if (hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, hostelIds));
+    }
 
     const rows = await dbClient
       .select({
@@ -294,6 +324,8 @@ export const leaveRepository = {
         count: sql<number>`count(*)`,
       })
       .from(leaveRequests)
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
       .where(and(...conditions))
       .groupBy(sql`DATE(${leaveRequests.createdAt})`)
       .orderBy(sql`DATE(${leaveRequests.createdAt})`);
@@ -302,11 +334,20 @@ export const leaveRepository = {
   },
 
   async countAll(
+    hostelIds?: string[],
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [];
+    if (hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, hostelIds));
+    }
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
     const result = await dbClient
       .select({ count: sql<number>`count(*)` })
-      .from(leaveRequests);
+      .from(leaveRequests)
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(whereClause);
     return Number(result[0]?.count ?? 0);
   },
 };

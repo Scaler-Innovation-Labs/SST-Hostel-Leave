@@ -2,15 +2,17 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveApprovalAnalyticsRepository } from "@/db/repositories/leave/leave-approval-analytics.repository";
 import { movementEventRepository } from "@/db/repositories/movement/movement-event.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
-import type { DashboardStats,StaffDashboardStats, StudentDashboardStats } from "@/dto/dashboard/dashboard-stats.dto";
+import type { Activity, ApprovalStep, DashboardStats, StaffDashboardStats, StudentDashboardStats } from "@/dto/dashboard/dashboard-stats.dto";
 import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
 import { NotFoundError } from "@/lib/errors";
+import { getScopedHostelIds, isStaffScopeRestricted } from "@/services/shared/authorization.service";
 
 function fillDateRange(startDate: Date, endDate: Date, data: Array<{ date: string; count: number }>): Array<{ date: string; value: number }> {
   const map = new Map(data.map((d) => [d.date, d.count]));
@@ -31,8 +33,35 @@ export async function getDashboardStats(currentUser: CurrentUser): Promise<Dashb
     return getStudentStats(currentUser.id);
   }
 
-  return getStaffStats();
+  return getStaffStats(currentUser);
 }
+
+const STEP_LABELS: Record<string, string> = {
+  PARENT_APPROVAL: "Parent",
+  POC_APPROVAL: "POC",
+  ADMIN_APPROVAL: "Admin",
+  AUTO_APPROVAL: "Auto",
+  NOTIFICATION: "Notification",
+  QR_EXIT: "QR Exit",
+  QR_RETURN: "QR Return",
+  COMPLETE: "Complete",
+};
+
+const ACTIVITY_LABELS: Record<string, string> = {
+  LEAVE_APPROVED: "Leave approved",
+  EXIT_HOSTEL: "Left hostel",
+  ENTER_HOSTEL: "Returned to hostel",
+  AUTO_OVERDUE: "Marked overdue",
+  MANUAL_RETURN: "Manual return",
+  MANUAL_CHECKOUT: "Manual checkout",
+  SECURITY_OVERRIDE: "Security override",
+  QR_INVALIDATED: "QR invalidated",
+  LEAVE_SUBMITTED: "Leave submitted",
+  LEAVE_REJECTED: "Leave rejected",
+  LEAVE_CANCELLED: "Leave cancelled",
+  LEAVE_COMPLETED: "Leave completed",
+  QR_GENERATED: "QR generated",
+};
 
 async function getStudentStats(userId: string): Promise<StudentDashboardStats> {
   const student = await studentRepository.findByUserId(userId);
@@ -57,6 +86,7 @@ async function getStudentStats(userId: string): Promise<StudentDashboardStats> {
   ]);
 
   const activeLeave = approvedLeavesResult.items[0] ?? null;
+  const pendingLeave = pendingLeavesResult.items[0] ?? null;
 
   const latestMovement = await movementEventRepository.findLatestByStudentId(student.id);
 
@@ -64,6 +94,25 @@ async function getStudentStats(userId: string): Promise<StudentDashboardStats> {
   const activeQr = qrPassesList.find(
     (q) => q.status === "ACTIVE" && (!q.expiresAt || q.expiresAt > new Date())
   ) ?? null;
+
+  const targetLeave = activeLeave ?? pendingLeave;
+  const approvalProgress: ApprovalStep[] | null = targetLeave
+    ? await loadApprovalProgress(targetLeave.leave.id)
+    : null;
+
+  const [recentMovements] = await Promise.all([
+    movementEventRepository.findByFilters({
+      studentId: student.id,
+      page: 1,
+      limit: 5,
+    }),
+  ]);
+
+  const recentActivity: Activity[] = recentMovements.items.map((m) => ({
+    type: m.eventType,
+    description: ACTIVITY_LABELS[m.eventType] ?? m.eventType.toLowerCase().replace(/_/g, " "),
+    timestamp: m.occurredAt.toISOString(),
+  }));
 
   return {
     pendingLeaves: pendingLeavesResult.total,
@@ -85,15 +134,32 @@ async function getStudentStats(userId: string): Promise<StudentDashboardStats> {
           expiresAt: activeQr.expiresAt?.toISOString() ?? "",
         }
       : null,
+    approvalProgress,
+    recentActivity,
   };
 }
 
-async function getStaffStats(): Promise<StaffDashboardStats> {
+async function loadApprovalProgress(leaveRequestId: string): Promise<ApprovalStep[]> {
+  const approvals = await leaveApprovalRepository.findByLeaveRequestId(leaveRequestId);
+  return approvals.map((a) => ({
+    stepKey: a.stepKey,
+    stepOrder: a.stepOrder,
+    decision: a.decision,
+    label: STEP_LABELS[a.stepKey] ?? a.stepKey.toLowerCase().replace(/_/g, " "),
+    actedAt: a.actedAt?.toISOString() ?? null,
+  }));
+}
+
+async function getStaffStats(currentUser: CurrentUser): Promise<StaffDashboardStats> {
   const now = new Date();
   const sevenDaysAgo = new Date(now);
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  // HOSTEL-scoped staff see only stats for their hostels; no scopes = ALL.
+  const hostelIds =
+    isStaffScopeRestricted(currentUser) ? getScopedHostelIds(currentUser) : undefined;
 
   const [
     pendingApprovalsCount,
@@ -113,22 +179,22 @@ async function getStaffStats(): Promise<StaffDashboardStats> {
     leaves30dRaw,
     approvals7dRaw,
   ] = await Promise.all([
-    leaveApprovalAnalyticsRepository.countByDecision(LEAVE_APPROVAL_DECISION.PENDING),
-    studentRepository.countAll(),
-    studentRepository.countByLocationState(MOVEMENT_STATE.OUTSIDE_HOSTEL),
-    studentRepository.countByLocationState(MOVEMENT_STATE.OVERDUE),
-    userRepository.count(),
-    leaveRepository.countAll(),
-    leaveRepository.countByStatus(LEAVE_REQUEST_STATUS.APPROVED),
-    leaveApprovalAnalyticsRepository.countRecent(sevenDaysAgo),
-    leaveRepository.countByLeaveType(),
-    leaveRepository.countByStatus(LEAVE_REQUEST_STATUS.REJECTED),
-    leaveApprovalAnalyticsRepository.averageApprovalTime(thirtyDaysAgo),
-    qrPassRepository.countActive(),
-    movementEventRepository.countRecent(sevenDaysAgo),
-    leaveRepository.countByDateRange(sevenDaysAgo, now),
-    leaveRepository.countByDateRange(thirtyDaysAgo, now),
-    leaveApprovalAnalyticsRepository.countByDateRange(sevenDaysAgo, now),
+    leaveApprovalAnalyticsRepository.countByDecision(LEAVE_APPROVAL_DECISION.PENDING, hostelIds),
+    studentRepository.countAll(hostelIds),
+    studentRepository.countByLocationState(MOVEMENT_STATE.OUTSIDE_HOSTEL, hostelIds),
+    studentRepository.countByLocationState(MOVEMENT_STATE.OVERDUE, hostelIds),
+    userRepository.count(hostelIds),
+    leaveRepository.countAll(hostelIds),
+    leaveRepository.countByStatus(LEAVE_REQUEST_STATUS.APPROVED, hostelIds),
+    leaveApprovalAnalyticsRepository.countRecent(sevenDaysAgo, hostelIds),
+    leaveRepository.countByLeaveType(hostelIds),
+    leaveRepository.countByStatus(LEAVE_REQUEST_STATUS.REJECTED, hostelIds),
+    leaveApprovalAnalyticsRepository.averageApprovalTime(thirtyDaysAgo, hostelIds),
+    qrPassRepository.countActive(hostelIds),
+    movementEventRepository.countRecent(sevenDaysAgo, hostelIds),
+    leaveRepository.countByDateRange(sevenDaysAgo, now, undefined, hostelIds),
+    leaveRepository.countByDateRange(thirtyDaysAgo, now, undefined, hostelIds),
+    leaveApprovalAnalyticsRepository.countByDateRange(sevenDaysAgo, now, hostelIds),
   ]);
 
   return {

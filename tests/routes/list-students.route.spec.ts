@@ -56,7 +56,8 @@ describe("GET /api/v1/students", () => {
     await GET(req);
 
     expect(mockListStudents).toHaveBeenCalledWith(
-      expect.objectContaining({ locationState: "OUTSIDE_HOSTEL" })
+      expect.objectContaining({ locationState: "OUTSIDE_HOSTEL" }),
+      expect.objectContaining({ id: "U1", roles: ["ADMIN"] })
     );
   });
 

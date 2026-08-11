@@ -63,6 +63,27 @@ describe("GET /api/v1/leaves", () => {
     );
   });
 
+  it("passes hostelId query param", async () => {
+    mockListLeaves.mockResolvedValue({ items: [], total: 0, page: 1, limit: 20, totalPages: 0 });
+
+    const req = new Request("http://localhost:3000/api/v1/leaves?hostelId=bb4d56d5-1b13-4f4f-9f7d-4f8b7c4d6e2a");
+    await GET(req);
+
+    expect(mockListLeaves).toHaveBeenCalledWith(
+      expect.objectContaining({ hostelId: "bb4d56d5-1b13-4f4f-9f7d-4f8b7c4d6e2a" }),
+      expect.anything()
+    );
+  });
+
+  it("returns 400 for invalid hostelId", async () => {
+    const req = new Request("http://localhost:3000/api/v1/leaves?hostelId=not-a-uuid");
+    const res = await GET(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.success).toBe(false);
+  });
+
   it("returns 400 for invalid query params", async () => {
     const req = new Request("http://localhost:3000/api/v1/leaves?page=-1");
     const res = await GET(req);

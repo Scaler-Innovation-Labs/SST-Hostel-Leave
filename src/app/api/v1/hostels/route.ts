@@ -5,11 +5,19 @@ import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
 import { createHostel } from "@/services/hostel/create-hostel.service";
 import { listHostels } from "@/services/hostel/list-hostels.service";
+import { getScopedHostelIds, isStaffScopeRestricted } from "@/services/shared/authorization.service";
 
 export async function GET() {
   try {
-    await requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN, ROLES.ADMIN]);
-    const rows = await listHostels();
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.POC]);
+
+    const scopedHostelIds = isStaffScopeRestricted(currentUser)
+      ? getScopedHostelIds(currentUser)
+      : undefined;
+    const rows = scopedHostelIds && scopedHostelIds.length > 0
+      ? await listHostels(scopedHostelIds)
+      : await listHostels();
+
     return ApiResponse.success(rows);
   } catch (error) {
     return ApiResponse.fromError(error);

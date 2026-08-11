@@ -1,5 +1,5 @@
 import type { InferSelectModel } from "drizzle-orm";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 
 import { hostels } from "@/db/schema/hostel";
 import { db } from "@/lib/db";
@@ -11,17 +11,27 @@ export type HostelRow = {
   id: string;
   code: string;
   name: string;
+  slackAdminGroupId: string | null;
+  slackPocGroupId: string | null;
 };
 
 export type Hostel = InferSelectModel<typeof hostels>;
 
 export const hostelRepository = {
   async findAll(
+    hostelIds?: string[],
     dbClient: HostelSelectDbClient = db
   ): Promise<HostelRow[]> {
     return dbClient
-      .select({ id: hostels.id, code: hostels.code, name: hostels.name })
+      .select({
+        id: hostels.id,
+        code: hostels.code,
+        name: hostels.name,
+        slackAdminGroupId: hostels.slackAdminGroupId,
+        slackPocGroupId: hostels.slackPocGroupId,
+      })
       .from(hostels)
+      .where(hostelIds?.length ? inArray(hostels.id, hostelIds) : undefined)
       .orderBy(asc(hostels.name));
   },
 

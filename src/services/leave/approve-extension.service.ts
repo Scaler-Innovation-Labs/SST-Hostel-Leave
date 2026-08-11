@@ -9,6 +9,7 @@ import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import type { ApproveLeaveDto } from "@/dto/leave/approve-leave.dto";
+import type { CurrentUser } from "@/lib/auth/types";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
@@ -19,6 +20,7 @@ import {
   updateApprovalAndAudit,
 } from "@/services/leave/shared-approval.service";
 import { outboxService } from "@/services/outbox/outbox.service";
+import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
 export type ApproveExtensionResult = {
   extensionId: string;
@@ -34,7 +36,7 @@ export type ApproveExtensionResult = {
 export async function approveExtension(
   extensionId: string,
   dto: ApproveLeaveDto,
-  currentUser: { id: string; roles: string[] }
+  currentUser: CurrentUser
 ): Promise<ApproveExtensionResult> {
   const extension = await leaveExtensionRepository.findById(extensionId);
 
@@ -49,6 +51,11 @@ export async function approveExtension(
       await leaveExtensionRepository.findByIdForUpdate(extensionId, tx);
 
     if (!extensionInTx) throw new NotFoundError("LeaveExtension");
+
+    const leave = await leaveRepository.findById(extensionInTx.leaveRequestId);
+    if (leave) {
+      await assertCanAccessLeave(currentUser, leave);
+    }
 
     if (extensionInTx.status !== LEAVE_REQUEST_STATUS.PENDING) {
       throw new ConflictError("Extension is not in a state that can be approved");

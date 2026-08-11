@@ -1,3 +1,17 @@
+export type ApprovalStep = {
+  stepKey: string;
+  stepOrder: number;
+  decision: string;
+  label: string;
+  actedAt: string | null;
+};
+
+export type Activity = {
+  type: string;
+  description: string;
+  timestamp: string;
+};
+
 export type StudentDashboardStats = {
   pendingLeaves: number;
   approvedLeaves: number;
@@ -14,6 +28,8 @@ export type StudentDashboardStats = {
     token: string;
     expiresAt: string;
   } | null;
+  approvalProgress: ApprovalStep[] | null;
+  recentActivity: Activity[];
 };
 
 export type TimeSeriesPoint = {

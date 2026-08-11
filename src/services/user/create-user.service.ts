@@ -1,3 +1,4 @@
+import { ROLE_SCOPE_TYPE } from "@/constants/auth/role-scope";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
 import { userRepository, type UserWithRoles } from "@/db/repositories/user/user.repository";
 import type { CreateUserDto } from "@/dto/user/create-user.dto";
@@ -41,14 +42,33 @@ export async function createUser(dto: CreateUserDto): Promise<UserWithRoles | nu
       throw err;
     }
 
+    const roleIdsByCode = new Map<string, string>(
+      (await userRoleRepository.findRolesByCodes(
+        [...new Set([...(dto.roleCodes ?? []), ...(dto.roleScopes?.map((s) => s.roleCode) ?? [])])],
+        tx
+      )).map((r) => [r.code, r.id])
+    );
+
     if (dto.roleCodes && dto.roleCodes.length > 0) {
-      const rolesByCode = new Map(
-        (await userRoleRepository.findRolesByCodes(dto.roleCodes, tx)).map((r) => [r.code, r.id])
-      );
       for (const code of dto.roleCodes) {
-        const roleId = rolesByCode.get(code);
+        const roleId = roleIdsByCode.get(code);
         if (roleId) {
           await userRoleRepository.create(user.id, roleId, tx);
+        }
+      }
+    }
+
+    if (dto.roleScopes?.length) {
+      for (const { roleCode, hostelIds } of dto.roleScopes) {
+        const roleId = roleIdsByCode.get(roleCode);
+        if (roleId) {
+          await userRoleRepository.replaceRoleScopes(
+            user.id,
+            roleId,
+            ROLE_SCOPE_TYPE.HOSTEL,
+            hostelIds,
+            tx
+          );
         }
       }
     }

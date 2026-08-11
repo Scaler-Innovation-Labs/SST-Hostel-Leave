@@ -1,10 +1,10 @@
+import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import {
   roles,
   workflowDefinitions,
   workflowSteps,
 } from "@/db";
 import type { db } from "@/lib/db";
-import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 
 type WorkflowDef = {
   code: string;
@@ -35,19 +35,19 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
   // ==========================
   // RE EXAM
   // ==========================
-  { workflowCode: "RE_EXAM", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_AND_LINK" },
+  { workflowCode: "RE_EXAM", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_LINK" },
   { workflowCode: "RE_EXAM", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 2, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
 
   // ==========================
   // LONG LEAVE
   // ==========================
-  { workflowCode: "LONG_LEAVE", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_AND_LINK" },
+  { workflowCode: "LONG_LEAVE", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_LINK" },
   { workflowCode: "LONG_LEAVE", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 2, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
 
   // ==========================
   // LATE ENTRY
   // ==========================
-  { workflowCode: "LATE_ENTRY", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_AND_LINK" },
+  { workflowCode: "LATE_ENTRY", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_LINK" },
   { workflowCode: "LATE_ENTRY", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 2, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
 
   // ==========================
@@ -59,7 +59,7 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
   // ==========================
   // DIFFERENT HOSTEL
   // ==========================
-  { workflowCode: "DIFFERENT_HOSTEL", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_AND_LINK" },
+  { workflowCode: "DIFFERENT_HOSTEL", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_LINK" },
   { workflowCode: "DIFFERENT_HOSTEL", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 2, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
 
   // ==========================
@@ -70,14 +70,14 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
   // ==========================
   // INTERNSHIP
   // ==========================
-  { workflowCode: "INTERNSHIP", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_AND_LINK" },
+  { workflowCode: "INTERNSHIP", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_LINK" },
   { workflowCode: "INTERNSHIP", stepKey: WORKFLOW_STEP_KEY.POC_APPROVAL, stepOrder: 2, approverRoleCode: "POC", approvalMethod: "PORTAL" },
   { workflowCode: "INTERNSHIP", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 3, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
 
   // ==========================
   // MARRIAGE BEREAVEMENT
   // ==========================
-  { workflowCode: "MARRIAGE_BEREAVEMENT", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_AND_LINK" },
+  { workflowCode: "MARRIAGE_BEREAVEMENT", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_LINK" },
   { workflowCode: "MARRIAGE_BEREAVEMENT", stepKey: WORKFLOW_STEP_KEY.POC_APPROVAL, stepOrder: 2, approverRoleCode: "POC", approvalMethod: "PORTAL" },
   { workflowCode: "MARRIAGE_BEREAVEMENT", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 3, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
 ];
@@ -124,7 +124,7 @@ export async function seedWorkflows(
       ? roleMap.get(step.approverRoleCode)
       : null,
     isParentApproval: step.isParentApproval ?? false,
-    approvalMethod: step.approvalMethod as "SMS_REPLY" | "SMS_AND_LINK" | "SMS_LINK" | "PORTAL" | "AUTO" | undefined,
+    approvalMethod: step.approvalMethod as "SMS_LINK" | "PORTAL" | "AUTO" | undefined,
   }));
 
   await database

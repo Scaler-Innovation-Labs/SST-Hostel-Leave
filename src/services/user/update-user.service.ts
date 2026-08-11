@@ -1,6 +1,8 @@
+import { ROLE_SCOPE_TYPE } from "@/constants/auth/role-scope";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
 import { userRepository, type UserWithRoles } from "@/db/repositories/user/user.repository";
 import type { UpdateUserDto } from "@/dto/user/update-user.dto";
+import { ROLES } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 
@@ -29,11 +31,43 @@ export async function updateUser(id: string, dto: UpdateUserDto): Promise<UserWi
     }, tx);
 
     if (dto.roleCodes !== undefined) {
+      // Guard: never remove the last super admin (would lock everyone out).
+      if (!dto.roleCodes.includes(ROLES.SUPER_ADMIN)) {
+        const currentRoleCodes = await userRoleRepository.findRoleCodesByUserId(id, tx);
+        if (currentRoleCodes.includes(ROLES.SUPER_ADMIN)) {
+          const superAdminIds = await userRoleRepository.findUserIdsByRoleCode(ROLES.SUPER_ADMIN);
+          if (superAdminIds.filter((uid) => uid !== id).length === 0) {
+            throw new ConflictError("Cannot remove the last super admin");
+          }
+        }
+      }
+
       const rolesByCode = new Map(
         (await userRoleRepository.findRolesByCodes(dto.roleCodes, tx)).map((r) => [r.code, r.id])
       );
       const roleIds = dto.roleCodes.map((code) => rolesByCode.get(code)).filter((id): id is string => !!id);
       await userRepository.replaceRoles(id, roleIds, tx);
+    }
+
+    if (dto.roleScopes !== undefined) {
+      const rolesByCode = new Map(
+        (await userRoleRepository.findRolesByCodes(
+          dto.roleScopes.map((s) => s.roleCode),
+          tx
+        )).map((r) => [r.code, r.id])
+      );
+      for (const { roleCode, hostelIds } of dto.roleScopes) {
+        const roleId = rolesByCode.get(roleCode);
+        if (roleId) {
+          await userRoleRepository.replaceRoleScopes(
+            id,
+            roleId,
+            ROLE_SCOPE_TYPE.HOSTEL,
+            hostelIds,
+            tx
+          );
+        }
+      }
     }
 
     return userRepository.findByIdWithRoles(id, tx);

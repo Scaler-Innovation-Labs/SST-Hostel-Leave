@@ -10,6 +10,8 @@ export const approveLeaveSchema = z.object({
   comments: z.string().optional(),
   forceOverride: z.boolean().optional(),
   documentsVerified: z.boolean().optional(),
+  /** Emails to CC on the notification sent to the student for this decision. */
+  ccEmails: z.array(z.string().trim().email()).max(20).optional(),
 });
 
 export type ApproveLeaveDto = z.infer<typeof approveLeaveSchema>;

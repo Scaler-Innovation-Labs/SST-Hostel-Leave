@@ -37,6 +37,12 @@ export const hostels = pgTable("hostels", {
 
   curfewEndTime: time("curfew_end_time"),
 
+  /** Slack user group (S...) or user (U...) id to CC on Slack notifications for this hostel's admins. */
+  slackAdminGroupId: text("slack_admin_group_id"),
+
+  /** Slack user group (S...) or user (U...) id to CC on Slack notifications for this hostel's POCs. */
+  slackPocGroupId: text("slack_poc_group_id"),
+
   isActive: boolean("is_active")
     .default(true)
     .notNull(),

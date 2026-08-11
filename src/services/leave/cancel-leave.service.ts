@@ -11,11 +11,13 @@ import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import type { CancelLeaveDto } from "@/dto/leave/cancel-leave.dto";
+import type { CurrentUser } from "@/lib/auth/types";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { canTransition, getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
+import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
 export type CancelLeaveResult = {
   leaveId: string;
@@ -26,11 +28,13 @@ export type CancelLeaveResult = {
 export async function cancelLeave(
   leaveId: string,
   dto: CancelLeaveDto,
-  currentUser: { id: string }
+  currentUser: CurrentUser
 ): Promise<CancelLeaveResult> {
   const leave = await leaveRepository.findById(leaveId);
 
   if (!leave) throw new NotFoundError("LeaveRequest");
+
+  await assertCanAccessLeave(currentUser, leave);
 
   if (!canTransition(leave.status, LEAVE_ACTION.CANCEL)) {
     throw new ConflictError(

@@ -1,5 +1,5 @@
 import type { InferSelectModel } from "drizzle-orm";
-import { and, asc, desc, eq, inArray, like, not, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, not, notInArray, or, sql } from "drizzle-orm";
 
 import { roles, userRoles, users } from "@/db";
 import { db } from "@/lib/db";
@@ -12,6 +12,8 @@ export type UserWithRoles = User & {
     roleCode: string;
     roleName: string;
     assignedAt: Date;
+    scopeType: string | null;
+    scopeId: string | null;
   }>;
 };
 
@@ -97,7 +99,7 @@ export const userRepository = {
       .offset((filters.page - 1) * filters.limit);
 
     const userIds = rows.map((r) => r.id);
-    const roleMap = new Map<string, Array<{ roleId: string; roleCode: string; roleName: string; assignedAt: Date }>>();
+    const roleMap = new Map<string, Array<{ roleId: string; roleCode: string; roleName: string; assignedAt: Date; scopeType: string | null; scopeId: string | null }>>();
     if (userIds.length > 0) {
       const allUserRoles = await dbClient
         .select({
@@ -106,6 +108,8 @@ export const userRepository = {
           roleCode: roles.code,
           roleName: roles.name,
           assignedAt: userRoles.assignedAt,
+          scopeType: userRoles.scopeType,
+          scopeId: userRoles.scopeId,
         })
         .from(userRoles)
         .innerJoin(roles, eq(userRoles.roleId, roles.id))
@@ -114,9 +118,9 @@ export const userRepository = {
       for (const ur of allUserRoles) {
         const list = roleMap.get(ur.userId);
         if (list) {
-          list.push({ roleId: ur.roleId, roleCode: ur.roleCode, roleName: ur.roleName, assignedAt: ur.assignedAt });
+          list.push({ roleId: ur.roleId, roleCode: ur.roleCode, roleName: ur.roleName, assignedAt: ur.assignedAt, scopeType: ur.scopeType, scopeId: ur.scopeId });
         } else {
-          roleMap.set(ur.userId, [{ roleId: ur.roleId, roleCode: ur.roleCode, roleName: ur.roleName, assignedAt: ur.assignedAt }]);
+          roleMap.set(ur.userId, [{ roleId: ur.roleId, roleCode: ur.roleCode, roleName: ur.roleName, assignedAt: ur.assignedAt, scopeType: ur.scopeType, scopeId: ur.scopeId }]);
         }
       }
     }
@@ -153,6 +157,8 @@ export const userRepository = {
         roleCode: roles.code,
         roleName: roles.name,
         assignedAt: userRoles.assignedAt,
+        scopeType: userRoles.scopeType,
+        scopeId: userRoles.scopeId,
       })
       .from(userRoles)
       .innerJoin(roles, eq(userRoles.roleId, roles.id))
@@ -229,11 +235,15 @@ export const userRepository = {
   },
 
   async count(
+    hostelIds?: string[],
     dbClient: UserReadDb = db
   ): Promise<number> {
+    const whereClause =
+      hostelIds?.length ? inArray(users.hostelId, hostelIds) : undefined;
     const result = await dbClient
       .select({ count: sql<number>`count(*)` })
-      .from(users);
+      .from(users)
+      .where(whereClause);
     return Number(result[0]?.count ?? 0);
   },
 
@@ -372,19 +382,45 @@ export const userRepository = {
     return rows[0] ?? null;
   },
 
+  /**
+   * Syncs a user's roles without destroying scope/audit data:
+   * removes only roles being dropped, and inserts only role assignments
+   * the user does not already have (existing scoped rows are preserved).
+   */
   async replaceRoles(
     userId: string,
     roleIds: string[],
     dbClient: UserWriteDb = db
   ): Promise<void> {
-    await dbClient
-      .delete(userRoles)
-      .where(eq(userRoles.userId, userId));
-
     if (roleIds.length > 0) {
       await dbClient
-        .insert(userRoles)
-        .values(roleIds.map((roleId) => ({ userId, roleId })));
+        .delete(userRoles)
+        .where(
+          and(
+            eq(userRoles.userId, userId),
+            notInArray(userRoles.roleId, roleIds)
+          )
+        );
+    } else {
+      await dbClient
+        .delete(userRoles)
+        .where(eq(userRoles.userId, userId));
+    }
+
+    if (roleIds.length > 0) {
+      const existing = await dbClient
+        .select({ roleId: userRoles.roleId })
+        .from(userRoles)
+        .where(eq(userRoles.userId, userId));
+
+      const existingRoleIds = new Set(existing.map((row) => row.roleId));
+      const toInsert = roleIds.filter((id) => !existingRoleIds.has(id));
+
+      if (toInsert.length > 0) {
+        await dbClient
+          .insert(userRoles)
+          .values(toInsert.map((roleId) => ({ userId, roleId })));
+      }
     }
   },
 };

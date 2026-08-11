@@ -7,12 +7,12 @@ import { listExtensionApprovals } from "@/services/leave/list-extension-approval
 
 export async function GET(request: Request) {
   try {
-    requireAnyRole(await requireAuth(), [ROLES.POC, ROLES.ADMIN, ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.POC, ROLES.ADMIN, ROLES.SUPER_ADMIN]);
 
     const url = new URL(request.url);
     const query = listExtensionApprovalsSchema.parse(Object.fromEntries(url.searchParams));
 
-    const result = await listExtensionApprovals(query);
+    const result = await listExtensionApprovals(query, currentUser);
 
     return ApiResponse.success(result);
   } catch (error) {

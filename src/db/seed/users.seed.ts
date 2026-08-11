@@ -1,8 +1,9 @@
 import { eq, inArray } from "drizzle-orm";
 
+import { ROLE_SCOPE_TYPE } from "@/constants/auth/role-scope";
 import { hostels, roles, userRoles, users } from "@/db";
-import type { db } from "@/lib/db";
 import { ROLES } from "@/lib/auth/roles";
+import type { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
 export async function seedUsers(
@@ -73,24 +74,49 @@ export async function seedUsers(
     }
   }
 
-  const assignments: { email: string; roleCode: string }[] = [
+  const assignments: {
+    email: string;
+    roleCode: string;
+    scopeType?: string;
+    scopeId?: string;
+  }[] = [
     { email: "n.vedvarshit@gmail.com", roleCode: ROLES.SUPER_ADMIN },
-    { email: "vedavarshitn@gmail.com", roleCode: ROLES.ADMIN },
+    // Hostel Admin is scoped to a single hostel, demonstrating role-scoped visibility
+    {
+      email: "vedavarshitn@gmail.com",
+      roleCode: ROLES.ADMIN,
+      scopeType: ROLE_SCOPE_TYPE.HOSTEL,
+      scopeId: hostelId,
+    },
     { email: "vedavarshitn@gmail.com", roleCode: ROLES.POC },
     { email: "neerasa.24bcs10005@sst.scaler.com", roleCode: ROLES.STUDENT },
     { email: "vedavarshitn@gmail.com", roleCode: ROLES.GUARD },
   ];
 
-  for (const { email, roleCode } of assignments) {
+  for (const { email, roleCode, scopeType, scopeId } of assignments) {
     const userId = userMap[email];
     const roleId = roleMap[roleCode];
     if (!userId || !roleId) {
       logger.warn("Skipping user_role", { email, roleCode });
       continue;
     }
+
+    // Only emit scope columns when a scope actually exists; a scope row
+    // with a null scope_id would restrict the user to zero hostels.
+    const values: {
+      userId: string;
+      roleId: string;
+      scopeType?: string | null;
+      scopeId?: string | null;
+    } = { userId, roleId };
+    if (scopeType && scopeId) {
+      values.scopeType = scopeType;
+      values.scopeId = scopeId;
+    }
+
     await database
       .insert(userRoles)
-      .values({ userId, roleId })
+      .values(values)
       .onConflictDoNothing();
   }
 }

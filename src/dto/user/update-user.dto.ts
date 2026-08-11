@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { userRoleScopeSchema } from "@/dto/user/create-user.dto";
 import { ROLES } from "@/lib/auth/roles";
 
 export const updateUserSchema = z.object({
@@ -10,6 +11,7 @@ export const updateUserSchema = z.object({
   hostelId: z.string().uuid().optional().nullable(),
   isActive: z.boolean().optional(),
   roleCodes: z.array(z.enum([ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.POC, ROLES.STUDENT, ROLES.GUARD])).optional(),
+  roleScopes: z.array(userRoleScopeSchema).optional(),
 });
 
 export type UpdateUserDto = z.infer<typeof updateUserSchema>;

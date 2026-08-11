@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, asc, desc, eq, like, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, like, or, sql } from "drizzle-orm";
 
 import { academicGroups, movementStates, students, users } from "@/db";
 import { db } from "@/lib/db";
@@ -18,6 +18,8 @@ export type StudentWithRelations = {
 
 export type StudentFilters = {
   hostelId?: string;
+  /** Restrict to students whose user belongs to one of these hostels. */
+  hostelIds?: string[];
   locationState?: string;
   search?: string;
   page: number;
@@ -113,6 +115,12 @@ export const studentRepository = {
     if (filters.locationState) {
       conditions.push(eq(students.currentLocationState, filters.locationState));
     }
+    if (filters.hostelId) {
+      conditions.push(eq(users.hostelId, filters.hostelId));
+    }
+    if (filters.hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, filters.hostelIds));
+    }
     if (filters.search) {
       const searchPattern = `%${filters.search}%`;
       conditions.push(
@@ -198,11 +206,19 @@ export const studentRepository = {
   },
 
   async countAll(
+    hostelIds?: string[],
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [];
+    if (hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, hostelIds));
+    }
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
     const result = await dbClient
       .select({ count: sql<number>`count(*)` })
-      .from(students);
+      .from(students)
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(whereClause);
     return Number(result[0]?.count ?? 0);
   },
 
@@ -233,12 +249,18 @@ export const studentRepository = {
 
   async countByLocationState(
     state: string,
+    hostelIds?: string[],
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [eq(students.currentLocationState, state)];
+    if (hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, hostelIds));
+    }
     const result = await dbClient
       .select({ count: sql<number>`count(*)` })
       .from(students)
-      .where(eq(students.currentLocationState, state));
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions));
     return Number(result[0]?.count ?? 0);
   },
 };

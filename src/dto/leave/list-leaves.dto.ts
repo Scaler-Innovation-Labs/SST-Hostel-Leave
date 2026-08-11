@@ -1,10 +1,12 @@
 import { z } from "zod";
+
 import { sortSchema } from "@/dto/shared/sort.dto";
 
 export const listLeavesSchema = z.object({
   studentId: z.string().uuid().optional(),
   status: z.string().optional(),
   leaveTypeId: z.string().uuid().optional(),
+  hostelId: z.string().uuid().optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
   search: z.string().optional(),
