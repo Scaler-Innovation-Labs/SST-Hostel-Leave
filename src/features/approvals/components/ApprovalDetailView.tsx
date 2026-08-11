@@ -452,6 +452,7 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
   const [notifyParent, setNotifyParent] = useState(true);
   const [notifyStudent, setNotifyStudent] = useState(true);
   const [documentsVerified, setDocumentsVerified] = useState(false);
+  const [ccEmailsInput, setCcEmailsInput] = useState("");
 
   const [overrideOpen, setOverrideOpen] = useState(false);
   const [overrideMode, setOverrideMode] = useState<"ONE_STEP" | "ALL">("ONE_STEP");
@@ -518,7 +519,11 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
     setActionError("");
     try {
       if (actionTarget === "approve") {
-        await approveLeave(leaveId, comments || undefined, undefined, isSpecialLeave ? documentsVerified : undefined);
+        const ccEmails = ccEmailsInput
+          .split(",")
+          .map((email) => email.trim())
+          .filter((email) => email.length > 0);
+        await approveLeave(leaveId, comments || undefined, undefined, isSpecialLeave ? documentsVerified : undefined, ccEmails.length > 0 ? ccEmails : undefined);
         toast.success("Leave approved successfully");
       } else {
         await rejectLeave(leaveId, rejectionCategory ? `[${rejectionCategory}] ${comments}`.trim() : comments || undefined);
@@ -531,6 +536,7 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
       setNotifyParent(true);
       setNotifyStudent(true);
       setDocumentsVerified(false);
+      setCcEmailsInput("");
       await Promise.all([leaveMutate(), chainMutate()]);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Action failed";
@@ -539,7 +545,7 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
     } finally {
       setActionLoading(false);
     }
-  }, [actionTarget, comments, rejectionCategory, leaveId, leaveMutate, chainMutate, documentsVerified, isSpecialLeave]);
+  }, [actionTarget, comments, rejectionCategory, leaveId, leaveMutate, chainMutate, documentsVerified, isSpecialLeave, ccEmailsInput]);
 
   const handleOverride = useCallback(async () => {
     setOverrideLoading(true);
@@ -1433,6 +1439,22 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
                 rows={3}
                 className="w-full rounded-lg border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-ring focus:ring-1 focus:ring-ring"
               />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
+                CC recipients <span className="text-muted-foreground/50">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={ccEmailsInput}
+                onChange={(e) => setCcEmailsInput(e.target.value)}
+                placeholder="name@example.com, another@example.com"
+                className="w-full rounded-lg border border-input bg-background p-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-ring focus:ring-1 focus:ring-ring"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                These addresses will be CC&apos;d on the approval email sent to the student.
+              </p>
             </div>
 
             <div className="space-y-2.5 rounded-lg border border-border bg-muted/30 p-3">

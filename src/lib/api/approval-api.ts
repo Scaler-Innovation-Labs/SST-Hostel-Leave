@@ -24,12 +24,19 @@ export async function approveLeave(
   id: string,
   comments?: string,
   internalNote?: boolean,
-  documentsVerified?: boolean
+  documentsVerified?: boolean,
+  ccEmails?: string[]
 ): Promise<unknown> {
   const res = await fetch(`${BASE}/leaves/${id}/approve`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ decision: "APPROVED", comments, internalNote, documentsVerified }),
+    body: JSON.stringify({
+      decision: "APPROVED",
+      comments,
+      internalNote,
+      documentsVerified,
+      ccEmails: ccEmails && ccEmails.length > 0 ? ccEmails : undefined,
+    }),
   });
   const json: ApiResponse = await res.json();
   if (!res.ok || !json.success) {

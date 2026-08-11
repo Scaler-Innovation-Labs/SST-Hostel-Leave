@@ -3,8 +3,8 @@
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { useState } from "react";
 
+import { HostelFilter } from "@/components/shared/HostelFilter";
 import { Button } from "@/components/ui/button";
-import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { cn } from "@/lib/utils";
 
 export type FilterState = {
@@ -196,22 +197,11 @@ export function ApprovalFilters({
           </Select>
 
           {hostels.length > 0 && (
-            <Select
+            <HostelFilter
               value={filters.hostelId}
-              onValueChange={(v) => updateFilter("hostelId", v)}
-            >
-              <SelectTrigger className="h-8 w-[160px]">
-                <SelectValue placeholder="Hostel" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Hostels</SelectItem>
-                {hostels.map((h) => (
-                  <SelectItem key={h.id} value={h.id}>
-                    {h.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              hostels={hostels}
+              onChange={(v) => updateFilter("hostelId", v)}
+            />
           )}
 
           {workflows.length > 0 && (

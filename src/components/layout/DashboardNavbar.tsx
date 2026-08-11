@@ -13,10 +13,11 @@ export function DashboardNavbar({
   logoHref,
 }: DashboardNavbarProps) {
   const navItems = items.map(
-    ({ label, href, icon }) => ({
+    ({ label, href, icon, badge }) => ({
       label,
       href,
       icon,
+      badge,
     })
   );
 

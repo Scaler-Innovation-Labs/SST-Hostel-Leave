@@ -1,10 +1,17 @@
 "use client";
 
-import { addDays, format, formatDistanceToNow, isPast, parseISO } from "date-fns";
+import { addDays, differenceInDays, format, isPast, parseISO } from "date-fns";
 import {
   ArrowRight,
+  Briefcase,
+  Building2,
   Calendar,
   Clock,
+  GraduationCap,
+  Heart,
+  Home,
+  MapPin,
+  Moon,
   Plus,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -50,12 +57,51 @@ function getStatusVariant(status: string): "approved" | "pending" | "rejected" |
 
 function getLeaveTypeColor(leaveTypeName: string): string {
   const name = leaveTypeName.toUpperCase();
-  if (name.includes("MEDICAL")) return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20";
+  if (name.includes("MEDICAL") || name.includes("HEALTH")) return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20";
   if (name.includes("EMERGENCY")) return "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20";
-  if (name.includes("STUDY")) return "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20";
-  if (name.includes("CASUAL")) return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
+  if (name.includes("STUDY") || name.includes("EXAM") || name.includes("ACADEMIC")) return "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20";
+  if (name.includes("INTERN") || name.includes("JOB") || name.includes("PROFESSIONAL")) return "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/20";
+  if (name.includes("HOME") || name.includes("PASS")) return "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20";
+  if (name.includes("NIGHT") || name.includes("STAY") || name.includes("OVERNIGHT")) return "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20";
+  if (name.includes("CASUAL") || name.includes("LOCAL") || name.includes("OUTING")) return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
   if (name.includes("GENERAL")) return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
   return "bg-muted text-muted-foreground border-border";
+}
+
+function getLeaveTypeIcon(leaveTypeName: string): React.ElementType {
+  const name = leaveTypeName?.toUpperCase() ?? "";
+  if (name.includes("HOME") || name.includes("PASS")) return Home;
+  if (name.includes("MEDICAL") || name.includes("HEALTH") || name.includes("SICK")) return Heart;
+  if (name.includes("EXAM") || name.includes("STUDY") || name.includes("ACADEM") || name.includes("EDUCATION")) return GraduationCap;
+  if (name.includes("INTERN") || name.includes("JOB") || name.includes("PROFESSIONAL") || name.includes("PLACEMENT")) return Briefcase;
+  if (name.includes("NIGHT") || name.includes("STAY") || name.includes("OVERNIGHT")) return Moon;
+  if (name.includes("HOSTEL") || name.includes("CAMPUS") || name.includes("DORM")) return Building2;
+  if (name.includes("GENERAL") || name.includes("CASUAL") || name.includes("LOCAL") || name.includes("OUTING") || name.includes("PERSONAL")) return MapPin;
+  return Calendar;
+}
+
+function getDurationLabel(startAt: string, endAt: string): string {
+  try {
+    const start = parseISO(startAt);
+    const end = parseISO(endAt);
+    const days = differenceInDays(end, start);
+    if (days === 0) return "Same day";
+    if (days === 1) return "1 day";
+    return `${days} days`;
+  } catch {
+    return "—";
+  }
+}
+
+function getStatusContext(status: string): { label: string; detail?: string } {
+  const s = status.toLowerCase();
+  if (s === "pending") return { label: "Waiting for approval" };
+  if (s === "approved") return { label: "Approved", detail: "QR available" };
+  if (s === "rejected") return { label: "Not approved" };
+  if (s === "cancelled") return { label: "Cancelled" };
+  if (s === "completed") return { label: "Completed" };
+  if (s === "expired") return { label: "Expired" };
+  return { label: s };
 }
 
 export default function StudentLeavesPage() {
@@ -133,6 +179,8 @@ export default function StudentLeavesPage() {
               const startDate = parseISO(item.startAt);
               const endDate = parseISO(item.endAt);
               const isOverdue = isPast(addDays(endDate, 1)) && item.status === LEAVE_REQUEST_STATUS.APPROVED;
+              const IconComponent = getLeaveTypeIcon(item.leaveTypeName);
+              const context = getStatusContext(item.status);
 
               return (
                 <button
@@ -140,14 +188,14 @@ export default function StudentLeavesPage() {
                   onClick={() => router.push(`/student/leaves/${item.id}`)}
                   className="group flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-muted/50"
                 >
-                  {/* Leave type color indicator */}
+                  {/* Leave type icon */}
                   <div
                     className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-xs font-semibold",
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border",
                       getLeaveTypeColor(item.leaveTypeName),
                     )}
                   >
-                    {item.leaveTypeName.charAt(0)}
+                    <IconComponent className="h-5 w-5" />
                   </div>
 
                   {/* Main content */}
@@ -169,10 +217,17 @@ export default function StudentLeavesPage() {
                         <ArrowRight className="h-3 w-3" />
                         {format(endDate, "MMM d, yyyy")}
                       </span>
+                      <span className="text-muted-foreground/50">·</span>
                       <span className="inline-flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {formatDistanceToNow(startDate, { addSuffix: true })}
+                        {getDurationLabel(item.startAt, item.endAt)}
                       </span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {context.label}
+                      {context.detail && (
+                        <span className="text-emerald-500"> · {context.detail}</span>
+                      )}
                     </div>
                   </div>
 

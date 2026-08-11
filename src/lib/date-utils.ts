@@ -35,6 +35,60 @@ export function formatDateTime(dateStr: string): string {
   }
 }
 
+export function formatTimeRemaining(dateStr: string): string {
+  try {
+    const target = parseISO(dateStr);
+    const now = new Date();
+    const diffMs = target.getTime() - now.getTime();
+    if (diffMs <= 0) return "Expired";
+
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffDays > 0) return `${diffDays}d ${diffHours % 24}h remaining`;
+    if (diffHours > 0) return `${diffHours}h ${diffMins % 60}m remaining`;
+    return `${diffMins}m remaining`;
+  } catch {
+    return "—";
+  }
+}
+
+export function formatDateRange(startStr: string, endStr: string): string {
+  try {
+    const start = parseISO(startStr);
+    const end = parseISO(endStr);
+    const now = new Date();
+    const isSameDay = start.toDateString() === end.toDateString();
+    const isThisYear = start.getFullYear() === now.getFullYear();
+
+    if (isSameDay) {
+      return `${format(start, isThisYear ? "MMM d" : "MMM d, yyyy")}, ${format(start, "h:mm a")} – ${format(end, "h:mm a")}`;
+    }
+
+    const startFmt = format(start, isThisYear ? "MMM d" : "MMM d, yyyy");
+    const endFmt = format(end, isThisYear ? "MMM d" : "MMM d, yyyy");
+
+    if (isToday(end)) return `${startFmt} → Today`;
+    if (isTomorrow(end)) return `${startFmt} → Tomorrow`;
+
+    return `${startFmt} → ${endFmt}`;
+  } catch {
+    return "—";
+  }
+}
+
+function isToday(date: Date): boolean {
+  const now = new Date();
+  return date.toDateString() === now.toDateString();
+}
+
+function isTomorrow(date: Date): boolean {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return date.toDateString() === tomorrow.toDateString();
+}
+
 /** Date-range filter option definitions. */
 export const DATE_RANGE_OPTIONS = [
   { value: "", label: "All Time" },

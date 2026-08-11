@@ -19,6 +19,8 @@ type HostelItem = {
   capacity: number | null;
   curfewStartTime: string | null;
   curfewEndTime: string | null;
+  slackAdminGroupId: string | null;
+  slackPocGroupId: string | null;
   isActive: boolean;
 };
 
@@ -29,6 +31,8 @@ type Draft = {
   capacity: string;
   curfewStartTime: string;
   curfewEndTime: string;
+  slackAdminGroupId: string;
+  slackPocGroupId: string;
   isActive: boolean;
 };
 
@@ -38,6 +42,8 @@ const EMPTY_DRAFT: Draft = {
   capacity: "",
   curfewStartTime: "",
   curfewEndTime: "",
+  slackAdminGroupId: "",
+  slackPocGroupId: "",
   isActive: true,
 };
 
@@ -58,6 +64,8 @@ export default function HostelsPage() {
       capacity: hostel.capacity != null ? String(hostel.capacity) : "",
       curfewStartTime: hostel.curfewStartTime ?? "",
       curfewEndTime: hostel.curfewEndTime ?? "",
+      slackAdminGroupId: hostel.slackAdminGroupId ?? "",
+      slackPocGroupId: hostel.slackPocGroupId ?? "",
       isActive: hostel.isActive,
     });
     setMessage(null);
@@ -82,6 +90,8 @@ export default function HostelsPage() {
         capacity: draft.capacity ? Number(draft.capacity) : null,
         curfewStartTime: draft.curfewStartTime || null,
         curfewEndTime: draft.curfewEndTime || null,
+        slackAdminGroupId: draft.slackAdminGroupId.trim() || null,
+        slackPocGroupId: draft.slackPocGroupId.trim() || null,
         isActive: draft.isActive,
       };
       await saveHostel(payload, draft.id);
@@ -168,6 +178,26 @@ export default function HostelsPage() {
             <Field label="Curfew End" value={draft.curfewEndTime} onChange={(curfewEndTime) => setDraft({ ...draft, curfewEndTime })} type="time" />
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field
+              label="Admin Slack Tag"
+              value={draft.slackAdminGroupId}
+              onChange={(slackAdminGroupId) => setDraft({ ...draft, slackAdminGroupId })}
+              mono
+              placeholder="Slack group/user id (e.g. S0123AB456)"
+            />
+            <Field
+              label="POC Slack Tag"
+              value={draft.slackPocGroupId}
+              onChange={(slackPocGroupId) => setDraft({ ...draft, slackPocGroupId })}
+              mono
+              placeholder="Slack group/user id (e.g. S0456CD789)"
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Added to Slack notifications as CC for this hostel&apos;s leave activity. Leave blank to disable.
+          </p>
+
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={draft.isActive} onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })} />
             Active
@@ -185,11 +215,11 @@ export default function HostelsPage() {
   );
 }
 
-function Field({ label, value, onChange, mono = false, type = "text" }: { label: string; value: string; onChange: (v: string) => void; mono?: boolean; type?: string }) {
+function Field({ label, value, onChange, mono = false, type = "text", placeholder }: { label: string; value: string; onChange: (v: string) => void; mono?: boolean; type?: string; placeholder?: string }) {
   return (
     <label className="block text-sm">
       <span className="mb-1 block font-medium">{label}</span>
-      <input type={type} value={value} onChange={(e) => onChange(e.target.value)}
+      <input type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
         className={`h-9 w-full rounded-lg border bg-background px-3 outline-none focus:border-ring focus:ring-1 focus:ring-ring ${mono ? "font-mono" : ""}`} />
     </label>
   );

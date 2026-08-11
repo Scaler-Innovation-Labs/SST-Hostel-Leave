@@ -9,6 +9,7 @@ const OVERDUE_LIMIT = 200;
 
 import { Building2, CheckCircle2, Clock, FileText, Search, Shield, User, X } from "lucide-react";
 
+import { HostelFilter } from "@/components/shared/HostelFilter";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -372,22 +373,11 @@ export default function AdminApprovalsPage() {
           </SelectContent>
         </Select>
 
-        <Select
+        <HostelFilter
           value={filters.hostelId}
-          onValueChange={(v) => updateFilter("hostelId", v)}
-        >
-          <SelectTrigger className="h-9 w-[160px]">
-            <SelectValue placeholder="Hostel" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="">All Hostels</SelectItem>
-            {hostels?.map((h) => (
-              <SelectItem key={h.id} value={h.id}>
-                {h.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          hostels={hostels}
+          onChange={(v) => updateFilter("hostelId", v)}
+        />
 
         <Select
           value={filters.dateRange}

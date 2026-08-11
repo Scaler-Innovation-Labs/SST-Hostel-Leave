@@ -12,7 +12,7 @@ export function DynamicLeaveFields({ schema, register }: { schema: LeaveFormSche
         setValueAs: field.type === "checkbox" ? (value) => Boolean(value) : undefined,
       });
       const common = { ...registration, required: field.required, placeholder: field.placeholder, minLength: field.minLength, maxLength: field.maxLength, className: "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" };
-      return <label key={field.key} className="block text-sm"><span className="mb-1 block font-medium">{field.label}{field.required ? " *" : ""}</span>
+      return <label key={field.key} className="block text-sm"><span className="mb-1 block font-medium">{field.label}{field.required ? <span className="text-destructive"> *</span> : ""}</span>
         {field.type === "textarea" ? <textarea {...common} rows={3} /> :
           field.type === "select" ? <select {...common}><option value="">Select...</option>{field.options?.map((option) => <option key={option} value={option}>{option}</option>)}</select> :
           field.type === "checkbox" ? <input {...registration} type="checkbox" className="size-4" /> :

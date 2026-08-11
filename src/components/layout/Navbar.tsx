@@ -18,6 +18,7 @@ type NavbarItem = {
   label: string;
   href: string;
   icon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  badge?: React.ReactNode;
 };
 
 type NavbarProps = {
@@ -39,8 +40,13 @@ export function Navbar({ items, logo }: NavbarProps) {
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
-    // Exact match or child route — avoids false positives like /leaves matching /leaves/new
-    return pathname === href || pathname.startsWith(href + "/");
+    if (pathname === href) return true;
+    // Parent route match (e.g., /student/leaves for /student/leaves/123)
+    // but NOT if another nav item is an exact match (e.g., /student/leaves/new)
+    if (pathname.startsWith(href + "/")) {
+      return !items.some((item) => item.href === pathname && item.href !== href);
+    }
+    return false;
   };
 
   const closeMobile = () => setMobileOpen(false);
@@ -78,6 +84,7 @@ export function Navbar({ items, logo }: NavbarProps) {
                 {Icon && <Icon className="h-4 w-4 shrink-0" />}
                 <span className="hidden lg:inline">{item.label}</span>
                 <span className="lg:hidden">{item.label.length > 8 ? item.label.slice(0, 7) + "…" : item.label}</span>
+                {item.badge && <span className="shrink-0">{item.badge}</span>}
                 {active && (
                   <span className="absolute -bottom-[9px] left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-primary" />
                 )}
@@ -154,6 +161,7 @@ export function Navbar({ items, logo }: NavbarProps) {
                           {Icon ? <Icon className="h-4 w-4" /> : null}
                         </div>
                         {item.label}
+                        {item.badge && <span className="ml-auto">{item.badge}</span>}
                       </Link>
                     );
                   })}

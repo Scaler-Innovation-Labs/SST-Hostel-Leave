@@ -16,7 +16,7 @@ type StepDraft = {
   stepKey: string;
   approverRoleCode: string | null;
   isParentApproval: boolean;
-  approvalMethod: "SMS_REPLY" | "SMS_AND_LINK" | "SMS_LINK" | "PORTAL" | "AUTO" | null;
+  approvalMethod: "SMS_LINK" | "PORTAL" | "AUTO" | null;
   isRequired: boolean;
   condition: string;
   timeoutHours: string;
@@ -42,7 +42,7 @@ const EMPTY_DRAFT: WorkflowDraft = {
 };
 
 const ROLE_OPTIONS = [ROLES.POC, ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.GUARD];
-const METHOD_OPTIONS = ["PORTAL", "SMS_REPLY", "SMS_LINK", "SMS_AND_LINK", "AUTO"];
+const METHOD_OPTIONS = ["PORTAL", "SMS_LINK", "AUTO"];
 
 export default function SuperAdminWorkflowsPage() {
   const [search, setSearch] = useState("");

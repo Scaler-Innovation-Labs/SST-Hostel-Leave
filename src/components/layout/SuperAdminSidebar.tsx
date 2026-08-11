@@ -19,12 +19,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { ROUTES } from "@/constants/routes";
+import { ApprovalCountBadge } from "@/features/approvals/components/ApprovalCountBadge";
 import { cn } from "@/lib/utils";
 
 export type SidebarItem = {
   label: string;
   href: string;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  badge?: React.ReactNode;
 };
 
 export type SidebarSection = {
@@ -37,7 +39,12 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     title: "Overview",
     items: [
       { label: "Analytics", href: ROUTES.SUPER_ADMIN_ANALYTICS, icon: BarChart3 },
-      { label: "Approvals", href: ROUTES.SUPER_ADMIN_APPROVALS, icon: FileText },
+      {
+        label: "Approvals",
+        href: ROUTES.SUPER_ADMIN_APPROVALS,
+        icon: FileText,
+        badge: <ApprovalCountBadge />,
+      },
       {
         label: "Extension Approvals",
         href: ROUTES.SUPER_ADMIN_EXTENSION_APPROVALS,
@@ -76,7 +83,12 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     title: "POC View",
     items: [
       { label: "Dashboard", href: ROUTES.POC_DASHBOARD, icon: Eye },
-      { label: "Approvals", href: ROUTES.POC_APPROVALS, icon: FileText },
+      {
+        label: "Approvals",
+        href: ROUTES.POC_APPROVALS,
+        icon: FileText,
+        badge: <ApprovalCountBadge />,
+      },
     ],
   },
   {
@@ -132,6 +144,7 @@ function SidebarNav({ onNavigate }: SidebarNavProps) {
                     <Icon className="size-4" />
                   </div>
                   {item.label}
+                  {item.badge && <span className="ml-auto">{item.badge}</span>}
                 </Link>
               );
             })}

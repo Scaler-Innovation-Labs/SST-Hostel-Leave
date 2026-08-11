@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import useSWR from "swr";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,19 @@ const GENDER_OPTIONS = [
   { value: "OTHER", label: "Other" },
 ];
 
+// Roles that can be restricted to specific hostels.
+const SCOPABLE_ROLES = ["ADMIN", "POC"];
+
+const fetcher = (url: string) =>
+  fetch(url).then((r) => r.json()).then((r) => r.data ?? r);
+
+type HostelOption = { id: string; name: string; code: string };
+
+export type UserRoleScopeField = {
+  roleCode: string;
+  hostelIds: string[];
+};
+
 export type UserFormData = {
   fullName: string;
   email: string;
@@ -34,6 +48,7 @@ export type UserFormData = {
   gender: string;
   hostelId: string;
   roleCodes: string[];
+  roleScopes: UserRoleScopeField[];
   isActive: boolean;
 };
 
@@ -45,14 +60,27 @@ type UserFormProps = {
   mode: "create" | "edit";
 };
 
+function scopesToMap(roleScopes?: UserRoleScopeField[]): Record<string, string[]> {
+  const map: Record<string, string[]> = {};
+  for (const { roleCode, hostelIds } of roleScopes ?? []) {
+    map[roleCode] = hostelIds;
+  }
+  return map;
+}
+
 export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: UserFormProps) {
   const [fullName, setFullName] = useState(initialData?.fullName ?? "");
   const [email, setEmail] = useState(initialData?.email ?? "");
   const [phone, setPhone] = useState(initialData?.phone ?? "");
   const [gender, setGender] = useState(initialData?.gender ?? "");
   const [roleCodes, setRoleCodes] = useState<string[]>(initialData?.roleCodes ?? []);
+  const [roleScopes, setRoleScopes] = useState<Record<string, string[]>>(
+    () => scopesToMap(initialData?.roleScopes)
+  );
   const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
   const [error, setError] = useState<string | null>(null);
+
+  const { data: hostels } = useSWR<HostelOption[]>("/api/v1/hostels", fetcher);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,10 +91,12 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
       return;
     }
 
-    if (mode === "create" && roleCodes.length === 0) {
+    if (roleCodes.length === 0) {
       setError("At least one role is required");
       return;
     }
+
+    const scopedRoleCodes = roleCodes.filter((code) => SCOPABLE_ROLES.includes(code));
 
     await onSubmit({
       fullName: fullName.trim(),
@@ -75,15 +105,38 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
       gender,
       hostelId: initialData?.hostelId ?? "",
       roleCodes,
+      roleScopes: scopedRoleCodes.map((code) => ({
+        roleCode: code,
+        hostelIds: roleScopes[code] ?? [],
+      })),
       isActive,
     });
   };
 
   const toggleRole = (code: string) => {
-    setRoleCodes((prev) =>
-      prev.includes(code) ? prev.filter((r) => r !== code) : [...prev, code],
-    );
+    const next = roleCodes.includes(code)
+      ? roleCodes.filter((r) => r !== code)
+      : [...roleCodes, code];
+    setRoleCodes(next);
+
+    // Drop scope entries for roles that were removed.
+    if (roleCodes.includes(code)) {
+      const { [code]: _removed, ...rest } = roleScopes;
+      setRoleScopes(rest);
+    }
   };
+
+  const toggleHostel = (roleCode: string, hostelId: string) => {
+    setRoleScopes((prev) => {
+      const current = prev[roleCode] ?? [];
+      const next = current.includes(hostelId)
+        ? current.filter((id) => id !== hostelId)
+        : [...current, hostelId];
+      return { ...prev, [roleCode]: next };
+    });
+  };
+
+  const scopableSelectedRoles = roleCodes.filter((code) => SCOPABLE_ROLES.includes(code));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -158,9 +211,9 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
         )}
       </div>
 
-      {mode === "create" && (
+      {(mode === "create" || mode === "edit") && (
         <div>
-          <Label className="mb-2 block">Roles *</Label>
+          <Label className="mb-2 block">Roles {mode === "create" && "*"}</Label>
           <div className="flex flex-wrap gap-2">
             {ROLE_OPTIONS.map((role) => (
               <button
@@ -180,6 +233,51 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {scopableSelectedRoles.length > 0 && (
+        <div className="rounded-xl border border-border bg-muted/40 p-4">
+          <Label className="mb-1 block">Hostel Scope</Label>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Restrict each {scopableSelectedRoles.join(" / ")} role to specific hostels. Unchecked
+            = access to all hostels.
+          </p>
+          {scopableSelectedRoles.map((roleCode) => {
+            const roleLabel = ROLE_OPTIONS.find((r) => r.value === roleCode)?.label ?? roleCode;
+            const selected = roleScopes[roleCode] ?? [];
+            return (
+              <div key={roleCode} className="rounded-lg border border-border bg-background p-3">
+                <p className="mb-2 text-sm font-medium">{roleLabel}</p>
+                {hostels?.length ? (
+                  <div className="flex flex-wrap gap-2">
+                    {hostels.map((hostel) => {
+                      const checked = selected.includes(hostel.id);
+                      return (
+                        <button
+                          key={hostel.id}
+                          type="button"
+                          onClick={() => toggleHostel(roleCode, hostel.id)}
+                          className={`inline-flex items-center rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                            checked
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border bg-background text-muted-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {checked && <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-primary" />}
+                          {hostel.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Unrestricted (all hostels)
+                  </p>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

@@ -168,12 +168,11 @@ export default function SuperAdminSettingsPage() {
         />
 
         <ConfigCard
-          title="SMS (Twilio)"
-          description="Transactional SMS via Twilio."
+          title="SMS (Infobip)"
+          description="Transactional SMS via Infobip (India DLT)."
           fields={[
-            { label: "TWILIO_ACCOUNT_SID", configured: status.sms.accountSid },
-            { label: "TWILIO_AUTH_TOKEN", configured: status.sms.authToken },
-            { label: "TWILIO_PHONE_NUMBER", configured: status.sms.phoneNumber },
+            { label: "INFOBIP_API_KEY", configured: status.sms.apiKey },
+            { label: "INFOBIP_SENDER_ID", configured: status.sms.senderId },
           ]}
           onTest={() => handleTest("sms")}
           testLabel="Send Test SMS"
@@ -242,9 +241,10 @@ export default function SuperAdminSettingsPage() {
                 {[
                   ["RESEND_API_KEY", "Email", "Resend API key for transactional emails"],
                   ["RESEND_FROM_EMAIL", "Email", "Verified sender email for Resend"],
-                  ["TWILIO_ACCOUNT_SID", "SMS", "Twilio Account SID"],
-                  ["TWILIO_AUTH_TOKEN", "SMS", "Twilio Auth Token"],
-                  ["TWILIO_PHONE_NUMBER", "SMS", "Twilio phone number (E.164)"],
+                  ["INFOBIP_API_KEY", "SMS", "Infobip API key (base64 of username:password)"],
+                  ["INFOBIP_SENDER_ID", "SMS", "Sender ID registered in Infobip (e.g. Scaler)"],
+                  ["INFOBIP_DLT_CONTENT_TEMPLATE_ID", "SMS", "India DLT content template ID"],
+                  ["INFOBIP_DLT_PRINCIPAL_ENTITY_ID", "SMS", "India DLT principal entity ID"],
                   ["SLACK_BOT_TOKEN", "Slack", "Slack app bot token (xoxb-*)"],
                   ["SLACK_CHANNEL_ID", "Slack", "Slack channel ID to post to"],
                   ["NEXT_PUBLIC_BASE_URL", "Notifications", "Public URL for notification links"],

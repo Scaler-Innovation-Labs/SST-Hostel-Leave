@@ -4,21 +4,15 @@ import { format, formatDistanceToNow, parseISO } from "date-fns";
 import {
   Calendar,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
   Clock,
-  ExternalLink,
   Globe,
   Home,
   MapPin,
-  MessageSquare,
-  Shield,
   XCircle,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import { Button } from "@/components/ui/button";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
@@ -28,7 +22,6 @@ import { approveLeave, rejectLeave } from "@/lib/api/approval-api";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
-import { AuditDrawer } from "./AuditDrawer";
 import { AutoPreviewModal } from "./AutoPreviewModal";
 import { WorkflowProgress } from "./WorkflowProgress";
 
@@ -82,13 +75,6 @@ const AVATAR_COLORS = [
   "bg-rose-500/10 text-rose-600",
 ];
 
-function formatPolicyValue(check: { key: string; passed: boolean | undefined; detail?: string }): string {
-  if (check.detail) return check.detail;
-  if (check.passed === true) return "Passed ✓";
-  if (check.passed === false) return "Failed";
-  return "—";
-}
-
 export function ApprovalCommandCard({ item, onActionComplete }: ApprovalCommandCardProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -96,20 +82,18 @@ export function ApprovalCommandCard({ item, onActionComplete }: ApprovalCommandC
   const isPending = item.decision === LEAVE_APPROVAL_DECISION.PENDING;
   const isApproved = item.decision === LEAVE_APPROVAL_DECISION.APPROVED || item.decision === LEAVE_APPROVAL_DECISION.AUTO_APPROVED;
 
-  const [showPolicy, setShowPolicy] = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [comments, setComments] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
   const [showPreview, setShowPreview] = useState<"approve" | "reject" | null>(null);
-  const [confirmAction, setConfirmAction] = useState<"approve" | "reject" | null>(null);
-  const [showAudit, setShowAudit] = useState(false);
-  const [internalNote, setInternalNote] = useState(false);
 
   const destination = lr?.submittedForm?.destination as string | undefined;
   const parentPending = !!item.approverParentId && !item.parentApprovalVerifiedAt;
   const waitingOn = lr?.currentStepKey ?? (lr?.status === LEAVE_REQUEST_STATUS.PENDING ? VIEW_STEP_KEY.POLICY : VIEW_STEP_KEY.COMPLETE);
   const isExtension = !!item.leaveExtensionId;
+
+  // The leave is still waiting on an earlier step (parent or POC) — not this approver's turn yet.
+  const showWaitingPanel =
+    (waitingOn.includes("PARENT") && parentPending) || waitingOn.includes("POC");
 
   const avatarColor = AVATAR_COLORS[Math.abs((item.studentName ?? "").charCodeAt(0) || 0) % 5] ?? "bg-muted text-muted-foreground";
 
@@ -148,36 +132,16 @@ export function ApprovalCommandCard({ item, onActionComplete }: ApprovalCommandC
     return { key: step.label.toLowerCase().replace(/\s+/g, "-"), label: step.label, status };
   });
 
-  // ── Policy evaluation ──
-  const policyChecks = (lr?.policyResult as { checks?: Array<{ key: string; label: string; passed: boolean; message?: string }> } | null)?.checks?.map((c) => ({
-    key: c.key,
-    displayKey: c.label,
-    passed: c.passed,
-    detail: c.message,
-  })) ?? [];
-
-  // ── Audit entries ──
-  const auditEntries = [
-    { label: "Student Created", time: lr?.createdAt ?? null, status: "done" as const },
-    { label: "Policy Evaluated", time: lr?.createdAt ?? null, status: "done" as const },
-    { label: "Workflow Generated", time: lr?.createdAt ?? null, status: "done" as const },
-    ...(item.parentApprovalVerifiedAt ? [{ label: "Parent Approved", time: item.parentApprovalVerifiedAt, status: "done" as const }] : []),
-    ...(isPending ? [{ label: `Waiting for ${getStepDisplay(waitingOn).label}`, time: null, status: "pending" as const }] : []),
-  ];
-
   const handleAction = async (action: "approve" | "reject") => {
     if (!lr) return;
     setActionLoading(true);
     setActionError("");
     try {
       if (action === "approve") {
-        await approveLeave(lr.id, comments || undefined, internalNote || undefined);
+        await approveLeave(lr.id);
       } else {
-        await rejectLeave(lr.id, comments || undefined, internalNote || undefined);
+        await rejectLeave(lr.id);
       }
-      setComments("");
-      setInternalNote(false);
-      setShowComments(false);
       onActionComplete();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Action failed";
@@ -212,11 +176,6 @@ export function ApprovalCommandCard({ item, onActionComplete }: ApprovalCommandC
             <span className={cn("h-1.5 w-1.5 rounded-full", isPending ? "bg-amber-500" : isApproved ? "bg-emerald-500" : "bg-red-500")} />
             {isPending ? "PENDING" : isApproved ? "APPROVED" : "REJECTED"}
           </span>
-          {isPending && (
-            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-              Waiting: <span className="font-medium text-foreground">{getStepDisplay(waitingOn).label}</span>
-            </span>
-          )}
           {isExtension && (
             <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-600">Extension</span>
           )}
@@ -224,219 +183,132 @@ export function ApprovalCommandCard({ item, onActionComplete }: ApprovalCommandC
         <span className="font-mono text-xs text-muted-foreground">{lr?.requestNumber ?? "—"}</span>
       </div>
 
-      {/* ── LEVEL 1 — Always visible (~300px) ── */}
-      <div className="space-y-3 p-4">
-        {/* Student + Leave row */}
-        <div className="flex items-start gap-3">
-          <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold", avatarColor)}>
-            {getInitials(item.studentName ?? "?")}
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold leading-tight">{item.studentName ?? "—"}</h3>
-            <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-              <span className="font-mono">{item.studentRollNumber}</span>
-              {item.departmentName && <span>{item.departmentName}</span>}
-              {item.roomNumber && <span>Room {item.roomNumber}</span>}
-              {item.hostelName && (
-                <span className="inline-flex items-center gap-1">
-                  <Home className="h-3 w-3" />
-                  {item.hostelName}
-                </span>
-              )}
+      {/* ── Card body ── */}
+      <div className="flex flex-col gap-4 p-4 sm:flex-row">
+        {/* Left — request details */}
+        <div className="min-w-0 flex-1 space-y-3">
+          {/* Student + Leave row */}
+          <div className="flex items-start gap-3">
+            <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold", avatarColor)}>
+              {getInitials(item.studentName ?? "?")}
             </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-sm font-semibold leading-tight">{item.studentName ?? "—"}</h3>
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                <span className="font-mono">{item.studentRollNumber}</span>
+                {item.departmentName && <span>{item.departmentName}</span>}
+                {item.roomNumber && <span>Room {item.roomNumber}</span>}
+                {item.hostelName && (
+                  <span className="inline-flex items-center gap-1">
+                    <Home className="h-3 w-3" />
+                    {item.hostelName}
+                  </span>
+                )}
+              </div>
+            </div>
+            <span className="shrink-0 text-[11px] text-muted-foreground">
+              {getWaitingTime(item.createdAt)}
+            </span>
           </div>
-          <span className="shrink-0 text-[11px] text-muted-foreground">
-            {getWaitingTime(item.createdAt)}
-          </span>
-        </div>
 
-        {/* Leave summary — compact horizontal */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-1 font-medium text-foreground">
-            <Globe className="h-3.5 w-3.5" />
-            {item.leaveTypeName ?? "Leave"}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Calendar className="h-3.5 w-3.5" />
-            {lr ? `${formatDate(lr.startAt)}→${formatDate(lr.endAt)}` : "—"}
-            <span className="ml-0.5 rounded bg-muted px-1 py-0.5 text-[10px] font-medium">
-              {lr ? getDuration(lr.startAt, lr.endAt) : ""}
+          {/* Leave summary — compact horizontal */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span className="inline-flex items-center gap-1 font-medium text-foreground">
+              <Globe className="h-3.5 w-3.5" />
+              {item.leaveTypeName ?? "Leave"}
             </span>
-          </span>
-          {destination && (
             <span className="inline-flex items-center gap-1">
-              <MapPin className="h-3.5 w-3.5" />
-              {destination}
+              <Calendar className="h-3.5 w-3.5" />
+              {lr ? `${formatDate(lr.startAt)}→${formatDate(lr.endAt)}` : "—"}
+              <span className="ml-0.5 rounded bg-muted px-1 py-0.5 text-[10px] font-medium">
+                {lr ? getDuration(lr.startAt, lr.endAt) : ""}
+              </span>
             </span>
-          )}
-        </div>
-
-        {/* Reason */}
-        <div className="line-clamp-1 text-xs text-muted-foreground">
-          {lr?.reason ?? "—"}
-        </div>
-
-        {/* Compact workflow */}
-        <WorkflowProgress steps={workflowSteps} compact />
-
-        {/* Actions */}
-        {isPending && (
-          <div className="flex items-center gap-2 pt-1">
-            {waitingOn.includes("PARENT") && parentPending ? (
-              <Button variant="outline" disabled className="gap-2 text-xs h-8 opacity-60" onClick={(e) => e.stopPropagation()}>
-                <Clock className="h-3.5 w-3.5" />
-                Waiting for Parent
-              </Button>
-            ) : (
-              <>
-                <Button
-                  variant="destructive" size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!comments.trim()) { setShowComments(true); return; }
-                    setShowPreview("reject");
-                  }}
-                  disabled={actionLoading}
-                  className="gap-1 h-8 text-xs"
-                >
-                  <XCircle className="h-3.5 w-3.5" />
-                  Reject
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowPreview("approve");
-                  }}
-                  disabled={actionLoading}
-                  className="gap-1 h-8 text-xs"
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Approve
-                </Button>
-              </>
+            {destination && (
+              <span className="inline-flex items-center gap-1">
+                <MapPin className="h-3.5 w-3.5" />
+                {destination}
+              </span>
             )}
           </div>
-        )}
 
-        {!isPending && (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs" onClick={(e) => { e.stopPropagation(); setShowAudit(true); }}>
-              <ExternalLink className="h-3.5 w-3.5" />
-              View Audit
-            </Button>
+          {/* Reason */}
+          <div className="line-clamp-1 text-xs text-muted-foreground">
+            {lr?.reason ?? "—"}
           </div>
-        )}
 
-        {actionError && (
+        </div>
+
+        {/* Middle — workflow progress */}
+        <div className="flex items-center justify-center sm:flex-1 sm:px-6">
+          <WorkflowProgress steps={workflowSteps} compact />
+        </div>
+
+        {/* Right — actions / status */}
+        <div className="flex shrink-0 items-center justify-center sm:w-44">
+          {isPending ? (
+            <div className="flex w-full flex-col gap-2">
+              {showWaitingPanel ? (
+                <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-border bg-muted/40 px-3 py-3 text-center">
+                  <Clock className="h-4 w-4 text-amber-500" />
+                  <span className="text-[11px] font-medium leading-tight text-muted-foreground">
+                    Waiting for <span className="text-foreground">{getStepDisplay(waitingOn).label}</span>
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowPreview("approve");
+                    }}
+                    disabled={actionLoading}
+                    className="h-8 w-full gap-1.5 text-xs"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Approve
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowPreview("reject");
+                    }}
+                    disabled={actionLoading}
+                    className="h-8 w-full gap-1.5 text-xs"
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                    Reject
+                  </Button>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-1.5">
+              {isApproved ? (
+                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              ) : (
+                <XCircle className="h-5 w-5 text-red-500" />
+              )}
+              <span className={cn("text-xs font-semibold uppercase tracking-wide", isApproved ? "text-emerald-600" : "text-red-600")}>
+                {isApproved ? "Approved" : "Rejected"}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {actionError && (
+        <div className="border-t border-border px-4 py-3">
           <div className="rounded-lg bg-red-50 p-2 text-xs text-red-700 dark:bg-red-500/10 dark:text-red-400">
             {actionError}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* ── LEVEL 2 — Collapsible sections ── */}
-      <div className="border-t border-border px-4 py-2 space-y-1">
-        {/* Policy Evaluation */}
-        {policyChecks.length > 0 && (
-          <div>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setShowPolicy(!showPolicy); }}
-              className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
-            >
-              {showPolicy ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              <Shield className="h-3 w-3" />
-              Policy Evaluation
-              <span className="ml-auto text-[10px] text-muted-foreground">
-                {policyChecks.filter(c => c.passed !== false).length}/{policyChecks.length} passed
-              </span>
-            </button>
-            {showPolicy && (
-              <div className="mt-1 grid grid-cols-2 gap-1 px-2 pb-2">
-                {policyChecks.map((check) => (
-                  <div key={check.key} className={cn(
-                    "flex items-center justify-between rounded-lg px-3 py-1.5 text-xs",
-                    check.passed === true ? "bg-emerald-500/5" : check.passed === undefined ? "bg-muted/30" : "bg-red-500/5",
-                  )}>
-                    <span className="font-medium">{check.displayKey}</span>
-                    <span className={cn("ml-2 shrink-0 text-right", check.passed === true ? "text-emerald-600" : check.passed === undefined ? "text-muted-foreground" : "text-red-600")}>
-                      {formatPolicyValue(check)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Parent status (compact) */}
-        {item.approverParentId && (
-          <div className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs">
-            {item.parentApprovalVerifiedAt ? (
-              <>
-                <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                <span className="text-emerald-600 font-medium">Parent Approved</span>
-              </>
-            ) : (
-              <>
-                <Clock className="h-3 w-3 text-amber-500" />
-                <span className="text-amber-600 font-medium">Parent pending</span>
-                <span className="text-muted-foreground">· {item.parentName ?? ""}</span>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Comments */}
-        {isPending && (
-          <div>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setShowComments(!showComments); }}
-              className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
-            >
-              <MessageSquare className="h-3 w-3" />
-              {showComments ? "Hide" : "Add"} comment
-              {showComments ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-            </button>
-            {showComments && (
-              <div className="mt-1 space-y-2 px-2 pb-2">
-                <textarea
-                  value={comments}
-                  onChange={(e) => setComments(e.target.value)}
-                  onClick={(e) => e.stopPropagation()}
-                  placeholder="Add a note about your decision..."
-                  rows={2}
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
-                />
-                <label className="flex items-center gap-2 text-xs text-muted-foreground" onClick={(e) => e.stopPropagation()}>
-                  <input type="checkbox" checked={internalNote} onChange={(e) => setInternalNote(e.target.checked)} className="rounded border-border" />
-                  Internal note (not visible to student)
-                </label>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Audit trigger */}
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); setShowAudit(true); }}
-          className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
-        >
-          <Clock className="h-3 w-3" />
-          View Audit
-        </button>
-      </div>
-
-      {/* ── LEVEL 3 — Modals ── */}
-      <AuditDrawer
-        open={showAudit}
-        onOpenChange={setShowAudit}
-        entries={auditEntries}
-      />
-
+      {/* ── Modals ── */}
       {showPreview && (
         <AutoPreviewModal
           open={!!showPreview}
@@ -445,22 +317,8 @@ export function ApprovalCommandCard({ item, onActionComplete }: ApprovalCommandC
           studentName={item.studentName ?? "this student"}
           onConfirm={() => {
             setShowPreview(null);
-            if (showPreview === "reject" && !comments.trim()) { setShowComments(true); return; }
             handleAction(showPreview);
           }}
-          loading={actionLoading}
-        />
-      )}
-
-      {!showPreview && (
-        <ConfirmationDialog
-          open={!!confirmAction}
-          onOpenChange={() => setConfirmAction(null)}
-          title={confirmAction === "approve" ? "Approve Leave" : "Reject Leave"}
-          description={comments ? `${confirmAction === "approve" ? "Approve" : "Reject"} this leave with your comment: "${comments}"` : `Are you sure you want to ${confirmAction} this leave request?`}
-          confirmLabel={confirmAction === "approve" ? "Approve" : "Reject"}
-          variant={confirmAction === "reject" ? "destructive" : "default"}
-          onConfirm={() => { if (confirmAction) handleAction(confirmAction); setConfirmAction(null); }}
           loading={actionLoading}
         />
       )}

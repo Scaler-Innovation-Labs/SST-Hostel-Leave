@@ -57,6 +57,7 @@ export function useLeaves(query?: Partial<ListLeavesQuery>) {
     leaves: rawItems.map(flattenLeaveItem),
     total: data?.data?.total ?? 0,
     page: data?.data?.page ?? 1,
+    totalPages: data?.data?.totalPages ?? 1,
     isLoading,
     isError: !!error,
     error,

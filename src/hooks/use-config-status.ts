@@ -10,9 +10,8 @@ export type ConfigStatus = {
   };
   sms: {
     configured: boolean;
-    accountSid: boolean;
-    authToken: boolean;
-    phoneNumber: boolean;
+    apiKey: boolean;
+    senderId: boolean;
   };
   slack: {
     configured: boolean;

@@ -18,6 +18,8 @@ export type NavigationItem = {
   label: string;
   href: string;
   icon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  /** Optional element rendered at the end of the nav item (e.g. a count badge). */
+  badge?: React.ReactNode;
 };
 
 export const NAVIGATION = {
@@ -47,11 +49,6 @@ export const NAVIGATION = {
       label: "New Leave",
       href: ROUTES.STUDENT_LEAVE_NEW,
       icon: FileText,
-    },
-    {
-      label: "QR Pass",
-      href: ROUTES.STUDENT_QR,
-      icon: QrCode,
     },
   ],
 

@@ -22,6 +22,20 @@ export default function EditUserPage() {
   if (isError) return <ErrorState message={error?.message ?? "Failed to load user"} onRetry={() => mutate()} />;
   if (!user) return <ErrorState message="User not found" />;
 
+  // Group HOSTEL-scoped role rows into { roleCode, hostelIds[] }.
+  const prefilledScopes = (user.userRoles ?? [])
+    .filter((r) => r.scopeType && r.scopeId)
+    .reduce<Record<string, string[]>>((acc, r) => {
+      const list = acc[r.roleCode] ?? [];
+      list.push(r.scopeId as string);
+      acc[r.roleCode] = list;
+      return acc;
+    }, {});
+  const initialRoleScopes = Object.entries(prefilledScopes).map(([roleCode, hostelIds]) => ({
+    roleCode,
+    hostelIds,
+  }));
+
   const handleSubmit = async (data: {
     fullName: string;
     email: string;
@@ -29,6 +43,7 @@ export default function EditUserPage() {
     gender: string;
     hostelId: string;
     roleCodes: string[];
+    roleScopes: Array<{ roleCode: string; hostelIds: string[] }>;
     isActive: boolean;
   }) => {
     setIsSubmitting(true);
@@ -43,6 +58,8 @@ export default function EditUserPage() {
           phone: data.phone || undefined,
           gender: data.gender || undefined,
           isActive: data.isActive,
+          roleCodes: data.roleCodes,
+          roleScopes: data.roleScopes,
         }),
       });
       const json = await res.json();
@@ -85,6 +102,7 @@ export default function EditUserPage() {
             gender: "",
             isActive: user.isActive,
             roleCodes: user.userRoles?.map((r) => r.roleCode) ?? [],
+            roleScopes: initialRoleScopes,
           }}
           onSubmit={handleSubmit}
           onCancel={() => router.push(`/super-admin/users/${id}`)}

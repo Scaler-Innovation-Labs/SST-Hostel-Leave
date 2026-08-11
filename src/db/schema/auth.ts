@@ -33,6 +33,9 @@ export const users = pgTable("users", {
 
   phone: text("phone").unique(),
 
+  /** Slack member id (U...) or user-group id (S...) used for DMs/mentions. */
+  slackId: text("slack_id"),
+
   gender: genderEnum("gender"),
 
   profileImageUrl: text("profile_image_url"),

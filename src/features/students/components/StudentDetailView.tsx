@@ -238,12 +238,6 @@ export function StudentDetailView({ studentId, basePath = "/admin/students" }: S
             <FileText className="h-4 w-4 text-muted-foreground" />
             <h3 className="text-base font-semibold">Recent Leaves</h3>
           </div>
-          <Link
-            href={`/admin/leaves?studentId=${studentId}`}
-            className="text-xs font-medium text-primary hover:underline"
-          >
-            View all
-          </Link>
         </div>
         {leaves.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No leave records found.</p>

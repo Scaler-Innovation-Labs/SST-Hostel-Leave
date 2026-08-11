@@ -7,6 +7,7 @@ import { DashboardNavbar } from "./DashboardNavbar";
 type ShellNavItem = {
   label: string;
   href: string;
+  badge?: React.ReactNode;
 };
 
 type AppShellProps = {
