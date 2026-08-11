@@ -4,7 +4,6 @@ import { parentOtpSessionRepository } from "@/db/repositories/parent/parent-otp-
 import { sha256 } from "@/lib/crypto"
 import { NotFoundError, ValidationError } from "@/lib/errors"
 import { signParentJwt } from "@/lib/jwt"
-import { sendOtpViaMsg91, verifyOtpViaMsg91 } from "@/lib/messaging/otp/msg91-otp"
 import { notificationService } from "@/services/notification/notification.service"
 
 export type SendLoginOtpResult = {
@@ -25,26 +24,15 @@ function generateOtpCode(): string {
   return String(Math.floor(100000 + Math.random() * 900000))
 }
 
-function isMsg91OtpConfigured(): boolean {
-  return !!process.env.MSG91_OTP_TEMPLATE_ID
-}
-
 async function deliverOtp(phone: string, otpCode: string, parentId: string): Promise<void> {
-  if (isMsg91OtpConfigured()) {
-    await sendOtpViaMsg91(phone, otpCode)
-  } else {
-    const smsBody = `Your login OTP is ${otpCode}. It expires in ${PARENT_LOGIN_OTP_EXPIRY_MINUTES} minutes.`
-    await notificationService.sendSms(phone, smsBody, {
-      parentId,
-      metadata: { purpose: "PARENT_LOGIN" },
-    })
-  }
+  const smsBody = `Your login OTP is ${otpCode}. It expires in ${PARENT_LOGIN_OTP_EXPIRY_MINUTES} minutes.`
+  await notificationService.sendSms(phone, smsBody, {
+    parentId,
+    metadata: { purpose: "PARENT_LOGIN" },
+  })
 }
 
-async function checkOtp(phone: string, otp: string, storedHash: string): Promise<boolean> {
-  if (isMsg91OtpConfigured()) {
-    return verifyOtpViaMsg91(phone, otp)
-  }
+async function checkOtp(_phone: string, otp: string, storedHash: string): Promise<boolean> {
   return (await sha256(otp)) === storedHash
 }
 

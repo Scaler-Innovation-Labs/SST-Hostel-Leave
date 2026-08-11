@@ -331,6 +331,19 @@ export const leaveParentApprovalRepository = {
     }));
   },
 
+  async findById(
+    id: string,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<LeaveApproval | null> {
+    const rows = await dbClient
+      .select()
+      .from(leaveApprovals)
+      .where(eq(leaveApprovals.id, id))
+      .limit(1);
+
+    return rows[0] ?? null;
+  },
+
   async findPendingByParentPhone(
     phone: string,
     dbClient: Pick<typeof db, "select"> = db
@@ -382,6 +395,83 @@ export const leaveParentApprovalRepository = {
           }
         : null,
     }));
+  },
+
+  async findByParentPhoneAndLeaveRequest(
+    phone: string,
+    leaveRequestId: string,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<(LeaveApproval & { studentName: string | null }) | null> {
+    const parentRows = await dbClient
+      .select({ id: parents.id })
+      .from(parents)
+      .where(eq(parents.phone, phone));
+
+    if (parentRows.length === 0) return null;
+
+    const parentIds = parentRows.map((r) => r.id);
+
+    const rows = await dbClient
+      .select({
+        approval: leaveApprovals,
+        studentName: users.fullName,
+      })
+      .from(leaveApprovals)
+      .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(
+        and(
+          inArray(leaveApprovals.approverParentId, parentIds),
+          eq(leaveApprovals.leaveRequestId, leaveRequestId),
+          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+          sql`(${leaveApprovals.parentApprovalExpiresAt} IS NULL OR ${leaveApprovals.parentApprovalExpiresAt} > NOW())`
+        )
+      )
+      .limit(1);
+
+    if (rows.length === 0) return null;
+
+    return { ...rows[0]!.approval, studentName: rows[0]!.studentName };
+  },
+
+  async findByParentPhoneAndExtensionRequest(
+    phone: string,
+    extensionId: string,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<(LeaveApproval & { studentName: string | null }) | null> {
+    const parentRows = await dbClient
+      .select({ id: parents.id })
+      .from(parents)
+      .where(eq(parents.phone, phone));
+
+    if (parentRows.length === 0) return null;
+
+    const parentIds = parentRows.map((r) => r.id);
+
+    const rows = await dbClient
+      .select({
+        approval: leaveApprovals,
+        studentName: users.fullName,
+      })
+      .from(leaveApprovals)
+      .leftJoin(leaveExtensions, eq(leaveApprovals.leaveExtensionId, leaveExtensions.id))
+      .leftJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(
+        and(
+          inArray(leaveApprovals.approverParentId, parentIds),
+          eq(leaveApprovals.leaveExtensionId, extensionId),
+          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+          sql`(${leaveApprovals.parentApprovalExpiresAt} IS NULL OR ${leaveApprovals.parentApprovalExpiresAt} > NOW())`
+        )
+      )
+      .limit(1);
+
+    if (rows.length === 0) return null;
+
+    return { ...rows[0]!.approval, studentName: rows[0]!.studentName };
   },
 
   async countByParentIdAndDecision(

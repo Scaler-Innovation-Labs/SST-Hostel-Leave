@@ -75,17 +75,9 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SMS,
       subject: null,
       templateBody:
-        "Dear Parent/Guardian,\n\n" +
-        "Your ward, {{studentName}} ({{rollNumber}}), has applied for a Re-Exam Leave from {{startDate}} to {{endDate}} for the following reason:\n" +
-        "Reason: {{reason}}\n\n" +
-        "Kindly click the link below to review and submit your response online:\n" +
-        "{{approvalLink}}\n\n" +
-        "Alternatively, you may reply with:\n" +
-        "1 {{leaveId}} to approve\n" +
-        "2 {{leaveId}} to reject\n\n" +
-        "Your response will be automatically recorded.\n\n" +
-        "Regards,\nHostel Administration\nScaler School of Technology",
+        "Dear Parent,{{parentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
     },
+
     {
       code: "leave_submitted_slack_re_exam",
       eventKey: NOTIFICATION_EVENT.LEAVE_SUBMITTED,
@@ -144,16 +136,9 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SMS,
       subject: null,
       templateBody:
-        "Dear Parent/Guardian,\n\n" +
-        "Your ward, {{studentName}}, has applied for Long Leave from {{startDate}} to {{endDate}} for the following reason: {{reason}}.\n\n" +
-        "Kindly click the link below to review and submit your response online:\n" +
-        "{{approvalLink}}\n\n" +
-        "Alternatively, you may reply with:\n" +
-        "1 {{leaveId}} to approve\n" +
-        "2 {{leaveId}} to reject\n\n" +
-        "Your response will be automatically recorded.\n\n" +
-        "Regards,\nHostel Administration\nScaler School of Technology",
+        "Dear Parent,{{parentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
     },
+
     {
       code: "leave_submitted_slack_long_leave",
       eventKey: NOTIFICATION_EVENT.LEAVE_SUBMITTED,
@@ -211,16 +196,9 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SMS,
       subject: null,
       templateBody:
-        "Dear Parent/Guardian,\n\n" +
-        "Your ward, {{studentName}}, has requested permission for Late Entry on {{startDate}} for the following reason: {{reason}}.\n\n" +
-        "Kindly click the link below to review and submit your response online:\n" +
-        "{{approvalLink}}\n\n" +
-        "Alternatively, you may reply with:\n" +
-        "1 {{leaveId}} to approve\n" +
-        "2 {{leaveId}} to reject\n\n" +
-        "Your response will be automatically recorded.\n\n" +
-        "Regards,\nHostel Administration\nScaler School of Technology",
+        "Dear Parent,{{parentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
     },
+
     {
       code: "leave_submitted_slack_late_entry",
       eventKey: NOTIFICATION_EVENT.LEAVE_SUBMITTED,
@@ -343,15 +321,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SMS,
       subject: null,
       templateBody:
-        "Dear Parent/Guardian,\n\n" +
-        "Your ward, {{studentName}}, has requested permission to stay at a different hostel from {{startDate}} to {{endDate}} for the following reason: {{reason}}.\n\n" +
-        "Kindly click the link below to review and submit your response online:\n" +
-        "{{approvalLink}}\n\n" +
-        "Alternatively, you may reply with:\n" +
-        "1 {{leaveId}} to approve\n" +
-        "2 {{leaveId}} to reject\n\n" +
-        "Your response will be automatically recorded.\n\n" +
-        "Regards,\nHostel Administration\nScaler School of Technology",
+        "Dear Parent,{{parentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
     },
     {
       code: "leave_submitted_slack_diff_hostel",
@@ -463,15 +433,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SMS,
       subject: null,
       templateBody:
-        "Dear Parent/Guardian,\n\n" +
-        "Your ward, {{studentName}}, has applied for Internship Leave from {{startDate}} to {{endDate}} for the following reason: {{reason}}.\n\n" +
-        "Kindly click the link below to review and submit your response online:\n" +
-        "{{approvalLink}}\n\n" +
-        "Alternatively, you may reply with:\n" +
-        "1 {{leaveId}} to approve\n" +
-        "2 {{leaveId}} to reject\n\n" +
-        "Your response will be automatically recorded.\n\n" +
-        "Regards,\nHostel Administration\nScaler School of Technology",
+        "Dear Parent,{{parentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
     },
     {
       code: "leave_submitted_slack_internship_poc",
@@ -554,16 +516,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SMS,
       subject: null,
       templateBody:
-        "Dear Parent/Guardian,\n\n" +
-        "Your ward, {{studentName}} ({{rollNumber}}), has applied for Special Leave ({{leaveCategory}}) from {{startDate}} to {{endDate}} for the following reason:\n" +
-        "Reason: {{reason}}\n\n" +
-        "Kindly click the link below to review and submit your response online:\n" +
-        "{{approvalLink}}\n\n" +
-        "Alternatively, you may reply with:\n" +
-        "1 {{leaveId}} to approve\n" +
-        "2 {{leaveId}} to reject\n\n" +
-        "Your response will be automatically recorded.\n\n" +
-        "Regards,\nHostel Administration\nScaler School of Technology",
+        "Dear Parent,{{parentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
     },
     {
       code: "leave_submitted_slack_marriage",

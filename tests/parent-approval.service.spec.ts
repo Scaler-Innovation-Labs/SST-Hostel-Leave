@@ -9,17 +9,12 @@ function sha256(input: string): string {
 import { outboxService } from "@/services/outbox/outbox.service";
 
 const mockFindByParentApprovalToken = vi.fn();
-const mockUpdateParentApprovalOtp = vi.fn().mockResolvedValue({ id: "LA1" });
 const mockUpdateParentApprovalToken = vi.fn().mockResolvedValue({ id: "LA1" });
-const mockUpdateParentApprovalVerified = vi.fn().mockResolvedValue({ id: "LA1" });
 const mockUpdateParentDecision = vi.fn().mockResolvedValue({ id: "LA1" });
 const mockFindNextByDecision = vi.fn().mockResolvedValue(null);
-const mockFindNextByDecisionForExtension = vi.fn().mockResolvedValue(null);
 const mockParentFindById = vi.fn();
 const mockParentFindPrimaryByStudentId = vi.fn();
 const mockLeaveFindById = vi.fn();
-const mockNotify = vi.fn().mockResolvedValue(undefined);
-const mockSendSms = vi.fn().mockResolvedValue(undefined);
 const mockOutboxPublish = vi.fn().mockResolvedValue(undefined);
 const mockAuditRecord = vi.fn().mockResolvedValue({});
 const mockLeaveUpdateById = vi.fn().mockResolvedValue({ id: "LR1" });
@@ -54,9 +49,7 @@ vi.mock("@/lib/db", () => {
 vi.mock("@/db/repositories/leave/leave-parent-approval.repository", () => ({
   leaveParentApprovalRepository: {
     findByParentApprovalToken: (...args: any[]) => mockFindByParentApprovalToken(...args),
-    updateParentApprovalOtp: (...args: any[]) => mockUpdateParentApprovalOtp(...args),
     updateParentApprovalToken: (...args: any[]) => mockUpdateParentApprovalToken(...args),
-    updateParentApprovalVerified: (...args: any[]) => mockUpdateParentApprovalVerified(...args),
     updateParentDecision: (...args: any[]) => mockUpdateParentDecision(...args),
   },
 }));
@@ -86,51 +79,6 @@ vi.mock("@/db/repositories/parent/parent.repository", () => ({
   },
 }));
 
-const mockOtpSendOtp = vi.fn().mockResolvedValue({ success: true, reqId: "REQ123" })
-const mockOtpVerifyOtp = vi.fn().mockResolvedValue({ success: true, identifier: "9492079771" })
-const mockSmsSend = vi.fn().mockResolvedValue({ success: true, messageId: "MSG123" })
-const mockMsg91SendOtp = vi.fn().mockResolvedValue(undefined)
-const mockMsg91VerifyOtp = vi.fn().mockResolvedValue(true)
-
-vi.mock("@/lib/messaging", () => ({
-  createSmsProvider: () => ({ send: mockSmsSend }),
-  createOtpProvider: () => ({
-    sendOtp: mockOtpSendOtp,
-    verifyOtp: mockOtpVerifyOtp,
-    resendOtp: vi.fn(),
-  }),
-  createEmailProvider: () => ({ send: vi.fn() }),
-  getConfig: () => ({
-    sms: { provider: "msg91", msg91: { authKey: "test", senderId: "TEST", flowIds: {} } },
-    email: { provider: "ses" },
-    otp: { provider: "msg91-widget" },
-    defaults: { testMode: false },
-  }),
-}))
-
-vi.mock("@/lib/messaging/otp/msg91-otp", () => ({
-  sendOtpViaMsg91: (...args: any[]) => mockMsg91SendOtp(...args),
-  verifyOtpViaMsg91: (...args: any[]) => mockMsg91VerifyOtp(...args),
-  sendApprovalOtpViaMsg91: vi.fn().mockResolvedValue(undefined),
-}))
-
-vi.mock("@/services/notification/notification.service", () => ({
-  notificationService: {
-    notify: (...args: any[]) => mockNotify(...args),
-    sendSms: (...args: any[]) => mockSendSms(...args),
-  },
-}));
-
-const mockOtpSessionFindValidByPhone = vi.fn();
-vi.mock("@/db/repositories/parent/parent-otp-session.repository", () => ({
-  parentOtpSessionRepository: {
-    findValidByPhone: (...args: any[]) => mockOtpSessionFindValidByPhone(...args),
-    markVerified: vi.fn().mockResolvedValue(undefined),
-    create: vi.fn().mockResolvedValue({ id: "OS1" }),
-    invalidateByParentId: vi.fn().mockResolvedValue(undefined),
-  },
-}));
-
 vi.mock("@/services/audit/audit.service", () => ({
   auditService: {
     record: (...args: any[]) => mockAuditRecord(...args),
@@ -156,238 +104,11 @@ vi.mock("@/services/outbox/outbox.service", () => {
   };
 });
 
-import { sendParentOtp } from "@/services/parent/send-parent-otp.service";
-import { verifyParentOtp } from "@/services/parent/verify-parent-otp.service";
 import { parentApproveDecision } from "@/services/parent/parent-approve-decision.service";
 import { generateParentApproval } from "@/services/parent/generate-parent-approval.service";
 
 const RAW_TOKEN = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
 const TOKEN_HASH = sha256(RAW_TOKEN);
-
-describe("sendParentOtp", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("sends OTP on matching phone", async () => {
-    mockFindByParentApprovalToken.mockResolvedValue({
-      id: "LA1",
-      leaveRequestId: "LR1",
-      leaveExtensionId: null,
-      leaveExtension: null,
-      approverParentId: "P1",
-      parentApprovalExpiresAt: new Date(Date.now() + 3600000),
-      parentApprovalVerifiedAt: null,
-      decision: "PENDING",
-      parentApprovalToken: TOKEN_HASH,
-    });
-    mockParentFindById.mockResolvedValue({
-      id: "P1",
-      phone: "9492079771",
-    });
-
-    const result = await sendParentOtp(RAW_TOKEN, "9492079771");
-
-    expect(result.phoneLast4).toBe("9771");
-    expect(mockSendSms).toHaveBeenCalled();
-  });
-
-  it("rejects OTP for wrong phone", async () => {
-    mockFindByParentApprovalToken.mockResolvedValue({
-      id: "LA1",
-      leaveRequestId: "LR1",
-      leaveExtensionId: null,
-      leaveExtension: null,
-      approverParentId: "P1",
-      parentApprovalExpiresAt: new Date(Date.now() + 3600000),
-      parentApprovalVerifiedAt: null,
-      decision: "PENDING",
-    });
-    mockParentFindById.mockResolvedValue({
-      id: "P1",
-      phone: "9492079771",
-    });
-
-    await expect(
-      sendParentOtp(RAW_TOKEN, "0000000000")
-    ).rejects.toThrow("Phone number does not match");
-  });
-
-  it("rejects expired token", async () => {
-    mockFindByParentApprovalToken.mockResolvedValue({
-      id: "LA1",
-      approverParentId: "P1",
-      parentApprovalExpiresAt: new Date(Date.now() - 1000),
-      parentApprovalVerifiedAt: null,
-      decision: "PENDING",
-    });
-
-    await expect(
-      sendParentOtp(RAW_TOKEN, "9492079771")
-    ).rejects.toThrow("expired");
-  });
-
-  it("sends OTP for extension approval", async () => {
-    const currentEnd = new Date("2026-06-15");
-    const requestedEnd = new Date("2026-06-20");
-
-    mockFindByParentApprovalToken.mockResolvedValue({
-      id: "LA1",
-      leaveRequestId: "LR1",
-      leaveExtensionId: "EXT1",
-      leaveExtension: {
-        id: "EXT1",
-        extensionNumber: 2,
-        reason: "Need more time for exams",
-        currentEndAt: currentEnd,
-        requestedEndAt: requestedEnd,
-        status: "PENDING",
-        submittedForm: null,
-        leaveRequestId: "LR1",
-      },
-      approverParentId: "P1",
-      parentApprovalExpiresAt: new Date(Date.now() + 3600000),
-      parentApprovalVerifiedAt: null,
-      decision: "PENDING",
-      parentApprovalToken: TOKEN_HASH,
-      studentName: "Test Student",
-      studentRollNumber: "24BCS10005",
-    });
-    mockParentFindById.mockResolvedValue({
-      id: "P1",
-      phone: "9492079771",
-    });
-
-    const result = await sendParentOtp(RAW_TOKEN, "9492079771");
-
-    expect(result.phoneLast4).toBe("9771");
-    expect(mockSendSms).toHaveBeenCalled();
-  });
-});
-
-describe("verifyParentOtp", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockOtpSessionFindValidByPhone.mockResolvedValue({ id: "OS1", otpHash: sha256("123456") });
-  });
-
-  it("verifies correct OTP", async () => {
-    const otp = "123456";
-
-    mockFindByParentApprovalToken.mockResolvedValue({
-      id: "LA1",
-      leaveRequestId: "LR1",
-      leaveExtensionId: null,
-      leaveExtension: null,
-      approverParentId: "P1",
-      parentApprovalExpiresAt: new Date(Date.now() + 3600000),
-      parentApprovalVerifiedAt: null,
-      decision: "PENDING",
-      studentName: "Test Student",
-      studentRollNumber: "24BCS10005",
-      leaveRequest: {
-        id: "LR1",
-        reason: "Family function",
-        startAt: new Date("2026-06-15"),
-        endAt: new Date("2026-06-20"),
-        status: "PENDING",
-        submittedForm: { destination: "Vizag" },
-      },
-    });
-    mockParentFindById.mockResolvedValue({
-      id: "P1",
-      phone: "9492079771",
-    });
-
-    const result = await verifyParentOtp(RAW_TOKEN, otp);
-
-    expect(result.approvalId).toBe("LA1");
-    expect(result.studentName).toBe("Test Student");
-    expect(result.submittedForm).toEqual({ destination: "Vizag" });
-    expect(mockUpdateParentApprovalVerified).toHaveBeenCalledWith("LA1");
-  });
-
-  it("rejects wrong OTP", async () => {
-    mockOtpVerifyOtp.mockResolvedValueOnce({ success: false, error: "Invalid OTP" })
-
-    mockFindByParentApprovalToken.mockResolvedValue({
-      id: "LA1",
-      leaveRequestId: "LR1",
-      leaveExtensionId: null,
-      leaveExtension: null,
-      approverParentId: "P1",
-      parentApprovalExpiresAt: new Date(Date.now() + 3600000),
-      parentApprovalVerifiedAt: null,
-      decision: "PENDING",
-      studentName: "Test",
-      studentRollNumber: "001",
-      leaveRequest: { id: "LR1", reason: "r", startAt: new Date(), endAt: new Date(), status: "PENDING", submittedForm: null },
-    });
-    mockParentFindById.mockResolvedValue({
-      id: "P1",
-      phone: "9492079771",
-    });
-
-    await expect(verifyParentOtp(RAW_TOKEN, "999999")).rejects.toThrow("Invalid OTP");
-  });
-
-  it("rejects already verified", async () => {
-    mockFindByParentApprovalToken.mockResolvedValue({
-      id: "LA1",
-      parentApprovalExpiresAt: new Date(Date.now() + 3600000),
-      parentApprovalVerifiedAt: new Date(),
-      decision: "PENDING",
-    });
-
-    await expect(verifyParentOtp(RAW_TOKEN, "123456")).rejects.toThrow("already verified");
-  });
-
-  it("verifies correct OTP for extension", async () => {
-    mockOtpSessionFindValidByPhone.mockResolvedValue({ id: "OS1", otpHash: sha256("654321") });
-    const otp = "654321";
-    const currentEnd = new Date("2026-06-15");
-    const requestedEnd = new Date("2026-06-22");
-
-    mockFindByParentApprovalToken.mockResolvedValue({
-      id: "LA1",
-      leaveRequestId: "LR1",
-      leaveExtensionId: "EXT1",
-      leaveExtension: {
-        id: "EXT1",
-        extensionNumber: 2,
-        reason: "Need more time for exams",
-        currentEndAt: currentEnd,
-        requestedEndAt: requestedEnd,
-        status: "PENDING",
-        submittedForm: { reason: "exams" },
-        leaveRequestId: "LR1",
-      },
-      approverParentId: "P1",
-      parentApprovalExpiresAt: new Date(Date.now() + 3600000),
-      parentApprovalVerifiedAt: null,
-      decision: "PENDING",
-      studentName: "Test Student",
-      studentRollNumber: "24BCS10005",
-      leaveRequest: null,
-    });
-    mockParentFindById.mockResolvedValue({
-      id: "P1",
-      phone: "9492079771",
-    });
-
-    const result = await verifyParentOtp(RAW_TOKEN, otp);
-
-    expect(result.approvalId).toBe("LA1");
-    expect(result.targetType).toBe("LEAVE_EXTENSION");
-    expect(result.leaveExtensionId).toBe("EXT1");
-    expect(result.extensionNumber).toBe(2);
-    expect(result.leaveReason).toBe("Need more time for exams");
-    expect(result.leaveStartDate).toEqual(currentEnd);
-    expect(result.leaveEndDate).toEqual(requestedEnd);
-    expect(result.submittedForm).toEqual({ reason: "exams" });
-    expect(mockUpdateParentApprovalVerified).toHaveBeenCalledWith("LA1");
-  });
-});
 
 describe("parentApproveDecision", () => {
   beforeEach(() => {
@@ -402,7 +123,6 @@ describe("parentApproveDecision", () => {
       leaveExtension: null,
       approverParentId: "P1",
       parentApprovalExpiresAt: new Date(Date.now() + 3600000),
-      parentApprovalVerifiedAt: new Date(),
       decision: "PENDING",
       parentApprovalToken: TOKEN_HASH,
       stepOrder: 1,
@@ -434,7 +154,6 @@ describe("parentApproveDecision", () => {
       leaveExtension: null,
       approverParentId: "P1",
       parentApprovalExpiresAt: new Date(Date.now() + 3600000),
-      parentApprovalVerifiedAt: new Date(),
       decision: "PENDING",
       parentApprovalToken: TOKEN_HASH,
       stepOrder: 1,
@@ -457,25 +176,11 @@ describe("parentApproveDecision", () => {
     );
   });
 
-  it("rejects unverified OTP", async () => {
-    mockFindByParentApprovalToken.mockResolvedValue({
-      id: "LA1",
-      approverParentId: "P1",
-      parentApprovalVerifiedAt: null,
-      decision: "PENDING",
-    });
-
-    await expect(
-      parentApproveDecision(RAW_TOKEN, { decision: "APPROVED" })
-    ).rejects.toThrow("OTP not verified");
-  });
-
   it("rejects expired token", async () => {
     mockFindByParentApprovalToken.mockResolvedValue({
       id: "LA1",
       approverParentId: "P1",
       parentApprovalExpiresAt: new Date(Date.now() - 1000),
-      parentApprovalVerifiedAt: null,
       decision: "PENDING",
     });
 
@@ -504,7 +209,6 @@ describe("parentApproveDecision", () => {
       },
       approverParentId: "P1",
       parentApprovalExpiresAt: new Date(Date.now() + 3600000),
-      parentApprovalVerifiedAt: new Date(),
       decision: "PENDING",
       parentApprovalToken: TOKEN_HASH,
       stepOrder: 1,
@@ -513,7 +217,7 @@ describe("parentApproveDecision", () => {
       leaveRequest: null,
     });
     mockUpdateParentDecision.mockResolvedValue({ id: "LA1", decision: "APPROVED" });
-    mockFindNextByDecisionForExtension.mockResolvedValue(null);
+    mockFindNextByDecision.mockResolvedValue(null);
     mockExtensionFindByIdWithLeave.mockResolvedValue({
       id: "EXT1",
       currentEndAt: currentEnd,
@@ -526,19 +230,16 @@ describe("parentApproveDecision", () => {
     });
 
     expect(result.decision).toBe("APPROVED");
-    // Extension should be updated to APPROVED
     expect(mockExtensionUpdateById).toHaveBeenCalledWith(
       "EXT1",
       expect.objectContaining({ status: "APPROVED" }),
       expect.anything()
     );
-    // Leave endAt should be updated to extension's requestedEndAt
     expect(mockLeaveUpdateById).toHaveBeenCalledWith(
       "LR1",
       expect.objectContaining({ endAt: requestedEnd }),
       expect.anything()
     );
-    // Extension approved outbox event should be published
     expect(outboxService.publish).toHaveBeenCalledWith(
       expect.objectContaining({
         eventType: "LEAVE_EXTENSION_APPROVED",
@@ -570,7 +271,6 @@ describe("parentApproveDecision", () => {
       },
       approverParentId: "P1",
       parentApprovalExpiresAt: new Date(Date.now() + 3600000),
-      parentApprovalVerifiedAt: new Date(),
       decision: "PENDING",
       parentApprovalToken: TOKEN_HASH,
       stepOrder: 1,
@@ -586,13 +286,11 @@ describe("parentApproveDecision", () => {
     });
 
     expect(result.decision).toBe("REJECTED");
-    // Extension should be updated to REJECTED
     expect(mockExtensionUpdateById).toHaveBeenCalledWith(
       "EXT1",
       expect.objectContaining({ status: "REJECTED" }),
       expect.anything()
     );
-    // Extension rejected outbox event should be published
     expect(outboxService.publish).toHaveBeenCalledWith(
       expect.objectContaining({
         eventType: "LEAVE_EXTENSION_REJECTED",

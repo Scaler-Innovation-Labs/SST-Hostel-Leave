@@ -1,23 +1,10 @@
-import { AUDIT_ACTION } from "@/constants/audit/audit-action"
-import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type"
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision"
 import { leaveParentApprovalRepository } from "@/db/repositories/leave/leave-parent-approval.repository"
 import { parentRepository } from "@/db/repositories/parent/parent.repository"
-import { parentOtpSessionRepository } from "@/db/repositories/parent/parent-otp-session.repository"
 import { sha256 } from "@/lib/crypto"
-import {
-  ConflictError,
-  NotFoundError,
-  ValidationError,
-} from "@/lib/errors"
-import { verifyOtpViaMsg91 } from "@/lib/messaging/otp/msg91-otp"
-import { auditService } from "@/services/audit/audit.service"
+import { ConflictError, NotFoundError } from "@/lib/errors"
 
-function isMsg91OtpConfigured(): boolean {
-  return !!process.env.MSG91_OTP_TEMPLATE_ID
-}
-
-export type VerifyOtpResult = {
+export type LeaveDetailsResult = {
   approvalId: string
   targetType: "LEAVE_REQUEST" | "LEAVE_EXTENSION"
   leaveRequestId: string
@@ -26,15 +13,16 @@ export type VerifyOtpResult = {
   studentName: string
   studentRollNumber: string
   leaveReason: string
-  leaveStartDate: Date
-  leaveEndDate: Date
+  leaveStartDate: string
+  leaveEndDate: string
   submittedForm: Record<string, unknown> | null
+  parentName: string
+  parentPhone: string
 }
 
-export async function verifyParentOtp(
-  rawToken: string,
-  otp: string
-): Promise<VerifyOtpResult> {
+export async function getLeaveDetailsByToken(
+  rawToken: string
+): Promise<LeaveDetailsResult> {
   const tokenHash = await sha256(rawToken)
   const approval =
     await leaveParentApprovalRepository.findByParentApprovalToken(tokenHash)
@@ -50,51 +38,20 @@ export async function verifyParentOtp(
     throw new ConflictError("Approval link has expired")
   }
 
-  if (approval.parentApprovalVerifiedAt) {
-    throw new ConflictError("Approval already verified")
-  }
-
   if (approval.decision !== LEAVE_APPROVAL_DECISION.PENDING) {
     throw new ConflictError("Approval already processed")
   }
 
   const parentId = approval.approverParentId
-  if (!parentId) {
-    throw new NotFoundError("Parent")
-  }
-
-  const parent = await parentRepository.findById(parentId)
-  if (!parent) {
-    throw new NotFoundError("Parent")
-  }
-
-  const session = await parentOtpSessionRepository.findValidByPhone(parent.phone)
-  if (!session) {
-    throw new ValidationError("OTP session expired or not found")
-  }
-
-  const valid = isMsg91OtpConfigured()
-    ? await verifyOtpViaMsg91(parent.phone, otp)
-    : (await sha256(otp)) === session.otpHash
-
-  if (!valid) {
-    throw new ValidationError("Invalid OTP")
-  }
-
-  await parentOtpSessionRepository.markVerified(session.id)
-  await leaveParentApprovalRepository.updateParentApprovalVerified(approval.id)
-
-  await auditService.record(
-    AUDIT_ACTION.UPDATE,
-    AUDIT_ENTITY_TYPE.LEAVE_APPROVAL,
-    approval.id,
-    null,
-    {
-      leaveRequestId: approval.leaveRequestId,
-      leaveExtensionId: approval.leaveExtensionId,
-      action: "PARENT_OTP_VERIFIED",
+  let parentName = ""
+  let parentPhone = ""
+  if (parentId) {
+    const parent = await parentRepository.findById(parentId)
+    if (parent) {
+      parentName = parent.name
+      parentPhone = parent.phone
     }
-  )
+  }
 
   const isExtension = !!approval.leaveExtensionId
   const leaveRequestId = isExtension
@@ -120,9 +77,11 @@ export async function verifyParentOtp(
       studentName: approval.studentName ?? "",
       studentRollNumber: approval.studentRollNumber ?? "",
       leaveReason: ext.reason,
-      leaveStartDate: ext.currentEndAt,
-      leaveEndDate: ext.requestedEndAt,
+      leaveStartDate: ext.currentEndAt.toISOString(),
+      leaveEndDate: ext.requestedEndAt.toISOString(),
       submittedForm: ext.submittedForm,
+      parentName,
+      parentPhone,
     }
   }
 
@@ -140,8 +99,10 @@ export async function verifyParentOtp(
     studentName: approval.studentName ?? "",
     studentRollNumber: approval.studentRollNumber ?? "",
     leaveReason: lr.reason,
-    leaveStartDate: lr.startAt,
-    leaveEndDate: lr.endAt,
+    leaveStartDate: lr.startAt.toISOString(),
+    leaveEndDate: lr.endAt.toISOString(),
     submittedForm: lr.submittedForm,
+    parentName,
+    parentPhone,
   }
 }

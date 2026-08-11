@@ -33,34 +33,47 @@ export type ParentDecisionResult = {
 export async function parentApproveDecision(
   rawToken: string,
   dto: ParentDecisionDto
+): Promise<ParentDecisionResult>;
+
+export async function parentApproveDecision(
+  rawToken: string,
+  dto: ParentDecisionDto,
+  approvalId: string
+): Promise<ParentDecisionResult>;
+
+export async function parentApproveDecision(
+  rawToken: string,
+  dto: ParentDecisionDto,
+  approvalId?: string
 ): Promise<ParentDecisionResult> {
-  const tokenHash = await sha256(rawToken);
+  const tokenHash = approvalId ? "" : await sha256(rawToken);
 
   return await transaction(async (tx) => {
-    const approval =
-      await leaveParentApprovalRepository.findByParentApprovalToken(
-        tokenHash,
-        tx
-      );
+    const approvalBase = approvalId
+      ? await leaveParentApprovalRepository.findById(approvalId, tx)
+      : await leaveParentApprovalRepository.findByParentApprovalToken(tokenHash, tx);
 
-    if (!approval) {
+    if (!approvalBase) {
       throw new NotFoundError("Approval");
     }
 
-    if (!approval.parentApprovalVerifiedAt) {
-      throw new ConflictError("OTP not verified");
-    }
-
-    if (approval.decision !== LEAVE_APPROVAL_DECISION.PENDING) {
+    if (approvalBase.decision !== LEAVE_APPROVAL_DECISION.PENDING) {
       throw new ConflictError("Approval already processed");
     }
 
-    const isExtension = !!approval.leaveExtensionId;
+    if (
+      approvalBase.parentApprovalExpiresAt &&
+      new Date(approvalBase.parentApprovalExpiresAt) < new Date()
+    ) {
+      throw new ConflictError("Approval link has expired");
+    }
+
+    const isExtension = !!approvalBase.leaveExtensionId;
 
     const updatedApproval =
       await leaveParentApprovalRepository.updateParentDecision(
-        approval.id,
-        approval.approverParentId ?? "",
+        approvalBase.id,
+        approvalBase.approverParentId ?? "",
         dto.decision as LeaveApprovalDecision,
         dto.comments,
         tx
@@ -75,16 +88,18 @@ export async function parentApproveDecision(
         ? AUDIT_ACTION.APPROVE
         : AUDIT_ACTION.REJECT,
       AUDIT_ENTITY_TYPE.LEAVE_APPROVAL,
-      approval.id,
+      approvalBase.id,
       null,
       {
-        leaveRequestId: approval.leaveRequestId,
-        leaveExtensionId: approval.leaveExtensionId,
+        leaveRequestId: approvalBase.leaveRequestId,
+        leaveExtensionId: approvalBase.leaveExtensionId,
         comments: dto.comments,
         approvalSource: LEAVE_APPROVAL_SOURCE.SMS,
       },
       tx
     );
+
+    const approval = approvalBase as ApprovalForDecision;
 
     if (isExtension) {
       return await handleExtensionDecision(approval, dto, tx);
@@ -94,8 +109,10 @@ export async function parentApproveDecision(
   });
 }
 
+type ApprovalForDecision = NonNullable<Awaited<ReturnType<typeof leaveParentApprovalRepository.findByParentApprovalToken>>>;
+
 async function handleLeaveDecision(
-  approval: NonNullable<Awaited<ReturnType<typeof leaveParentApprovalRepository.findByParentApprovalToken>>>,
+  approval: ApprovalForDecision,
   dto: ParentDecisionDto,
   tx: DbClient
 ): Promise<ParentDecisionResult> {

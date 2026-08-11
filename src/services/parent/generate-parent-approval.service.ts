@@ -8,6 +8,7 @@ import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { sha256, toHex } from "@/lib/crypto";
 import { transaction } from "@/lib/db/transaction";
 import { NotFoundError, ValidationError } from "@/lib/errors";
+import { buildParentApprovalDltName } from "@/lib/messaging/sms/dlt";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 
@@ -59,7 +60,6 @@ export async function generateParentApproval(
     );
 
     const approvalLink = `${context.baseUrl}/parent-approve/${rawToken}`;
-    const shortCode = approvalStep.id.replace(/-/g, "").slice(-8).toLowerCase();
 
     await auditService.record(
       AUDIT_ACTION.CREATE,
@@ -86,10 +86,11 @@ export async function generateParentApproval(
         recipientPhone: parent.phone,
         variables: {
           studentName: context.studentName,
+          parentApprovalName: buildParentApprovalDltName(context.studentName),
           dates: context.leaveDates,
           reason: context.leaveReason,
           approvalLink,
-          code: shortCode,
+          leaveId: context.leaveRequestId,
         },
       },
     }, tx);

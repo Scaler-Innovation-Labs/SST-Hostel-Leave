@@ -4,7 +4,6 @@ export const LEAVE_APPROVAL_SOURCES = [
 	"MANUAL",
 	"SYSTEM",
 	"PORTAL",
-	"SMS_REPLY",
 	"EMAIL_LINK",
 ] as const;
 
@@ -17,6 +16,5 @@ export const LEAVE_APPROVAL_SOURCE = {
 	MANUAL: "MANUAL",
 	SYSTEM: "SYSTEM",
 	PORTAL: "PORTAL",
-	SMS_REPLY: "SMS_REPLY",
 	EMAIL_LINK: "EMAIL_LINK",
 } as const;
