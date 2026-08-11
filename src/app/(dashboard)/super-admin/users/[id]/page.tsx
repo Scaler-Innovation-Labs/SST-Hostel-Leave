@@ -6,6 +6,7 @@ import {
   Ban,
   Calendar,
   CheckCircle2,
+  Hash,
   Mail,
   Phone,
   Shield,
@@ -121,6 +122,15 @@ export default function SuperAdminUserDetailPage() {
                   </span>
                 </>
               )}
+              {user.slackId && (
+                <>
+                  <span className="text-muted-foreground/50">·</span>
+                  <span className="flex items-center gap-1 font-mono text-xs">
+                    <Hash className="h-3.5 w-3.5" />
+                    {user.slackId}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -191,6 +201,15 @@ export default function SuperAdminUserDetailPage() {
                 <dd className="flex items-center gap-1.5 text-sm">
                   <Phone className="h-3.5 w-3.5 text-muted-foreground" />
                   {user.phone ?? "—"}
+                </dd>
+              </div>
+              <div className="space-y-1">
+                <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Slack ID
+                </dt>
+                <dd className="flex items-center gap-1.5 font-mono text-sm">
+                  <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                  {user.slackId ?? "—"}
                 </dd>
               </div>
               <div className="space-y-1">

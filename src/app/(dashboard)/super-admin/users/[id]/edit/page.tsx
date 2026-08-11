@@ -40,6 +40,7 @@ export default function EditUserPage() {
     fullName: string;
     email: string;
     phone: string;
+    slackId: string;
     gender: string;
     hostelId: string;
     roleCodes: string[];
@@ -56,6 +57,7 @@ export default function EditUserPage() {
           fullName: data.fullName,
           email: data.email || undefined,
           phone: data.phone || undefined,
+          slackId: data.slackId || undefined,
           gender: data.gender || undefined,
           isActive: data.isActive,
           roleCodes: data.roleCodes,
@@ -99,6 +101,8 @@ export default function EditUserPage() {
           initialData={{
             fullName: user.fullName,
             email: user.email,
+            phone: user.phone ?? "",
+            slackId: user.slackId ?? "",
             gender: "",
             isActive: user.isActive,
             roleCodes: user.userRoles?.map((r) => r.roleCode) ?? [],

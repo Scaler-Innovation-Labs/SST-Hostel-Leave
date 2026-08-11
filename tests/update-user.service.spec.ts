@@ -104,4 +104,31 @@ describe("updateUser service", () => {
     expect(mockReplaceRoles).not.toHaveBeenCalled();
     expect(mockFindRoleCodesByUserId).not.toHaveBeenCalled();
   });
+
+  it("persists the slack id when provided", async () => {
+    await updateUser("U1", { slackId: "U0123AB456" });
+
+    expect(mockUpdateUser).toHaveBeenCalledWith(
+      "U1",
+      expect.objectContaining({ slackId: "U0123AB456" }),
+      expect.anything(),
+    );
+  });
+
+  it("clears the slack id when blanked", async () => {
+    await updateUser("U1", { slackId: "" });
+
+    expect(mockUpdateUser).toHaveBeenCalledWith(
+      "U1",
+      expect.objectContaining({ slackId: null }),
+      expect.anything(),
+    );
+  });
+
+  it("leaves the slack id untouched when not provided", async () => {
+    await updateUser("U1", { fullName: "Renamed" });
+
+    const input = mockUpdateUser.mock.calls[0][1];
+    expect(input.slackId).toBeUndefined();
+  });
 });

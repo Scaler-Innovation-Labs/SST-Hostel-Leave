@@ -252,6 +252,7 @@ export const userRepository = {
       fullName: string;
       email?: string;
       phone?: string;
+      slackId?: string;
       gender?: "MALE" | "FEMALE" | "OTHER" | null;
       clerkId?: string;
       hostelId?: string;
@@ -266,6 +267,7 @@ export const userRepository = {
         fullName: input.fullName,
         email: input.email ?? null,
         phone: input.phone ?? null,
+        slackId: input.slackId ?? null,
         gender: input.gender ?? null,
         clerkId: input.clerkId ?? null,
         hostelId: input.hostelId ?? null,
@@ -359,6 +361,7 @@ export const userRepository = {
       fullName: string;
       email: string;
       phone: string;
+      slackId: string | null;
       gender: "MALE" | "FEMALE" | "OTHER" | null;
       hostelId: string | null;
       isActive: boolean;

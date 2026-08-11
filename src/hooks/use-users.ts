@@ -23,6 +23,7 @@ export function useUsers(params?: {
         fullName: string;
         email: string;
         phone?: string;
+        slackId?: string;
         gender?: string;
         isActive: boolean;
         lastLoginAt?: string;
@@ -58,6 +59,7 @@ export function useUser(id: string) {
       fullName: string;
       email: string;
       phone?: string;
+      slackId?: string;
       gender?: string;
       isActive: boolean;
       lastLoginAt?: string;

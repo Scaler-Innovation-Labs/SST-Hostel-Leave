@@ -61,7 +61,6 @@ async function main() {
   const { seedAcademicGroups } = await import("@/db/seed/academic-groups.seed");
   const { seedWorkflows } = await import("@/db/seed/workflows.seed");
   const { seedLeaveTypes } = await import("@/db/seed/leave-types.seed");
-  const { seedPolicies } = await import("@/db/seed/policies.seed");
   const { seedUsers } = await import("@/db/seed/users.seed");
   const { seedStudents } = await import("@/db/seed/students.seed");
   const { seedNotificationTemplates } = await import(
@@ -78,7 +77,6 @@ async function main() {
   await seedAcademicGroups(db);
   await seedWorkflows(db);
   await seedLeaveTypes(db);
-  await seedPolicies(db);
   await seedUsers(db);
   await seedStudents(db);
   await seedNotificationTemplates();

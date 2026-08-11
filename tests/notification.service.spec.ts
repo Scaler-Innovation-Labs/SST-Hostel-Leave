@@ -7,6 +7,7 @@ const mockFindActiveByEvent = vi.fn();
 const mockFindRuleById = vi.fn();
 const mockSlackSend = vi.fn();
 const mockHostelFindById = vi.fn();
+const mockEmailSend = vi.fn();
 
 vi.mock("@/db/repositories/notification/notification-template.repository", () => ({
   notificationTemplateRepository: {
@@ -35,7 +36,7 @@ vi.mock("@/db/repositories/notification/notification-log.repository", () => ({
 
 vi.mock("@/services/notification/providers/email.provider", () => ({
   createEmailProvider: () => ({
-    send: vi.fn().mockResolvedValue({ success: true, messageId: "email-123" }),
+    send: (...args: any[]) => mockEmailSend(...args),
   }),
 }));
 
@@ -65,6 +66,7 @@ beforeEach(() => {
   mockFindActiveByEvent.mockResolvedValue([]);
   mockSlackSend.mockResolvedValue({ success: true, messageId: "slack-1" });
   mockHostelFindById.mockResolvedValue(null);
+  mockEmailSend.mockResolvedValue({ success: true, messageId: "email-123" });
 });
 
 describe("notificationService", () => {
@@ -293,5 +295,54 @@ describe("notificationService", () => {
     expect(mockLogCreate).not.toHaveBeenCalledWith(
       expect.objectContaining({ metadata: expect.objectContaining({ slackMentions: expect.any(String) }) })
     );
+  });
+
+  it("CCs configured addresses on the student email", async () => {
+    mockFindByEventKey.mockResolvedValue([
+      {
+        id: "T10",
+        eventKey: "LEAVE_APPROVED",
+        channel: "EMAIL",
+        templateBody: "Your leave {{leaveId}} has been approved.",
+        subject: "Leave Update",
+        isActive: true,
+      },
+    ]);
+
+    await notificationService.notify("LEAVE_APPROVED", {
+      leaveRequestId: "L11",
+      recipientEmail: "student@example.com",
+      cc: ["warden@example.com", "poc@example.com"],
+      variables: { leaveId: "L11" },
+    });
+
+    expect(mockEmailSend).toHaveBeenCalledWith(expect.objectContaining({ cc: ["warden@example.com", "poc@example.com"] }));
+    expect(mockLogCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: "EMAIL",
+        metadata: expect.objectContaining({ ccEmails: "warden@example.com, poc@example.com" }),
+      })
+    );
+  });
+
+  it("sends email without CC when none provided", async () => {
+    mockFindByEventKey.mockResolvedValue([
+      {
+        id: "T11",
+        eventKey: "LEAVE_APPROVED",
+        channel: "EMAIL",
+        templateBody: "Your leave {{leaveId}} has been approved.",
+        subject: "Leave Update",
+        isActive: true,
+      },
+    ]);
+
+    await notificationService.notify("LEAVE_APPROVED", {
+      leaveRequestId: "L12",
+      recipientEmail: "student@example.com",
+      variables: { leaveId: "L12" },
+    });
+
+    expect(mockEmailSend).toHaveBeenCalledWith(expect.objectContaining({ cc: undefined }));
   });
 });

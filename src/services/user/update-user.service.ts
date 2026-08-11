@@ -25,6 +25,7 @@ export async function updateUser(id: string, dto: UpdateUserDto): Promise<UserWi
       fullName: dto.fullName,
       email: dto.email,
       phone: dto.phone,
+      slackId: dto.slackId === undefined ? undefined : (dto.slackId || null),
       gender: dto.gender,
       hostelId: dto.hostelId,
       isActive: dto.isActive,

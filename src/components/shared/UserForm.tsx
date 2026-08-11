@@ -45,6 +45,7 @@ export type UserFormData = {
   fullName: string;
   email: string;
   phone: string;
+  slackId: string;
   gender: string;
   hostelId: string;
   roleCodes: string[];
@@ -72,6 +73,7 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
   const [fullName, setFullName] = useState(initialData?.fullName ?? "");
   const [email, setEmail] = useState(initialData?.email ?? "");
   const [phone, setPhone] = useState(initialData?.phone ?? "");
+  const [slackId, setSlackId] = useState(initialData?.slackId ?? "");
   const [gender, setGender] = useState(initialData?.gender ?? "");
   const [roleCodes, setRoleCodes] = useState<string[]>(initialData?.roleCodes ?? []);
   const [roleScopes, setRoleScopes] = useState<Record<string, string[]>>(
@@ -102,6 +104,7 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
       fullName: fullName.trim(),
       email: email.trim(),
       phone: phone.trim(),
+      slackId: slackId.trim(),
       gender,
       hostelId: initialData?.hostelId ?? "",
       roleCodes,
@@ -177,6 +180,20 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+911234567890"
           />
+        </div>
+
+        <div>
+          <Label htmlFor="slackId">Slack ID</Label>
+          <Input
+            id="slackId"
+            value={slackId}
+            onChange={(e) => setSlackId(e.target.value)}
+            placeholder="U0123AB456"
+            className="font-mono"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Used for Slack mentions/DMs. Find it in the Slack member profile menu.
+          </p>
         </div>
 
         <div>

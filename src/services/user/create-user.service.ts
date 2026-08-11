@@ -27,6 +27,7 @@ export async function createUser(dto: CreateUserDto): Promise<UserWithRoles | nu
         fullName: dto.fullName,
         email: dto.email || undefined,
         phone: dto.phone || undefined,
+        slackId: dto.slackId || undefined,
         gender: dto.gender ?? null,
         hostelId: dto.hostelId || undefined,
         isActive: dto.isActive,

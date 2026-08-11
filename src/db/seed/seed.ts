@@ -8,7 +8,6 @@ import { seedLeaveTypes } from "./leave-types.seed";
 import { seedMovementStates } from "./movement-states.seed";
 import { seedNotificationRules } from "./notification-rules.seed";
 import { seedNotificationTemplates } from "./notification-templates.seed";
-import { seedPolicies } from "./policies.seed";
 import { seedRoles } from "./roles.seed";
 import { seedStudents } from "./students.seed";
 import { seedUsers } from "./users.seed";
@@ -28,8 +27,6 @@ async function main() {
   await seedWorkflows(db);
 
   await seedLeaveTypes(db);
-
-  await seedPolicies(db);
 
   await seedUsers(db);
 

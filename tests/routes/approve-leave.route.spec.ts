@@ -79,6 +79,22 @@ describe("POST /api/v1/leaves/[id]/approve", () => {
     expect(res.status).toBe(400);
   });
 
+  it("forwards ccEmails to the approve service", async () => {
+    const req = new Request("http://localhost:3000/api/v1/leaves/L1/approve", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ decision: "APPROVED", ccEmails: ["warden@example.com", "poc@example.com"] }),
+    });
+    const res = await POST(req, { params: Promise.resolve({ id: "L1" }) });
+
+    expect(res.status).toBe(200);
+    expect(mockApproveLeave).toHaveBeenCalledWith(
+      "L1",
+      expect.objectContaining({ ccEmails: ["warden@example.com", "poc@example.com"] }),
+      expect.any(Object)
+    );
+  });
+
   it("returns 401 when not authenticated", async () => {
     mockRequireAuth.mockRejectedValue(new (await import("@/lib/errors")).AuthenticationError());
 
