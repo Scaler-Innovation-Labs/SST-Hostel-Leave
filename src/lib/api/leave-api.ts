@@ -9,6 +9,7 @@ export function getLeavesUrl(query?: Partial<ListLeavesQuery>): string {
     studentId: query?.studentId,
     status: query?.status,
     leaveTypeId: query?.leaveTypeId,
+    hostelId: query?.hostelId,
     startDate: query?.startDate,
     endDate: query?.endDate,
     search: query?.search,
@@ -86,6 +87,33 @@ export async function deleteLeaveDocument(
   const json: ApiResponse = await res.json();
   if (!res.ok || !json.success) {
     throw new Error(json.error?.message ?? "Failed to delete document");
+  }
+  return json.data;
+}
+
+// ─── Questions ────────────────────────────────────────────────
+
+export function getQuestionsUrl(leaveId: string, params?: { page?: number; limit?: number }): string {
+  const searchParams = new URLSearchParams();
+  if (params?.page) searchParams.set("page", String(params.page));
+  if (params?.limit) searchParams.set("limit", String(params.limit));
+  const qs = searchParams.toString();
+  return `${BASE}/leaves/${leaveId}/questions${qs ? `?${qs}` : ""}`;
+}
+
+export async function answerLeaveQuestion(
+  leaveId: string,
+  questionId: string,
+  answer: string,
+): Promise<unknown> {
+  const res = await fetch(`${BASE}/leaves/${leaveId}/questions/${questionId}/answer`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ answer }),
+  });
+  const json: ApiResponse = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message ?? "Failed to answer question");
   }
   return json.data;
 }

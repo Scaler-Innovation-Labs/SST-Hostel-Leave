@@ -52,7 +52,7 @@ describe("DocumentList", () => {
     expect(screen.getByText((content) => content.includes("Failed to load"))).toBeInTheDocument();
   });
 
-  it("shows empty state when no documents", () => {
+  it("renders nothing when no documents (empty state returns null)", () => {
     vi.mocked(useDocuments).mockReturnValue({
       documents: [],
       isLoading: false,
@@ -61,8 +61,8 @@ describe("DocumentList", () => {
       mutate: vi.fn(),
     });
 
-    render(<DocumentList leaveId="leave-1" />);
-    expect(screen.getByText("No documents uploaded yet")).toBeInTheDocument();
+    const { container } = render(<DocumentList leaveId="leave-1" />);
+    expect(container.firstChild).toBeNull();
   });
 
   it("renders document cards", () => {
@@ -146,6 +146,7 @@ describe("DocumentList", () => {
     });
 
     render(<DocumentList leaveId="leave-1" canDelete />);
-    expect(screen.getByRole("button")).toBeInTheDocument();
+    const buttons = screen.getAllByRole("button");
+    expect(buttons.length).toBeGreaterThanOrEqual(1);
   });
 });

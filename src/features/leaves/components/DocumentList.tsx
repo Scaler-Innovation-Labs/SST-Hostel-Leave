@@ -4,6 +4,7 @@ import { FileText, Image, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
@@ -49,68 +50,62 @@ export function DocumentList({ leaveId, canDelete = false }: DocumentListProps) 
     }
   };
 
-  if (isLoading) return <LoadingState count={2} />;
-  if (isError) return <ErrorState message={error?.message ?? "Failed to load documents"} onRetry={() => mutate()} />;
-
-  if (documents.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-8 text-center">
-        <FileText className="mb-2 h-8 w-8 text-muted-foreground/50" />
-        <p className="text-sm text-muted-foreground">No documents uploaded yet</p>
-      </div>
-    );
-  }
+  if (isLoading) return <CollapsibleSection title="Documents" icon={FileText}><LoadingState count={2} /></CollapsibleSection>;
+  if (isError) return <CollapsibleSection title="Documents" icon={FileText}><ErrorState message={error?.message ?? "Failed to load documents"} onRetry={() => mutate()} /></CollapsibleSection>;
+  if (documents.length === 0) return null;
 
   return (
-    <div className="space-y-2">
-      {documents.map((doc: DocumentItem) => (
-        <div
-          key={doc.id}
-          className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50"
-        >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            {getFileIcon(doc.mimeType)}
+    <CollapsibleSection title="Documents" icon={FileText}>
+      <div className="space-y-2">
+        {documents.map((doc: DocumentItem) => (
+          <div
+            key={doc.id}
+            className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              {getFileIcon(doc.mimeType)}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <a
+                href={doc.fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block truncate text-sm font-medium hover:underline"
+              >
+                {doc.fileName}
+              </a>
+              <p className="text-xs text-muted-foreground">
+                {formatFileSize(doc.fileSize)}
+                {doc.mimeType && ` · ${doc.mimeType.split("/")[1]?.toUpperCase() ?? ""}`}
+              </p>
+            </div>
+
+            {canDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                onClick={() => setConfirmDeleteId(doc.id)}
+                disabled={deletingId === doc.id}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
+        ))}
 
-          <div className="min-w-0 flex-1">
-            <a
-              href={doc.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block truncate text-sm font-medium hover:underline"
-            >
-              {doc.fileName}
-            </a>
-            <p className="text-xs text-muted-foreground">
-              {formatFileSize(doc.fileSize)}
-              {doc.mimeType && ` · ${doc.mimeType.split("/")[1]?.toUpperCase() ?? ""}`}
-            </p>
-          </div>
-
-          {canDelete && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
-              onClick={() => setConfirmDeleteId(doc.id)}
-              disabled={deletingId === doc.id}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      ))}
-
-      <ConfirmationDialog
-        open={!!confirmDeleteId}
-        onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}
-        title="Delete Document"
-        description="Are you sure you want to delete this document? This action cannot be undone."
-        confirmLabel="Delete"
-        variant="destructive"
-        onConfirm={handleDelete}
-        loading={deletingId !== null}
-      />
-    </div>
+        <ConfirmationDialog
+          open={!!confirmDeleteId}
+          onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}
+          title="Delete Document"
+          description="Are you sure you want to delete this document? This action cannot be undone."
+          confirmLabel="Delete"
+          variant="destructive"
+          onConfirm={handleDelete}
+          loading={deletingId !== null}
+        />
+      </div>
+    </CollapsibleSection>
   );
 }
