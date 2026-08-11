@@ -31,8 +31,8 @@ export async function getHealthStatus(): Promise<HealthStatus> {
   const clerkKey = process.env.CLERK_SECRET_KEY;
   checks.clerk = clerkKey?.startsWith("sk_test_") || clerkKey?.startsWith("sk_live_") ? "configured" : "missing";
 
-  const msg91Key = process.env.MSG91_AUTH_KEY;
-  checks.msg91 = msg91Key ? "configured" : "missing";
+  const infobipKey = process.env.INFOBIP_API_KEY;
+  checks.infobip = infobipKey ? "configured" : "missing";
 
   const resendKey = process.env.RESEND_API_KEY;
   checks.resend = resendKey ? "configured" : "missing";

@@ -31,7 +31,7 @@ export function createSmsProvider() {
 
         return {
           success: result.success,
-          messageId: result.messageId ?? `msg91-${Date.now()}`,
+          messageId: result.messageId ?? `infobip-${Date.now()}`,
           error: result.error,
         }
       } catch (error) {

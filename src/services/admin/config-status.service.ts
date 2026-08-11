@@ -1,5 +1,3 @@
-import { getConfig } from "@/lib/messaging"
-
 export type ConfigStatus = {
   email: {
     configured: boolean
@@ -8,9 +6,8 @@ export type ConfigStatus = {
   }
   sms: {
     configured: boolean
-    accountSid: boolean
-    authToken: boolean
-    phoneNumber: boolean
+    apiKey: boolean
+    senderId: boolean
   }
   slack: {
     configured: boolean
@@ -25,16 +22,13 @@ export type ConfigStatus = {
 }
 
 export function getConfigStatus(): ConfigStatus {
-  const config = getConfig()
-
   const emailApiKey = !!process.env.EMAIL_SERVICE_API_KEY
   const emailFromEmail = !!process.env.EMAIL_SERVICE_URL
   const emailConfigured = emailApiKey && emailFromEmail
 
-  const smsAccountSid = !!config.sms.twilio?.accountSid
-  const smsAuthToken = !!config.sms.twilio?.authToken
-  const smsPhoneNumber = !!config.sms.twilio?.fromNumber
-  const smsConfigured = smsAccountSid && smsAuthToken && smsPhoneNumber
+  const smsApiKey = !!process.env.INFOBIP_API_KEY
+  const smsSenderId = !!process.env.INFOBIP_SENDER_ID
+  const smsConfigured = smsApiKey && smsSenderId
 
   const slackBotToken = !!process.env.SLACK_BOT_TOKEN
   const slackChannelId = !!process.env.SLACK_CHANNEL_ID
@@ -50,9 +44,8 @@ export function getConfigStatus(): ConfigStatus {
     },
     sms: {
       configured: smsConfigured,
-      accountSid: smsAccountSid,
-      authToken: smsAuthToken,
-      phoneNumber: smsPhoneNumber,
+      apiKey: smsApiKey,
+      senderId: smsSenderId,
     },
     slack: {
       configured: slackBotToken && slackChannelId,

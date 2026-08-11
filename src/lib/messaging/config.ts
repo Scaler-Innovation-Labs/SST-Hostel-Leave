@@ -1,21 +1,6 @@
-export type SmsProviderType = "msg91" | "twilio"
-
 export type EmailProviderType = "ses" | "resend" | "sst"
 
 export type MessagingConfig = {
-  sms: {
-    provider: SmsProviderType
-    msg91?: {
-      authKey: string
-      senderId: string
-    }
-    twilio?: {
-      accountSid: string
-      authToken: string
-      fromNumber: string
-      messagingServiceSid?: string
-    }
-  }
   email: {
     provider: EmailProviderType
     ses?: {
@@ -37,13 +22,6 @@ export type MessagingConfig = {
 
 export function loadConfig(): MessagingConfig {
   return {
-    sms: {
-      provider: (process.env.SMS_PROVIDER as SmsProviderType) ?? "msg91",
-      msg91: {
-        authKey: process.env.MSG91_AUTH_KEY ?? "",
-        senderId: process.env.MSG91_SENDER_ID ?? "",
-      },
-    },
     email: {
       provider: (process.env.EMAIL_PROVIDER as EmailProviderType) ?? "ses",
       ses: {

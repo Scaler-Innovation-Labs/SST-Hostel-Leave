@@ -43,6 +43,14 @@ const isParentApproveRoute = createRouteMatcher([
   "/api/parent-approve(.*)",
 ]);
 
+/**
+ * Webhook routes — accessed by external services (httpSMS, etc.).
+ * Authenticated via JWT/webhook signing keys, not Clerk sessions.
+ */
+const isWebhookRoute = createRouteMatcher([
+  "/api/v1/webhooks(.*)",
+]);
+
 export default clerkMiddleware(
   async (auth, request: NextRequest) => {
     const pathname = request.nextUrl.pathname;
@@ -86,6 +94,12 @@ export default clerkMiddleware(
       if (authObj.userId) {
         return NextResponse.redirect(new URL("/redirect", request.url));
       }
+      return NextResponse.next();
+    }
+
+    // ── Webhook routes ──────────────────────────────────────────────
+    // Accessed by external services (httpSMS, etc.) with their own auth.
+    if (isWebhookRoute(request)) {
       return NextResponse.next();
     }
 
