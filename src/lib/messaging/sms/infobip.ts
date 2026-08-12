@@ -54,14 +54,14 @@ export class InfobipSmsProvider implements SmsProvider {
         to = testRecipient.startsWith("+") ? testRecipient.slice(1) : testRecipient
       }
 
-      const urlOptions: Record<string, unknown> = {
+      const trackingOptions: Record<string, unknown> = {
         shortenUrl: true,
         trackClicks: true,
       }
 
       const customDomain = process.env.INFOBIP_CUSTOM_DOMAIN
       if (customDomain) {
-        urlOptions.customDomain = customDomain
+        trackingOptions.customDomain = customDomain
       }
 
       const result = await this.circuitBreaker.call(() =>
@@ -87,9 +87,11 @@ export class InfobipSmsProvider implements SmsProvider {
                       },
                     },
                   },
-                  urlOptions,
                 },
               ],
+              options: {
+                tracking: trackingOptions,
+              },
             }),
           })
 

@@ -1,6 +1,9 @@
+import { AUDIT_ACTION } from "@/constants/audit/audit-action";
+import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { notificationRuleRepository } from "@/db/repositories/notification/notification-rule.repository";
 import type { SaveNotificationRuleDto } from "@/dto/notification/save-notification-rule.dto";
 import { NotFoundError } from "@/lib/errors";
+import { auditService } from "@/services/audit/audit.service";
 
 export type NotificationRuleResponse = {
   id: string;
@@ -54,7 +57,8 @@ export async function getNotificationRuleById(id: string): Promise<NotificationR
 
 export async function createNotificationRule(
   leaveTypeId: string | null,
-  dto: SaveNotificationRuleDto
+  dto: SaveNotificationRuleDto,
+  actorUserId: string | null = null
 ): Promise<NotificationRuleResponse> {
   const id = await notificationRuleRepository.create({
     ...dto,
@@ -62,13 +66,25 @@ export async function createNotificationRule(
   });
   const row = await notificationRuleRepository.findById(id);
   if (!row) throw new NotFoundError("NotificationRule");
+
+  if (actorUserId) {
+    await auditService.record(
+      AUDIT_ACTION.CREATE,
+      AUDIT_ENTITY_TYPE.NOTIFICATION_RULE,
+      id,
+      actorUserId,
+      { eventType: dto.eventType, leaveTypeId },
+    );
+  }
+
   return toResponse(row);
 }
 
 export async function updateNotificationRule(
   id: string,
   leaveTypeId: string | null,
-  dto: SaveNotificationRuleDto
+  dto: SaveNotificationRuleDto,
+  actorUserId: string | null = null
 ): Promise<NotificationRuleResponse> {
   await notificationRuleRepository.update(id, {
     ...dto,
@@ -76,11 +92,33 @@ export async function updateNotificationRule(
   });
   const row = await notificationRuleRepository.findById(id);
   if (!row) throw new NotFoundError("NotificationRule");
+
+  if (actorUserId) {
+    await auditService.record(
+      AUDIT_ACTION.UPDATE,
+      AUDIT_ENTITY_TYPE.NOTIFICATION_RULE,
+      id,
+      actorUserId,
+      { eventType: dto.eventType, leaveTypeId },
+    );
+  }
+
   return toResponse(row);
 }
 
 export async function deleteNotificationRule(
-  id: string
+  id: string,
+  actorUserId: string | null = null
 ): Promise<void> {
   await notificationRuleRepository.delete(id);
+
+  if (actorUserId) {
+    await auditService.record(
+      AUDIT_ACTION.DELETE,
+      AUDIT_ENTITY_TYPE.NOTIFICATION_RULE,
+      id,
+      actorUserId,
+      {},
+    );
+  }
 }

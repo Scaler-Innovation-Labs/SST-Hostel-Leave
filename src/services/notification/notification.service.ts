@@ -203,14 +203,14 @@ async function getRecipientForChannel(
 }
 
 /**
- * Slack ids to CC on messages tied to a hostel: the hostel's admin and POC
- * user groups (configured on the hostel). Empty when unset.
+ * Slack ids to CC on messages tied to a hostel: the hostel's admin user
+ * group (configured on the hostel). Empty when unset.
  */
 async function resolveSlackMentions(hostelId?: string): Promise<string[]> {
 	if (!hostelId) return [];
 	const hostel = await hostelRepository.findById(hostelId);
 	if (!hostel) return [];
-	return [hostel.slackAdminGroupId, hostel.slackPocGroupId].filter(
+	return [hostel.slackAdminGroupId].filter(
 		(id): id is string => !!id && id.length > 0
 	);
 }

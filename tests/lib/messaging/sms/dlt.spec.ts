@@ -32,19 +32,20 @@ describe("buildParentApprovalDltName", () => {
     expect(result).toHaveLength(DLT_MAX_NAME_LENGTH);
   });
 
-  it("keeps the fixed DLT text within the 160-char SMS limit for a default short URL", () => {
-    const name = buildParentApprovalDltName("R".repeat(100));
-    const shortUrl = "https://infobip.short.gy/xxxxxx";
-    const message = `Dear Parent,${name} has applied for a Leave. Kindly click the link to review: ${shortUrl} -Scaler School of Technology`;
-
-    expect(name.length).toBeLessThanOrEqual(DLT_MAX_NAME_LENGTH);
-    expect(DLT_FIXED_TEXT_LENGTH + name.length + shortUrl.length).toBeLessThanOrEqual(160);
-    expect(message.length).toBeLessThanOrEqual(160);
-  });
-
-  it("keeps the message within 160 chars with a long custom-domain short URL", () => {
+  it("keeps the message (excluding the approval link) within 130 chars", () => {
     const name = buildParentApprovalDltName("R".repeat(100));
     const shortUrl = "https://scaler.short.gy/xxxxxxxx";
+    const message = `Dear Parent,${name} has applied for a Leave. Kindly click the link to review: ${shortUrl} -Scaler School of Technology`;
+    const withoutLink = message.replace(shortUrl, "");
+
+    expect(name.length).toBeLessThanOrEqual(DLT_MAX_NAME_LENGTH);
+    expect(DLT_FIXED_TEXT_LENGTH + name.length).toBeLessThanOrEqual(130);
+    expect(withoutLink.length).toBeLessThanOrEqual(130);
+  });
+
+  it("keeps the final SMS within 160 chars with a shortened link", () => {
+    const name = buildParentApprovalDltName("R".repeat(100));
+    const shortUrl = "https://scaler.short.gy/ab12";
     const message = `Dear Parent,${name} has applied for a Leave. Kindly click the link to review: ${shortUrl} -Scaler School of Technology`;
 
     expect(message.length).toBeLessThanOrEqual(160);

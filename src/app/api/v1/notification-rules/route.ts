@@ -19,9 +19,9 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
     const dto = saveNotificationRuleSchema.parse(await request.json());
-    return ApiResponse.success(await createNotificationRule(null, dto));
+    return ApiResponse.success(await createNotificationRule(null, dto, currentUser.id));
   } catch (error) {
     return ApiResponse.fromError(error);
   }

@@ -81,10 +81,10 @@ describe("InfobipSmsProvider", () => {
       contentTemplateId: "1177178583401443872",
       principalEntityId: "1101527290000039145",
     });
-    expect(message.urlOptions).toEqual({ shortenUrl: true, trackClicks: true });
+    expect(body.options.tracking).toEqual({ shortenUrl: true, trackClicks: true });
   });
 
-  it("includes customDomain in urlOptions when configured", async () => {
+  it("includes customDomain in tracking options when configured", async () => {
     vi.stubEnv("INFOBIP_CUSTOM_DOMAIN", "scaler.short.gy");
     vi.mocked(fetch).mockResolvedValue(acceptedResponse("infobip-msg-2"));
 
@@ -95,7 +95,7 @@ describe("InfobipSmsProvider", () => {
 
     const init = vi.mocked(fetch).mock.calls[0]![1];
     const body = JSON.parse(init.body);
-    expect(body.messages[0].urlOptions).toEqual({
+    expect(body.options.tracking).toEqual({
       shortenUrl: true,
       trackClicks: true,
       customDomain: "scaler.short.gy",

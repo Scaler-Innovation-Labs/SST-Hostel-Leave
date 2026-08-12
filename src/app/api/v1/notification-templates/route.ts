@@ -20,12 +20,12 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
     const body = await request.json();
     const dto = saveNotificationTemplateSchema.parse(body);
 
-    const template = await saveNotificationTemplate(dto);
+    const template = await saveNotificationTemplate(dto, currentUser.id);
 
     return ApiResponse.created(template);
   } catch (error) {

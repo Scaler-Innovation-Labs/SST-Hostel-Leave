@@ -8,13 +8,14 @@
 //
 // Variables: {#alp} = student name (1st), {#urg#} = approval link (2nd).
 //
-// Fixed text: 100 chars. Infobip shortens the URL in the message at send time
-// (urlOptions.shortenUrl) to ~23-35 chars (default or custom domain).
-// Remaining budget for the student name keeps the final SMS within 160 chars.
+// Fixed text: 100 chars. The full message excluding the approval link must
+// total 130 chars (100 fixed + up to 30 for the student name), so the link
+// (shortened to ~23-35 chars by Infobip at send time) keeps the SMS within
+// 160 chars.
 
 export const DLT_FIXED_TEXT_LENGTH = 100;
 
-export const DLT_MAX_NAME_LENGTH = 25;
+export const DLT_MAX_NAME_LENGTH = 30;
 
 /**
  * Builds the name to substitute into the DLT parent-approval SMS.

@@ -16,9 +16,9 @@ const QR_SECTION =
   `<br>\n` +
   `<img src="{{qrCodeUrl}}" alt="QR Code for Leave" style="display:block;margin:16px auto;max-width:200px;height:auto;" />\n` +
   `<br>\n` +
-  `<strong>QR Code for Leave:</strong> <a href="{{qrDashboardUrl}}">View your QR Code on Dashboard</a>\n` +
+  `<strong>Your QR Pass:</strong> Scan this QR code at the hostel gate when entering or exiting. The same QR is available on your <a href="{{qrDashboardUrl}}">Dashboard</a>.\n` +
   `<br>\n<a href="{{leaveUrl}}">View Leave Details</a>\n` +
-  `<br>\n<small>Scan or open the QR Code from your Dashboard when entering/exiting the hostel.</small>\n\n`;
+  `<br>\n<small>Your QR pass is valid for the full duration of this leave and becomes invalid automatically once the leave ends.</small>\n\n`;
 
 const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
   RE_EXAM: [
@@ -75,7 +75,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SMS,
       subject: null,
       templateBody:
-        "Dear Parent,{{parentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
+        "Dear Parent,{{StudentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
     },
 
     {
@@ -136,7 +136,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SMS,
       subject: null,
       templateBody:
-        "Dear Parent,{{parentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
+        "Dear Parent,{{StudentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
     },
 
     {
@@ -196,7 +196,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SMS,
       subject: null,
       templateBody:
-        "Dear Parent,{{parentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
+        "Dear Parent,{{StudentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
     },
 
     {
@@ -321,7 +321,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SMS,
       subject: null,
       templateBody:
-        "Dear Parent,{{parentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
+        "Dear Parent,{{StudentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
     },
     {
       code: "leave_submitted_slack_diff_hostel",
@@ -433,7 +433,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SMS,
       subject: null,
       templateBody:
-        "Dear Parent,{{parentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
+        "Dear Parent,{{StudentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
     },
     {
       code: "leave_submitted_slack_internship_poc",
@@ -516,7 +516,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SMS,
       subject: null,
       templateBody:
-        "Dear Parent,{{parentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
+        "Dear Parent,{{StudentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
     },
     {
       code: "leave_submitted_slack_marriage",
@@ -533,6 +533,8 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
     },
   ],
 };
+
+export { LEAVE_TYPE_TEMPLATES };
 
 export async function seedNotificationTemplates() {
   let count = 0;
