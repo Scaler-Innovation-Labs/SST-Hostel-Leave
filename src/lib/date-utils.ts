@@ -1,4 +1,4 @@
-import { format, parseISO } from "date-fns";
+import { differenceInCalendarDays, format, parseISO } from "date-fns";
 
 export function formatRelative(dateStr: string): string {
   try {
@@ -87,6 +87,28 @@ function isTomorrow(date: Date): boolean {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   return date.toDateString() === tomorrow.toDateString();
+}
+
+/**
+ * Human-readable leave duration based on calendar-day boundaries crossed.
+ * Unlike `differenceInDays` (which truncates), a leave spanning midnight
+ * (e.g. 11 PM → 1 AM) counts as 1 day, and a same-calendar-day leave is
+ * "Same day".
+ */
+export function getDurationLabel(
+  start: Date | string,
+  end: Date | string,
+  opts?: { short?: boolean }
+): string {
+  try {
+    const startDate = typeof start === "string" ? parseISO(start) : start;
+    const endDate = typeof end === "string" ? parseISO(end) : end;
+    const days = differenceInCalendarDays(endDate, startDate);
+    if (days <= 0) return "Same day";
+    return opts?.short ? `${days}d` : `${days} day${days > 1 ? "s" : ""}`;
+  } catch {
+    return "—";
+  }
 }
 
 /** Date-range filter option definitions. */

@@ -2,8 +2,6 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { PARENT_JWT_COOKIE, verifyParentJwt } from "@/lib/jwt";
-
 /**
  * Routes that require Clerk authentication (student, admin, POC, super-admin).
  */
@@ -13,26 +11,6 @@ const isAuthenticatedRoute = createRouteMatcher([
   "/poc(.*)",
   "/super-admin(.*)",
   "/api/v1(.*)",
-]);
-
-/**
- * Routes that use parent OTP/JWT auth (not Clerk).
- * These include parent pages AND parent API routes.
- */
-const isParentRoute = createRouteMatcher([
-  "/parent(.*)",
-  "/api/v1/auth/parent(.*)",
-  "/api/v1/parent/(.*)",
-]);
-
-/**
- * Parent routes that require NO auth at the proxy level.
- * These handle their own auth (OTP validation, rate limiting, etc.).
- */
-const isParentUnprotectedRoute = createRouteMatcher([
-  "/parent/login(.*)",
-  "/api/v1/auth/parent/send-otp(.*)",
-  "/api/v1/auth/parent/verify(.*)",
 ]);
 
 /**
@@ -54,32 +32,6 @@ const isWebhookRoute = createRouteMatcher([
 export default clerkMiddleware(
   async (auth, request: NextRequest) => {
     const pathname = request.nextUrl.pathname;
-
-    // ── Unauthenticated parent routes ───────────────────────────────
-    // Parent login pages and OTP verification endpoints handle their
-    // own auth internally. No proxy-level checks needed.
-    if (isParentUnprotectedRoute(request)) {
-      return NextResponse.next();
-    }
-
-    // ── Parent-authenticated routes ─────────────────────────────────
-    // Parent dashboard pages and parent API routes require a valid
-    // parent JWT session cookie. Parents are NOT Clerk users.
-    if (isParentRoute(request)) {
-      const token = getCookie(request, PARENT_JWT_COOKIE);
-
-      if (!token) {
-        return redirectToLogin("/parent/login", request);
-      }
-
-      try {
-        await verifyParentJwt(token);
-      } catch {
-        return redirectToLogin("/parent/login", request);
-      }
-
-      return NextResponse.next();
-    }
 
     // ── Parent-approve token routes ─────────────────────────────────
     // These use per-request tokens from SMS/email links.
@@ -112,23 +64,6 @@ export default clerkMiddleware(
     return NextResponse.next();
   },
 );
-
-/**
- * Read a cookie from the request.
- */
-function getCookie(request: NextRequest, name: string): string | null {
-  const cookie = request.cookies.get(name);
-  return cookie?.value ?? null;
-}
-
-/**
- * Redirect to a login page preserving the original destination.
- */
-function redirectToLogin(loginPath: string, request: NextRequest): NextResponse {
-  const loginUrl = new URL(loginPath, request.url);
-  loginUrl.searchParams.set("redirect_url", request.nextUrl.pathname);
-  return NextResponse.redirect(loginUrl);
-}
 
 export const config = {
   matcher: [
