@@ -17,21 +17,21 @@ import { useState } from "react";
 
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
-import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
+import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { useApprovalChain } from "@/features/approvals/hooks/use-approval-chain";
-import { useDocuments } from "@/hooks/use-documents";
 import { useLeave } from "@/features/leaves/hooks/use-leaves";
+import { useDocuments } from "@/hooks/use-documents";
 import { approveLeave, rejectLeave } from "@/lib/api/approval-api";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
-import { ActivityTimeline, type ActivityEvent } from "./ActivityTimeline";
+import { type ActivityEvent,ActivityTimeline } from "./ActivityTimeline";
 import { WorkflowProgress } from "./WorkflowProgress";
-import { WorkflowTimeline, type WorkflowStep } from "./WorkflowTimeline";
+import { type WorkflowStep,WorkflowTimeline } from "./WorkflowTimeline";
 
 type ApprovalDetailWorkspaceProps = {
   leaveId: string;
@@ -293,10 +293,10 @@ export function ApprovalDetailWorkspace({
 function CollapsibleSection({
   id, label, isOpen, onToggle, children,
 }: {
-  id: string;
+  id: SectionId;
   label: string;
   isOpen: boolean;
-  onToggle: (id: any) => void;
+  onToggle: (id: SectionId) => void;
   children: React.ReactNode;
 }) {
   return (

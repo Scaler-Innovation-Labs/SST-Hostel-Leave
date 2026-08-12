@@ -171,24 +171,6 @@ export const leaveParentApprovalRepository = {
     };
   },
 
-  async updateParentApprovalOtp(
-    id: string,
-    otpHash: string,
-    expiresAt: Date,
-    dbClient: Pick<typeof db, "update"> = db
-  ): Promise<LeaveApproval | null> {
-    const rows = await dbClient
-      .update(leaveApprovals)
-      .set({
-        parentApprovalOtpHash: otpHash,
-        parentApprovalExpiresAt: expiresAt,
-      })
-      .where(eq(leaveApprovals.id, id))
-      .returning();
-
-    return rows[0] ?? null;
-  },
-
   async updateParentApprovalToken(
     id: string,
     tokenHash: string,
@@ -200,21 +182,6 @@ export const leaveParentApprovalRepository = {
       .set({
         parentApprovalToken: tokenHash,
         parentApprovalExpiresAt: expiresAt,
-      })
-      .where(eq(leaveApprovals.id, id))
-      .returning();
-
-    return rows[0] ?? null;
-  },
-
-  async updateParentApprovalVerified(
-    id: string,
-    dbClient: Pick<typeof db, "update"> = db
-  ): Promise<LeaveApproval | null> {
-    const rows = await dbClient
-      .update(leaveApprovals)
-      .set({
-        parentApprovalVerifiedAt: new Date(),
       })
       .where(eq(leaveApprovals.id, id))
       .returning();
@@ -251,84 +218,6 @@ export const leaveParentApprovalRepository = {
       .returning();
 
     return rows[0] ?? null;
-  },
-
-  async findPendingByParentId(
-    parentId: string,
-    dbClient: Pick<typeof db, "select"> = db
-  ): Promise<Array<LeaveApproval & { studentName: string | null; leaveRequest: { id: string; reason: string; startAt: Date; endAt: Date } | null }>> {
-    const rows = await dbClient
-      .select({
-        approval: leaveApprovals,
-        studentName: users.fullName,
-        leaveReqId: leaveRequests.id,
-        leaveReqReason: leaveRequests.reason,
-        leaveReqStartAt: leaveRequests.startAt,
-        leaveReqEndAt: leaveRequests.endAt,
-      })
-      .from(leaveApprovals)
-      .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
-      .where(
-        and(
-          eq(leaveApprovals.approverParentId, parentId),
-          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING)
-        )
-      )
-      .orderBy(desc(leaveApprovals.createdAt));
-
-    return rows.map((row) => ({
-      ...row.approval,
-      studentName: row.studentName,
-      leaveRequest: row.leaveReqId
-        ? {
-            id: row.leaveReqId,
-            reason: row.leaveReqReason ?? "",
-            startAt: row.leaveReqStartAt!,
-            endAt: row.leaveReqEndAt!,
-          }
-        : null,
-    }));
-  },
-
-  async findHistoryByParentId(
-    parentId: string,
-    dbClient: Pick<typeof db, "select"> = db
-  ): Promise<Array<LeaveApproval & { studentName: string | null; leaveRequest: { id: string; reason: string; startAt: Date; endAt: Date } | null }>> {
-    const rows = await dbClient
-      .select({
-        approval: leaveApprovals,
-        studentName: users.fullName,
-        leaveReqId: leaveRequests.id,
-        leaveReqReason: leaveRequests.reason,
-        leaveReqStartAt: leaveRequests.startAt,
-        leaveReqEndAt: leaveRequests.endAt,
-      })
-      .from(leaveApprovals)
-      .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
-      .where(
-        and(
-          eq(leaveApprovals.approverParentId, parentId),
-          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.APPROVED)
-        )
-      )
-      .orderBy(desc(leaveApprovals.actedAt));
-
-    return rows.map((row) => ({
-      ...row.approval,
-      studentName: row.studentName,
-      leaveRequest: row.leaveReqId
-        ? {
-            id: row.leaveReqId,
-            reason: row.leaveReqReason ?? "",
-            startAt: row.leaveReqStartAt!,
-            endAt: row.leaveReqEndAt!,
-          }
-        : null,
-    }));
   },
 
   async findById(
@@ -472,24 +361,6 @@ export const leaveParentApprovalRepository = {
     if (rows.length === 0) return null;
 
     return { ...rows[0]!.approval, studentName: rows[0]!.studentName };
-  },
-
-  async countByParentIdAndDecision(
-    parentId: string,
-    decision: LeaveApprovalDecision,
-    dbClient: Pick<typeof db, "select"> = db
-  ): Promise<number> {
-    const result = await dbClient
-      .select({ count: sql<number>`count(*)` })
-      .from(leaveApprovals)
-      .where(
-        and(
-          eq(leaveApprovals.approverParentId, parentId),
-          eq(leaveApprovals.decision, decision)
-        )
-      );
-
-    return Number(result[0]?.count ?? 0);
   },
 };
 

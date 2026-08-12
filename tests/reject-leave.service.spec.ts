@@ -94,7 +94,7 @@ describe("rejectLeave service", () => {
       stepOrder: null,
       newStatus: "REJECTED",
     });
-    expect(mockUpdateDecisionById).toHaveBeenCalledWith("A1", "REJECTED", "U1", "Not approved", expect.any(Date), expect.any(Object));
+    expect(mockUpdateDecisionById).toHaveBeenCalledWith("A1", "REJECTED", "U1", "Not approved", expect.any(Date), expect.any(Object), undefined, undefined);
     expect(mockUpdateById).toHaveBeenCalledWith(
       "L1",
       expect.objectContaining({ status: "REJECTED", rejectedAt: expect.any(Date), currentStepKey: null, currentStepOrder: null }),

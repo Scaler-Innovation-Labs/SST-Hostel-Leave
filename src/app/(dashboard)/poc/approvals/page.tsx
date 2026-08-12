@@ -6,15 +6,15 @@ import useSWR from "swr";
 const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((r) => r.data ?? r);
 
 import { PageHeader } from "@/components/shared/PageHeader";
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { ApprovalDetailWorkspace } from "@/features/approvals/components/ApprovalDetailWorkspace";
 import { ApprovalFilters, type FilterState } from "@/features/approvals/components/ApprovalFilters";
 import { ApprovalMetricCards } from "@/features/approvals/components/ApprovalMetricCards";
 import { ApprovalQueue } from "@/features/approvals/components/ApprovalQueue";
-import { computeDateRange } from "@/lib/date-utils";
 import { useApprovals } from "@/features/approvals/hooks/use-approvals";
 import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
 import { useWorkflows } from "@/features/workflows/hooks/use-workflows";
-import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
+import { computeDateRange } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 
 export default function POCApprovalsPage() {
@@ -67,9 +67,9 @@ export default function POCApprovalsPage() {
 
       {/* Metrics */}
       <ApprovalMetricCards
-        pendingCount={approvals.filter((a: any) => a.decision === LEAVE_APPROVAL_DECISION.PENDING).length}
-        approvedToday={approvals.filter((a: any) => a.decision === LEAVE_APPROVAL_DECISION.APPROVED).length}
-        rejectedToday={approvals.filter((a: any) => a.decision === LEAVE_APPROVAL_DECISION.REJECTED).length}
+        pendingCount={approvals.filter((a) => a.decision === LEAVE_APPROVAL_DECISION.PENDING).length}
+        approvedToday={approvals.filter((a) => a.decision === LEAVE_APPROVAL_DECISION.APPROVED).length}
+        rejectedToday={approvals.filter((a) => a.decision === LEAVE_APPROVAL_DECISION.REJECTED).length}
         averageSlaHours={null}
         overdueCount={0}
         parentPendingCount={0}
@@ -93,7 +93,7 @@ export default function POCApprovalsPage() {
         {/* Queue (left panel) */}
         <div className={cn(mobileOpen && "hidden xl:block")}>
           <ApprovalQueue
-            items={approvals.map((a: any) => ({
+            items={approvals.map((a) => ({
               id: a.id,
               studentName: a.studentName,
               studentRollNumber: a.studentRollNumber,

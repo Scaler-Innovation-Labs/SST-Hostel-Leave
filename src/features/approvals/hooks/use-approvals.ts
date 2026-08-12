@@ -23,6 +23,14 @@ export type ApprovalQueueItem = {
   hostelName: string | null;
   departmentName: string | null;
   leaveTypeName: string | null;
+  leaveTypeUiConfig?: Record<string, unknown> | null;
+  workflowSteps?: Array<{
+    stepKey: string;
+    stepOrder: number;
+    approverRoleCode: string | null;
+    isParentApproval: boolean | null;
+    approvalMethod: string | null;
+  }>;
   leaveRequest: {
     id: string;
     status: string;

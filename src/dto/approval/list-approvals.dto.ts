@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { sortSchema } from "@/dto/shared/sort.dto";
 
 export const listApprovalsSchema = z.object({
@@ -13,7 +14,8 @@ export const listApprovalsSchema = z.object({
   sortBy: sortSchema.shape.sortBy,
   sortOrder: sortSchema.shape.sortOrder,
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  // 500 so queues (overdue view, nav badges) can fetch the full pending set.
+  limit: z.coerce.number().int().positive().max(500).default(20),
 });
 
 export type ListApprovalsQuery = z.infer<typeof listApprovalsSchema>;

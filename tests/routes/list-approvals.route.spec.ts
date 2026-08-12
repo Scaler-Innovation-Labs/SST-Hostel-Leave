@@ -64,6 +64,19 @@ describe("GET /api/v1/approvals", () => {
     );
   });
 
+  it("accepts a large limit for full pending sets", async () => {
+    mockListApprovals.mockResolvedValue({ items: [], total: 0, page: 1, limit: 200, totalPages: 0 });
+
+    const req = new Request("http://localhost:3000/api/v1/approvals?status=PENDING&page=1&limit=200");
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    expect(mockListApprovals).toHaveBeenCalledWith(
+      expect.objectContaining({ limit: 200 }),
+      expect.anything()
+    );
+  });
+
   it("returns 401 when not authenticated", async () => {
     const { requireAuth } = await import("@/lib/auth/require-auth");
     requireAuth.mockRejectedValue(new (await import("@/lib/errors")).AuthenticationError());

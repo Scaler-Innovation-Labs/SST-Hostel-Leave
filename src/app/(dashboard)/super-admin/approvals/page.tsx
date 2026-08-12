@@ -15,6 +15,7 @@ const OVERDUE_LIMIT = 200;
 import { Building2, CheckCircle2, Clock, FileText, Search, Shield, User, X } from "lucide-react";
 
 import { HostelFilter } from "@/components/shared/HostelFilter";
+import { InfoCard } from "@/components/shared/InfoCard";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { VIEW_STEP_KEY, WORKFLOW_STEP_KEY, WORKFLOW_STEP_KEYS } from "@/constants/workflow/workflow-step-key";
 import { ApprovalCommandCard } from "@/features/approvals/components/ApprovalCommandCard";
 import { useApprovals } from "@/features/approvals/hooks/use-approvals";
+import { useDashboardStats } from "@/features/dashboard/hooks/use-dashboard-stats";
 import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
 import { computeDateRange, DATE_RANGE_OPTIONS } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
@@ -63,14 +65,14 @@ function getStepDisplay(stepKey: string | null): StepDisplay {
   if (key === WORKFLOW_STEP_KEY.POC_APPROVAL || key.includes(WORKFLOW_STEP_KEY.POC_APPROVAL))
     return {
       icon: <Shield className="h-4 w-4" />,
-      label: "Hostel Approval",
+      label: "POC Approval",
       color: "text-amber-600 dark:text-amber-400",
       bgClass: "bg-amber-500/10 hover:bg-amber-500/20 border-amber-200/40 dark:border-amber-800/30",
     };
   if (key === WORKFLOW_STEP_KEY.ADMIN_APPROVAL || key.includes(WORKFLOW_STEP_KEY.ADMIN_APPROVAL))
     return {
       icon: <Building2 className="h-4 w-4" />,
-      label: "College Approval",
+      label: "Admin Approval",
       color: "text-indigo-600 dark:text-indigo-400",
       bgClass: "bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-200/40 dark:border-indigo-800/30",
     };
@@ -125,6 +127,7 @@ export default function SuperAdminApprovalsPage() {
   const [now] = useState(() => Date.now());
 
   const { leaveTypes } = useLeaveTypes();
+  const { stats } = useDashboardStats();
   const { data: hostels } = useSWR<Array<{ id: string; name: string; code: string }>>("/api/v1/hostels", fetcher);
 
   // Derive API-ready date range from the friendly range label
@@ -233,6 +236,53 @@ export default function SuperAdminApprovalsPage() {
           : `${filteredApprovals.length} request${filteredApprovals.length !== 1 ? "s" : ""}${hasActiveFilters ? " (filtered)" : ""}`
         }
       />
+
+      {/* Summary cards — global aggregates, clickable as status filters */}
+      {stats && (
+        <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {[
+            {
+              label: "Total Leaves",
+              value: (stats as { totalLeaves?: number }).totalLeaves ?? 0,
+              tone: "primary" as const,
+              status: "",
+              icon: <FileText className="h-4 w-4" />,
+            },
+            {
+              label: "Pending Approvals",
+              value: (stats as { pendingApprovals?: number }).pendingApprovals ?? 0,
+              tone: "warning" as const,
+              status: LEAVE_REQUEST_STATUS.PENDING,
+              icon: <Clock className="h-4 w-4" />,
+            },
+            {
+              label: "Approved",
+              value: (stats as { approvedLeaves?: number }).approvedLeaves ?? 0,
+              tone: "success" as const,
+              status: LEAVE_REQUEST_STATUS.APPROVED,
+              icon: <CheckCircle2 className="h-4 w-4" />,
+            },
+            {
+              label: "Rejected",
+              value: (stats as { rejectedLeaves?: number }).rejectedLeaves ?? 0,
+              tone: "danger" as const,
+              status: LEAVE_REQUEST_STATUS.REJECTED,
+              icon: <X className="h-4 w-4" />,
+            },
+          ].map((card) => (
+            <InfoCard
+              key={card.label}
+              compact
+              icon={card.icon}
+              label={card.label}
+              value={card.value}
+              tone={card.tone}
+              active={filters.status === card.status}
+              onClick={() => updateFilter("status", filters.status === card.status ? "" : card.status)}
+            />
+          ))}
+        </section>
+      )}
 
       {/* Step cards — dynamic workflow step counts */}
       <div className="flex flex-wrap gap-3">
@@ -371,7 +421,7 @@ export default function SuperAdminApprovalsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">All Types</SelectItem>
-            {leaveTypes.map((lt: any) => (
+            {leaveTypes.map((lt) => (
               <SelectItem key={lt.id} value={lt.id}>
                 {lt.name}
               </SelectItem>

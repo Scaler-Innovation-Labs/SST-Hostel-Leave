@@ -2,13 +2,13 @@
 
 import useSWR from "swr";
 
+import { CountBadge } from "@/components/shared/CountBadge";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { getApprovalsUrl } from "@/lib/api/approval-api";
-import { cn } from "@/lib/utils";
 
 /**
  * Live count of pending approvals, shown as a badge on the Approvals
- * nav item. Scoped to the current user's role by the API.
+ * nav item. Scoped to the current user's role/hostels by the API.
  */
 export function ApprovalCountBadge({ className }: { className?: string }) {
   const { data } = useSWR(
@@ -18,16 +18,5 @@ export function ApprovalCountBadge({ className }: { className?: string }) {
 
   const count = (data?.data?.total as number | undefined) ?? 0;
 
-  if (count === 0) return null;
-
-  return (
-    <span
-      className={cn(
-        "inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/15 px-1.5 text-[11px] font-semibold leading-none text-amber-600 tabular-nums dark:bg-amber-500/20 dark:text-amber-400",
-        className,
-      )}
-    >
-      {count > 99 ? "99+" : count}
-    </span>
-  );
+  return <CountBadge count={count} tone="amber" className={className} />;
 }

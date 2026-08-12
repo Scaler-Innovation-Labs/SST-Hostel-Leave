@@ -48,7 +48,8 @@ export async function updateApprovalAndAudit(
   auditAction: AuditAction,
   auditEntityType: AuditEntityType,
   auditMeta: Record<string, unknown>,
-  tx: DbClient
+  tx: DbClient,
+  rejectionCategory?: string
 ): Promise<void> {
   const updated = await leaveApprovalRepository.updateDecisionById(
     current.id,
@@ -56,7 +57,9 @@ export async function updateApprovalAndAudit(
     userId,
     comments,
     new Date(),
-    tx
+    tx,
+    undefined,
+    rejectionCategory
   );
 
   if (!updated) {

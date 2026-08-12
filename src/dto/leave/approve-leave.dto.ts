@@ -8,6 +8,8 @@ export const approveLeaveSchema = z.object({
     LEAVE_APPROVAL_DECISION.REJECTED,
   ]),
   comments: z.string().optional(),
+  /** Structured rejection reason category (e.g. incomplete, policy_violation). */
+  rejectionCategory: z.string().trim().max(60).optional(),
   forceOverride: z.boolean().optional(),
   documentsVerified: z.boolean().optional(),
   /** Emails to CC on the notification sent to the student for this decision. */

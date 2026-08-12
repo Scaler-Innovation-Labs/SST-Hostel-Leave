@@ -182,18 +182,11 @@ export async function approveLeave(
       tx
     );
 
-    await outboxService.publish({
-      eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVED,
-      aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
-      aggregateId: leaveId,
-      payload: {
-        leaveId,
-        studentId: leaveInTx.studentId,
-        decision: LEAVE_APPROVAL_DECISION.APPROVED,
-        ccEmails: dto.ccEmails ?? [],
-      },
-    }, tx);
-
+    // Create the QR pass first (when this leave type uses QR gates): ONE
+    // token per approved leave, generated once and stable for its lifetime.
+    // The raw token is stored so the student app and the approval email can
+    // render the SAME scannable QR.
+    let qrToken: string | undefined;
     const leaveType = await leaveTypeRepository.findById(leaveInTx.leaveTypeId, tx);
     if (leaveType && leaveType.qrMode !== "NONE") {
       const raw = new Uint8Array(32);
@@ -207,6 +200,7 @@ export async function approveLeave(
         studentId: leaveInTx.studentId,
         qrType,
         tokenHash,
+        token,
         status: QR_STATUS.ACTIVE,
         expiresAt: null,
       }, tx);
@@ -219,9 +213,25 @@ export async function approveLeave(
           leaveRequestId: leaveId,
           studentId: leaveInTx.studentId,
           qrType,
+          qrToken: token,
         },
       }, tx);
+
+      qrToken = token;
     }
+
+    await outboxService.publish({
+      eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVED,
+      aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
+      aggregateId: leaveId,
+      payload: {
+        leaveId,
+        studentId: leaveInTx.studentId,
+        decision: LEAVE_APPROVAL_DECISION.APPROVED,
+        ccEmails: dto.ccEmails ?? [],
+        qrToken,
+      },
+    }, tx);
 
     return {
       leaveId,

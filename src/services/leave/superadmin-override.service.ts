@@ -1,5 +1,3 @@
-import { eq } from "drizzle-orm";
-
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_APPROVAL_SOURCE } from "@/constants/leave/approval-source";
@@ -42,11 +40,7 @@ export async function superadminOverrideLeave(
     const isRejectedRecovery = leave.status === LEAVE_REQUEST_STATUS.REJECTED;
 
     // Fetch all approval steps ordered by stepOrder
-    const allSteps = await tx
-      .select({ id: leaveApprovals.id, stepKey: leaveApprovals.stepKey, stepOrder: leaveApprovals.stepOrder, decision: leaveApprovals.decision })
-      .from(leaveApprovals)
-      .where(eq(leaveApprovals.leaveRequestId, leaveId))
-      .orderBy(leaveApprovals.stepOrder);
+    const allSteps = await leaveApprovalRepository.findByLeaveRequestId(leaveId, tx);
 
     if (allSteps.length === 0) {
       throw new ConflictError("No approvals found for this leave");
@@ -69,17 +63,15 @@ export async function superadminOverrideLeave(
     const idsToProcess = mode === "ONE_STEP" ? [actionable[0]!.id] : actionable.map((s) => s.id);
 
     for (const approvalId of idsToProcess) {
-      const [updated] = await tx
-        .update(leaveApprovals)
-        .set({
-          decision: LEAVE_APPROVAL_DECISION.APPROVED,
-          approverUserId: userId,
-          comments: comments ?? null,
-          actedAt: new Date(),
-          approvalSource: LEAVE_APPROVAL_SOURCE.MANUAL,
-        })
-        .where(eq(leaveApprovals.id, approvalId))
-        .returning({ id: leaveApprovals.id });
+      const updated = await leaveApprovalRepository.updateDecisionById(
+        approvalId,
+        LEAVE_APPROVAL_DECISION.APPROVED,
+        userId,
+        comments,
+        new Date(),
+        tx,
+        LEAVE_APPROVAL_SOURCE.MANUAL,
+      );
 
       if (!updated) continue;
 

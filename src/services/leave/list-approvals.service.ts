@@ -11,7 +11,7 @@ export async function listApprovals(
   query: ListApprovalsQuery,
   currentUser: CurrentUser
 ): Promise<{
-  items: Array<LeaveApproval & { approverRoleCode: string | null; leaveRequest: { id: string; status: string; startAt: Date; endAt: Date; reason: string; requestNumber: string; submittedForm?: Record<string, unknown> | null; currentStepKey?: string | null; currentStepOrder?: number | null; policyResult?: Record<string, unknown> | null } | null; studentName: string | null; studentRollNumber: string | null; roomNumber: string | null; hostelName: string | null; departmentName: string | null; leaveTypeName: string | null }>;
+  items: Array<LeaveApproval & { approverRoleCode: string | null; leaveRequest: { id: string; status: string; startAt: Date; endAt: Date; reason: string; requestNumber: string; submittedForm?: Record<string, unknown> | null; currentStepKey?: string | null; currentStepOrder?: number | null; policyResult?: Record<string, unknown> | null } | null; studentName: string | null; studentRollNumber: string | null; roomNumber: string | null; hostelName: string | null; departmentName: string | null; leaveTypeName: string | null; workflowSteps?: Array<{ stepKey: string; stepOrder: number; approverRoleCode: string | null; isParentApproval: boolean | null; approvalMethod: string | null }> }>;
   total: number;
   page: number;
   limit: number;

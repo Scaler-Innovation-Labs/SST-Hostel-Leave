@@ -25,7 +25,8 @@ export async function approveLeave(
   comments?: string,
   internalNote?: boolean,
   documentsVerified?: boolean,
-  ccEmails?: string[]
+  ccEmails?: string[],
+  forceOverride?: boolean
 ): Promise<unknown> {
   const res = await fetch(`${BASE}/leaves/${id}/approve`, {
     method: "POST",
@@ -36,6 +37,7 @@ export async function approveLeave(
       internalNote,
       documentsVerified,
       ccEmails: ccEmails && ccEmails.length > 0 ? ccEmails : undefined,
+      forceOverride,
     }),
   });
   const json: ApiResponse = await res.json();
@@ -65,12 +67,13 @@ export async function superadminOverrideLeave(
 export async function rejectLeave(
   id: string,
   comments?: string,
-  internalNote?: boolean
+  internalNote?: boolean,
+  rejectionCategory?: string
 ): Promise<unknown> {
   const res = await fetch(`${BASE}/leaves/${id}/approve`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ decision: "REJECTED", comments, internalNote }),
+    body: JSON.stringify({ decision: "REJECTED", comments, internalNote, rejectionCategory }),
   });
   const json: ApiResponse = await res.json();
   if (!res.ok || !json.success) {

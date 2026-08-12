@@ -5,20 +5,34 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
-  Globe,
   Home,
+  Loader2,
   MapPin,
   XCircle,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 
+import { LeaveTypeBadge } from "@/components/shared/LeaveTypeBadge";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { VIEW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import type { ApprovalQueueItem } from "@/features/approvals/hooks/use-approvals";
 import { approveLeave, rejectLeave } from "@/lib/api/approval-api";
+import { approveExtension } from "@/lib/api/extension-api";
+import { softTint, topBannerGradient } from "@/lib/color-utils";
+import { getDurationLabel } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
@@ -28,24 +42,22 @@ import { WorkflowProgress } from "./WorkflowProgress";
 type ApprovalCommandCardProps = {
   item: ApprovalQueueItem;
   onActionComplete: () => void;
+  /**
+   * Base path for the detail page, e.g. "/admin/approvals". Defaults to the
+   * current path, which is right on the approvals pages but wrong on other
+   * pages that reuse this card (e.g. the overdue page).
+   */
+  hrefPrefix?: string;
+  /**
+   * Disable the click-through to a detail page. Used on pages that have no
+   * detail route (e.g. extension approvals, which act inline).
+   */
+  disableNavigation?: boolean;
 };
 
 function formatDate(d: Date | string): string {
   const date = typeof d === "string" ? parseISO(d) : d;
   return format(date, "MMM d");
-}
-
-function getDuration(startAt: Date | string, endAt: Date | string): string {
-  try {
-    const start = typeof startAt === "string" ? parseISO(startAt) : startAt;
-    const end = typeof endAt === "string" ? parseISO(endAt) : endAt;
-    const diffMs = end.getTime() - start.getTime();
-    const days = Math.round(diffMs / (1000 * 60 * 60 * 24));
-    if (days === 0) return "Same day";
-    return `${days}d`;
-  } catch {
-    return "—";
-  }
 }
 
 function getWaitingTime(createdAt: string | Date): string {
@@ -75,9 +87,20 @@ const AVATAR_COLORS = [
   "bg-rose-500/10 text-rose-600",
 ];
 
-export function ApprovalCommandCard({ item, onActionComplete }: ApprovalCommandCardProps) {
+function workflowStepLabel(stepKey: string): string {
+  const key = stepKey ?? "";
+  if (key.includes("PARENT")) return "Parent";
+  if (key.includes("POC")) return "POC";
+  if (key.includes("ADMIN")) return "Admin";
+  if (key.includes("AUTO")) return "Auto";
+  const cleaned = key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return cleaned || "Step";
+}
+
+export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disableNavigation }: ApprovalCommandCardProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const detailPrefix = hrefPrefix ?? pathname;
   const lr = item.leaveRequest;
   const isPending = item.decision === LEAVE_APPROVAL_DECISION.PENDING;
   const isApproved = item.decision === LEAVE_APPROVAL_DECISION.APPROVED || item.decision === LEAVE_APPROVAL_DECISION.AUTO_APPROVED;
@@ -85,11 +108,28 @@ export function ApprovalCommandCard({ item, onActionComplete }: ApprovalCommandC
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
   const [showPreview, setShowPreview] = useState<"approve" | "reject" | null>(null);
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [comments, setComments] = useState("");
+  const [ccEmailsInput, setCcEmailsInput] = useState("");
+  const [notifyStudent, setNotifyStudent] = useState(true);
+  const [notifyParent, setNotifyParent] = useState(true);
+  const [documentsVerified, setDocumentsVerified] = useState(false);
 
   const destination = lr?.submittedForm?.destination as string | undefined;
   const parentPending = !!item.approverParentId && !item.parentApprovalVerifiedAt;
   const waitingOn = lr?.currentStepKey ?? (lr?.status === LEAVE_REQUEST_STATUS.PENDING ? VIEW_STEP_KEY.POLICY : VIEW_STEP_KEY.COMPLETE);
   const isExtension = !!item.leaveExtensionId;
+  const isSpecialLeave = (item.leaveTypeUiConfig?.isSpecial as boolean | undefined) ?? false;
+  const leaveColor =
+    typeof item.leaveTypeUiConfig?.color === "string" ? item.leaveTypeUiConfig.color : null;
+
+  // Status color for the left rail — the decision at a glance.
+  const statusColor = isApproved
+    ? "#10b981"
+    : isPending
+      ? "#f59e0b"
+      : "#ef4444";
 
   // The leave is still waiting on an earlier step (parent or POC) — not this approver's turn yet.
   const showWaitingPanel =
@@ -101,47 +141,147 @@ export function ApprovalCommandCard({ item, onActionComplete }: ApprovalCommandC
     const key = stepKey ?? "";
     if (key === "" || key === VIEW_STEP_KEY.SUBMITTED || key === VIEW_STEP_KEY.POLICY) return { label: "Policy Check" };
     if (key.includes("PARENT")) return { label: "Parent Approval" };
-    if (key.includes("POC")) return { label: "Hostel Approval" };
-    if (key.includes("ADMIN")) return { label: "College Approval" };
+    if (key.includes("POC")) return { label: "POC Approval" };
+    if (key.includes("ADMIN")) return { label: "Admin Approval" };
     if (key.includes(VIEW_STEP_KEY.COMPLETE)) return { label: "Completed" };
     return { label: key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) || "Unknown" };
   }
 
   const isComplete = lr?.status === LEAVE_REQUEST_STATUS.APPROVED || lr?.status === LEAVE_REQUEST_STATUS.COMPLETED || lr?.status === LEAVE_REQUEST_STATUS.REJECTED;
-  const normalizedStepKey = (waitingOn ?? "").trim();
-  const stepDefs = [
-    { match: (s: string) => s === "" || s === VIEW_STEP_KEY.SUBMITTED || s === VIEW_STEP_KEY.POLICY, label: "Submitted" },
-    { match: (s: string) => s.includes(VIEW_STEP_KEY.POLICY), label: "Policy Check" },
-    { match: (s: string) => s.includes("PARENT"), label: "Parent" },
-    { match: (s: string) => s.includes("POC"), label: "Hostel" },
-    { match: (s: string) => s.includes("ADMIN"), label: "College" },
-    { match: (s: string) => s.includes(VIEW_STEP_KEY.COMPLETE), label: "Done" },
-  ];
-  const currentStepIdx = stepDefs.findIndex((s) => s.match(normalizedStepKey));
-  const workflowSteps = stepDefs.map((step, idx) => {
+  const isRejected = lr?.status === LEAVE_REQUEST_STATUS.REJECTED;
+  const currentOrder = lr?.currentStepOrder ?? null;
+  const approvalSteps = (item.workflowSteps ?? []).map((step) => {
     let status: "completed" | "current" | "pending" | "failed";
-    if (isComplete && lr?.status === LEAVE_REQUEST_STATUS.REJECTED) {
-      status = "failed";
-    } else if (isComplete || (currentStepIdx >= 0 && idx < currentStepIdx)) {
+    if (isComplete && !isRejected) {
       status = "completed";
-    } else if (currentStepIdx >= 0 && idx === currentStepIdx && !isComplete) {
-      status = "current";
+    } else if (isRejected && currentOrder != null) {
+      status =
+        step.stepOrder === currentOrder
+          ? "failed"
+          : step.stepOrder < currentOrder
+            ? "completed"
+            : "pending";
+    } else if (currentOrder != null) {
+      status =
+        step.stepOrder < currentOrder
+          ? "completed"
+          : step.stepOrder === currentOrder
+            ? "current"
+            : "pending";
     } else {
-      status = "pending";
+      status = step.stepOrder === 1 ? "current" : "pending";
     }
-    return { key: step.label.toLowerCase().replace(/\s+/g, "-"), label: step.label, status };
+    return { key: step.stepKey, label: workflowStepLabel(step.stepKey), status };
   });
 
-  const handleAction = async (action: "approve" | "reject") => {
-    if (!lr) return;
+  const hasPolicy = lr?.policyResult != null;
+  const waitingOnPolicy =
+    waitingOn === VIEW_STEP_KEY.POLICY || waitingOn === VIEW_STEP_KEY.SUBMITTED || waitingOn === "";
+  const policyStatus: "completed" | "current" = waitingOnPolicy ? "current" : "completed";
+  const steps = [
+    { key: "create", label: "Create", status: "completed" as const },
+    ...(hasPolicy ? [{ key: "policy", label: "Policy", status: policyStatus }] : []),
+    ...approvalSteps,
+  ];
+
+  const resetApproveForm = () => {
+    setComments("");
+    setCcEmailsInput("");
+    setNotifyStudent(true);
+    setNotifyParent(true);
+    setDocumentsVerified(false);
+  };
+
+  const handleReject = async () => {
     setActionLoading(true);
     setActionError("");
     try {
-      if (action === "approve") {
-        await approveLeave(lr.id);
+      if (isExtension && item.leaveExtensionId) {
+        await approveExtension(item.leaveExtensionId, {
+          decision: LEAVE_APPROVAL_DECISION.REJECTED,
+        });
+        toast.success("Extension rejected");
       } else {
+        if (!lr) return;
         await rejectLeave(lr.id);
+        toast.success("Leave rejected");
       }
+      onActionComplete();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Action failed";
+      setActionError(message);
+      logger.error("Approval action failed", { error: message });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const submitApprove = async () => {
+    setActionLoading(true);
+    setActionError("");
+    try {
+      const ccEmails = ccEmailsInput
+        .split(",")
+        .map((email) => email.trim())
+        .filter((email) => email.length > 0);
+      const result = isExtension && item.leaveExtensionId
+        ? await approveExtension(item.leaveExtensionId, {
+            decision: LEAVE_APPROVAL_DECISION.APPROVED,
+            comments: comments || undefined,
+          })
+        : await approveLeave(
+            lr!.id,
+            comments || undefined,
+            undefined,
+            isSpecialLeave ? documentsVerified : undefined,
+            ccEmails.length > 0 ? ccEmails : undefined
+          );
+      if ((result as { requiresConfirmation?: boolean })?.requiresConfirmation) {
+        // Parent approval is still pending — ask for override confirmation.
+        setApproveOpen(false);
+        setOverrideOpen(true);
+        return;
+      }
+      toast.success(isExtension ? "Extension approved successfully" : "Leave approved successfully");
+      resetApproveForm();
+      setApproveOpen(false);
+      onActionComplete();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Action failed";
+      setActionError(message);
+      logger.error("Approval action failed", { error: message });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const submitOverride = async () => {
+    setActionLoading(true);
+    setActionError("");
+    try {
+      const ccEmails = ccEmailsInput
+        .split(",")
+        .map((email) => email.trim())
+        .filter((email) => email.length > 0);
+      if (isExtension && item.leaveExtensionId) {
+        await approveExtension(item.leaveExtensionId, {
+          decision: LEAVE_APPROVAL_DECISION.APPROVED,
+          comments: comments || undefined,
+          forceOverride: true,
+        });
+      } else {
+        await approveLeave(
+          lr!.id,
+          comments || undefined,
+          undefined,
+          isSpecialLeave ? documentsVerified : undefined,
+          ccEmails.length > 0 ? ccEmails : undefined,
+          true
+        );
+      }
+      toast.success(isExtension ? "Extension approved successfully" : "Leave approved successfully");
+      resetApproveForm();
+      setOverrideOpen(false);
       onActionComplete();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Action failed";
@@ -154,20 +294,40 @@ export function ApprovalCommandCard({ item, onActionComplete }: ApprovalCommandC
 
   return (
     <div
-      className="rounded-xl border border-border bg-card shadow-sm transition-all hover:shadow-md cursor-pointer"
+      className={cn(
+        "relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all",
+        disableNavigation
+          ? ""
+          : "hover:-translate-y-0.5 hover:shadow-md cursor-pointer",
+      )}
       onClick={() => {
-        if (lr?.id) router.push(`${pathname.replace(/\/+$/, "")}/${lr.id}`);
+        if (disableNavigation || !lr?.id) return;
+        router.push(`${detailPrefix.replace(/\/+$/, "")}/${lr.id}`);
       }}
-      role="button"
-      tabIndex={0}
+      role={disableNavigation ? undefined : "button"}
+      tabIndex={disableNavigation ? undefined : 0}
       onKeyDown={(e) => {
-        if ((e.key === "Enter" || e.key === " ") && lr?.id) {
-          router.push(`${pathname.replace(/\/+$/, "")}/${lr.id}`);
+        if (disableNavigation || !lr?.id) return;
+        if (e.key === "Enter" || e.key === " ") {
+          router.push(`${detailPrefix.replace(/\/+$/, "")}/${lr.id}`);
         }
       }}
     >
+      {/* ── Status color rail ── */}
+      <span
+        className="absolute inset-y-0 left-0 w-1"
+        style={{ backgroundColor: statusColor }}
+        aria-hidden
+      />
+
       {/* ── HEADER ── */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+      <div
+        className="flex items-center justify-between border-b border-border px-4 py-2.5"
+        style={{
+          backgroundColor: softTint(leaveColor ?? ""),
+          backgroundImage: leaveColor ? topBannerGradient(leaveColor) : undefined,
+        }}
+      >
         <div className="flex items-center gap-2">
           <span className={cn(
             "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
@@ -213,15 +373,15 @@ export function ApprovalCommandCard({ item, onActionComplete }: ApprovalCommandC
 
           {/* Leave summary — compact horizontal */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1 font-medium text-foreground">
-              <Globe className="h-3.5 w-3.5" />
-              {item.leaveTypeName ?? "Leave"}
-            </span>
+            <LeaveTypeBadge
+              name={item.leaveTypeName ?? "Leave"}
+              color={(item.leaveTypeUiConfig?.color as string | undefined) ?? null}
+            />
             <span className="inline-flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
               {lr ? `${formatDate(lr.startAt)}→${formatDate(lr.endAt)}` : "—"}
               <span className="ml-0.5 rounded bg-muted px-1 py-0.5 text-[10px] font-medium">
-                {lr ? getDuration(lr.startAt, lr.endAt) : ""}
+                {lr ? getDurationLabel(lr.startAt, lr.endAt, { short: true }) : ""}
               </span>
             </span>
             {destination && (
@@ -241,7 +401,7 @@ export function ApprovalCommandCard({ item, onActionComplete }: ApprovalCommandC
 
         {/* Middle — workflow progress */}
         <div className="flex items-center justify-center sm:flex-1 sm:px-6">
-          <WorkflowProgress steps={workflowSteps} compact />
+          <WorkflowProgress steps={steps} compact />
         </div>
 
         {/* Right — actions / status */}
@@ -261,7 +421,8 @@ export function ApprovalCommandCard({ item, onActionComplete }: ApprovalCommandC
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setShowPreview("approve");
+                      setActionError("");
+                      setApproveOpen(true);
                     }}
                     disabled={actionLoading}
                     className="h-8 w-full gap-1.5 text-xs"
@@ -308,20 +469,185 @@ export function ApprovalCommandCard({ item, onActionComplete }: ApprovalCommandC
         </div>
       )}
 
-      {/* ── Modals ── */}
-      {showPreview && (
+      {/* ── Confirm reject ── */}
+      {showPreview === "reject" && (
         <AutoPreviewModal
-          open={!!showPreview}
+          open
           onOpenChange={() => setShowPreview(null)}
-          action={showPreview}
+          action="reject"
           studentName={item.studentName ?? "this student"}
           onConfirm={() => {
             setShowPreview(null);
-            handleAction(showPreview);
+            handleReject();
           }}
           loading={actionLoading}
         />
       )}
+
+      {/* ── Approve dialog ── */}
+      <AlertDialog
+        open={approveOpen}
+        onOpenChange={(open) => {
+          setApproveOpen(open);
+          if (!open) setActionError("");
+        }}
+      >
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10">
+                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              </div>
+              <div>
+                <AlertDialogTitle className="text-lg">
+                  {isExtension ? "Approve Extension" : "Approve Leave"}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will approve {lr?.requestNumber ?? ""} for {item.studentName ?? "this student"}
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
+                Comment <span className="text-muted-foreground/50">(optional)</span>
+              </label>
+              <textarea
+                value={comments}
+                onChange={(e) => setComments(e.target.value)}
+                placeholder="Add a note about your approval..."
+                rows={3}
+                className="w-full rounded-lg border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-ring focus:ring-1 focus:ring-ring"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
+                CC recipients <span className="text-muted-foreground/50">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={ccEmailsInput}
+                onChange={(e) => setCcEmailsInput(e.target.value)}
+                placeholder="name@example.com, another@example.com"
+                className="w-full rounded-lg border border-input bg-background p-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-ring focus:ring-1 focus:ring-ring"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                These addresses will be CC&apos;d on the approval email sent to the student.
+              </p>
+            </div>
+
+            <div className="space-y-2.5 rounded-lg border border-border bg-muted/30 p-3">
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={notifyStudent}
+                  onChange={(e) => setNotifyStudent(e.target.checked)}
+                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                />
+                <span className="text-sm">Notify student</span>
+              </label>
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={notifyParent}
+                  onChange={(e) => setNotifyParent(e.target.checked)}
+                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                />
+                <span className="text-sm">Notify parent</span>
+              </label>
+              {isSpecialLeave && (
+                <label className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950">
+                  <input
+                    type="checkbox"
+                    checked={documentsVerified}
+                    onChange={(e) => setDocumentsVerified(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-input text-amber-600 focus:ring-amber-500"
+                  />
+                  <span className="text-sm">
+                    <strong>I confirm that the documents have been verified</strong>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      This leave type requires document verification before approval.
+                    </p>
+                  </span>
+                </label>
+              )}
+            </div>
+
+            {actionError && (
+              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+                {actionError}
+              </div>
+            )}
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+            <Button onClick={submitApprove} disabled={actionLoading} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+              {actionLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Approving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  Approve
+                </>
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Parent override confirmation ── */}
+      <AlertDialog open={overrideOpen} onOpenChange={setOverrideOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
+                <Clock className="h-5 w-5 text-amber-500" />
+              </div>
+              <div>
+                <AlertDialogTitle className="text-lg">Parent approval pending</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Parent approval is still pending for {item.studentName ?? "this student"}. Approving now will
+                  override the parent approval process.
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+
+          {actionError && (
+            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+              {actionError}
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+            <Button
+              onClick={submitOverride}
+              disabled={actionLoading}
+              className="gap-2 bg-amber-600 hover:bg-amber-700"
+            >
+              {actionLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Approving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  Approve Anyway
+                </>
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

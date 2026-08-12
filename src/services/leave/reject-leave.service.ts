@@ -69,7 +69,8 @@ export async function rejectLeave(
       AUDIT_ACTION.REJECT,
       AUDIT_ENTITY_TYPE.LEAVE_APPROVAL,
       getApprovalAuditMeta(leaveId, dto.comments, false),
-      tx
+      tx,
+      dto.rejectionCategory
     );
 
     const nextState = getNextState(

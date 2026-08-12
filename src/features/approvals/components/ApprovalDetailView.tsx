@@ -42,6 +42,7 @@ import { toast } from "sonner";
 import useSWR from "swr";
 
 import { ErrorState } from "@/components/shared/ErrorState";
+import { LeaveTypeBadge } from "@/components/shared/LeaveTypeBadge";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
@@ -75,6 +76,7 @@ import { useDocuments } from "@/hooks/use-documents";
 import { useMovement } from "@/hooks/use-movement";
 import { approveLeave, rejectLeave, superadminOverrideLeave } from "@/lib/api/approval-api";
 import { getLeaveUrl } from "@/lib/api/leave-api";
+import { getDurationLabel } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
@@ -244,19 +246,6 @@ function getInitials(name: string): string {
     .slice(0, 2)
     .join("")
     .toUpperCase();
-}
-
-function getDuration(startAt: string, endAt: string): string {
-  try {
-    const start = parseISO(startAt);
-    const end = parseISO(endAt);
-    const diffMs = end.getTime() - start.getTime();
-    const days = Math.round(diffMs / (1000 * 60 * 60 * 24));
-    if (days === 0) return "Same day";
-    return `${days} day${days > 1 ? "s" : ""}`;
-  } catch {
-    return "—";
-  }
 }
 
 function formatDate(dateStr: string): string {
@@ -459,6 +448,7 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
   const [overrideLoading, setOverrideLoading] = useState(false);
   const [overrideError, setOverrideError] = useState("");
   const [overrideComments, setOverrideComments] = useState("");
+  const [parentOverrideOpen, setParentOverrideOpen] = useState(false);
 
   // ── Computed data ──
   const sortedApprovals = useMemo(() => {
@@ -523,10 +513,16 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
           .split(",")
           .map((email) => email.trim())
           .filter((email) => email.length > 0);
-        await approveLeave(leaveId, comments || undefined, undefined, isSpecialLeave ? documentsVerified : undefined, ccEmails.length > 0 ? ccEmails : undefined);
+        const result = await approveLeave(leaveId, comments || undefined, undefined, isSpecialLeave ? documentsVerified : undefined, ccEmails.length > 0 ? ccEmails : undefined);
+        if ((result as { requiresConfirmation?: boolean })?.requiresConfirmation) {
+          // Parent approval is still pending — ask for override confirmation.
+          setActionTarget(null);
+          setParentOverrideOpen(true);
+          return;
+        }
         toast.success("Leave approved successfully");
       } else {
-        await rejectLeave(leaveId, rejectionCategory ? `[${rejectionCategory}] ${comments}`.trim() : comments || undefined);
+        await rejectLeave(leaveId, comments || undefined, undefined, rejectionCategory || undefined);
         toast.success("Leave rejected");
       }
       setActionTarget(null);
@@ -564,6 +560,31 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
     }
   }, [leaveId, overrideMode, overrideComments, leaveMutate, chainMutate]);
 
+  const confirmParentOverride = useCallback(async () => {
+    setActionLoading(true);
+    setActionError("");
+    try {
+      await approveLeave(
+        leaveId,
+        comments || undefined,
+        undefined,
+        isSpecialLeave ? documentsVerified : undefined,
+        undefined,
+        true,
+      );
+      toast.success("Leave approved successfully");
+      setParentOverrideOpen(false);
+      setComments("");
+      setDocumentsVerified(false);
+      await Promise.all([leaveMutate(), chainMutate()]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Override failed";
+      setActionError(message);
+    } finally {
+      setActionLoading(false);
+    }
+  }, [leaveId, comments, documentsVerified, isSpecialLeave, leaveMutate, chainMutate]);
+
   // ── Early returns ──
   if (isLoading) return <LoadingState count={6} />;
   if (isError) {
@@ -600,16 +621,16 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
               )}
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5 font-medium text-foreground">
-                <Calendar className="h-3.5 w-3.5" />
-                {leaveType}
-              </span>
+              <LeaveTypeBadge
+                name={leaveTypeName ?? "—"}
+                color={(leaveTypeUiConfig.color as string | undefined) ?? null}
+              />
               <span className="flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" />
                 {formatDate(startAt)} → {formatDate(endAt)}
               </span>
               <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
-                {getDuration(startAt, endAt)}
+                {getDurationLabel(startAt, endAt)}
               </span>
             </div>
           </div>
@@ -772,7 +793,7 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
                       {leaveType}
                     </span>
                   </DetailRow>
-                  <DetailRow label="Duration">{getDuration(startAt, endAt)}</DetailRow>
+                  <DetailRow label="Duration">{getDurationLabel(startAt, endAt)}</DetailRow>
                   {destination && <DetailRow label="Destination">{destination}</DetailRow>}
                   <DetailRow label="Period">
                     {formatDate(startAt)} → {formatDate(endAt)}
@@ -1389,7 +1410,7 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Duration</span>
-                <span className="font-medium">{getDuration(startAt, endAt)}</span>
+                <span className="font-medium">{getDurationLabel(startAt, endAt)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Student</span>
@@ -1513,6 +1534,53 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
                 <>
                   <CheckCircle2 className="h-4 w-4" />
                   Approve
+                </>
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ════════════ PARENT OVERRIDE DIALOG ════════════ */}
+      <AlertDialog open={parentOverrideOpen} onOpenChange={setParentOverrideOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+              </div>
+              <div>
+                <AlertDialogTitle className="text-lg">Parent approval pending</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Parent approval is still pending for {studentName}. Approving now will override the parent
+                  approval process.
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+
+          {actionError && (
+            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+              {actionError}
+            </div>
+          )}
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+            <Button
+              onClick={confirmParentOverride}
+              disabled={actionLoading}
+              className="gap-2 bg-amber-600 hover:bg-amber-700"
+            >
+              {actionLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Approving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  Approve Anyway
                 </>
               )}
             </Button>
