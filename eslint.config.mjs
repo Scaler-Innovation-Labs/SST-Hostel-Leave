@@ -214,6 +214,7 @@ export default defineConfig([
       "src/components/**/*.tsx",
       "src/features/**/components/**/*.tsx",
       "src/providers/**/*.tsx",
+      "src/app/**/*.tsx",
     ],
 
     rules: {
@@ -229,6 +230,13 @@ export default defineConfig([
   // =====================================================
   // NEXT APP ROUTER SPECIAL FILES
   // =====================================================
+
+  {
+    files: ["src/app/**/*.{ts,tsx}"],
+    rules: {
+      "check-file/folder-naming-convention": "off",
+    },
+  },
 
   {
     files: [
