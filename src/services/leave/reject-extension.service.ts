@@ -82,7 +82,8 @@ export async function rejectExtension(
         leaveExtensionId: extensionId,
         comments: dto.comments,
       },
-      tx
+      tx,
+      dto.rejectionCategory
     );
 
     await leaveExtensionRepository.updateById(

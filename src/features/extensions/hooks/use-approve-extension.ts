@@ -1,5 +1,6 @@
 import useSWR, { mutate as globalMutate } from "swr";
 
+import type { ApprovalQueueItem } from "@/features/approvals/hooks/use-approvals";
 import { getExtensionApprovalsUrl } from "@/lib/api/extension-api";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((r) => r.data ?? r);
@@ -7,6 +8,11 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((r) => r.
 type UseExtensionApprovalsOptions = {
   status?: string;
   search?: string;
+  waitingOn?: string;
+  hostelId?: string;
+  leaveTypeId?: string;
+  dateFrom?: string;
+  dateTo?: string;
   page?: number;
   limit?: number;
 };
@@ -18,29 +24,11 @@ export function useExtensionApprovals(options?: UseExtensionApprovalsOptions) {
 
   return {
     data: data as {
-      items: Array<{
-        id: string;
-        decision: string;
-        approverRoleCode: string | null;
-        studentName: string | null;
-        studentRollNumber: string | null;
-        extension: {
-          id: string;
-          extensionNumber: number;
-          reason: string;
-          status: string;
-          requestedEndAt: Date;
-          currentEndAt: Date;
-        } | null;
-        leaveRequest: {
-          id: string;
-          status: string;
-          requestNumber: string;
-        } | null;
-      }>;
+      items: ApprovalQueueItem[];
       total: number;
       page: number;
       totalPages: number;
+      stats?: { total: number; pending: number; approved: number; rejected: number };
     },
     isLoading,
     isError: !!error,

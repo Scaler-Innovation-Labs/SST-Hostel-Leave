@@ -1,12 +1,14 @@
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
+import { LEAVE_REJECTION_SOURCE } from "@/constants/leave/leave-rejection-source";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
+import { leaveRejectionRepository } from "@/db/repositories/leave/leave-rejection.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
@@ -71,6 +73,16 @@ export async function createExtension(
   });
 
   if (!policyResult.allowed) {
+    await leaveRejectionRepository.create({
+      studentId: leave.studentId,
+      leaveTypeId: leave.leaveTypeId,
+      leaveRequestId,
+      rejectionSource: LEAVE_REJECTION_SOURCE.POLICY,
+      reason: policyResult.restrictions.join("; "),
+      restrictions: policyResult.restrictions,
+      startAt: leave.startAt,
+      endAt: new Date(dto.requestedEndAt),
+    });
     throw new ValidationError(
       `Policy restriction: ${policyResult.restrictions.join("; ")}`
     );

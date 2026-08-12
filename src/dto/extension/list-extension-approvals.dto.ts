@@ -1,9 +1,15 @@
 import { z } from "zod";
+
 import { sortSchema } from "@/dto/shared/sort.dto";
 
 export const listExtensionApprovalsSchema = z.object({
   status: z.string().optional(),
   search: z.string().optional(),
+  waitingOn: z.string().optional(),
+  hostelId: z.string().uuid().optional(),
+  leaveTypeId: z.string().uuid().optional(),
+  dateFrom: z.string().datetime().optional(),
+  dateTo: z.string().datetime().optional(),
   sortBy: sortSchema.shape.sortBy,
   sortOrder: sortSchema.shape.sortOrder,
   page: z.coerce.number().int().positive().default(1),

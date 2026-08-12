@@ -18,12 +18,22 @@ export function getExtensionUrl(id: string): string {
 export function getExtensionApprovalsUrl(params?: {
   status?: string;
   search?: string;
+  waitingOn?: string;
+  hostelId?: string;
+  leaveTypeId?: string;
+  dateFrom?: string;
+  dateTo?: string;
   page?: number;
   limit?: number;
 }): string {
   const searchParams = new URLSearchParams();
   if (params?.status) searchParams.set("status", params.status);
   if (params?.search) searchParams.set("search", params.search);
+  if (params?.waitingOn) searchParams.set("waitingOn", params.waitingOn);
+  if (params?.hostelId) searchParams.set("hostelId", params.hostelId);
+  if (params?.leaveTypeId) searchParams.set("leaveTypeId", params.leaveTypeId);
+  if (params?.dateFrom) searchParams.set("dateFrom", params.dateFrom);
+  if (params?.dateTo) searchParams.set("dateTo", params.dateTo);
   if (params?.page) searchParams.set("page", String(params.page));
   if (params?.limit) searchParams.set("limit", String(params.limit));
   const qs = searchParams.toString();
@@ -45,7 +55,7 @@ export async function createExtension(leaveId: string, data: CreateExtensionDto)
 
 export async function approveExtension(
   id: string,
-  data: { decision: string; comments?: string }
+  data: { decision: string; comments?: string; forceOverride?: boolean }
 ): Promise<unknown> {
   const res = await fetch(`${BASE}/extensions/${id}/approve`, {
     method: "POST",

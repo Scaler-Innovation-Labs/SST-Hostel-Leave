@@ -2,6 +2,6 @@
 
 import { ExtensionApprovalsPage } from "@/features/extensions/components/ExtensionApprovalsPage";
 
-export default function SuperAdminExtensionApprovalsPage() {
+export default function AdminExtensionApprovalsPage() {
   return <ExtensionApprovalsPage />;
 }

@@ -40,6 +40,36 @@ describe("GET /api/v1/extensions/approvals", () => {
     expect(body.data.items).toHaveLength(1);
   });
 
+  it("passes filters through to the service", async () => {
+    const req = new Request(
+      "http://localhost:3000/api/v1/extensions/approvals?status=PENDING&search=neerasa&waitingOn=ADMIN_APPROVAL&leaveTypeId=11111111-1111-4111-8111-111111111111&hostelId=22222222-2222-4222-8222-222222222222&dateFrom=2026-08-01T00:00:00.000Z&dateTo=2026-08-10T00:00:00.000Z&page=1&limit=20"
+    );
+    const res = await GET(req);
+    await res.json();
+    expect(res.status).toBe(200);
+
+    expect(mockListExtensionApprovals).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "PENDING",
+        search: "neerasa",
+        waitingOn: "ADMIN_APPROVAL",
+        leaveTypeId: "11111111-1111-4111-8111-111111111111",
+        hostelId: "22222222-2222-4222-8222-222222222222",
+        dateFrom: "2026-08-01T00:00:00.000Z",
+        dateTo: "2026-08-10T00:00:00.000Z",
+        page: 1,
+        limit: 20,
+      }),
+      expect.anything()
+    );
+  });
+
+  it("rejects a malformed hostel id", async () => {
+    const res = await GET(new Request("http://localhost:3000/api/v1/extensions/approvals?hostelId=not-a-uuid"));
+    expect(res.status).toBe(400);
+    expect(mockListExtensionApprovals).not.toHaveBeenCalled();
+  });
+
   it("returns 401 when not authenticated", async () => {
     mockRequireAuth.mockRejectedValue(new (await import("@/lib/errors")).AuthenticationError());
 
