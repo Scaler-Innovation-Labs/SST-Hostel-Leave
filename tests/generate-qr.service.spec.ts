@@ -104,11 +104,12 @@ beforeEach(() => {
 
 describe("generateQrPass service", () => {
   describe("precondition validation", () => {
-    it("returns existing pass when an active pass already exists (no token since not stored in DB)", async () => {
+    it("returns the same stored token for an existing active pass (one token per leave)", async () => {
       mockFindByLeaveRequestId.mockResolvedValue({
         id: "QP-EXISTING",
         status: "ACTIVE",
         tokenHash: "existing-hash",
+        token: "stable-token",
         qrType: "LEAVE_EXIT",
         expiresAt: null,
       });
@@ -116,21 +117,23 @@ describe("generateQrPass service", () => {
       const result = await generateQrPass(VALID_INPUT);
 
       expect(result.passId).toBe("QP-EXISTING");
-      expect(result.token).toBe("");
+      expect(result.token).toBe("stable-token");
       expect(mockFindByLeaveRequestId).toHaveBeenCalledWith("LR1", expect.any(Object));
       expect(mockQrPassCreate).not.toHaveBeenCalled();
+      expect(mockQrPassRegenerate).not.toHaveBeenCalled();
     });
 
-    it("regenerates pass when existing pass is not active", async () => {
+    it("writes a stored token once for a legacy active pass (repair, not re-issue)", async () => {
       mockFindByLeaveRequestId.mockResolvedValue({
-        id: "QP-INVALIDATED",
-        status: "INVALIDATED",
+        id: "QP-LEGACY",
+        status: "ACTIVE",
         tokenHash: "old-hash",
+        token: null,
         qrType: "LEAVE_EXIT",
         expiresAt: null,
       });
       mockQrPassRegenerate.mockResolvedValue({
-        id: "QP-INVALIDATED",
+        id: "QP-LEGACY",
         tokenHash: "new-hash",
         qrType: "LEAVE_EXIT",
         expiresAt: null,
@@ -138,8 +141,31 @@ describe("generateQrPass service", () => {
 
       const result = await generateQrPass(VALID_INPUT);
 
+      expect(result.passId).toBe("QP-LEGACY");
+      expect(result.token).toBeTruthy();
+      expect(mockQrPassRegenerate).toHaveBeenCalledWith(
+        "QP-LEGACY",
+        expect.objectContaining({ token: expect.any(String) }),
+        expect.any(Object)
+      );
+      expect(mockQrPassCreate).not.toHaveBeenCalled();
+    });
+
+    it("does not mint a new credential for a non-active (dead) pass", async () => {
+      mockFindByLeaveRequestId.mockResolvedValue({
+        id: "QP-INVALIDATED",
+        status: "INVALIDATED",
+        tokenHash: "old-hash",
+        token: "old-token",
+        qrType: "LEAVE_EXIT",
+        expiresAt: null,
+      });
+
+      const result = await generateQrPass(VALID_INPUT);
+
       expect(result.passId).toBe("QP-INVALIDATED");
-      expect(mockQrPassRegenerate).toHaveBeenCalled();
+      expect(result.token).toBe("");
+      expect(mockQrPassRegenerate).not.toHaveBeenCalled();
       expect(mockQrPassCreate).not.toHaveBeenCalled();
     });
   });
@@ -187,13 +213,14 @@ describe("generateQrPass service", () => {
       );
     });
 
-    it("returns the raw token only at generation time (not stored in DB)", async () => {
+    it("stores the raw token so the app and email render the same QR", async () => {
       const result = await generateQrPass(VALID_INPUT);
 
       const createCall = mockQrPassCreate.mock.calls[0][0];
-      // tokenHash is stored, rawToken is not — raw returned only in response
+      // Raw token is stored (app + approval email render the same QR);
+      // tokenHash remains the lookup key for gate scans.
+      expect(createCall.token).toBe(result.token);
       expect(createCall.tokenHash).not.toBe(result.token);
-      expect(createCall.rawToken).toBeUndefined();
       // Returned token is 64-char hex
       expect(result.token.length).toBe(64);
     });

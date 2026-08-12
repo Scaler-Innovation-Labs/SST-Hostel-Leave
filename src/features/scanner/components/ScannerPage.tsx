@@ -34,12 +34,12 @@ export function ScannerPage() {
     setScanning(true);
     setCurrentResult(null);
     try {
-      const data: any = await scanQr(rawToken.trim());
+      const data = await scanQr(rawToken.trim());
       const result: ScanResult = {
         success: true,
-        message: "Scan successful",
+        message: data.success ? "Scan successful" : (data.failureReason ?? "Scan failed"),
         timestamp: new Date(),
-        scanType: data?.scanType,
+        scanType: data.scanType,
       };
       setCurrentResult(result);
       setRecentScans((prev) => [result, ...prev].slice(0, 10));

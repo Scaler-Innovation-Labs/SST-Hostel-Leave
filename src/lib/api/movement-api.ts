@@ -18,6 +18,10 @@ export function getMovementsUrl(query?: Partial<ListMovementsQuery>): string {
   return `${BASE}/movements${qs ? `?${qs}` : ""}`;
 }
 
+export function getQrPassesUrl(leaveRequestId: string): string {
+  return `${BASE}/movements/qr-passes?leaveRequestId=${leaveRequestId}`;
+}
+
 export async function generateQr(
   leaveRequestId: string,
   qrType: "LEAVE_EXIT" | "LEAVE_RETURN",
@@ -50,9 +54,16 @@ export async function invalidateQr(
   return json.data;
 }
 
+export type ScanQrResult = {
+  scanLogId: string;
+  success: boolean;
+  scanType: "EXIT_SCAN" | "RETURN_SCAN";
+  failureReason?: string | null;
+};
+
 export async function scanQr(
   token: string,
-): Promise<unknown> {
+): Promise<ScanQrResult> {
   const res = await fetch(`${BASE}/movements/scan`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -62,5 +73,5 @@ export async function scanQr(
   if (!res.ok || !json.success) {
     throw new Error(json.error?.message ?? "Failed to scan QR");
   }
-  return json.data;
+  return json.data as ScanQrResult;
 }

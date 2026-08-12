@@ -94,53 +94,75 @@ export async function generateQrPass(
 		const tokenHash = await sha256(token);
 		const expiresAt = input.expiresAt ?? null;
 
+		// One QR pass (and one stable token) per leave. An existing pass is
+		// never re-tokened: an ACTIVE pass returns its stored token so the
+		// student can simply display it again. A pass that was created before
+		// raw tokens were stored (token is NULL) gets a token written once as
+		// a repair. Non-active passes are dead by the leave lifecycle and get
+		// no new credential.
 		if (existingPass) {
-			if (existingPass.status === QR_STATUS.ACTIVE) {
+			if (
+				existingPass.status === QR_STATUS.ACTIVE &&
+				existingPass.token
+			) {
 				return {
 					passId: existingPass.id,
-					token: "",
+					token: existingPass.token,
 					tokenHash: existingPass.tokenHash,
 					qrType: existingPass.qrType,
 					expiresAt: existingPass.expiresAt,
 				};
 			}
 
-			const pass = await qrPassRepository.regenerate(
-				existingPass.id,
-				{ tokenHash, qrType: input.qrType, expiresAt },
-				tx
-			);
+			if (existingPass.status === QR_STATUS.ACTIVE) {
+				// Legacy pass (no stored raw token) — write the token once so it
+				// can be rendered again. This is a repair, not a re-issue.
+				const pass = await qrPassRepository.regenerate(
+					existingPass.id,
+					{ tokenHash, qrType: input.qrType, expiresAt, token },
+					tx
+				);
 
-			await auditService.record(
-				AUDIT_ACTION.UPDATE,
-				AUDIT_ENTITY_TYPE.QR_PASS,
-				pass.id,
-				input.userId,
-				{
-					qrType: input.qrType,
-					leaveRequestId: input.leaveRequestId,
-				},
-				tx
-			);
+				await auditService.record(
+					AUDIT_ACTION.UPDATE,
+					AUDIT_ENTITY_TYPE.QR_PASS,
+					pass.id,
+					input.userId,
+					{
+						qrType: input.qrType,
+						leaveRequestId: input.leaveRequestId,
+					},
+					tx
+				);
 
-			await outboxService.publish({
-				eventType: OUTBOX_EVENT_TYPE.QR_GENERATED,
-				aggregateType: AGGREGATE_TYPE.QR_PASS,
-				aggregateId: pass.id,
-				payload: {
-					qrPassId: pass.id,
-					leaveRequestId: input.leaveRequestId,
-					studentId: student.id,
-					qrType: input.qrType,
-				},
-			}, tx);
+				await outboxService.publish({
+					eventType: OUTBOX_EVENT_TYPE.QR_GENERATED,
+					aggregateType: AGGREGATE_TYPE.QR_PASS,
+					aggregateId: pass.id,
+					payload: {
+						qrPassId: pass.id,
+						leaveRequestId: input.leaveRequestId,
+						studentId: student.id,
+						qrType: input.qrType,
+						qrToken: token,
+					},
+				}, tx);
+
+				return {
+					passId: pass.id,
+					token,
+					tokenHash,
+					qrType: pass.qrType,
+					expiresAt: pass.expiresAt,
+				};
+			}
 
 			return {
-				passId: pass.id,
-				token,
-				tokenHash,
-				qrType: pass.qrType,
-				expiresAt: pass.expiresAt,
+				passId: existingPass.id,
+				token: "",
+				tokenHash: existingPass.tokenHash,
+				qrType: existingPass.qrType,
+				expiresAt: existingPass.expiresAt,
 			};
 		}
 
@@ -149,6 +171,7 @@ export async function generateQrPass(
 			studentId: student.id,
 			qrType: input.qrType,
 			tokenHash,
+			token,
 			status: QR_STATUS.ACTIVE,
 			expiresAt,
 		}, tx);
@@ -174,6 +197,7 @@ export async function generateQrPass(
 				leaveRequestId: input.leaveRequestId,
 				studentId: student.id,
 				qrType: input.qrType,
+				qrToken: token,
 			},
 		}, tx);
 

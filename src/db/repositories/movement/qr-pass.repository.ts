@@ -1,9 +1,9 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, eq, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, lt, lte, sql } from "drizzle-orm";
 
 import { QR_STATUS } from "@/constants/movement/qr-status";
 import type { QrType } from "@/constants/movement/qr-type";
-import { leaveRequests, qrPasses, students, users } from "@/db";
+import { hostels, leaveRequests, leaveTypes, qrPasses, students, users } from "@/db";
 import { db } from "@/lib/db";
 
 export type QrPass = InferSelectModel<typeof qrPasses>;
@@ -30,21 +30,29 @@ export const qrPassRepository = {
 			tokenHash: string;
 			qrType: QrType;
 			expiresAt: Date | null;
+			/** New raw pass token — replaces the old one (only used to repair legacy passes). */
+			token?: string;
 		},
 		dbClient: QrPassDbClient = db
 	): Promise<QrPass> {
+		const setData: Partial<NewQrPass> = {
+			tokenHash: input.tokenHash,
+			qrType: input.qrType,
+			status: QR_STATUS.ACTIVE,
+			expiresAt: input.expiresAt,
+			generatedAt: new Date(),
+			firstScanAt: null,
+			closedAt: null,
+			invalidatedAt: null,
+		};
+
+		if (input.token) {
+			setData.token = input.token;
+		}
+
 		const rows = await dbClient
 			.update(qrPasses)
-			.set({
-				tokenHash: input.tokenHash,
-				qrType: input.qrType,
-				status: QR_STATUS.ACTIVE,
-				expiresAt: input.expiresAt,
-				generatedAt: new Date(),
-				firstScanAt: null,
-				closedAt: null,
-				invalidatedAt: null,
-			})
+			.set(setData)
 			.where(eq(qrPasses.id, id))
 			.returning();
 
@@ -101,6 +109,8 @@ export const qrPassRepository = {
 
 		return rows[0] ?? null;
 	},
+
+
 
 	async updateStatus(
 		id: string,
@@ -180,11 +190,105 @@ export const qrPassRepository = {
     return rows;
   },
 
+  /**
+   * Overdue returns: the student checked out (pass first-scanned) but never
+   * checked back in (pass not closed) and the leave duration has ended.
+   * Scoped to the given hostels for staff roles.
+   */
+  async findOverdueReturns(
+    opts: { hostelIds?: string[]; limit?: number; offset?: number } = {},
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<
+    Array<{
+      id: string;
+      leaveRequestId: string;
+      studentId: string;
+      qrType: string;
+      status: string;
+      firstScanAt: Date | null;
+      closedAt: Date | null;
+      generatedAt: Date;
+      expiresAt: Date | null;
+      studentName: string | null;
+      studentRollNumber: string | null;
+      roomNumber: string | null;
+      hostelId: string | null;
+      hostelName: string | null;
+      leaveTypeName: string | null;
+      requestNumber: string | null;
+      leaveStartAt: Date | null;
+      leaveEndAt: Date | null;
+    }>
+  > {
+    const conditions: ReturnType<typeof and>[] = [
+      isNotNull(qrPasses.firstScanAt),
+      isNull(qrPasses.closedAt),
+      lt(leaveRequests.endAt, new Date()),
+    ];
+    if (opts.hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, opts.hostelIds));
+    }
+
+    // Explicit columns only: the live DB predates migrate-0010 and has no
+    // qr_passes.token, so selecting the whole table would fail there.
+    const rows = await dbClient
+      .select({
+        id: qrPasses.id,
+        leaveRequestId: qrPasses.leaveRequestId,
+        studentId: qrPasses.studentId,
+        qrType: qrPasses.qrType,
+        status: qrPasses.status,
+        firstScanAt: qrPasses.firstScanAt,
+        closedAt: qrPasses.closedAt,
+        generatedAt: qrPasses.generatedAt,
+        expiresAt: qrPasses.expiresAt,
+        studentName: users.fullName,
+        studentRollNumber: students.rollNumber,
+        roomNumber: students.roomNumber,
+        hostelId: users.hostelId,
+        hostelName: hostels.name,
+        leaveTypeName: leaveTypes.name,
+        requestNumber: leaveRequests.requestNumber,
+        leaveStartAt: leaveRequests.startAt,
+        leaveEndAt: leaveRequests.endAt,
+      })
+      .from(qrPasses)
+      .leftJoin(leaveRequests, eq(qrPasses.leaveRequestId, leaveRequests.id))
+      .leftJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
+      .leftJoin(students, eq(qrPasses.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .leftJoin(hostels, eq(users.hostelId, hostels.id))
+      .where(and(...conditions))
+      .orderBy(asc(leaveRequests.endAt))
+      .limit(opts.limit ?? 200)
+      .offset(opts.offset ?? 0);
+
+    return rows;
+  },
+
   async countActive(
     hostelIds?: string[],
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<number> {
     const conditions: ReturnType<typeof and>[] = [eq(qrPasses.status, QR_STATUS.ACTIVE)];
+    if (hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, hostelIds));
+    }
+    const result = await dbClient
+      .select({ count: sql<number>`count(*)` })
+      .from(qrPasses)
+      .leftJoin(leaveRequests, eq(qrPasses.leaveRequestId, leaveRequests.id))
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions));
+    return Number(result[0]?.count ?? 0);
+  },
+
+  async countAll(
+    hostelIds?: string[],
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [];
     if (hostelIds?.length) {
       conditions.push(inArray(users.hostelId, hostelIds));
     }

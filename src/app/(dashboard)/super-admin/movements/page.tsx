@@ -1,5 +1,5 @@
 import { MovementsPage } from "@/features/movements/components/MovementsPage";
 
-export default function AdminMovementsPage() {
+export default function SuperAdminMovementsPage() {
   return <MovementsPage />;
 }
