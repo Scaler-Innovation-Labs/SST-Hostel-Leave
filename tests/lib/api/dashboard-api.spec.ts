@@ -7,5 +7,9 @@ describe("dashboard-api", () => {
     it("returns stats URL", () => {
       expect(getDashboardStatsUrl()).toBe("/api/v1/dashboard/stats");
     });
+
+    it("appends status query param when provided", () => {
+      expect(getDashboardStatsUrl("APPROVED")).toBe("/api/v1/dashboard/stats?status=APPROVED");
+    });
   });
 });

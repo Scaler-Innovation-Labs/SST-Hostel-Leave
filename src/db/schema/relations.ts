@@ -20,13 +20,13 @@ import {
 } from "./auth";
 import {
   hostels,
-  parentOtpSessions,
   parents,
 } from "./hostel";
 import {
   leaveApprovals,
   leaveDocuments,
   leaveExtensions,
+  leaveRejections,
   leaveRequests,
   leaveTypes,
   operationalPeriods,
@@ -148,6 +148,8 @@ export const studentsRelations = relations(
 
     leaveRequests: many(leaveRequests),
 
+    leaveRejections: many(leaveRejections),
+
     qrPasses: many(qrPasses),
 
     movementEvents: many(movementEvents),
@@ -180,18 +182,6 @@ export const parentsRelations = relations(
     inboundSmsLogs: many(inboundSmsLogs),
 
     notificationLogs: many(notificationLogs),
-
-    otpSessions: many(parentOtpSessions),
-  })
-);
-
-export const parentOtpSessionsRelations = relations(
-  parentOtpSessions,
-  ({ one }) => ({
-    parent: one(parents, {
-      fields: [parentOtpSessions.parentId],
-      references: [parents.id],
-    }),
   })
 );
 
@@ -209,9 +199,31 @@ export const leaveTypesRelations = relations(
 
     leaveRequests: many(leaveRequests),
 
+    leaveRejections: many(leaveRejections),
+
     policies: many(policies),
 
     notificationRules: many(notificationRules),
+  })
+);
+
+export const leaveRejectionsRelations = relations(
+  leaveRejections,
+  ({ one }) => ({
+    student: one(students, {
+      fields: [leaveRejections.studentId],
+      references: [students.id],
+    }),
+
+    leaveType: one(leaveTypes, {
+      fields: [leaveRejections.leaveTypeId],
+      references: [leaveTypes.id],
+    }),
+
+    leaveRequest: one(leaveRequests, {
+      fields: [leaveRejections.leaveRequestId],
+      references: [leaveRequests.id],
+    }),
   })
 );
 
@@ -231,6 +243,8 @@ export const leaveRequestsRelations = relations(
     leaveExtensions: many(leaveExtensions),
 
     leaveApprovals: many(leaveApprovals),
+
+    leaveRejections: many(leaveRejections),
 
     leaveQuestions: many(leaveQuestions),
 

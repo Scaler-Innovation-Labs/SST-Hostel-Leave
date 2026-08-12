@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/neon-serverless";
 
 import * as schema from "@/db";
 import { ConfigurationError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 
 type DbClient = ReturnType<typeof drizzle<typeof schema>>;
 
@@ -19,7 +20,9 @@ function getOrCreatePool(): Pool {
 		}
 		globalForDb.pool = new Pool({ connectionString: databaseUrl });
 		globalForDb.pool.on("error", (err: unknown) => {
-			console.error("[db] Pool error:", err instanceof Error ? err.message : String(err));
+			logger.error("[db] Pool error", {
+				error: err instanceof Error ? err.message : String(err),
+			});
 		});
 	}
 	return globalForDb.pool;

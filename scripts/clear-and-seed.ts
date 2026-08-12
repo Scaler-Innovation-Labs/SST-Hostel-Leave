@@ -35,7 +35,6 @@ async function main() {
       leave_types,
       operational_periods,
       policies,
-      parent_otp_sessions,
       parents,
       user_roles,
       students,

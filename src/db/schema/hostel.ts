@@ -40,9 +40,6 @@ export const hostels = pgTable("hostels", {
   /** Slack user group (S...) or user (U...) id to CC on Slack notifications for this hostel's admins. */
   slackAdminGroupId: text("slack_admin_group_id"),
 
-  /** Slack user group (S...) or user (U...) id to CC on Slack notifications for this hostel's POCs. */
-  slackPocGroupId: text("slack_poc_group_id"),
-
   isActive: boolean("is_active")
     .default(true)
     .notNull(),
@@ -129,45 +126,5 @@ export const parents = pgTable(
 );
 
 // =====================================================
-// PARENT OTP SESSIONS
+// PARENT OTP SESSIONS (REMOVED — parent dashboard removed)
 // =====================================================
-
-export const parentOtpSessions = pgTable(
-  "parent_otp_sessions",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-
-    parentId: uuid("parent_id")
-      .notNull()
-      .references(() => parents.id, {
-        onDelete: "cascade",
-      }),
-
-    phone: text("phone").notNull(),
-
-    otpHash: text("otp_hash").notNull(),
-
-    expiresAt: timestamp("expires_at", {
-      withTimezone: true,
-    }).notNull(),
-
-    verifiedAt: timestamp("verified_at", {
-      withTimezone: true,
-    }),
-
-    createdAt: timestamp("created_at", {
-      withTimezone: true,
-    })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => ({
-    parentIdIndex: index(
-      "pos_parent_id_idx"
-    ).on(table.parentId),
-
-    phoneIndex: index("pos_phone_idx").on(
-      table.phone
-    ),
-  })
-);

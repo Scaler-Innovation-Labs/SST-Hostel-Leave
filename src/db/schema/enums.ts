@@ -51,6 +51,15 @@ export const leaveApprovalDecisionEnum =
     ]
   );
 
+export const leaveRejectionSourceEnum =
+  pgEnum(
+    "leave_rejection_source",
+    [
+      "POLICY",
+      "VALIDATION",
+    ]
+  );
+
 export const approvalSourceEnum = pgEnum(
   "approval_source",
   [

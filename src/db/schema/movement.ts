@@ -67,6 +67,11 @@ export const qrPasses = pgTable("qr_passes", {
     .notNull()
     .unique(),
 
+  // Raw pass token — stored so the student app and the approval email can
+  // render the SAME QR (one token per approved leave). `tokenHash` stays the
+  // lookup key for gate scans.
+  token: text("token"),
+
   status: qrStatusEnum("status").notNull(),
 
   generatedAt: timestamp("generated_at", {

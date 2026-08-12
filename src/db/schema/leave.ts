@@ -24,6 +24,7 @@ import {
   leaveApprovalDecisionEnum,
   leaveCategoryEnum,
   leaveDocumentStatusEnum,
+  leaveRejectionSourceEnum,
   leaveStatusEnum,
   qrModeEnum,
   workflowModeEnum,
@@ -358,6 +359,9 @@ export const leaveApprovals = pgTable("leave_approvals", {
 
   comments: text("comments"),
 
+  /** Structured reason category for rejections (e.g. incomplete, policy_violation). */
+  rejectionCategory: text("rejection_category"),
+
   parentApprovalToken: text("parent_approval_token")
     .unique(),
 
@@ -409,6 +413,73 @@ export const leaveApprovals = pgTable("leave_approvals", {
     extensionDecisionStepIdx: index("la_extension_decision_step_idx").on(table.leaveExtensionId, table.decision, table.stepOrder),
     parentDecisionCreatedIdx: index("la_parent_decision_created_idx").on(table.approverParentId, table.decision, table.createdAt),
   })
+);
+
+export const leaveRejections = pgTable("leave_rejections", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  studentId: uuid("student_id")
+    .notNull()
+    .references(() => students.id, {
+      onDelete: "cascade",
+    }),
+
+  leaveTypeId: uuid("leave_type_id")
+    .notNull()
+    .references(() => leaveTypes.id, {
+      onDelete: "restrict",
+    }),
+
+  /** Present when the rejection happens on an extension attempt of an existing leave. */
+  leaveRequestId: uuid("leave_request_id").references(
+    () => leaveRequests.id,
+    {
+      onDelete: "set null",
+    }
+  ),
+
+  rejectionSource: leaveRejectionSourceEnum("rejection_source").notNull(),
+
+  reason: text("reason"),
+
+  /** Restrictions/validation messages that triggered the rejection. */
+  restrictions: jsonb("restrictions"),
+
+  submittedForm: jsonb("submitted_form"),
+
+  startAt: timestamp("start_at", {
+    withTimezone: true,
+  }).notNull(),
+
+  endAt: timestamp("end_at", {
+    withTimezone: true,
+  }).notNull(),
+
+  metadata: jsonb("metadata"),
+
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
+},
+(table) => ({
+  studentIdIndex: index(
+    "leave_rejections_student_id_idx"
+  ).on(table.studentId),
+
+  leaveTypeIdIndex: index(
+    "leave_rejections_leave_type_id_idx"
+  ).on(table.leaveTypeId),
+
+  sourceIndex: index(
+    "leave_rejections_source_idx"
+  ).on(table.rejectionSource),
+
+  createdAtIndex: index(
+    "leave_rejections_created_at_idx"
+  ).on(table.createdAt),
+})
 );
 
 // =====================================================
