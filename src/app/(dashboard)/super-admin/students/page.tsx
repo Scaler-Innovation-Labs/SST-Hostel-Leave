@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus, Save, Search, Trash2, Upload, UserPlus, Users } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
@@ -467,10 +468,18 @@ export default function SuperAdminStudentsPage() {
           ) : (
             <div className="space-y-2">
               {students.items.map((item) => (
-                <button
+                <div
                   key={item.student.id}
                   onClick={() => editStudent(item)}
-                  className={`w-full rounded-xl border bg-card p-4 text-left hover:border-primary ${
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      editStudent(item);
+                    }
+                  }}
+                  className={`w-full cursor-pointer rounded-xl border bg-card p-4 text-left hover:border-primary ${
                     draft.id === item.student.id ? "border-primary" : ""
                   }`}
                 >
@@ -499,9 +508,16 @@ export default function SuperAdminStudentsPage() {
                       <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
                         {item.locationState?.name ?? item.student.currentLocationState}
                       </span>
+                      <Link
+                        href={`/super-admin/students/${item.student.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="rounded-md border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+                      >
+                        View Profile
+                      </Link>
                     </div>
                   </div>
-                </button>
+                </div>
               ))}
 
               {students.totalPages > 1 && (

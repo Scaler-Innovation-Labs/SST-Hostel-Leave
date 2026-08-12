@@ -3,9 +3,9 @@ import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
+import { deleteStudent } from "@/services/student/delete-student.service";
 import { getStudent } from "@/services/student/get-student.service";
 import { updateStudent } from "@/services/student/update-student.service";
-import { deleteStudent } from "@/services/student/delete-student.service";
 
 export async function GET(
   _request: Request,
@@ -32,13 +32,13 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
     const { id } = await params;
     const body = await request.json();
     const dto = updateStudentSchema.parse(body);
 
-    const result = await updateStudent(id, dto);
+    const result = await updateStudent(id, dto, currentUser.id);
 
     return ApiResponse.success(result);
   } catch (error) {
@@ -51,10 +51,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
     const { id } = await params;
-    await deleteStudent(id);
+    await deleteStudent(id, currentUser.id);
 
     return ApiResponse.success({ deleted: true });
   } catch (error) {

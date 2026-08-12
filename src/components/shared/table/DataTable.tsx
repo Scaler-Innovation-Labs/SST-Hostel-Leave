@@ -62,7 +62,10 @@ export function DataTable<T extends Record<string, unknown>>({
               data.map((row, index) => (
                 <tr
                   key={index}
-                  className="border-b border-border transition-colors hover:bg-muted/40"
+                  className={cn(
+                    "border-b border-border transition-colors hover:bg-muted/40",
+                    index % 2 === 1 && "bg-muted/20",
+                  )}
                 >
                   {columns.map((column, i) => (
                     <td key={`${String(column.key)}-${i}`} className="px-4 py-4">

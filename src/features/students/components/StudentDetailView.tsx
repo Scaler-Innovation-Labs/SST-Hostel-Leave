@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 
 import { ErrorState } from "@/components/shared/ErrorState";
 import { InfoCard } from "@/components/shared/InfoCard";
+import { LeaveTypeBadge } from "@/components/shared/LeaveTypeBadge";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
@@ -49,6 +50,8 @@ function formatDateTime(dateStr: string): string {
 
 export function StudentDetailView({ studentId, basePath = "/admin/students" }: StudentDetailViewProps) {
   const router = useRouter();
+  const movementsPath = basePath.replace(/\/students$/, "/movements");
+  const approvalsPath = basePath.replace(/\/students$/, "/approvals");
   const { student, isLoading, isError, error, mutate } = useStudent(studentId);
   const { leaves } = useLeaves({ studentId, page: 1, limit: 5 });
   const { movements } = useMovement({ studentId, page: 1, limit: 10 });
@@ -99,18 +102,21 @@ export function StudentDetailView({ studentId, basePath = "/admin/students" }: S
         <InfoCard
           label="Location Status"
           value={locationState?.name ?? locationCode.replace(/_/g, " ").toLowerCase()}
+          icon={<MapPin className="h-4 w-4" />}
+          tone={isInHostel ? "success" : isOverdue ? "danger" : "warning"}
           className={cn(
             isInHostel && "border-emerald-500/30",
             isOnLeave && "border-blue-500/30",
             isOverdue && "border-red-500/30",
           )}
         />
-        <InfoCard label="Email" value={userData?.email ?? "—"} icon={<Mail className="h-4 w-4" />} />
-        <InfoCard label="Phone" value={userData?.phone ?? "—"} icon={<Phone className="h-4 w-4" />} />
+        <InfoCard label="Email" value={userData?.email ?? "—"} icon={<Mail className="h-4 w-4" />} tone="primary" />
+        <InfoCard label="Phone" value={userData?.phone ?? "—"} icon={<Phone className="h-4 w-4" />} tone="primary" />
         <InfoCard
           label="Status"
           value={userData?.isActive ? "Active" : "Inactive"}
           icon={<Shield className="h-4 w-4" />}
+          tone={userData?.isActive ? "success" : "danger"}
         />
       </section>
 
@@ -194,7 +200,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students" }: S
           {/* Quick Actions */}
           <div className="mt-6 space-y-2">
             <Link
-              href={`/admin/movements?studentId=${studentId}`}
+              href={`${movementsPath}?studentId=${studentId}`}
               className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:bg-muted"
             >
               <History className="h-4 w-4 text-muted-foreground" />
@@ -202,7 +208,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students" }: S
               <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground" />
             </Link>
             <Link
-              href={`/admin/students`}
+              href={`${basePath}`}
               className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:bg-muted"
             >
               <FileText className="h-4 w-4 text-muted-foreground" />
@@ -242,15 +248,19 @@ export function StudentDetailView({ studentId, basePath = "/admin/students" }: S
         {leaves.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No leave records found.</p>
         ) : (
-          <div className="divide-y divide-border">              {leaves.map((l: { id: string; status: string; startAt: string; endAt: string; leaveTypeName?: string }) => (
+          <div className="divide-y divide-border">              {leaves.map((l: { id: string; status: string; startAt: string; endAt: string; leaveTypeName?: string; leaveTypeUiConfig?: Record<string, unknown> | null }) => (
               <Link
                 key={l.id}
-                href={`/admin/approvals/${l.id}`}
+                href={`${approvalsPath}/${l.id}`}
                 className="flex items-center gap-4 px-1 py-3 transition-colors hover:bg-muted/30"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">
-                    {l.leaveTypeName ?? "Leave"} · {formatDate(l.startAt)} — {formatDate(l.endAt)}
+                  <LeaveTypeBadge
+                    name={l.leaveTypeName ?? "Leave"}
+                    color={(l.leaveTypeUiConfig?.color as string | undefined) ?? null}
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {formatDate(l.startAt)} — {formatDate(l.endAt)}
                   </p>
                 </div>
                 <StatusBadge status={(l.status ?? "").toLowerCase() as "approved" | "pending" | "rejected"} />
@@ -268,7 +278,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students" }: S
             <h3 className="text-base font-semibold">Movement Timeline</h3>
           </div>
           <Link
-            href={`/admin/movements?studentId=${studentId}`}
+            href={`${movementsPath}?studentId=${studentId}`}
             className="text-xs font-medium text-primary hover:underline"
           >
             View all

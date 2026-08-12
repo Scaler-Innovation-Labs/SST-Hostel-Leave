@@ -69,6 +69,19 @@ export const studentRepository = {
 		return rows[0] ?? null;
 	},
 
+	async findByRollNumber(
+		rollNumber: string,
+		dbClient: StudentDbClient = db
+	): Promise<Student | null> {
+		const rows = await dbClient
+			.select()
+			.from(students)
+			.where(eq(students.rollNumber, rollNumber))
+			.limit(1);
+
+		return rows[0] ?? null;
+	},
+
   async findPolicyContextByUserId(
     userId: string,
     dbClient: StudentDbClient = db

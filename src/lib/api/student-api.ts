@@ -6,6 +6,7 @@ const BASE = "/api/v1";
 export function getStudentsUrl(query?: Partial<ListStudentsQuery>): string {
   const qs = buildQueryString({
     locationState: query?.locationState,
+    hostelId: query?.hostelId,
     search: query?.search,
     page: query?.page,
     limit: query?.limit,

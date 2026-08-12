@@ -7,10 +7,12 @@ import { useMemo, useState } from "react";
 import { DataToolbar } from "@/components/shared/DataToolbar";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { InfoCard } from "@/components/shared/InfoCard";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
+import { useDashboardStats } from "@/features/dashboard/hooks/use-dashboard-stats";
 import { useStudents } from "@/features/students/hooks/use-students";
 import { cn } from "@/lib/utils";
 
@@ -91,6 +93,8 @@ export default function AdminStudentsPage() {
     search: search || undefined,
   });
 
+  const { stats } = useDashboardStats();
+
   const totalPages = Math.ceil(total / 20);
 
   const items: StudentRow[] = useMemo(
@@ -108,6 +112,50 @@ export default function AdminStudentsPage() {
         title="Students"
         description="View all registered students."
       />
+
+      {stats && (
+        <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {[
+            {
+              label: "Total Students",
+              value: (stats as { totalStudents?: number }).totalStudents ?? 0,
+              tone: "primary" as const,
+              location: "",
+            },
+            {
+              label: "In Hostel",
+              value: (stats as { activeStudents?: number }).activeStudents ?? 0,
+              tone: "success" as const,
+              location: MOVEMENT_STATE.IN_HOSTEL,
+            },
+            {
+              label: "On Leave",
+              value: (stats as { studentsOnLeave?: number }).studentsOnLeave ?? 0,
+              tone: "warning" as const,
+              location: MOVEMENT_STATE.APPROVED_LEAVE,
+            },
+            {
+              label: "Overdue",
+              value: (stats as { overdueStudents?: number }).overdueStudents ?? 0,
+              tone: "danger" as const,
+              location: MOVEMENT_STATE.OVERDUE,
+            },
+          ].map((card) => (
+            <InfoCard
+              key={card.label}
+              compact
+              label={card.label}
+              value={card.value}
+              tone={card.tone}
+              active={locationState === card.location}
+              onClick={() => {
+                setLocationState(locationState === card.location ? "" : card.location);
+                setPage(1);
+              }}
+            />
+          ))}
+        </section>
+      )}
 
       <DataToolbar
         searchPlaceholder="Search by name or roll number..."
