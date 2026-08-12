@@ -21,4 +21,5 @@ jobs:
       - run: pnpm install
       - run: pnpm typecheck
       - run: pnpm lint
+      - run: pnpm audit:architecture
       - run: pnpm test
