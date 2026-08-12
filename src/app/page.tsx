@@ -4,12 +4,14 @@ import { FeatureGrid } from "@/components/marketing/FeatureGrid";
 import { HeroSection } from "@/components/marketing/HeroSection";
 import { ProductPreviewSection } from "@/components/marketing/ProductPreviewSection";
 import { WorkflowSection } from "@/components/marketing/WorkflowSection";
+import { ForceDarkMode } from "@/components/shared/ForceDarkMode";
 import { Logo } from "@/components/shared/Logo";
 import { NAVIGATION } from "@/constants/navigation";
 
 export default async function HomePage() {
   return (
     <main className="relative min-h-screen overflow-hidden">
+      <ForceDarkMode />
       <BackgroundLayer />
 
       <Navbar

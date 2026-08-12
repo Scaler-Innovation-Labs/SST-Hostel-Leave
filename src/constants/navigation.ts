@@ -2,6 +2,7 @@ import {
   BarChart3,
   Bell,
   ClipboardList,
+  Clock,
   FileText,
   LayoutDashboard,
   QrCode,
@@ -59,9 +60,14 @@ export const NAVIGATION = {
       icon: FileText,
     },
     {
-      label: "Movement History",
-      href: ROUTES.ADMIN_MOVEMENTS,
-      icon: LayoutDashboard,
+      label: "Extension Approvals",
+      href: ROUTES.ADMIN_EXTENSION_APPROVALS,
+      icon: FileText,
+    },
+    {
+      label: "Overdue",
+      href: ROUTES.ADMIN_OVERDUE,
+      icon: Clock,
     },
     {
       label: "Analytics",
@@ -74,19 +80,9 @@ export const NAVIGATION = {
       icon: Users,
     },
     {
-      label: "Scanner",
-      href: ROUTES.ADMIN_SCANNER,
-      icon: QrCode,
-    },
-    {
-      label: "POC Dashboard",
-      href: ROUTES.POC_DASHBOARD,
+      label: "Movement History",
+      href: ROUTES.ADMIN_MOVEMENTS,
       icon: LayoutDashboard,
-    },
-    {
-      label: "POC Approvals",
-      href: ROUTES.POC_APPROVALS,
-      icon: FileText,
     },
   ],
 
@@ -126,6 +122,11 @@ export const NAVIGATION = {
       label: "Extension Approvals",
       href: ROUTES.SUPER_ADMIN_EXTENSION_APPROVALS,
       icon: FileText,
+    },
+    {
+      label: "Movement History",
+      href: ROUTES.SUPER_ADMIN_MOVEMENTS,
+      icon: LayoutDashboard,
     },
     {
       label: "Workflows",

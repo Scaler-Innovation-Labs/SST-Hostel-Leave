@@ -95,7 +95,10 @@ export function Navbar({ items, logo }: NavbarProps) {
 
         {/* RIGHT: Actions */}
         <div className="flex items-center gap-1">
-          <ThemeToggle />
+          {/* Theme toggle is only available to signed-in users */}
+          <SignedIn>
+            <ThemeToggle />
+          </SignedIn>
 
           {/* Desktop auth */}
           <div className="hidden items-center gap-1 md:flex">

@@ -20,7 +20,7 @@ export default async function POCLayout({
 		redirect("/unauthorized");
 	}
 
-	if (!user.roles.some((r) => r === ROLES.POC || r === ROLES.ADMIN || r === ROLES.SUPER_ADMIN)) {
+	if (!user.roles.some((r) => r === ROLES.POC)) {
 		redirect("/unauthorized");
 	}  const shellItems =
     NAVIGATION.poc.map(

@@ -1,15 +1,18 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { cn } from "@/lib/utils";
+
 type LogoProps = {
   href?: string;
+  className?: string;
 };
 
-export function Logo({ href = "/" }: LogoProps) {
+export function Logo({ href = "/", className }: LogoProps) {
   return (
     <Link
       href={href}
-      className="flex items-center gap-3"
+      className={cn("flex items-center gap-3", className)}
     >
       <Image
         src="/logosst.png"
@@ -32,3 +35,5 @@ export function Logo({ href = "/" }: LogoProps) {
     </Link>
   );
 }
+
+export default Logo;

@@ -1,11 +1,12 @@
 "use client";
 
 import {
+  Activity,
   BarChart3,
   Bell,
   Building2,
   ClipboardList,
-  Eye,
+  Clock,
   FileText,
   GraduationCap,
   Hotel,
@@ -14,12 +15,13 @@ import {
   Users,
   Workflow,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { ROUTES } from "@/constants/routes";
 import { ApprovalCountBadge } from "@/features/approvals/components/ApprovalCountBadge";
+import { ExtensionApprovalCountBadge } from "@/features/extensions/components/ExtensionApprovalCountBadge";
+import { OverdueCountBadge } from "@/features/students/components/OverdueCountBadge";
 import { cn } from "@/lib/utils";
 
 export type SidebarItem = {
@@ -49,6 +51,18 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
         label: "Extension Approvals",
         href: ROUTES.SUPER_ADMIN_EXTENSION_APPROVALS,
         icon: FileText,
+        badge: <ExtensionApprovalCountBadge />,
+      },
+      {
+        label: "Overdue",
+        href: ROUTES.SUPER_ADMIN_OVERDUE,
+        icon: Clock,
+        badge: <OverdueCountBadge />,
+      },
+      {
+        label: "Movement History",
+        href: ROUTES.SUPER_ADMIN_MOVEMENTS,
+        icon: Activity,
       },
     ],
   },
@@ -77,18 +91,6 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { label: "Users", href: ROUTES.SUPER_ADMIN_USERS, icon: Users },
       { label: "Students", href: ROUTES.SUPER_ADMIN_STUDENTS, icon: GraduationCap },
       { label: "Parents", href: ROUTES.SUPER_ADMIN_PARENTS, icon: ShieldCheck },
-    ],
-  },
-  {
-    title: "POC View",
-    items: [
-      { label: "Dashboard", href: ROUTES.POC_DASHBOARD, icon: Eye },
-      {
-        label: "Approvals",
-        href: ROUTES.POC_APPROVALS,
-        icon: FileText,
-        badge: <ApprovalCountBadge />,
-      },
     ],
   },
   {
@@ -158,20 +160,6 @@ function SidebarNav({ onNavigate }: SidebarNavProps) {
 export function SuperAdminSidebar() {
   return (
     <aside className="hidden md:flex md:w-60 md:flex-col md:border-r md:border-border">
-      <div className="flex h-16 items-center gap-3 border-b border-border px-4">
-        <Image
-          src="/logosst.png"
-          alt="SST Logo"
-          width={36}
-          height={36}
-          className="rounded-lg"
-          priority
-        />
-        <div className="flex flex-col leading-none">
-          <span className="text-sm font-semibold">SST Hostel</span>
-          <span className="text-xs text-muted-foreground">Admin Panel</span>
-        </div>
-      </div>
       <div className="flex-1 overflow-y-auto p-3">
         <SidebarNav />
       </div>
@@ -182,20 +170,6 @@ export function SuperAdminSidebar() {
 export function MobileSidebar({ onNavigate }: SidebarNavProps) {
   return (
     <div className="flex flex-col">
-      <div className="flex h-16 items-center gap-3 border-b border-border px-4">
-        <Image
-          src="/logosst.png"
-          alt="SST Logo"
-          width={36}
-          height={36}
-          className="rounded-lg"
-          priority
-        />
-        <div className="flex flex-col leading-none">
-          <span className="text-sm font-semibold">SST Hostel</span>
-          <span className="text-xs text-muted-foreground">Admin Panel</span>
-        </div>
-      </div>
       <div className="flex-1 overflow-y-auto p-3">
         <SidebarNav onNavigate={onNavigate} />
       </div>
