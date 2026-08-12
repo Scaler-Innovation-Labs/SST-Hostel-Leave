@@ -38,10 +38,13 @@ export type TimeSeriesPoint = {
 };
 
 export type StaffDashboardStats = {
-  pendingApprovals: number;
+  totalStudents: number;
   activeStudents: number;
-  studentsOutside: number;
+  studentsOnLeave: number;
+  pendingApprovals: number;
+  pendingExtensions: number;
   overdueStudents: number;
+  studentsOutside: number;
   totalUsers: number;
   totalLeaves: number;
   approvedLeaves: number;
@@ -53,6 +56,7 @@ export type StaffDashboardStats = {
   leaveTypeBreakdown: Array<{
     name: string;
     count: number;
+    color?: string | null;
   }>;
   leavesLast7Days: TimeSeriesPoint[];
   leavesLast30Days: TimeSeriesPoint[];

@@ -2,10 +2,18 @@
 
 import { Cell, Pie, PieChart as RechartsPieChart, ResponsiveContainer, Tooltip } from "recharts";
 
-const COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"];
+import { LEAVE_TYPE_COLOR_PALETTE } from "@/constants/leave/leave-category";
+
+const COLORS = [...LEAVE_TYPE_COLOR_PALETTE];
+
+type LeaveTypeBreakdownItem = {
+  name: string;
+  count: number;
+  color?: string | null;
+};
 
 type LeaveTypePieChartProps = {
-  data: Array<{ name: string; count: number }>;
+  data: LeaveTypeBreakdownItem[];
   title: string;
 };
 
@@ -22,6 +30,11 @@ export function LeaveTypePieChart({ data, title }: LeaveTypePieChartProps) {
   }
 
   const total = data.reduce((sum, item) => sum + item.count, 0);
+
+  const colorFor = (item: LeaveTypeBreakdownItem, index: number): string => {
+    const c = item.color;
+    return c && /^#/.test(c) ? c : COLORS[index % COLORS.length]!;
+  };
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -43,7 +56,7 @@ export function LeaveTypePieChart({ data, title }: LeaveTypePieChartProps) {
                 {data.map((entry, index) => (
                   <Cell
                     key={entry.name}
-                    fill={COLORS[index % COLORS.length]}
+                    fill={colorFor(entry, index)}
                     stroke="transparent"
                   />
                 ))}
@@ -66,7 +79,7 @@ export function LeaveTypePieChart({ data, title }: LeaveTypePieChartProps) {
               <div className="flex items-center gap-2">
                 <span
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                  style={{ backgroundColor: colorFor(item, index) }}
                 />
                 <span className="text-muted-foreground">{item.name}</span>
               </div>

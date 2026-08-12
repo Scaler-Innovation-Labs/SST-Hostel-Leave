@@ -5,8 +5,11 @@ import useSWR from "swr";
 import type { DashboardStats } from "@/dto/dashboard/dashboard-stats.dto";
 import { getDashboardStatsUrl } from "@/lib/api/dashboard-api";
 
-export function useDashboardStats() {
-  const { data, error, isLoading, mutate } = useSWR<{ data: DashboardStats }>(getDashboardStatsUrl(), { refreshInterval: 60_000 });
+export function useDashboardStats(status?: string) {
+  const { data, error, isLoading, mutate } = useSWR<{ data: DashboardStats }>(getDashboardStatsUrl(status), {
+    refreshInterval: 60_000,
+    keepPreviousData: true,
+  });
 
   return {
     stats: data?.data ?? null,

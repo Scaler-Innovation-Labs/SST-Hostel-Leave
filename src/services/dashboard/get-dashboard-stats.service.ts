@@ -1,5 +1,5 @@
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
-import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import { LEAVE_REQUEST_STATUS, type LeaveRequestStatus } from "@/constants/leave/leave-status";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
@@ -26,14 +26,17 @@ function fillDateRange(startDate: Date, endDate: Date, data: Array<{ date: strin
   return result;
 }
 
-export async function getDashboardStats(currentUser: CurrentUser): Promise<DashboardStats> {
+export async function getDashboardStats(
+  currentUser: CurrentUser,
+  status?: LeaveRequestStatus
+): Promise<DashboardStats> {
   const isStudent = currentUser.roles.includes(ROLES.STUDENT);
 
   if (isStudent) {
     return getStudentStats(currentUser.id);
   }
 
-  return getStaffStats(currentUser);
+  return getStaffStats(currentUser, status);
 }
 
 const STEP_LABELS: Record<string, string> = {
@@ -150,7 +153,10 @@ async function loadApprovalProgress(leaveRequestId: string): Promise<ApprovalSte
   }));
 }
 
-async function getStaffStats(currentUser: CurrentUser): Promise<StaffDashboardStats> {
+async function getStaffStats(
+  currentUser: CurrentUser,
+  status?: LeaveRequestStatus
+): Promise<StaffDashboardStats> {
   const now = new Date();
   const sevenDaysAgo = new Date(now);
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -163,8 +169,10 @@ async function getStaffStats(currentUser: CurrentUser): Promise<StaffDashboardSt
 
   const [
     pendingApprovalsCount,
+    pendingExtensionsCount,
+    totalStudentsCount,
     activeStudentsCount,
-    studentsOutsideCount,
+    studentsOnLeaveCount,
     overdueStudentsCount,
     totalUsers,
     totalLeavesCount,
@@ -179,29 +187,34 @@ async function getStaffStats(currentUser: CurrentUser): Promise<StaffDashboardSt
     leaves30dRaw,
     approvals7dRaw,
   ] = await Promise.all([
-    leaveApprovalAnalyticsRepository.countByDecision(LEAVE_APPROVAL_DECISION.PENDING, hostelIds),
+    leaveApprovalAnalyticsRepository.countPendingByType(LEAVE_APPROVAL_DECISION.PENDING, { hostelIds }),
+    leaveApprovalAnalyticsRepository.countPendingByType(LEAVE_APPROVAL_DECISION.PENDING, { extensionOnly: true, hostelIds }),
     studentRepository.countAll(hostelIds),
+    studentRepository.countByLocationState(MOVEMENT_STATE.IN_HOSTEL, hostelIds),
     studentRepository.countByLocationState(MOVEMENT_STATE.OUTSIDE_HOSTEL, hostelIds),
     studentRepository.countByLocationState(MOVEMENT_STATE.OVERDUE, hostelIds),
     userRepository.count(hostelIds),
     leaveRepository.countAll(hostelIds),
     leaveRepository.countByStatus(LEAVE_REQUEST_STATUS.APPROVED, hostelIds),
     leaveApprovalAnalyticsRepository.countRecent(sevenDaysAgo, hostelIds),
-    leaveRepository.countByLeaveType(hostelIds),
+    leaveRepository.countByLeaveType(hostelIds, status),
     leaveRepository.countByStatus(LEAVE_REQUEST_STATUS.REJECTED, hostelIds),
     leaveApprovalAnalyticsRepository.averageApprovalTime(thirtyDaysAgo, hostelIds),
     qrPassRepository.countActive(hostelIds),
     movementEventRepository.countRecent(sevenDaysAgo, hostelIds),
-    leaveRepository.countByDateRange(sevenDaysAgo, now, undefined, hostelIds),
-    leaveRepository.countByDateRange(thirtyDaysAgo, now, undefined, hostelIds),
+    leaveRepository.countByDateRange(sevenDaysAgo, now, status, hostelIds),
+    leaveRepository.countByDateRange(thirtyDaysAgo, now, status, hostelIds),
     leaveApprovalAnalyticsRepository.countByDateRange(sevenDaysAgo, now, hostelIds),
   ]);
 
   return {
-    pendingApprovals: pendingApprovalsCount,
+    totalStudents: totalStudentsCount,
     activeStudents: activeStudentsCount,
-    studentsOutside: studentsOutsideCount,
+    studentsOnLeave: studentsOnLeaveCount,
+    pendingApprovals: pendingApprovalsCount,
+    pendingExtensions: pendingExtensionsCount,
     overdueStudents: overdueStudentsCount,
+    studentsOutside: studentsOnLeaveCount,
     totalUsers,
     totalLeaves: totalLeavesCount,
     approvedLeaves: approvedLeavesCount,

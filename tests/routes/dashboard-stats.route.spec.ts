@@ -58,6 +58,22 @@ describe("GET /api/v1/dashboard/stats", () => {
 
     expect(res.status).toBe(200);
     expect(body.data.pendingApprovals).toBe(5);
+    expect(mockGetDashboardStats).toHaveBeenLastCalledWith(expect.objectContaining({ id: "U1" }), undefined);
+  });
+
+  it("passes the status query param to the service", async () => {
+    const { requireAuth } = await import("@/lib/auth/require-auth");
+    requireAuth.mockResolvedValue({ id: "U1", roles: ["ADMIN"] });
+
+    mockGetDashboardStats.mockResolvedValue({ pendingApprovals: 0 });
+
+    const req = new Request("http://localhost/api/v1/dashboard/stats?status=APPROVED");
+    const res = await GET(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(mockGetDashboardStats).toHaveBeenLastCalledWith(expect.objectContaining({ id: "U1" }), "APPROVED");
   });
 
   it("returns 401 when not authenticated", async () => {
