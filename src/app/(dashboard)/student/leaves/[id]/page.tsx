@@ -1,7 +1,8 @@
 "use client";
 
-import { differenceInDays, format, formatDistanceToNow, parseISO } from "date-fns";
+import { formatDistanceToNow, parseISO } from "date-fns";
 import {
+  AlertTriangle,
   ArrowLeft,
   Briefcase,
   Building2,
@@ -21,10 +22,11 @@ import {
   QrCode,
   RefreshCw,
   RotateCcw,
+  Shield,
   XCircle,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 
@@ -36,6 +38,8 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { QR_STATUS } from "@/constants/movement/qr-status";
+import { VIEW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { useApprovalChain } from "@/features/approvals/hooks/use-approval-chain";
 import { ExtensionForm } from "@/features/extensions/components/ExtensionForm";
 import { useLeaveExtensions } from "@/features/extensions/hooks/use-leave-extensions";
@@ -43,20 +47,14 @@ import { AskAQuestionSection, type QuestionItem } from "@/features/leaves/compon
 import { DocumentList } from "@/features/leaves/components/DocumentList";
 import { useLeave } from "@/features/leaves/hooks/use-leaves";
 import { useMovement } from "@/hooks/use-movement";
+import { useQrPasses } from "@/hooks/use-qr-passes";
 import { useQrToken } from "@/hooks/use-qr-token";
 import { cancelLeave, getQuestionsUrl } from "@/lib/api/leave-api";
 import { generateQr } from "@/lib/api/movement-api";
+import { formatDateTime, getDurationLabel } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 
 // ─── Helpers ────────────────────────────────────────────────
-
-function formatDateTime(dateStr: string): string {
-  try {
-    return format(parseISO(dateStr), "MMM d, yyyy h:mm a");
-  } catch {
-    return dateStr ?? "—";
-  }
-}
 
 function formatRelative(dateStr: string): string {
   try {
@@ -66,20 +64,14 @@ function formatRelative(dateStr: string): string {
   }
 }
 
-function getDuration(startAt: string, endAt: string): string {
-  try {
-    const start = parseISO(startAt);
-    const end = parseISO(endAt);
-    const days = differenceInDays(end, start);
-    if (days === 0) return "Same day";
-    if (days === 1) return "1 day";
-    return `${days} days`;
-  } catch {
-    return "—";
-  }
+function getWaitingStepLabel(stepKey: string | null): string | null {
+  const key = (stepKey ?? "").toUpperCase();
+  if (!key || key === VIEW_STEP_KEY.POLICY || key === VIEW_STEP_KEY.SUBMITTED || key === VIEW_STEP_KEY.COMPLETE) return null;
+  if (key.includes("PARENT")) return "parent approval";
+  if (key.includes("POC")) return "POC approval";
+  if (key.includes("ADMIN")) return "admin approval";
+  return null;
 }
-
-
 
 function getLeaveTypeIcon(leaveTypeName: string): React.ReactNode {
   const name = leaveTypeName?.toUpperCase() ?? "";
@@ -125,8 +117,18 @@ function StatusChip({ variant, children }: { variant: "success" | "warning" | "e
 
 // ─── Summary Hero ───────────────────────────────────────────
 
+type PolicyCheck = { key: string; label: string; passed: boolean; message?: string };
+
 function SummaryHero({ leave }: { leave: Record<string, unknown> }) {
   const status = (leave.status as string)?.toLowerCase();
+  const destination = leave.destination as string | undefined;
+  const currentStepKey = (leave.currentStepKey as string | null) ?? null;
+  const policyResult = leave.policyResult as { checks?: PolicyCheck[] } | null;
+  const checks = policyResult?.checks ?? [];
+  const passedCount = checks.filter((c) => c.passed).length;
+  const allPassed = checks.length > 0 && passedCount === checks.length;
+  const waitingStep = getWaitingStepLabel(currentStepKey);
+  const isPending = status === "pending";
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -138,7 +140,7 @@ function SummaryHero({ leave }: { leave: Record<string, unknown> }) {
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-xl font-bold">{leave.leaveTypeName as string} Leave</h1>
-              <StatusBadge status={status as "approved" | "pending" | "rejected" | "active"} />
+              <StatusBadge status={status as "approved" | "pending" | "rejected" | "active" | "cancelled" | "expired" | "completed"} />
             </div>
             <div className="mt-3 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
               <div>
@@ -151,8 +153,36 @@ function SummaryHero({ leave }: { leave: Record<string, unknown> }) {
               </div>
               <div>
                 <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Duration</span>
-                <p className="mt-0.5 font-medium">{getDuration(leave.startAt as string, leave.endAt as string)}</p>
+                <p className="mt-0.5 font-medium">{getDurationLabel(leave.startAt as string, leave.endAt as string)}</p>
               </div>
+              {destination && (
+                <div>
+                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Destination</span>
+                  <p className="mt-0.5 font-medium">{destination}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {isPending && waitingStep && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+                  <Clock className="h-3.5 w-3.5" />
+                  Waiting for {waitingStep}
+                </span>
+              )}
+              {checks.length > 0 && (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
+                    allPassed
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      : "bg-red-500/10 text-red-600 dark:text-red-400",
+                  )}
+                >
+                  {allPassed ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+                  Policy: {passedCount}/{checks.length} passed
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -175,6 +205,14 @@ function SummaryHero({ leave }: { leave: Record<string, unknown> }) {
 
 // ─── Unified Timeline ────────────────────────────────────
 
+type TimelineEvent = {
+  id: string;
+  label: string;
+  status: "approved" | "rejected" | "pending" | "info";
+  actor: string | null;
+  time: string | null;
+};
+
 function UnifiedTimeline({ leaveId, leave }: { leaveId: string; leave?: Record<string, unknown> }) {
   const { approvals, isLoading: loadingApprovals } = useApprovalChain(leaveId);
   const { movements, isLoading: loadingMovements } = useMovement({ leaveRequestId: leaveId, page: 1, limit: 50 });
@@ -182,46 +220,36 @@ function UnifiedTimeline({ leaveId, leave }: { leaveId: string; leave?: Record<s
   const { data: qData, isLoading: loadingQ } = useSWR<{ data: { items: QuestionItem[]; total: number } }>(
     getQuestionsUrl(leaveId, { limit: 50 }),
   );
-  const [qrPasses, setQrPasses] = useState<Array<{ id: string; status: string; qrType: string; createdAt: string | null }>>([]);
+  const { qrPasses, isLoading: loadingQr } = useQrPasses(leaveId);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/v1/movements/qr-passes?leaveRequestId=${leaveId}`)
-      .then((r) => r.json())
-      .then((json) => {
-        if (!cancelled && json.success && Array.isArray(json.data)) {
-          setQrPasses(json.data);
-        }
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [leaveId]);
+  const events = useMemo<TimelineEvent[]>(() => {
+    const items: TimelineEvent[] = [];
 
-  const events = useMemo(() => {
-    const items: Array<{
-      id: string; label: string; status: "approved" | "rejected" | "pending" | "info";
-      actor: string | null; time: string | null;
-    }> = [];
-
-    const submittedAt = (leave?.createdAt ?? leave?.submittedAt) as string | null;
+    const submittedAt = (leave?.submittedAt ?? leave?.createdAt) as string | null;
 
     // 1. Submitted
     if (submittedAt) {
       items.push({ id: "submitted", label: "Leave Submitted", status: "approved", actor: null, time: submittedAt });
     }
 
-    // 2. Policy check (same time as submitted)
-    if (submittedAt) {
-      items.push({ id: "policy-check", label: "Policy Check", status: "approved", actor: null, time: submittedAt });
+    // 2. Policy check — derived from the real policy result (not fabricated)
+    const policyResult = leave?.policyResult as { checks?: PolicyCheck[] } | null;
+    const checks = policyResult?.checks ?? [];
+    if (checks.length > 0) {
+      const passedCount = checks.filter((c) => c.passed).length;
+      const allPassed = passedCount === checks.length;
+      items.push({
+        id: "policy-check",
+        label: `Policy Check — ${passedCount}/${checks.length} passed`,
+        status: allPassed ? "approved" : "rejected",
+        actor: null,
+        time: submittedAt,
+      });
     }
 
     // 3. Approval chain steps
     const sortedApprovals = [...approvals].sort((a, b) => (a.stepOrder ?? 0) - (b.stepOrder ?? 0));
     const hasRejection = sortedApprovals.some((a) => (a.decision ?? "").toLowerCase() === "rejected");
-    const allDone = sortedApprovals.length > 0 && sortedApprovals.every((a) => {
-      const d = (a.decision ?? "").toLowerCase();
-      return d === "approved" || d === "auto_approved";
-    });
 
     for (const app of sortedApprovals) {
       const decision = (app.decision ?? "pending").toLowerCase();
@@ -235,7 +263,8 @@ function UnifiedTimeline({ leaveId, leave }: { leaveId: string; leave?: Record<s
       });
     }
 
-    // 4. Final decision: Approved or Rejected
+    // 4. Final decision: only when rejected (an approved leave already shows
+    //    every step green — a redundant "Approved" tail node adds no info)
     if (hasRejection) {
       const rejectApp = sortedApprovals.find((a) => (a.decision ?? "").toLowerCase() === "rejected");
       items.push({
@@ -243,30 +272,27 @@ function UnifiedTimeline({ leaveId, leave }: { leaveId: string; leave?: Record<s
         label: "Rejected",
         status: "rejected",
         actor: rejectApp?.approverName ?? null,
-        time: rejectApp?.createdAt as string ?? null,
-      });
-    } else if (allDone) {
-      const lastApp = sortedApprovals[sortedApprovals.length - 1];
-      items.push({
-        id: "decision",
-        label: "Approved",
-        status: "approved",
-        actor: null,
-        time: lastApp?.createdAt as string ?? null,
+        time: (rejectApp?.createdAt as string | null) ?? null,
       });
     }
 
-    // 5. QR events
+    // 5. QR pass events (at most one pass per leave)
     for (const pass of qrPasses) {
-      if (pass.createdAt) {
+      const time = (pass.createdAt ?? pass.generatedAt) as string | null;
+      if (time) {
         items.push({
           id: `qr-${pass.id}`,
-          label: pass.status === "ACTIVE" ? "QR Generated" :
-                 pass.status === "USED" ? "QR Scanned" :
-                 pass.status === "EXPIRED" ? "QR Expired" : "QR Invalidated",
-          status: pass.status === "ACTIVE" || pass.status === "USED" ? "approved" : "info",
+          label:
+            pass.status === QR_STATUS.ACTIVE
+              ? "QR Pass Generated"
+              : pass.status === QR_STATUS.USED
+                ? "QR Pass Used"
+                : pass.status === QR_STATUS.EXPIRED
+                  ? "QR Pass Expired"
+                  : "QR Pass Invalidated",
+          status: pass.status === QR_STATUS.ACTIVE || pass.status === QR_STATUS.USED ? "approved" : "info",
           actor: null,
-          time: pass.createdAt,
+          time,
         });
       }
     }
@@ -368,7 +394,7 @@ function UnifiedTimeline({ leaveId, leave }: { leaveId: string; leave?: Record<s
     return items;
   }, [approvals, movements, qrPasses, qData, extData, leave]);
 
-  if (loadingApprovals || loadingMovements || loadingExts || loadingQ) return <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+  if (loadingApprovals || loadingMovements || loadingExts || loadingQ || loadingQr) return <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
   return (
     <CollapsibleSection title="Timeline" icon={History}>
@@ -394,7 +420,7 @@ function UnifiedTimeline({ leaveId, leave }: { leaveId: string; leave?: Record<s
                      item.id.startsWith("mov-") ? <LogOut className="h-4 w-4 text-blue-500" /> :
                      item.id.startsWith("q-") ? <HelpCircle className="h-4 w-4 text-violet-500" /> :
                      item.id.startsWith("ext-") ? <RotateCcw className="h-4 w-4 text-orange-500" /> :
-                     <CheckCircle2 className="h-4 w-4 text-emerald-500" />}
+                     <Shield className="h-4 w-4 text-blue-500" />}
                   </div>
                   {!isLast && <div className="h-full w-px bg-border" />}
                 </div>
@@ -431,25 +457,22 @@ function UnifiedTimeline({ leaveId, leave }: { leaveId: string; leave?: Record<s
 function QRPassSection({ leaveId }: { leaveId: string }) {
   const [generating, setGenerating] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
-  const [qrPasses, setQrPasses] = useState<Array<{ id: string; status: string; qrType: string; expiresAt: string | null }>>([]);
-  const [fetchKey, setFetchKey] = useState(0);
   const [fullscreenQr, setFullscreenQr] = useState(false);
+  const { qrPasses, mutate } = useQrPasses(leaveId);
   const { storeToken, getToken } = useQrToken();
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/v1/movements/qr-passes?leaveRequestId=${leaveId}`)
-      .then((r) => r.json())
-      .then((json) => {
-        if (!cancelled && json.success && Array.isArray(json.data)) {
-          setQrPasses(json.data);
-          setQrError(null);
-        }
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [leaveId, fetchKey]);
+  const activePass = qrPasses.find((p) => p.status === QR_STATUS.ACTIVE);
+  const latestPass = qrPasses[0] ?? null;
+  // One token per leave, served by the API — the same QR is always shown.
+  // sessionStorage is only a fallback for passes from before raw tokens were
+  // stored server-side.
+  const qrToken = activePass ? (activePass.token ?? getToken(activePass.id) ?? null) : null;
+  const needsLegacyRepair = !!activePass && !activePass.token && !getToken(activePass.id);
 
+  const refresh = () => { mutate(); };
+
+  // Only reachable when no pass exists (legacy) or a legacy pass needs its
+  // stored token written once. Never invalidates or re-issues an active pass.
   const handleGenerate = async () => {
     if (!leaveId) return;
     setGenerating(true);
@@ -458,85 +481,130 @@ function QRPassSection({ leaveId }: { leaveId: string }) {
       const result = (await generateQr(leaveId, "LEAVE_EXIT")) as { passId: string; token: string } | null;
       if (result?.passId && result?.token) {
         storeToken(result.passId, result.token, leaveId);
-        toast.success("QR pass generated");
+        toast.success("QR pass ready");
+      } else if (result?.passId) {
+        toast.success("QR pass already active");
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "";
-      if (!msg.includes("already exists")) {
-        toast.error(msg || "Failed to generate QR");
-        setQrError(msg || "Failed to generate QR");
-      }
+      const msg = err instanceof Error ? err.message : "Failed to load QR pass";
+      toast.error(msg);
+      setQrError(msg);
     } finally {
       setGenerating(false);
-      setFetchKey((k) => k + 1);
+      refresh();
     }
   };
 
-  const hasPasses = qrPasses.length > 0;
-  const activePass = qrPasses.find((p) => p.status === "ACTIVE");
-  const usedPasses = qrPasses.filter((p) => p.status === "USED");
-  const qrToken = activePass ? getToken(activePass.id) : null;
+  const latestPassConfig = latestPass
+    ? latestPass.status === QR_STATUS.USED
+      ? { label: "QR Pass Used", detail: "You've completed your leave and returned to the hostel." }
+      : latestPass.status === QR_STATUS.EXPIRED
+        ? { label: "QR Pass Expired", detail: latestPass.expiresAt ? `Expired ${formatDateTime(latestPass.expiresAt)}` : "This pass expired." }
+        : latestPass.status === QR_STATUS.INVALIDATED
+          ? { label: "QR Pass Invalidated", detail: latestPass.invalidatedAt ? `Invalidated ${formatDateTime(latestPass.invalidatedAt)}` : "This pass was invalidated." }
+          : null
+    : null;
 
   return (
-    <CollapsibleSection title="QR Pass" icon={QrCode} defaultOpen={hasPasses}>
-      {hasPasses ? (
-        <div className="space-y-3">
-          {/* Active pass detail */}
-          {activePass && (
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
-              <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-                {/* QR Code */}
-                {qrToken ? (
-                  <button type="button" onClick={() => setFullscreenQr(true)} className="shrink-0 cursor-pointer">
-                    <QrCodeDisplay token={qrToken} size={160} />
-                  </button>
+    <CollapsibleSection title="QR Pass" icon={QrCode} defaultOpen={!!activePass || !!latestPass}>
+      {activePass ? (
+        qrToken ? (
+          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+            <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+              {/* QR Code */}
+              <button type="button" onClick={() => setFullscreenQr(true)} className="shrink-0 cursor-pointer">
+                <QrCodeDisplay token={qrToken} size={160} />
+              </button>
+
+              {/* Status info */}
+              <div className="min-w-0 flex-1 self-center sm:self-auto">
+                <p className="text-center text-sm font-medium text-emerald-600 sm:text-left">QR Ready</p>
+                <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
+                  <span className="text-muted-foreground">Status</span>
+                  <span className="font-medium text-emerald-600">Active</span>
+                  <span className="text-muted-foreground">Expires</span>
+                  <span className="font-medium">{activePass.expiresAt ? formatDateTime(activePass.expiresAt) : "—"}</span>
+                  <span className="text-muted-foreground">Exit Scan</span>
+                  <span className="inline-flex items-center gap-1 font-medium text-amber-500">
+                    {activePass.firstScanAt ? (
+                      <>
+                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                        <span className="text-emerald-600">{formatDateTime(activePass.firstScanAt)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="h-3 w-3" /> Pending
+                      </>
+                    )}
+                  </span>
+                  <span className="text-muted-foreground">Return Scan</span>
+                  <span className="inline-flex items-center gap-1 font-medium text-amber-500">
+                    {activePass.closedAt ? (
+                      <>
+                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                        <span className="text-emerald-600">{formatDateTime(activePass.closedAt)}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="h-3 w-3" /> Pending
+                      </>
+                    )}
+                  </span>
+                </div>
+                <p className="mt-2 text-center text-[10px] text-muted-foreground sm:text-left">
+                  Tap QR code for fullscreen
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : needsLegacyRepair ? (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/10">
+                <AlertTriangle className="h-7 w-7 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-amber-600">QR pass created before this upgrade</p>
+                <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
+                  Your pass was created before QR codes were stored on the server. Tap below once to retrieve it —
+                  the same QR stays valid for this leave.
+                </p>
+              </div>
+              <Button onClick={handleGenerate} disabled={generating} size="sm" className="gap-2">
+                {generating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
                 ) : (
-                  <div className="flex size-[160px] items-center justify-center rounded-xl bg-muted">
-                    <QrCode className="h-8 w-8 text-muted-foreground/50" />
-                  </div>
+                  <>
+                    <RefreshCw className="h-4 w-4" />
+                    Show QR Pass
+                  </>
                 )}
-
-                {/* Status info */}
-                <div className="min-w-0 flex-1 self-center sm:self-auto">
-                  <p className="text-center text-sm font-medium text-emerald-600 sm:text-left">QR Ready</p>
-                  <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
-                    <span className="text-muted-foreground">Status</span>
-                    <span className="font-medium text-emerald-600">Active</span>
-                    <span className="text-muted-foreground">Expires</span>
-                    <span className="font-medium">{activePass.expiresAt ? formatDateTime(activePass.expiresAt) : "—"}</span>
-                    <span className="text-muted-foreground">Exit Scan</span>
-                    <span className="inline-flex items-center gap-1 font-medium text-amber-500">
-                      <Clock className="h-3 w-3" /> Pending
-                    </span>
-                    <span className="text-muted-foreground">Return Scan</span>
-                    <span className="inline-flex items-center gap-1 font-medium text-amber-500">
-                      <Clock className="h-3 w-3" /> Pending
-                    </span>
-                  </div>
-                  {qrToken && (
-                    <p className="mt-2 text-center text-[10px] text-muted-foreground sm:text-left">
-                      Tap QR code for fullscreen
-                    </p>
-                  )}
-                </div>
-              </div>
+              </Button>
+              {qrError && <div className="w-full rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{qrError}</div>}
             </div>
-          )}
-
-          {/* Used passes */}
-          {usedPasses.map((pass) => (
-            <div key={pass.id} className="rounded-xl border border-border p-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">QR Used</p>
-                  <p className="text-xs text-muted-foreground">Exit completed · Return completed</p>
-                </div>
-              </div>
+          </div>
+        ) : null
+      ) : latestPass && latestPassConfig ? (
+        <div className="rounded-xl border border-border p-4">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-lg",
+              latestPass.status === QR_STATUS.USED ? "bg-emerald-500/10" : "bg-muted",
+            )}>
+              {latestPass.status === QR_STATUS.USED ? (
+                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+              ) : (
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              )}
             </div>
-          ))}
+            <div>
+              <p className="text-sm font-medium">{latestPassConfig.label}</p>
+              <p className="text-xs text-muted-foreground">{latestPassConfig.detail}</p>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
@@ -575,8 +643,6 @@ function QRPassSection({ leaveId }: { leaveId: string }) {
     </CollapsibleSection>
   );
 }
-
-
 
 // ─── Extensions Section ─────────────────────────────────────
 
@@ -639,10 +705,6 @@ function ExtensionsSection({ leaveId }: { leaveId: string }) {
   );
 }
 
-// ─── Movement Timeline ──────────────────────────────────────
-
-
-
 // ─── Main Page ──────────────────────────────────────────────
 
 export default function StudentLeaveDetailPage() {
@@ -662,8 +724,8 @@ export default function StudentLeaveDetailPage() {
       toast.success("Leave cancelled");
       await mutate();
       setShowCancel(false);
-    } catch {
-      toast.error("Failed to cancel leave");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to cancel leave");
     } finally {
       setCancelling(false);
     }
@@ -712,7 +774,7 @@ export default function StudentLeaveDetailPage() {
       />
 
       {/* 1. Summary Hero */}
-      <SummaryHero leave={leave as Record<string, unknown>} />
+      <SummaryHero leave={leave as unknown as Record<string, unknown>} />
 
       {/* 2. Actions bar (above timeline) */}
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-card p-4 shadow-sm">
@@ -737,7 +799,7 @@ export default function StudentLeaveDetailPage() {
       </div>
 
       {/* 3. Timeline */}
-      <UnifiedTimeline leaveId={id} leave={leave} />
+      <UnifiedTimeline leaveId={id} leave={leave as unknown as Record<string, unknown>} />
 
       {/* Extension Form */}
       {extending && (
@@ -772,7 +834,11 @@ export default function StudentLeaveDetailPage() {
         open={showCancel}
         onOpenChange={setShowCancel}
         title="Cancel Leave"
-        description="Are you sure you want to cancel this leave request? This action cannot be undone."
+        description={
+          isApproved
+            ? "Are you sure you want to cancel this approved leave? Your active QR pass (if any) will be invalidated. This action cannot be undone."
+            : "Are you sure you want to cancel this leave request? This action cannot be undone."
+        }
         confirmLabel="Yes, Cancel Leave"
         variant="destructive"
         onConfirm={handleCancel}

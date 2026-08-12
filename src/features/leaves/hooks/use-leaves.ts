@@ -14,10 +14,13 @@ export type RawLeaveItem = {
     reason: string;
     createdAt: string;
     requestNumber: string;
-    isActive: boolean;
+    submittedAt?: string | null;
+    submittedForm?: Record<string, unknown> | null;
+    currentStepKey?: string | null;
+    currentStepOrder?: number | null;
     policyResult?: Record<string, unknown> | null;
   };
-  leaveType: { name: string } | null;
+  leaveType: { name: string; uiConfig?: Record<string, unknown> | null } | null;
   student: { rollNumber: string } | null;
   user: { fullName: string; email?: string; phone?: string } | null;
 };
@@ -31,8 +34,14 @@ function flattenLeaveItem(item: RawLeaveItem) {
     reason: item.leave.reason,
     createdAt: item.leave.createdAt,
     requestNumber: item.leave.requestNumber,
-    isActive: item.leave.isActive,
+    submittedAt: item.leave.submittedAt ?? item.leave.createdAt,
+    submittedForm: (item.leave.submittedForm as Record<string, unknown> | null) ?? null,
+    currentStepKey: item.leave.currentStepKey ?? null,
+    currentStepOrder: item.leave.currentStepOrder ?? null,
+    destination: (item.leave.submittedForm as Record<string, unknown> | null)?.destination as string | undefined,
     leaveTypeName: item.leaveType?.name,
+    leaveTypeUiConfig:
+      (item.leaveType?.uiConfig as Record<string, unknown> | null | undefined) ?? null,
     studentFirstName: item.user?.fullName?.split(" ")[0],
     studentLastName: item.user?.fullName?.split(" ").slice(1).join(" "),
     userFullName: item.user?.fullName ?? null,
@@ -66,6 +75,8 @@ export function useLeaves(query?: Partial<ListLeavesQuery>) {
 }
 
 export function useLeave(id: string | undefined) {
+  // Fetches once on mount — the page's Refresh button and the `mutate()`
+  // calls after cancel/extension keep it fresh without background polling.
   const { data, error, isLoading, mutate } = useSWR(
     id ? getLeaveUrl(id) : null,
   );
@@ -87,11 +98,22 @@ export function useLeave(id: string | undefined) {
   };
 }
 
+export type LeaveTypeOption = {
+  id: string;
+  code: string;
+  name: string;
+  category: string;
+  description?: string | null;
+  isActive: boolean;
+  requiresPoc?: boolean;
+  formSchema?: { fields: Array<Record<string, unknown>> };
+};
+
 export function useLeaveTypes() {
-  const { data, error, isLoading } = useSWR("/api/v1/leave-types");
+  const { data, error, isLoading } = useSWR<{ data: LeaveTypeOption[] }>("/api/v1/leave-types");
 
   return {
-    leaveTypes: data?.data ?? [],
+    leaveTypes: data?.data ?? ([] as LeaveTypeOption[]),
     isLoading,
     isError: !!error,
     error,

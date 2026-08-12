@@ -2,6 +2,7 @@ import { currentUser } from "@clerk/nextjs/server";
 
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
+import { logger } from "@/lib/logger";
 
 import { isRole } from "./roles";
 import type { CurrentUser } from "./types";
@@ -40,7 +41,9 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       });
     }
   } catch (err) {
-    console.error("[getCurrentUser] DB query failed:", err instanceof Error ? err.message : String(err));
+    logger.error("[getCurrentUser] DB query failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
     return null;
   }
 

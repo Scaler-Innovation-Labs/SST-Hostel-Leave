@@ -259,9 +259,13 @@ export const leaveRepository = {
 
   async countByLeaveType(
     hostelIds?: string[],
+    status?: LeaveRequestStatus,
     dbClient: Pick<typeof db, "select"> = db
-  ): Promise<Array<{ name: string; count: number }>> {
+  ): Promise<Array<{ name: string; count: number; color: string | null }>> {
     const conditions: ReturnType<typeof and>[] = [];
+    if (status) {
+      conditions.push(eq(leaveRequests.status, status));
+    }
     if (hostelIds?.length) {
       conditions.push(inArray(users.hostelId, hostelIds));
     }
@@ -271,15 +275,23 @@ export const leaveRepository = {
       .select({
         name: leaveTypes.name,
         count: sql<number>`count(*)`,
+        uiConfig: leaveTypes.uiConfig,
       })
       .from(leaveRequests)
       .innerJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .where(whereClause)
-      .groupBy(leaveTypes.id, leaveTypes.name);
+      .groupBy(leaveTypes.id, leaveTypes.name, leaveTypes.uiConfig);
 
-    return rows;
+    return rows.map((row) => {
+      const uiConfig = row.uiConfig as { color?: string } | null;
+      return {
+        name: row.name,
+        count: Number(row.count ?? 0),
+        color: typeof uiConfig?.color === "string" ? uiConfig.color : null,
+      };
+    });
   },
 
   async countByStatus(
@@ -330,7 +342,7 @@ export const leaveRepository = {
       .groupBy(sql`DATE(${leaveRequests.createdAt})`)
       .orderBy(sql`DATE(${leaveRequests.createdAt})`);
 
-    return rows;
+    return rows.map((row) => ({ date: row.date, count: Number(row.count ?? 0) }));
   },
 
   async countAll(

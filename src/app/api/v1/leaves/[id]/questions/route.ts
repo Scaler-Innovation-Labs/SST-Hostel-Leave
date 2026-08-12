@@ -21,10 +21,9 @@ export async function GET(
     const { id: leaveId } = await routeContext.params;
 
     const url = new URL(request.url);
-    const query = listLeaveQuestionsSchema.parse({
-      page: url.searchParams.get("page"),
-      limit: url.searchParams.get("limit"),
-    });
+    const query = listLeaveQuestionsSchema.parse(
+      Object.fromEntries(url.searchParams),
+    );
 
     const result = await listQuestions(leaveId, query);
 

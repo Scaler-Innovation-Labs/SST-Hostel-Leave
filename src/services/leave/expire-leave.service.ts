@@ -1,8 +1,10 @@
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
+import { QR_STATUS } from "@/constants/movement/qr-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { canTransition, getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
@@ -64,6 +66,16 @@ export async function expireSingleLeave(
       },
       tx
     );
+
+    // Lifecycle invalidation: an expired leave's QR pass must stop working.
+    const qrPass = await qrPassRepository.findByLeaveRequestId(
+      leaveId,
+      tx
+    );
+
+    if (qrPass && qrPass.status === QR_STATUS.ACTIVE) {
+      await qrPassRepository.invalidate(qrPass.id, tx);
+    }
 
     // Movement transition (if applicable) handled asynchronously by outbox handler
 

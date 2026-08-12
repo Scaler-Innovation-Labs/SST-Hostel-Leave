@@ -6,11 +6,11 @@ import useSWR from "swr";
 
 import { DynamicFormBuilder } from "@/components/leaves/DynamicFormBuilder";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { CATEGORY_COLORS } from "@/constants/leave/leave-category";
-import { LEAVE_WORKFLOW_MODE } from "@/constants/leave/workflow-mode";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
+import { CATEGORY_COLORS, LEAVE_TYPE_COLOR_PALETTE } from "@/constants/leave/leave-category";
+import { LEAVE_WORKFLOW_MODE } from "@/constants/leave/workflow-mode";
 
 const fetcher = (url: string) =>
   fetch(url)
@@ -56,6 +56,7 @@ type Draft = {
   maxExtensionCount: string;
   isActive: boolean;
   isSpecial: boolean;
+  color: string;
   formSchema: { fields: Array<FormField> };
 };
 
@@ -70,6 +71,7 @@ const EMPTY_DRAFT: Draft = {
   maxExtensionCount: "",
   isActive: true,
   isSpecial: false,
+  color: LEAVE_TYPE_COLOR_PALETTE[0],
   formSchema: {
     fields: [
       { key: "destination", label: "Destination", type: "text", required: true, maxLength: 200 },
@@ -140,6 +142,7 @@ export default function LeaveTypesPage() {
       maxExtensionCount: lt.maxExtensionCount != null ? String(lt.maxExtensionCount) : "",
       isActive: lt.isActive,
       isSpecial: (uiConfig.isSpecial as boolean) ?? false,
+      color: typeof uiConfig.color === "string" ? uiConfig.color : LEAVE_TYPE_COLOR_PALETTE[0],
       formSchema: { fields: normalizedFields },
     });
     setMessage(null);
@@ -169,7 +172,7 @@ export default function LeaveTypesPage() {
         ...draft,
         maxExtensionCount: draft.maxExtensionCount ? Number(draft.maxExtensionCount) : null,
         description: draft.description || null,
-        uiConfig: { isSpecial: draft.isSpecial },
+        uiConfig: { isSpecial: draft.isSpecial, color: draft.color },
       };
 
       const url = draft.id
@@ -225,8 +228,9 @@ export default function LeaveTypesPage() {
             <LoadingState count={4} />
           ) : (
             leaveTypes?.map((lt) => {
-              const ltUiConfig = (lt as Record<string, unknown>).uiConfig as Record<string, boolean> | null;
+              const ltUiConfig = (lt as Record<string, unknown>).uiConfig as Record<string, boolean | string> | null;
               const isSpecial = ltUiConfig?.isSpecial === true;
+              const color = typeof ltUiConfig?.color === "string" ? ltUiConfig.color : null;
 
               return (
               <button
@@ -238,7 +242,12 @@ export default function LeaveTypesPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
-                    <span className="font-medium">{lt.name}</span>
+                    <span className="flex items-center gap-2 font-medium">
+                      {color && (
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                      )}
+                      {lt.name}
+                    </span>
                     <p className="mt-0.5 font-mono text-xs text-muted-foreground">
                       {lt.code} · v{lt.version}
                     </p>
@@ -384,6 +393,26 @@ export default function LeaveTypesPage() {
                   Admin will be required to confirm document verification before approving this leave type.
                 </p>
               )}
+            </div>
+
+            <div className="mt-4 space-y-3 rounded-lg border bg-muted/10 p-4">
+              <label className="block text-sm">
+                <span className="mb-2 block font-medium">Color</span>
+                <span className="flex flex-wrap items-center gap-2">
+                  {LEAVE_TYPE_COLOR_PALETTE.map((swatch) => (
+                    <button
+                      key={swatch}
+                      type="button"
+                      aria-label={`Select color ${swatch}`}
+                      onClick={() => setDraft({ ...draft, color: swatch })}
+                      className={`h-6 w-6 rounded-full border-2 transition-transform hover:scale-110 ${
+                        draft.color === swatch ? "border-ring ring-2 ring-ring/30" : "border-transparent"
+                      }`}
+                      style={{ backgroundColor: swatch }}
+                    />
+                  ))}
+                </span>
+              </label>
             </div>
           </div>
 

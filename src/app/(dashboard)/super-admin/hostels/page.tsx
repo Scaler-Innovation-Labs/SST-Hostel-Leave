@@ -20,7 +20,6 @@ type HostelItem = {
   curfewStartTime: string | null;
   curfewEndTime: string | null;
   slackAdminGroupId: string | null;
-  slackPocGroupId: string | null;
   isActive: boolean;
 };
 
@@ -32,7 +31,6 @@ type Draft = {
   curfewStartTime: string;
   curfewEndTime: string;
   slackAdminGroupId: string;
-  slackPocGroupId: string;
   isActive: boolean;
 };
 
@@ -43,7 +41,6 @@ const EMPTY_DRAFT: Draft = {
   curfewStartTime: "",
   curfewEndTime: "",
   slackAdminGroupId: "",
-  slackPocGroupId: "",
   isActive: true,
 };
 
@@ -65,7 +62,6 @@ export default function HostelsPage() {
       curfewStartTime: hostel.curfewStartTime ?? "",
       curfewEndTime: hostel.curfewEndTime ?? "",
       slackAdminGroupId: hostel.slackAdminGroupId ?? "",
-      slackPocGroupId: hostel.slackPocGroupId ?? "",
       isActive: hostel.isActive,
     });
     setMessage(null);
@@ -91,7 +87,6 @@ export default function HostelsPage() {
         curfewStartTime: draft.curfewStartTime || null,
         curfewEndTime: draft.curfewEndTime || null,
         slackAdminGroupId: draft.slackAdminGroupId.trim() || null,
-        slackPocGroupId: draft.slackPocGroupId.trim() || null,
         isActive: draft.isActive,
       };
       await saveHostel(payload, draft.id);
@@ -185,13 +180,6 @@ export default function HostelsPage() {
               onChange={(slackAdminGroupId) => setDraft({ ...draft, slackAdminGroupId })}
               mono
               placeholder="Slack group/user id (e.g. S0123AB456)"
-            />
-            <Field
-              label="POC Slack Tag"
-              value={draft.slackPocGroupId}
-              onChange={(slackPocGroupId) => setDraft({ ...draft, slackPocGroupId })}
-              mono
-              placeholder="Slack group/user id (e.g. S0456CD789)"
             />
           </div>
           <p className="text-xs text-muted-foreground">

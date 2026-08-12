@@ -15,20 +15,10 @@ import type { CreateLeaveDto } from "@/dto/leave/create-leave.dto";
 import type { CreateLeaveFormDto } from "@/dto/leave/create-leave-form.dto";
 import { createLeaveFormSchema } from "@/dto/leave/create-leave-form.dto";
 import { DynamicLeaveFields } from "@/features/leaves/components/DynamicLeaveFields";
-import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
+import { type LeaveTypeOption as LeaveTypeItem, useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
 import { createLeave } from "@/lib/api/leave-api";
 import { formatDateRange } from "@/lib/date-utils";
 import { parseLeaveFormSchema } from "@/lib/leave-form-schema";
-
-type LeaveTypeItem = {
-  id: string;
-  code: string;
-  name: string;
-  category: string;
-  description?: string;
-  requiresPoc?: boolean;
-  formSchema?: { fields: Array<Record<string, unknown>> };
-};
 
 type PocUser = {
   id: string;
