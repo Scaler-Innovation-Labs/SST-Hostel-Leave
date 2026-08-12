@@ -1,3 +1,0 @@
-export const PARENT_LOGIN_OTP_LENGTH = 6;
-export const PARENT_LOGIN_OTP_EXPIRY_MINUTES = 5;
-export const PARENT_TOKEN_EXPIRY_DAYS = 7;

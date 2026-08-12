@@ -1,3 +1,5 @@
+import QRCode from "qrcode";
+
 import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
 import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
@@ -144,14 +146,22 @@ async function resolveContext(
     ? rawCc.filter((email): email is string => typeof email === "string" && email.trim().length > 0)
     : undefined;
 
-  // Attach QR dashboard link, leave link, and QR code image for approval notifications
-  if (
-    eventType === OUTBOX_EVENT_TYPE.LEAVE_APPROVED ||
-    eventType === OUTBOX_EVENT_TYPE.LEAVE_EXTENSION_APPROVED
-  ) {
+  // Embed the actual scannable pass QR in the approval email. One token per
+  // approved leave — the exact same QR the student sees in the app. The raw
+  // token rides in the outbox payload; the QR is rendered server-side as a
+  // self-contained data URI (no third-party QR API).
+  if (eventType === OUTBOX_EVENT_TYPE.LEAVE_APPROVED) {
     variables.qrDashboardUrl = `${baseUrl}/student/dashboard`;
     variables.leaveUrl = `${baseUrl}/student/leaves/${leaveId}`;
-    variables.qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${baseUrl}/student/dashboard`)}`;
+
+    const qrToken = payload.qrToken;
+    if (typeof qrToken === "string" && qrToken.length > 0) {
+      variables.qrCodeUrl = await QRCode.toDataURL(qrToken, {
+        width: 200,
+        margin: 2,
+        color: { dark: "#000000", light: "#ffffff" },
+      });
+    }
   }
 
   return {

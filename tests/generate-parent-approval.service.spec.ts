@@ -109,7 +109,7 @@ describe("generateParentApproval service", () => {
         payload: expect.objectContaining({
           variables: expect.objectContaining({
             approvalLink: "https://example.com/parent-approve/hex-token",
-            parentApprovalName: "John Doe",
+            StudentApprovalName: "John Doe",
           }),
         }),
       }),

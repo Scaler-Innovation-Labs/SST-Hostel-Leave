@@ -86,7 +86,7 @@ export async function generateParentApproval(
         recipientPhone: parent.phone,
         variables: {
           studentName: context.studentName,
-          parentApprovalName: buildParentApprovalDltName(context.studentName),
+          StudentApprovalName: buildParentApprovalDltName(context.studentName),
           dates: context.leaveDates,
           reason: context.leaveReason,
           approvalLink,

@@ -1,79 +1,27 @@
-import { studentRepository } from "@/db/repositories/student/student.repository";
-import { userRepository } from "@/db/repositories/user/user.repository";
+import { bulkCreateParentsSchema } from "@/dto/parent/bulk-create-parents.dto";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
-import { NotFoundError,ValidationError } from "@/lib/errors";
 import { bulkCreateParents } from "@/services/parent/bulk-create-parents.service";
-
-function parseCsv(text: string): Array<Record<string, unknown>> {
-  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
-  if (lines.length < 2) return [];
-  const headers = lines[0]!.split(",").map((h) => h.trim());
-  const rows: Array<Record<string, unknown>> = [];
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i]!.split(",").map((v) => v.trim());
-    const row: Record<string, unknown> = {};
-    headers.forEach((header, idx) => {
-      row[header] = values[idx] ?? "";
-    });
-    rows.push(row);
-  }
-  return rows;
-}
+import { parseCsv } from "@/utils/csv";
 
 export async function POST(request: Request) {
   try {
-    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
     const contentType = request.headers.get("content-type") ?? "";
-    let rows: Array<Record<string, unknown>>;
+    let rows: unknown;
 
     if (contentType.includes("text/csv") || contentType.includes("application/csv")) {
-      const text = await request.text();
-      rows = parseCsv(text);
+      rows = parseCsv(await request.text());
     } else {
       rows = await request.json();
     }
 
-    if (!Array.isArray(rows) || rows.length === 0) {
-      return ApiResponse.error("VALIDATION_ERROR", "Expected a non-empty array of parent records", 400);
-    }
+    const dto = bulkCreateParentsSchema.parse(rows);
 
-    const parsed = await Promise.all(rows.map(async (row, i) => {
-      const studentEmail = String(row.studentEmail ?? row["Student Email"] ?? row.student_email ?? "").trim().toLowerCase();
-      const name = String(row.name ?? row["Name"] ?? row.fullName ?? row["Full Name"] ?? "").trim();
-      const phone = String(row.phone ?? row["Phone"] ?? "").trim();
-      const email = String(row.email ?? row["Email"] ?? "").trim() || undefined;
-      const relationship = String(row.relationship ?? row["Relationship"] ?? "").trim();
-      const isPrimaryRaw = String(row.isPrimary ?? row["Is Primary"] ?? row.is_primary ?? "").trim().toLowerCase();
-
-      if (!studentEmail) throw new ValidationError(`Row ${i + 1}: studentEmail is required`);
-
-      const user = await userRepository.findByEmail(studentEmail);
-      if (!user) throw new NotFoundError(`Row ${i + 1}: user with email "${studentEmail}"`);
-      const student = await studentRepository.findByUserId(user.id);
-      if (!student) throw new NotFoundError(`Row ${i + 1}: user "${studentEmail}" is not a student`);
-      const studentId = student.id;
-
-      if (!name) throw new ValidationError(`Row ${i + 1}: name is required`);
-      if (!phone) throw new ValidationError(`Row ${i + 1}: phone is required`);
-      if (!relationship) throw new ValidationError(`Row ${i + 1}: relationship is required`);
-
-      const isPrimary = isPrimaryRaw === "true" || isPrimaryRaw === "1" || isPrimaryRaw === "yes";
-
-      return {
-        studentId,
-        name,
-        phone,
-        email,
-        relationship,
-        isPrimary,
-      };
-    }));
-
-    const results = await bulkCreateParents(parsed);
+    const results = await bulkCreateParents(dto, currentUser.id);
 
     return ApiResponse.success({
       total: results.length,

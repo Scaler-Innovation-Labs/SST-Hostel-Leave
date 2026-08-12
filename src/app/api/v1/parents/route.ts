@@ -24,13 +24,13 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
     const body = await request.json();
     const { createParentSchema } = await import("@/dto/admin/create-parent.dto");
     const dto = createParentSchema.parse(body);
 
-    const result = await parentManagementService.create(dto);
+    const result = await parentManagementService.create(dto, currentUser.id);
 
     return ApiResponse.created(result);
   } catch (error) {
