@@ -52,12 +52,12 @@ describe("createHostel service", () => {
   });
 
   it("passes slack group ids through to the repository", async () => {
-    const input = { ...VALID_INPUT, slackAdminGroupId: "SADM-TEAM", slackPocGroupId: "SPOC-TEAM" };
+    const input = { ...VALID_INPUT, slackAdminGroupId: "SADM-TEAM" };
 
     await createHostel(input, { id: "U1" });
 
     expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ slackAdminGroupId: "SADM-TEAM", slackPocGroupId: "SPOC-TEAM" }),
+      expect.objectContaining({ slackAdminGroupId: "SADM-TEAM" }),
       expect.any(Object)
     );
   });

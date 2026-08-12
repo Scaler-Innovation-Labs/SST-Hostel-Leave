@@ -28,13 +28,13 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
     const { id } = await params;
     const body = await request.json();
     const dto = updateUserSchema.parse(body);
 
-    const result = await updateUser(id, dto);
+    const result = await updateUser(id, dto, currentUser.id);
 
     return ApiResponse.success(result);
   } catch (error) {
@@ -47,10 +47,10 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
     const { id } = await params;
-    const result = await deactivateUser(id);
+    const result = await deactivateUser(id, currentUser.id);
 
     return ApiResponse.success(result);
   } catch (error) {

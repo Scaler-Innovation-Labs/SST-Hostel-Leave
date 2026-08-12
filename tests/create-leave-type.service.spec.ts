@@ -2,11 +2,13 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const mockFindByCode = vi.fn();
+const mockFindAllIncludingInactive = vi.fn();
 const mockCreate = vi.fn();
 
 vi.mock("@/db/repositories/leave/leave-type.repository", () => ({
   leaveTypeRepository: {
     findByCode: (...args: any[]) => mockFindByCode(...args),
+    findAllIncludingInactive: (...args: any[]) => mockFindAllIncludingInactive(...args),
     create: (...args: any[]) => mockCreate(...args),
   },
 }));
@@ -30,6 +32,7 @@ const MOCK_CREATED = { id: "LT1", ...VALID_DTO, deletedAt: null };
 beforeEach(() => {
   vi.resetAllMocks();
   mockFindByCode.mockResolvedValue(null);
+  mockFindAllIncludingInactive.mockResolvedValue([]);
   mockCreate.mockResolvedValue(MOCK_CREATED);
 });
 
@@ -96,9 +99,21 @@ describe("createLeaveType service", () => {
         maxExtensionCount: null,
         requiredDocuments: null,
         notificationConfig: null,
-        uiConfig: null,
+        uiConfig: { color: expect.any(String) },
         policyConfig: null,
         metadata: null,
+      })
+    );
+  });
+
+  it("reuses only the UI config when a color is provided", async () => {
+    mockFindAllIncludingInactive.mockResolvedValue([{ id: "A" }, { id: "B" }]);
+
+    await createLeaveType({ ...VALID_DTO, uiConfig: { color: "#123456", isSpecial: true } });
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        uiConfig: { color: "#123456", isSpecial: true },
       })
     );
   });

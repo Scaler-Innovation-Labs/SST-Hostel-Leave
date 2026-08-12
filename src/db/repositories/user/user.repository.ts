@@ -329,6 +329,13 @@ export const userRepository = {
     return rows[0] ?? null;
   },
 
+  async deleteById(
+    id: string,
+    dbClient: UserWriteDb = db
+  ): Promise<void> {
+    await dbClient.delete(users).where(eq(users.id, id));
+  },
+
   async deactivate(
     id: string,
     dbClient: UserWriteDb = db

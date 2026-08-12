@@ -21,12 +21,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
     const { id } = await params;
     const dto = createLeaveTypeSchema.parse(await request.json());
 
-    const leaveType = await updateLeaveType(id, dto);
+    const leaveType = await updateLeaveType(id, dto, currentUser.id);
 
     return ApiResponse.success(leaveType);
   } catch (error) {

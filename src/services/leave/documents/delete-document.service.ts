@@ -1,8 +1,11 @@
+import { AUDIT_ACTION } from "@/constants/audit/audit-action";
+import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveDocumentRepository } from "@/db/repositories/leave/leave-document.repository";
 import type { CurrentUser } from "@/lib/auth/types";
 import { deleteByPublicId, extractPublicIdFromUrl } from "@/lib/cloudinary";
 import { NotFoundError } from "@/lib/errors";
+import { auditService } from "@/services/audit/audit.service";
 import { verifyStudentOwnership } from "@/services/shared/authorization.service";
 
 export async function deleteLeaveDocument(
@@ -35,4 +38,14 @@ export async function deleteLeaveDocument(
 
   // Soft delete in DB
   await leaveDocumentRepository.updateStatus(documentId, "DELETED");
+
+  if (currentUser) {
+    await auditService.record(
+      AUDIT_ACTION.DELETE,
+      AUDIT_ENTITY_TYPE.LEAVE_REQUEST,
+      document.leaveRequestId ?? document.id,
+      currentUser.id,
+      { documentId: document.id, fileName: document.fileName },
+    );
+  }
 }

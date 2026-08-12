@@ -12,7 +12,6 @@ export type HostelRow = {
   code: string;
   name: string;
   slackAdminGroupId: string | null;
-  slackPocGroupId: string | null;
 };
 
 export type Hostel = InferSelectModel<typeof hostels>;
@@ -28,7 +27,6 @@ export const hostelRepository = {
         code: hostels.code,
         name: hostels.name,
         slackAdminGroupId: hostels.slackAdminGroupId,
-        slackPocGroupId: hostels.slackPocGroupId,
       })
       .from(hostels)
       .where(hostelIds?.length ? inArray(hostels.id, hostelIds) : undefined)

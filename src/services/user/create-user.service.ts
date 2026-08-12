@@ -1,11 +1,14 @@
+import { AUDIT_ACTION } from "@/constants/audit/audit-action";
+import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { ROLE_SCOPE_TYPE } from "@/constants/auth/role-scope";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
 import { userRepository, type UserWithRoles } from "@/db/repositories/user/user.repository";
 import type { CreateUserDto } from "@/dto/user/create-user.dto";
 import { db } from "@/lib/db";
 import { ConflictError } from "@/lib/errors";
+import { auditService } from "@/services/audit/audit.service";
 
-export async function createUser(dto: CreateUserDto): Promise<UserWithRoles | null> {
+export async function createUser(dto: CreateUserDto, actorUserId: string | null = null): Promise<UserWithRoles | null> {
   return await db.transaction(async (tx) => {
     if (dto.email) {
       const existingEmail = await userRepository.findByEmail(dto.email, tx);
@@ -74,7 +77,20 @@ export async function createUser(dto: CreateUserDto): Promise<UserWithRoles | nu
       }
     }
 
-    return userRepository.findByIdWithRoles(user.id, tx);
+    const result = await userRepository.findByIdWithRoles(user.id, tx);
+
+    if (actorUserId) {
+      await auditService.record(
+        AUDIT_ACTION.CREATE,
+        AUDIT_ENTITY_TYPE.USER,
+        user.id,
+        actorUserId,
+        { fullName: dto.fullName, email: dto.email, roleCodes: dto.roleCodes, roleScopes: dto.roleScopes },
+        tx,
+      );
+    }
+
+    return result;
   });
 }
 

@@ -27,9 +27,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
     const dto = saveWorkflowSchema.parse(await request.json());
-    return ApiResponse.created(await createWorkflow(dto));
+    return ApiResponse.created(await createWorkflow(dto, currentUser.id));
   } catch (error) {
     return ApiResponse.fromError(error);
   }

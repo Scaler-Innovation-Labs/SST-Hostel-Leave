@@ -11,13 +11,11 @@ export async function seedHostels(
         code: "UNI-1",
         name: "Neeladri Hostel",
         slackAdminGroupId: "S0123NEELADRI-ADMIN",
-        slackPocGroupId: "S0123NEELADRI-POC",
       },
       {
         code: "UNI-2",
         name: "Velankani Hostel",
         slackAdminGroupId: "S0123VELANKANI-ADMIN",
-        slackPocGroupId: "S0123VELANKANI-POC",
       },
     ])
     .onConflictDoNothing();

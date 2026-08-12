@@ -67,6 +67,7 @@ describe("PATCH /api/v1/users/[id]", () => {
     expect(mockUpdateUser).toHaveBeenCalledWith(
       "U1",
       expect.objectContaining({ fullName: "Test User", roleCodes: ["ADMIN"] }),
+      "U1",
     );
   });
 
@@ -108,7 +109,7 @@ describe("DELETE /api/v1/users/[id]", () => {
 
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(mockDeactivateUser).toHaveBeenCalledWith("U1");
+    expect(mockDeactivateUser).toHaveBeenCalledWith("U1", "U1");
   });
 
   it("returns 404 when user does not exist", async () => {

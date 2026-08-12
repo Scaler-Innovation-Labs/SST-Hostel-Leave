@@ -7,7 +7,6 @@ export const saveHostelSchema = z.object({
   curfewStartTime: z.string().nullish(),
   curfewEndTime: z.string().nullish(),
   slackAdminGroupId: z.string().trim().max(64).nullish(),
-  slackPocGroupId: z.string().trim().max(64).nullish(),
   isActive: z.boolean().default(true),
 });
 

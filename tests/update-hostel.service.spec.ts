@@ -53,13 +53,13 @@ describe("updateHostel service", () => {
   });
 
   it("updates slack group ids when provided", async () => {
-    const input = { ...VALID_INPUT, slackAdminGroupId: "SADM-TEAM", slackPocGroupId: "SPOC-TEAM" };
+    const input = { ...VALID_INPUT, slackAdminGroupId: "SADM-TEAM" };
 
     await updateHostel("H1", input, { id: "U1" });
 
     expect(mockUpdateById).toHaveBeenCalledWith(
       "H1",
-      expect.objectContaining({ slackAdminGroupId: "SADM-TEAM", slackPocGroupId: "SPOC-TEAM" }),
+      expect.objectContaining({ slackAdminGroupId: "SADM-TEAM" }),
       expect.any(Object)
     );
   });
@@ -71,10 +71,9 @@ describe("updateHostel service", () => {
       name: "Boys Hostel",
       type: "BOYS",
       slackAdminGroupId: "SADM-TEAM",
-      slackPocGroupId: "SPOC-TEAM",
     });
 
-    await updateHostel("H1", { ...VALID_INPUT, slackAdminGroupId: null, slackPocGroupId: null }, { id: "U1" });
+    await updateHostel("H1", { ...VALID_INPUT, slackAdminGroupId: null }, { id: "U1" });
 
     expect(mockUpdateById).toHaveBeenCalledWith("H1", expect.objectContaining({ slackAdminGroupId: null }), expect.any(Object));
   });

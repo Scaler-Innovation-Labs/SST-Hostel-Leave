@@ -1,8 +1,11 @@
+import { AUDIT_ACTION } from "@/constants/audit/audit-action";
+import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
 import { type WorkflowDefinitionWithSteps,workflowRepository } from "@/db/repositories/workflow/workflow.repository";
 import type { SaveWorkflowDto } from "@/dto/workflow/save-workflow.dto";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
+import { auditService } from "@/services/audit/audit.service";
 
 async function resolveSteps(dto: SaveWorkflowDto, tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) {
   const stepKeys = new Set<string>();
@@ -43,7 +46,7 @@ async function resolveSteps(dto: SaveWorkflowDto, tx: Parameters<Parameters<type
   return steps;
 }
 
-export async function createWorkflow(dto: SaveWorkflowDto): Promise<WorkflowDefinitionWithSteps | null> {
+export async function createWorkflow(dto: SaveWorkflowDto, actorUserId: string | null = null): Promise<WorkflowDefinitionWithSteps | null> {
   return db.transaction(async (tx) => {
     if (await workflowRepository.findDefinitionByCode(dto.code, tx)) {
       throw new ConflictError("A workflow with this code already exists");
@@ -60,11 +63,25 @@ export async function createWorkflow(dto: SaveWorkflowDto): Promise<WorkflowDefi
       tx,
     );
     await workflowRepository.replaceSteps(definition.id, steps, tx);
-    return workflowRepository.findDefinitionWithStepsById(definition.id, tx);
+
+    const result = await workflowRepository.findDefinitionWithStepsById(definition.id, tx);
+
+    if (actorUserId) {
+      await auditService.record(
+        AUDIT_ACTION.CREATE,
+        AUDIT_ENTITY_TYPE.WORKFLOW,
+        definition.id,
+        actorUserId,
+        { code: dto.code, name: dto.name, steps: dto.steps.length },
+        tx,
+      );
+    }
+
+    return result;
   });
 }
 
-export async function updateWorkflow(id: string, dto: SaveWorkflowDto): Promise<WorkflowDefinitionWithSteps | null> {
+export async function updateWorkflow(id: string, dto: SaveWorkflowDto, actorUserId: string | null = null): Promise<WorkflowDefinitionWithSteps | null> {
   return db.transaction(async (tx) => {
     const existing = await workflowRepository.findDefinitionById(id, tx);
     if (!existing) throw new NotFoundError("WorkflowDefinition");
@@ -83,6 +100,20 @@ export async function updateWorkflow(id: string, dto: SaveWorkflowDto): Promise<
       version: existing.version + 1,
     }, tx);
     await workflowRepository.replaceSteps(id, steps, tx);
-    return workflowRepository.findDefinitionWithStepsById(id, tx);
+
+    const result = await workflowRepository.findDefinitionWithStepsById(id, tx);
+
+    if (actorUserId) {
+      await auditService.record(
+        AUDIT_ACTION.UPDATE,
+        AUDIT_ENTITY_TYPE.WORKFLOW,
+        id,
+        actorUserId,
+        { code: dto.code, name: dto.name, steps: dto.steps.length },
+        tx,
+      );
+    }
+
+    return result;
   });
 }

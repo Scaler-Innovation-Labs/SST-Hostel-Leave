@@ -20,11 +20,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
     const dto = createLeaveTypeSchema.parse(await request.json());
 
-    const leaveType = await createLeaveType(dto);
+    const leaveType = await createLeaveType(dto, currentUser.id);
 
     return ApiResponse.created(leaveType);
   } catch (error) {

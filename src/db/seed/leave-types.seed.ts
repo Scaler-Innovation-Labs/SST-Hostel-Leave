@@ -1,14 +1,15 @@
+import { LEAVE_CATEGORY } from "@/constants/leave/leave-category";
 import {
   leaveTypes,
   workflowDefinitions,
 } from "@/db";
 import type { db } from "@/lib/db";
-import { LEAVE_CATEGORY } from "@/constants/leave/leave-category";
 
 type LeaveTypeSeed = {
   code: string;
   name: string;
   category: string;
+  color: string;
   workflowCode: string;
   qrMode: string;
   allowExtensions: boolean;
@@ -34,6 +35,7 @@ const LEAVE_TYPES: LeaveTypeSeed[] = [
     code: "RE_EXAM",
     name: "Re Exam",
     category: LEAVE_CATEGORY.HOSTEL,
+    color: "#4f46e5",
     workflowCode: "RE_EXAM",
     qrMode: "NONE",
     allowExtensions: false,
@@ -47,6 +49,7 @@ const LEAVE_TYPES: LeaveTypeSeed[] = [
     code: "LONG_LEAVE",
     name: "Long Leave",
     category: LEAVE_CATEGORY.HOSTEL,
+    color: "#2563eb",
     workflowCode: "LONG_LEAVE",
     qrMode: "BOTH",
     allowExtensions: true,
@@ -60,6 +63,7 @@ const LEAVE_TYPES: LeaveTypeSeed[] = [
     code: "LATE_ENTRY",
     name: "Late Entry",
     category: LEAVE_CATEGORY.HOSTEL,
+    color: "#0284c7",
     workflowCode: "LATE_ENTRY",
     qrMode: "RETURN_ONLY",
     allowExtensions: false,
@@ -71,6 +75,7 @@ const LEAVE_TYPES: LeaveTypeSeed[] = [
     code: "LATE_STAY_COLLEGE",
     name: "Late Stay At College",
     category: LEAVE_CATEGORY.HOSTEL,
+    color: "#0d9488",
     workflowCode: "LATE_STAY_COLLEGE",
     qrMode: "OPTIONAL",
     allowExtensions: false,
@@ -82,6 +87,7 @@ const LEAVE_TYPES: LeaveTypeSeed[] = [
     code: "DIFFERENT_HOSTEL",
     name: "Staying At Different Hostel",
     category: LEAVE_CATEGORY.HOSTEL,
+    color: "#7c3aed",
     workflowCode: "DIFFERENT_HOSTEL",
     qrMode: "BOTH",
     allowExtensions: true,
@@ -95,6 +101,7 @@ const LEAVE_TYPES: LeaveTypeSeed[] = [
     code: "HOLIDAY",
     name: "Holidays",
     category: LEAVE_CATEGORY.HOSTEL,
+    color: "#ea580c",
     workflowCode: "HOLIDAY",
     qrMode: "BOTH",
     allowExtensions: false,
@@ -106,6 +113,7 @@ const LEAVE_TYPES: LeaveTypeSeed[] = [
     code: "INTERNSHIP",
     name: "Internships",
     category: LEAVE_CATEGORY.HOSTEL,
+    color: "#c026d3",
     workflowCode: "INTERNSHIP",
     qrMode: "BOTH",
     allowExtensions: true,
@@ -125,6 +133,7 @@ const LEAVE_TYPES: LeaveTypeSeed[] = [
     code: "MARRIAGE_BEREAVEMENT",
     name: "Marriage / Relative Expired",
     category: LEAVE_CATEGORY.HOSTEL,
+    color: "#78716c",
     workflowCode: "MARRIAGE_BEREAVEMENT",
     qrMode: "NONE",
     allowExtensions: false,
@@ -164,6 +173,9 @@ export async function seedLeaveTypes(
         maxExtensionCount: lt.maxExtensionCount ?? null,
         formSchema: { fields: lt.formFields },
         requiredDocuments: lt.requiredDocuments ? { documents: lt.requiredDocuments } : null,
+        uiConfig: {
+          color: lt.color,
+        },
       }))
     )
     .onConflictDoNothing();

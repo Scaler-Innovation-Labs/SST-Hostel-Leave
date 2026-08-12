@@ -1,3 +1,5 @@
+import { AUDIT_ACTION } from "@/constants/audit/audit-action";
+import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { ROLE_SCOPE_TYPE } from "@/constants/auth/role-scope";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
 import { userRepository, type UserWithRoles } from "@/db/repositories/user/user.repository";
@@ -5,8 +7,9 @@ import type { UpdateUserDto } from "@/dto/user/update-user.dto";
 import { ROLES } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { auditService } from "@/services/audit/audit.service";
 
-export async function updateUser(id: string, dto: UpdateUserDto): Promise<UserWithRoles | null> {
+export async function updateUser(id: string, dto: UpdateUserDto, actorUserId: string | null = null): Promise<UserWithRoles | null> {
   const existing = await userRepository.findById(id, db);
 
   if (!existing) {
@@ -71,7 +74,20 @@ export async function updateUser(id: string, dto: UpdateUserDto): Promise<UserWi
       }
     }
 
-    return userRepository.findByIdWithRoles(id, tx);
+    const result = await userRepository.findByIdWithRoles(id, tx);
+
+    if (actorUserId) {
+      await auditService.record(
+        AUDIT_ACTION.UPDATE,
+        AUDIT_ENTITY_TYPE.USER,
+        id,
+        actorUserId,
+        { dto },
+        tx,
+      );
+    }
+
+    return result;
   });
 }
 
