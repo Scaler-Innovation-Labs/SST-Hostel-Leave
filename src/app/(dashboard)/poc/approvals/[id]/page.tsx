@@ -9,5 +9,5 @@ export default function POCApprovalDetailPage() {
   const router = useRouter();
   const id = params.id as string;
 
-  return <ApprovalDetailView leaveId={id} onBack={() => router.push("/poc/approvals")} />;
+  return <ApprovalDetailView leaveId={id} onBack={() => router.push("/poc/dashboard")} viewerRole="POC" />;
 }

@@ -101,6 +101,22 @@ export function getQuestionsUrl(leaveId: string, params?: { page?: number; limit
   return `${BASE}/leaves/${leaveId}/questions${qs ? `?${qs}` : ""}`;
 }
 
+export async function askLeaveQuestion(
+  leaveId: string,
+  question: string,
+): Promise<unknown> {
+  const res = await fetch(`${BASE}/leaves/${leaveId}/questions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question }),
+  });
+  const json: ApiResponse = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message ?? "Failed to submit question");
+  }
+  return json.data;
+}
+
 export async function answerLeaveQuestion(
   leaveId: string,
   questionId: string,

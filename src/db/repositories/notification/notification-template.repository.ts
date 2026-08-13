@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 
 import { notificationTemplates } from "@/db";
 import { db } from "@/lib/db";
@@ -94,6 +94,7 @@ export const notificationTemplateRepository = {
 
 	async findActiveByEventKey(
 		eventKey: string,
+		leaveTypeId?: string,
 		dbClient: Pick<typeof db, "select"> = db
 	): Promise<NotificationTemplate[]> {
 		const rows = await dbClient
@@ -102,7 +103,13 @@ export const notificationTemplateRepository = {
 			.where(
 				and(
 					eq(notificationTemplates.eventKey, eventKey),
-					eq(notificationTemplates.isActive, true)
+					eq(notificationTemplates.isActive, true),
+					leaveTypeId
+						? or(
+								eq(notificationTemplates.leaveTypeId, leaveTypeId),
+								isNull(notificationTemplates.leaveTypeId)
+							)
+						: undefined
 				)
 			);
 

@@ -35,6 +35,7 @@ export function useUsers(params?: {
           assignedAt: string;
           scopeType?: string | null;
           scopeId?: string | null;
+          scopeName?: string | null;
         }>;
       }>;
       total: number;
@@ -71,6 +72,7 @@ export function useUser(id: string) {
         assignedAt: string;
         scopeType?: string | null;
         scopeId?: string | null;
+        scopeName?: string | null;
       }>;
     } | null,
     isLoading,

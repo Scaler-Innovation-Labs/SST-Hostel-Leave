@@ -54,6 +54,51 @@ export async function invalidateQr(
   return json.data;
 }
 
+export type ManualMovementResult = {
+  movementEventId: string;
+  studentId: string;
+  newState: string;
+};
+
+export async function manualCheckout(studentId: string, reason?: string): Promise<ManualMovementResult> {
+  const res = await fetch(`${BASE}/movements/manual-checkout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentId, reason }),
+  });
+  const json: ApiResponse = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message ?? "Failed to mark student as checked out");
+  }
+  return json.data as ManualMovementResult;
+}
+
+export async function manualReturn(studentId: string, reason?: string): Promise<ManualMovementResult> {
+  const res = await fetch(`${BASE}/movements/manual-return`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentId, reason }),
+  });
+  const json: ApiResponse = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message ?? "Failed to mark student as returned");
+  }
+  return json.data as ManualMovementResult;
+}
+
+export async function markOverdue(studentId: string): Promise<ManualMovementResult> {
+  const res = await fetch(`${BASE}/movements/mark-overdue`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentId }),
+  });
+  const json: ApiResponse = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message ?? "Failed to mark student as overdue");
+  }
+  return json.data as ManualMovementResult;
+}
+
 export type ScanQrResult = {
   scanLogId: string;
   success: boolean;

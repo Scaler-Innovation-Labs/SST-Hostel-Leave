@@ -9,7 +9,6 @@ export async function runMarkOverdueJob(): Promise<{ job: string; total: number;
   const eligibleStates = [
     MOVEMENT_STATE.CHECKED_OUT,
     MOVEMENT_STATE.OUTSIDE_HOSTEL,
-    MOVEMENT_STATE.APPROVED_LEAVE,
   ];
 
   let total = 0;

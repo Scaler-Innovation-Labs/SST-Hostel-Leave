@@ -1,18 +1,34 @@
 // @ts-nocheck
-import { vi, describe, it, expect, beforeEach } from "vitest";
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 
 const mockFindByEventKey = vi.fn();
+const mockFindByIds = vi.fn();
 const mockLogCreate = vi.fn();
 const mockFindActiveByEvent = vi.fn();
 const mockFindRuleById = vi.fn();
 const mockSlackSend = vi.fn();
 const mockHostelFindById = vi.fn();
 const mockEmailSend = vi.fn();
+const mockFindUserIdsByRoleCode = vi.fn();
+const mockFindUsersByIds = vi.fn();
 
 vi.mock("@/db/repositories/notification/notification-template.repository", () => ({
   notificationTemplateRepository: {
     findActiveByEventKey: (...args: any[]) => mockFindByEventKey(...args),
     findById: (...args: any[]) => mockFindRuleById(...args),
+    findByIds: (...args: any[]) => mockFindByIds(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/auth/user-role.repository", () => ({
+  userRoleRepository: {
+    findUserIdsByRoleCode: (...args: any[]) => mockFindUserIdsByRoleCode(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/user/user.repository", () => ({
+  userRepository: {
+    findByIds: (...args: any[]) => mockFindUsersByIds(...args),
   },
 }));
 
@@ -69,9 +85,28 @@ beforeEach(() => {
   mockEmailSend.mockResolvedValue({ success: true, messageId: "email-123" });
 });
 
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
+
 describe("notificationService", () => {
-  it("sends notification via matching channel template", async () => {
-    mockFindByEventKey.mockResolvedValue([
+  it("sends notification via matching rule template", async () => {
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R1",
+        leaveTypeId: null,
+        eventType: "LEAVE_APPROVED",
+        templateId: "T1",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "leave_approved_email_re_exam",
+        recipients: [{ recipientType: "STUDENT" }],
+        channels: [{ channel: "EMAIL" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
       {
         id: "T1",
         eventKey: "LEAVE_APPROVED",
@@ -103,7 +138,22 @@ describe("notificationService", () => {
   });
 
   it("resolves template variables correctly", async () => {
-    mockFindByEventKey.mockResolvedValue([
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R2",
+        leaveTypeId: null,
+        eventType: "LEAVE_REJECTED",
+        templateId: "T2",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "leave_rejected_email_re_exam_admin",
+        recipients: [{ recipientType: "STUDENT" }],
+        channels: [{ channel: "EMAIL" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
       {
         id: "T2",
         eventKey: "LEAVE_REJECTED",
@@ -161,8 +211,23 @@ describe("notificationService", () => {
     expect(mockLogCreate).not.toHaveBeenCalled();
   });
 
-  it("sends via SMS when template is SMS channel", async () => {
-    mockFindByEventKey.mockResolvedValue([
+  it("sends via SMS when rule channel is SMS", async () => {
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R4",
+        leaveTypeId: null,
+        eventType: "QR_GENERATED",
+        templateId: "T4",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "qr_sms_template",
+        recipients: [{ recipientType: "STUDENT" }],
+        channels: [{ channel: "SMS" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
       {
         id: "T4",
         eventKey: "QR_GENERATED",
@@ -202,7 +267,7 @@ describe("notificationService", () => {
   });
 
   it("never throws on notification errors (fire-and-forget)", async () => {
-    mockFindByEventKey.mockRejectedValue(new Error("DB connection lost"));
+    mockFindActiveByEvent.mockRejectedValue(new Error("DB connection lost"));
 
     const result = await notificationService.notify("LEAVE_APPROVED", {
       leaveRequestId: "L7",
@@ -215,19 +280,27 @@ describe("notificationService", () => {
     expect(result.failures[0]).toContain("DB connection lost");
   });
 
-  it("sends multiple channel notifications when multiple templates exist", async () => {
-    mockFindByEventKey.mockResolvedValue([
+  it("sends notifications on every rule channel", async () => {
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R6",
+        leaveTypeId: null,
+        eventType: "LEAVE_EXTENSION_REQUESTED",
+        templateId: "T6",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "extension_requested_template",
+        recipients: [{ recipientType: "STUDENT" }],
+        channels: [{ channel: "EMAIL" }, { channel: "SMS" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
       {
         id: "T6",
         eventKey: "LEAVE_EXTENSION_REQUESTED",
         channel: "EMAIL",
-        templateBody: "Extension requested",
-        isActive: true,
-      },
-      {
-        id: "T7",
-        eventKey: "LEAVE_EXTENSION_REQUESTED",
-        channel: "SMS",
         templateBody: "Extension requested",
         isActive: true,
       },
@@ -246,7 +319,22 @@ describe("notificationService", () => {
   });
 
   it("CCs the hostel admin slack group on slack notifications", async () => {
-    mockFindByEventKey.mockResolvedValue([
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R8",
+        leaveTypeId: null,
+        eventType: "LEAVE_SUBMITTED",
+        templateId: "T8",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "leave_submitted_slack_late_stay_poc",
+        recipients: [{ recipientType: "HOSTEL_ADMIN" }],
+        channels: [{ channel: "SLACK" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
       {
         id: "T8",
         eventKey: "LEAVE_SUBMITTED",
@@ -254,6 +342,10 @@ describe("notificationService", () => {
         templateBody: "New leave {{leaveId}} submitted",
         isActive: true,
       },
+    ]);
+    mockFindUserIdsByRoleCode.mockResolvedValue(["U_ADMIN_1"]);
+    mockFindUsersByIds.mockResolvedValue([
+      { id: "U_ADMIN_1", email: "a@x.com", phone: null, hostelId: "H1" },
     ]);
     mockHostelFindById.mockResolvedValue({ id: "H1", slackAdminGroupId: "SADM" });
 
@@ -274,7 +366,22 @@ describe("notificationService", () => {
   });
 
   it("does not CC slack groups when the hostel resolves to none", async () => {
-    mockFindByEventKey.mockResolvedValue([
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R9",
+        leaveTypeId: null,
+        eventType: "LEAVE_CANCELLED",
+        templateId: "T9",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "leave_cancelled_slack",
+        recipients: [{ recipientType: "HOSTEL_ADMIN" }],
+        channels: [{ channel: "SLACK" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
       {
         id: "T9",
         eventKey: "LEAVE_CANCELLED",
@@ -282,6 +389,10 @@ describe("notificationService", () => {
         templateBody: "Leave {{leaveId}} cancelled",
         isActive: true,
       },
+    ]);
+    mockFindUserIdsByRoleCode.mockResolvedValue(["U_ADMIN_1"]);
+    mockFindUsersByIds.mockResolvedValue([
+      { id: "U_ADMIN_1", email: "a@x.com", phone: null, hostelId: "H1" },
     ]);
     mockHostelFindById.mockResolvedValue({ id: "H1", slackAdminGroupId: null });
 
@@ -298,7 +409,22 @@ describe("notificationService", () => {
   });
 
   it("CCs configured addresses on the student email", async () => {
-    mockFindByEventKey.mockResolvedValue([
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R10",
+        leaveTypeId: null,
+        eventType: "LEAVE_APPROVED",
+        templateId: "T10",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "leave_approved_email_re_exam",
+        recipients: [{ recipientType: "STUDENT" }],
+        channels: [{ channel: "EMAIL" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
       {
         id: "T10",
         eventKey: "LEAVE_APPROVED",
@@ -326,7 +452,22 @@ describe("notificationService", () => {
   });
 
   it("sends email without CC when none provided", async () => {
-    mockFindByEventKey.mockResolvedValue([
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R11",
+        leaveTypeId: null,
+        eventType: "LEAVE_APPROVED",
+        templateId: "T11",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "leave_approved_email_re_exam",
+        recipients: [{ recipientType: "STUDENT" }],
+        channels: [{ channel: "EMAIL" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
       {
         id: "T11",
         eventKey: "LEAVE_APPROVED",
@@ -344,5 +485,275 @@ describe("notificationService", () => {
     });
 
     expect(mockEmailSend).toHaveBeenCalledWith(expect.objectContaining({ cc: undefined }));
+  });
+
+  it("resolves HOSTEL_ADMIN recipients scoped to the student's hostel", async () => {
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R1",
+        leaveTypeId: null,
+        eventType: "LEAVE_APPROVAL_REQUIRED",
+        templateId: "T12",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "leave_submitted_slack_late_stay_admin",
+        recipients: [{ recipientType: "HOSTEL_ADMIN" }],
+        channels: [{ channel: "SLACK" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
+      {
+        id: "T12",
+        eventKey: "LEAVE_APPROVAL_REQUIRED",
+        channel: "SLACK",
+        templateBody: "Dear Hostel Warden, {{approvalLink}}",
+        isActive: true,
+      },
+    ]);
+    mockFindUserIdsByRoleCode.mockResolvedValue(["U_ADMIN_A", "U_ADMIN_B"]);
+    mockFindUsersByIds.mockResolvedValue([
+      { id: "U_ADMIN_A", email: "a@x.com", phone: null, hostelId: "H1" },
+      { id: "U_ADMIN_B", email: "b@x.com", phone: null, hostelId: "H2" },
+    ]);
+
+    await notificationService.notify("LEAVE_APPROVAL_REQUIRED", {
+      leaveRequestId: "L13",
+      hostelId: "H1",
+      variables: { leaveId: "L13" },
+    });
+
+    // Only the admin of hostel H1 is notified, not H2's admin.
+    expect(mockLogCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: "U_ADMIN_A" })
+    );
+    expect(mockLogCreate).not.toHaveBeenCalledWith(
+      expect.objectContaining({ userId: "U_ADMIN_B" })
+    );
+  });
+
+  it("routes POC-targeted slack notifications to the POC channel", async () => {
+    vi.stubEnv("SLACK_CHANNEL_ID", "C123");
+    vi.stubEnv("SLACK_POC_CHANNEL_ID", "CPOC");
+
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R3",
+        leaveTypeId: null,
+        eventType: "LEAVE_POC_REVIEW_REQUIRED",
+        templateId: "T14",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "leave_submitted_slack_marriage_poc",
+        recipients: [{ recipientType: "POC" }],
+        channels: [{ channel: "SLACK" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
+      {
+        id: "T14",
+        eventKey: "LEAVE_POC_REVIEW_REQUIRED",
+        channel: "SLACK",
+        templateBody: "Dear POC, {{approvalLink}}",
+        isActive: true,
+      },
+    ]);
+    mockFindUserIdsByRoleCode.mockResolvedValue(["U_POC1"]);
+    mockFindUsersByIds.mockResolvedValue([
+      { id: "U_POC1", email: "poc@x.com", phone: null, hostelId: "H1" },
+    ]);
+    // The hostel has its own admin channel, but POC alerts must still go to the
+    // global POC channel.
+    mockHostelFindById.mockResolvedValue({
+      id: "H1",
+      slackAdminGroupId: "SADM",
+      slackChannelId: "#leave-hostel-neeladri",
+    });
+
+    await notificationService.notify("LEAVE_POC_REVIEW_REQUIRED", {
+      leaveRequestId: "L15",
+      hostelId: "H1",
+      variables: { leaveId: "L15" },
+    });
+
+    expect(mockSlackSend).toHaveBeenCalledWith(expect.objectContaining({ to: "CPOC" }));
+    expect(mockLogCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ channel: "SLACK", recipient: "CPOC" })
+    );
+  });
+
+  it("sends admin slack notifications to the main channel", async () => {
+    vi.stubEnv("SLACK_CHANNEL_ID", "C123");
+    vi.stubEnv("SLACK_POC_CHANNEL_ID", "CPOC");
+
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R4",
+        leaveTypeId: null,
+        eventType: "LEAVE_APPROVAL_REQUIRED",
+        templateId: "T15",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "leave_submitted_slack_marriage",
+        recipients: [{ recipientType: "HOSTEL_ADMIN" }],
+        channels: [{ channel: "SLACK" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
+      {
+        id: "T15",
+        eventKey: "LEAVE_APPROVAL_REQUIRED",
+        channel: "SLACK",
+        templateBody: "Dear Hostel Warden, {{approvalLink}}",
+        isActive: true,
+      },
+    ]);
+    mockFindUserIdsByRoleCode.mockResolvedValue(["U_ADMIN_A"]);
+    mockFindUsersByIds.mockResolvedValue([
+      { id: "U_ADMIN_A", email: "a@x.com", phone: null, hostelId: "H1" },
+    ]);
+
+    await notificationService.notify("LEAVE_APPROVAL_REQUIRED", {
+      leaveRequestId: "L16",
+      hostelId: "H1",
+      variables: { leaveId: "L16" },
+    });
+
+    expect(mockSlackSend).toHaveBeenCalledWith(expect.objectContaining({ to: "C123" }));
+  });
+
+  it("sends admin slack notifications to the hostel's configured channel", async () => {
+    vi.stubEnv("SLACK_CHANNEL_ID", "C123");
+    vi.stubEnv("SLACK_POC_CHANNEL_ID", "CPOC");
+
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R5",
+        leaveTypeId: null,
+        eventType: "LEAVE_APPROVAL_REQUIRED",
+        templateId: "T16",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "leave_submitted_slack_marriage",
+        recipients: [{ recipientType: "HOSTEL_ADMIN" }],
+        channels: [{ channel: "SLACK" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
+      {
+        id: "T16",
+        eventKey: "LEAVE_APPROVAL_REQUIRED",
+        channel: "SLACK",
+        templateBody: "Dear Hostel Warden, {{approvalLink}}",
+        isActive: true,
+      },
+    ]);
+    mockFindUserIdsByRoleCode.mockResolvedValue(["U_ADMIN_A"]);
+    mockFindUsersByIds.mockResolvedValue([
+      { id: "U_ADMIN_A", email: "a@x.com", phone: null, hostelId: "H1" },
+    ]);
+    mockHostelFindById.mockResolvedValue({
+      id: "H1",
+      slackAdminGroupId: "SADM",
+      slackChannelId: "#leave-hostel-neeladri",
+    });
+
+    await notificationService.notify("LEAVE_APPROVAL_REQUIRED", {
+      leaveRequestId: "L17",
+      hostelId: "H1",
+      variables: { leaveId: "L17" },
+    });
+
+    expect(mockSlackSend).toHaveBeenCalledWith(expect.objectContaining({ to: "#leave-hostel-neeladri" }));
+  });
+
+  it("posts a single Slack message per channel, not per contact", async () => {
+    vi.stubEnv("SLACK_CHANNEL_ID", "C123");
+
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R12",
+        leaveTypeId: null,
+        eventType: "LEAVE_APPROVAL_REQUIRED",
+        templateId: "T17",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "leave_submitted_slack_marriage",
+        recipients: [{ recipientType: "HOSTEL_ADMIN" }],
+        channels: [{ channel: "SLACK" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
+      {
+        id: "T17",
+        eventKey: "LEAVE_APPROVAL_REQUIRED",
+        channel: "SLACK",
+        templateBody: "Dear Hostel Warden, {{approvalLink}}",
+        isActive: true,
+      },
+    ]);
+    // Two admins in the same hostel — must result in ONE Slack post.
+    mockFindUserIdsByRoleCode.mockResolvedValue(["U_A", "U_B"]);
+    mockFindUsersByIds.mockResolvedValue([
+      { id: "U_A", email: "a@x.com", phone: null, hostelId: "H1" },
+      { id: "U_B", email: "b@x.com", phone: null, hostelId: "H1" },
+    ]);
+    mockHostelFindById.mockResolvedValue({ id: "H1", slackAdminGroupId: "SADM", slackChannelId: null });
+
+    await notificationService.notify("LEAVE_APPROVAL_REQUIRED", {
+      leaveRequestId: "L18",
+      hostelId: "H1",
+      variables: { leaveId: "L18" },
+    });
+
+    expect(mockSlackSend).toHaveBeenCalledTimes(1);
+    expect(mockSlackSend).toHaveBeenCalledWith(expect.objectContaining({ to: "C123" }));
+  });
+
+  it("does not resolve HOSTEL_ADMIN when no hostel is known", async () => {
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R2",
+        leaveTypeId: null,
+        eventType: "LEAVE_APPROVAL_REQUIRED",
+        templateId: "T13",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "leave_submitted_slack_late_stay_admin",
+        recipients: [{ recipientType: "HOSTEL_ADMIN" }],
+        channels: [{ channel: "SLACK" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
+      {
+        id: "T13",
+        eventKey: "LEAVE_APPROVAL_REQUIRED",
+        channel: "SLACK",
+        templateBody: "Dear Hostel Warden, {{approvalLink}}",
+        isActive: true,
+      },
+    ]);
+    mockFindUserIdsByRoleCode.mockResolvedValue(["U_ADMIN_A"]);
+    mockFindUsersByIds.mockResolvedValue([
+      { id: "U_ADMIN_A", email: "a@x.com", phone: null, hostelId: "H1" },
+    ]);
+
+    await notificationService.notify("LEAVE_APPROVAL_REQUIRED", {
+      leaveRequestId: "L14",
+      variables: { leaveId: "L14" },
+    });
+
+    expect(mockLogCreate).not.toHaveBeenCalled();
   });
 });

@@ -14,22 +14,38 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import { ErrorState } from "@/components/shared/ErrorState";
 import { InfoCard } from "@/components/shared/InfoCard";
 import { LeaveTypeBadge } from "@/components/shared/LeaveTypeBadge";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { getEventLabel } from "@/constants/notification/notification-labels";
 import { useLeaves } from "@/features/leaves/hooks/use-leaves";
 import { useStudent } from "@/features/students/hooks/use-students";
 import { useMovement } from "@/hooks/use-movement";
+import { manualCheckout, manualReturn, markOverdue } from "@/lib/api/movement-api";
 import { cn } from "@/lib/utils";
 
 type StudentDetailViewProps = {
   studentId: string;
   basePath?: string;
+  /** Role of the viewer; location status controls show for ADMIN/SUPER_ADMIN. */
+  viewerRole?: string;
 };
 
 function formatDate(dateStr: string): string {
@@ -48,13 +64,17 @@ function formatDateTime(dateStr: string): string {
   }
 }
 
-export function StudentDetailView({ studentId, basePath = "/admin/students" }: StudentDetailViewProps) {
+export function StudentDetailView({ studentId, basePath = "/admin/students", viewerRole }: StudentDetailViewProps) {
   const router = useRouter();
   const movementsPath = basePath.replace(/\/students$/, "/movements");
   const approvalsPath = basePath.replace(/\/students$/, "/approvals");
   const { student, isLoading, isError, error, mutate } = useStudent(studentId);
   const { leaves } = useLeaves({ studentId, page: 1, limit: 5 });
   const { movements } = useMovement({ studentId, page: 1, limit: 10 });
+  const [locationAction, setLocationAction] = useState<"checkout" | "return" | "overdue" | null>(null);
+  const [actionBusy, setActionBusy] = useState(false);
+
+  const canChangeLocation = viewerRole === "ADMIN" || viewerRole === "SUPER_ADMIN";
 
   if (isLoading) return <LoadingState count={4} />;
   if (isError) return <ErrorState message={error?.message ?? "Student not found"} onRetry={() => mutate()} />;
@@ -71,6 +91,43 @@ export function StudentDetailView({ studentId, basePath = "/admin/students" }: S
   const isInHostel = locationCode === MOVEMENT_STATE.IN_HOSTEL;
   const isOverdue = locationCode === MOVEMENT_STATE.OVERDUE;
   const isOnLeave = locationCode === MOVEMENT_STATE.APPROVED_LEAVE;
+
+  const canCheckout =
+    locationCode === MOVEMENT_STATE.IN_HOSTEL || locationCode === MOVEMENT_STATE.APPROVED_LEAVE;
+  const canReturn =
+    locationCode === MOVEMENT_STATE.CHECKED_OUT ||
+    locationCode === MOVEMENT_STATE.OUTSIDE_HOSTEL ||
+    locationCode === MOVEMENT_STATE.OVERDUE;
+  const canMarkOverdue =
+    locationCode === MOVEMENT_STATE.CHECKED_OUT ||
+    locationCode === MOVEMENT_STATE.OUTSIDE_HOSTEL ||
+    locationCode === MOVEMENT_STATE.APPROVED_LEAVE;
+
+  async function runLocationAction(action: "checkout" | "return" | "overdue") {
+    setActionBusy(true);
+    try {
+      if (action === "checkout") {
+        await manualCheckout(studentId);
+      } else if (action === "return") {
+        await manualReturn(studentId);
+      } else {
+        await markOverdue(studentId);
+      }
+      toast.success("Location status updated");
+      await mutate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update location status");
+    } finally {
+      setActionBusy(false);
+      setLocationAction(null);
+    }
+  }
+
+  const locationActionCopy = {
+    checkout: { title: "Mark as checked out?", description: "This records a manual checkout for the student. The location status will change to Checked Out." },
+    return: { title: "Mark as returned?", description: "This records a manual return for the student. The location status will change to In Hostel." },
+    overdue: { title: "Mark as overdue?", description: "This records the student as overdue. The location status will change to Overdue." },
+  } as const;
 
   return (
     <div className="space-y-6">
@@ -199,6 +256,43 @@ export function StudentDetailView({ studentId, basePath = "/admin/students" }: S
 
           {/* Quick Actions */}
           <div className="mt-6 space-y-2">
+            {canChangeLocation && (
+              <>
+                {canCheckout && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start gap-2"
+                    onClick={() => setLocationAction("checkout")}
+                    disabled={actionBusy}
+                  >
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    Mark Checked Out
+                  </Button>
+                )}
+                {canReturn && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start gap-2"
+                    onClick={() => setLocationAction("return")}
+                    disabled={actionBusy}
+                  >
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    Mark Returned (In Hostel)
+                  </Button>
+                )}
+                {canMarkOverdue && (
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start gap-2 border-red-500/30 text-red-600 hover:bg-red-500/10 dark:text-red-400"
+                    onClick={() => setLocationAction("overdue")}
+                    disabled={actionBusy}
+                  >
+                    <MapPin className="h-4 w-4 text-red-500" />
+                    Mark Overdue
+                  </Button>
+                )}
+              </>
+            )}
             <Link
               href={`${movementsPath}?studentId=${studentId}`}
               className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:bg-muted"
@@ -308,6 +402,37 @@ export function StudentDetailView({ studentId, basePath = "/admin/students" }: S
           </div>
         )}
       </div>
+
+      {/* Location action confirmation */}
+      <AlertDialog
+        open={locationAction !== null}
+        onOpenChange={(open) => {
+          if (!open && !actionBusy) setLocationAction(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {locationAction ? locationActionCopy[locationAction].title : ""}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {locationAction ? locationActionCopy[locationAction].description : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionBusy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={actionBusy}
+              onClick={(e) => {
+                e.preventDefault();
+                if (locationAction) void runLocationAction(locationAction);
+              }}
+            >
+              {actionBusy ? "Updating..." : "Confirm"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

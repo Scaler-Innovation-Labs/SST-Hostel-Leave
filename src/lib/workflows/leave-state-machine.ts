@@ -7,6 +7,7 @@ export const LEAVE_ACTION = {
   CANCEL: "CANCEL",
   COMPLETE: "COMPLETE",
   EXPIRE: "EXPIRE",
+  MARK_OVERDUE: "MARK_OVERDUE",
   EXTEND: "EXTEND",
 } as const;
 
@@ -22,6 +23,7 @@ export const LEAVE_TRANSITIONS: Record<string, string[]> = {
   APPROVED: [
     "COMPLETE",
     "EXPIRE",
+    "MARK_OVERDUE",
     "EXTEND",
     "CANCEL",
   ],
@@ -29,6 +31,11 @@ export const LEAVE_TRANSITIONS: Record<string, string[]> = {
   REJECTED: [],
 
   CANCELLED: [],
+
+  OVERDUE: [
+    "COMPLETE",
+    "EXTEND",
+  ],
 
   COMPLETED: [],
 
@@ -59,8 +66,13 @@ export function getNextState(
     APPROVED: {
       COMPLETE: LEAVE_REQUEST_STATUS.COMPLETED,
       EXPIRE: LEAVE_REQUEST_STATUS.EXPIRED,
+      MARK_OVERDUE: LEAVE_REQUEST_STATUS.OVERDUE,
       CANCEL: LEAVE_REQUEST_STATUS.CANCELLED,
       EXTEND: LEAVE_REQUEST_STATUS.APPROVED,
+    },
+    OVERDUE: {
+      COMPLETE: LEAVE_REQUEST_STATUS.COMPLETED,
+      EXTEND: LEAVE_REQUEST_STATUS.OVERDUE,
     }
   };
 

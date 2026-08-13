@@ -1,6 +1,6 @@
 "use client";
 
-import { addDays, differenceInDays, format, isPast, parseISO } from "date-fns";
+import { differenceInDays, format, parseISO } from "date-fns";
 import {
   ArrowRight,
   Briefcase,
@@ -35,6 +35,7 @@ const STATUS_OPTIONS = [
   { value: LEAVE_REQUEST_STATUS.REJECTED, label: "Rejected" },
   { value: LEAVE_REQUEST_STATUS.CANCELLED, label: "Cancelled" },
   { value: LEAVE_REQUEST_STATUS.COMPLETED, label: "Completed" },
+  { value: LEAVE_REQUEST_STATUS.OVERDUE, label: "Overdue" },
   { value: LEAVE_REQUEST_STATUS.EXPIRED, label: "Expired" },
 ];
 
@@ -100,6 +101,7 @@ function getStatusContext(status: string): { label: string; detail?: string } {
   if (s === "rejected") return { label: "Not approved" };
   if (s === "cancelled") return { label: "Cancelled" };
   if (s === "completed") return { label: "Completed" };
+  if (s === "overdue") return { label: "Overdue", detail: "Return or extend" };
   if (s === "expired") return { label: "Expired" };
   return { label: s };
 }
@@ -178,7 +180,7 @@ export default function StudentLeavesPage() {
             {items.map((item) => {
               const startDate = parseISO(item.startAt);
               const endDate = parseISO(item.endAt);
-              const isOverdue = isPast(addDays(endDate, 1)) && item.status === LEAVE_REQUEST_STATUS.APPROVED;
+              const isOverdue = item.status === LEAVE_REQUEST_STATUS.OVERDUE;
               const IconComponent = getLeaveTypeIcon(item.leaveTypeName);
               const context = getStatusContext(item.status);
 

@@ -13,6 +13,7 @@ export type ConfigStatus = {
     configured: boolean
     botToken: boolean
     channelId: boolean
+    pocChannelId: boolean
   }
   system: {
     baseUrl: boolean
@@ -32,6 +33,7 @@ export function getConfigStatus(): ConfigStatus {
 
   const slackBotToken = !!process.env.SLACK_BOT_TOKEN
   const slackChannelId = !!process.env.SLACK_CHANNEL_ID
+  const slackPocChannelId = !!process.env.SLACK_POC_CHANNEL_ID
   const baseUrl = !!process.env.NEXT_PUBLIC_BASE_URL
   const appUrl = !!process.env.NEXT_PUBLIC_APP_URL
   const authSecret = !!process.env.AUTH_SECRET
@@ -51,6 +53,7 @@ export function getConfigStatus(): ConfigStatus {
       configured: slackBotToken && slackChannelId,
       botToken: slackBotToken,
       channelId: slackChannelId,
+      pocChannelId: slackPocChannelId,
     },
     system: {
       baseUrl,

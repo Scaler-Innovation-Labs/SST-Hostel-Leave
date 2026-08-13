@@ -11,7 +11,7 @@ import { useConfigStatus } from "@/hooks/use-config-status";
 type ConfigCardProps = {
   title: string;
   description: string;
-  fields: Array<{ label: string; configured: boolean }>;
+  fields: Array<{ label: string; configured: boolean; desc?: string }>;
   onTest?: () => void;
   testLabel?: string;
   testLoading?: boolean;
@@ -43,8 +43,13 @@ function ConfigCard({ title, description, fields, onTest, testLabel, testLoading
 
       <div className="space-y-2">
         {fields.map((field) => (
-          <div key={field.label} className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">{field.label}</span>
+          <div key={field.label} className="flex items-center justify-between gap-4 text-sm">
+            <span>
+              <span className="text-muted-foreground">{field.label}</span>
+              {field.desc && (
+                <span className="mt-0.5 block text-xs text-muted-foreground/70">{field.desc}</span>
+              )}
+            </span>
             <span className={`flex items-center gap-1.5 font-medium ${
               field.configured ? "text-emerald-600" : "text-destructive"
             }`}>
@@ -186,6 +191,7 @@ export default function SuperAdminSettingsPage() {
           fields={[
             { label: "SLACK_BOT_TOKEN", configured: status.slack.botToken },
             { label: "SLACK_CHANNEL_ID", configured: status.slack.channelId },
+            { label: "SLACK_POC_CHANNEL_ID", configured: status.slack.pocChannelId, desc: "Channel for POC alerts; falls back to SLACK_CHANNEL_ID when unset" },
           ]}
           onTest={() => handleTest("slack")}
           testLabel="Send Test Slack Message"

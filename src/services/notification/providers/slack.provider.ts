@@ -7,13 +7,31 @@ import type {
 	NotificationSendResult,
 } from "./notification-provider";
 
+/**
+ * Slack mention syntax differs by target:
+ * - User ids (U...) mention the member: <@U123>
+ * - Usergroup ids (S...) mention the whole group: <!subteam^S123>
+ */
+function formatSlackMention(id: string): string {
+	if (id.startsWith("S")) return `<!subteam^${id}>`;
+	if (id.startsWith("U")) return `<@${id}>`;
+	return `@${id}`;
+}
+
 export function createSlackProvider() {
 	return {
 		async send(
 			payload: NotificationPayload
 		): Promise<NotificationSendResult> {
 			const botToken = process.env.SLACK_BOT_TOKEN;
-			const channelId = process.env.SLACK_CHANNEL_ID;
+			// `to` carries the target Slack channel (the notification service
+			// resolves the main vs POC channel). "slack-channel" is the legacy
+			// sentinel used by the settings-page test sender to mean "use the
+			// default channel" — fall back to SLACK_CHANNEL_ID for it.
+			const channelId =
+				typeof payload.to === "string" && payload.to !== "slack-channel"
+					? payload.to
+					: process.env.SLACK_CHANNEL_ID;
 
 			if (!botToken || !channelId) {
 				logger.warn("Slack not configured — SLACK STUB", { to: payload.to });
@@ -43,17 +61,30 @@ export function createSlackProvider() {
 				});
 
 				if (payload.metadata) {
-					const fields = Object.entries(payload.metadata)
-						.filter(([, v]) => typeof v === "string")
-						.map(([key, value]) => ({
-							type: "mrkdwn" as const,
-							text: `*${key}:* ${value}`,
-						}));
+					// Fields that already appear in the message body — showing them
+					// again as metadata just adds noise.
+					const redundantKeys = new Set([
+						"leaveId",
+						"approvalLink",
+						"studentName",
+						"rollNumber",
+						"reason",
+						"startDate",
+						"endDate",
+					]);
 
-					if (fields.length > 0) {
+					const lines = Object.entries(payload.metadata)
+						.filter(([key, value]) => {
+							if (redundantKeys.has(key)) return false;
+							return typeof value === "string" && value.trim().length > 0;
+						})
+						.map(([key, value]) => `• *${key}:* ${value}`);
+
+					if (lines.length > 0) {
+						blocks.push({ type: "divider" });
 						blocks.push({
 							type: "section",
-							fields,
+							text: { type: "mrkdwn", text: lines.join("\n") },
 						});
 					}
 				}
@@ -63,7 +94,7 @@ export function createSlackProvider() {
 						type: "section",
 						text: {
 							type: "mrkdwn",
-							text: `CC: ${payload.mentions.map((id) => `<@${id}>`).join(" ")}`,
+							text: `CC: ${payload.mentions.map(formatSlackMention).join(" ")}`,
 						},
 					});
 				}
@@ -71,8 +102,10 @@ export function createSlackProvider() {
 				const result = await client.chat.postMessage({
 					channel: channelId,
 					text: payload.subject ?? payload.body,
-						blocks,
+					blocks,
 					mrkdwn: true,
+					unfurl_links: false,
+					unfurl_media: false,
 				});
 
 				return {

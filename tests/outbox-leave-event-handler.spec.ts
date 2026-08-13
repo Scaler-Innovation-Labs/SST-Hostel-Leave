@@ -118,6 +118,122 @@ describe("handleLeaveEvent", () => {
     expect(mockNotify).toHaveBeenCalledWith("LEAVE_EXTENSION_REQUESTED", expect.any(Object));
   });
 
+  it("maps LEAVE_APPROVAL_REQUIRED to LEAVE_APPROVAL_REQUIRED notification", async () => {
+    await handleLeaveEvent(makeEvent("LEAVE_APPROVAL_REQUIRED"));
+
+    expect(mockNotify).toHaveBeenCalledWith("LEAVE_APPROVAL_REQUIRED", expect.any(Object));
+  });
+
+  it("dispatches LEAVE_POC_REVIEW_REQUIRED when the new current step is a POC step", async () => {
+    (leaveRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      studentId: "S1",
+      startAt: new Date("2026-06-01"),
+      endAt: new Date("2026-06-05"),
+    });
+    (studentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      userId: "U1",
+    });
+    (userRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      fullName: "Test Student",
+      email: "student@test.com",
+      phone: "+1234567890",
+      hostelId: "H1",
+    });
+
+    await handleLeaveEvent(makeEvent("LEAVE_APPROVAL_REQUIRED", { stepKey: "POC_APPROVAL", stepOrder: 2 }));
+
+    expect(mockNotify).toHaveBeenCalledWith(
+      "LEAVE_POC_REVIEW_REQUIRED",
+      expect.objectContaining({
+        hostelId: "H1",
+        variables: expect.objectContaining({
+          approvalLink: expect.stringContaining("/poc/approvals/L1"),
+        }),
+      })
+    );
+    expect(mockNotify).not.toHaveBeenCalledWith("LEAVE_APPROVAL_REQUIRED", expect.anything());
+  });
+
+  it("dispatches LEAVE_APPROVAL_REQUIRED when the new current step is an ADMIN step", async () => {
+    (leaveRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      studentId: "S1",
+      startAt: new Date("2026-06-01"),
+      endAt: new Date("2026-06-05"),
+    });
+    (studentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      userId: "U1",
+    });
+    (userRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      fullName: "Test Student",
+      email: "student@test.com",
+      phone: "+1234567890",
+      hostelId: "H1",
+    });
+
+    await handleLeaveEvent(makeEvent("LEAVE_APPROVAL_REQUIRED", { stepKey: "ADMIN_APPROVAL", stepOrder: 3 }));
+
+    expect(mockNotify).toHaveBeenCalledWith(
+      "LEAVE_APPROVAL_REQUIRED",
+      expect.objectContaining({
+        variables: expect.objectContaining({
+          approvalLink: expect.stringContaining("/admin/approvals/L1"),
+        }),
+      })
+    );
+  });
+
+  it("populates a POC review link for LEAVE_SUBMITTED (late-stay POC template)", async () => {
+    (leaveRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      studentId: "S1",
+      startAt: new Date("2026-06-01"),
+      endAt: new Date("2026-06-05"),
+    });
+    (studentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      userId: "U1",
+    });
+    (userRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      fullName: "Test Student",
+      email: "student@test.com",
+      phone: "+1234567890",
+      hostelId: "H1",
+    });
+
+    await handleLeaveEvent(makeEvent("LEAVE_CREATED"));
+
+    const context = mockNotify.mock.calls.find(([type]) => type === "LEAVE_SUBMITTED")?.[1];
+    expect(context).toBeDefined();
+    expect(context.variables.approvalLink).toContain("/poc/approvals/L1");
+  });
+
+  it("populates the admin approval link for LEAVE_APPROVAL_REQUIRED", async () => {
+    (leaveRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      studentId: "S1",
+      startAt: new Date("2026-06-01"),
+      endAt: new Date("2026-06-05"),
+    });
+    (studentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      userId: "U1",
+    });
+    (userRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      fullName: "Test Student",
+      email: "student@test.com",
+      phone: "+1234567890",
+      hostelId: "H1",
+    });
+
+    await handleLeaveEvent(makeEvent("LEAVE_APPROVAL_REQUIRED"));
+
+    expect(mockNotify).toHaveBeenCalledWith(
+      "LEAVE_APPROVAL_REQUIRED",
+      expect.objectContaining({
+        hostelId: "H1",
+        variables: expect.objectContaining({
+          approvalLink: expect.stringContaining("/admin/approvals/L1"),
+        }),
+      })
+    );
+  });
+
   it("handles PARENT_APPROVAL_REQUIRED without dispatching notification directly (uses outbox instead)", async () => {
     await handleLeaveEvent(makeEvent("PARENT_APPROVAL_REQUIRED"));
 

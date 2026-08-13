@@ -7,6 +7,7 @@ export const NOTIFICATION_RECIPIENT_TYPES = [
   "WARDEN",
   "POC",
   "ADMIN",
+  "HOSTEL_ADMIN",
   "SUPER_ADMIN",
 ] as const;
 
@@ -22,5 +23,6 @@ export const NOTIFICATION_RECIPIENT_TYPE = {
   WARDEN: "WARDEN",
   POC: "POC",
   ADMIN: "ADMIN",
+  HOSTEL_ADMIN: "HOSTEL_ADMIN",
   SUPER_ADMIN: "SUPER_ADMIN",
 } as const;

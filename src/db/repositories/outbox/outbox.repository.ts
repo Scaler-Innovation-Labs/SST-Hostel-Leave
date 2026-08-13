@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, lt, or, sql } from "drizzle-orm";
 
 import { OUTBOX_STATUS } from "@/constants/outbox/outbox-status";
 import { outboxEvents } from "@/db";
@@ -47,12 +47,23 @@ export const outboxRepository = {
 
   async findFailed(
     limit: number = 50,
+    maxAttempts?: number,
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<OutboxEvent[]> {
     const rows = await dbClient
       .select()
       .from(outboxEvents)
-      .where(eq(outboxEvents.status, OUTBOX_STATUS.FAILED))
+      .where(
+        and(
+          eq(outboxEvents.status, OUTBOX_STATUS.FAILED),
+          maxAttempts !== undefined
+            ? or(
+                isNull(outboxEvents.attemptCount),
+                lt(outboxEvents.attemptCount, maxAttempts)
+              )
+            : undefined
+        )
+      )
       .orderBy(asc(outboxEvents.createdAt))
       .limit(limit);
 

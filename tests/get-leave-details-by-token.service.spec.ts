@@ -3,6 +3,8 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const mockFindByParentApprovalToken = vi.fn();
 const mockParentFindById = vi.fn();
+const mockFindLeaveById = vi.fn();
+const mockFindLeaveTypeById = vi.fn();
 
 vi.mock("@/db/repositories/leave/leave-parent-approval.repository", () => ({
   leaveParentApprovalRepository: {
@@ -13,6 +15,18 @@ vi.mock("@/db/repositories/leave/leave-parent-approval.repository", () => ({
 vi.mock("@/db/repositories/parent/parent.repository", () => ({
   parentRepository: {
     findById: (...args: any[]) => mockParentFindById(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/leave/leave.repository", () => ({
+  leaveRepository: {
+    findById: (...args: any[]) => mockFindLeaveById(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/leave/leave-type.repository", () => ({
+  leaveTypeRepository: {
+    findById: (...args: any[]) => mockFindLeaveTypeById(...args),
   },
 }));
 
@@ -33,9 +47,15 @@ const MOCK_APPROVAL_LEAVE = {
   stepOrder: 1,
   studentName: "John Doe",
   studentRollNumber: "R1",
-  leaveRequest: { id: "LR1", reason: "Family visit", startAt: new Date("2026-06-10"), endAt: new Date("2026-06-12"), submittedForm: null },
+  leaveRequest: { id: "LR1", leaveTypeId: "LT1", reason: "Family visit", startAt: new Date("2026-06-10"), endAt: new Date("2026-06-12"), submittedForm: null },
   leaveExtension: null,
   leaveExtensionId: null,
+};
+
+const MOCK_LEAVE_TYPE = {
+  id: "LT1",
+  name: "Internship",
+  description: "Leave for internship-related travel",
 };
 
 const MOCK_PARENT = { id: "P1", name: "Parent Name", phone: "+1234567890" };
@@ -44,6 +64,8 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockFindByParentApprovalToken.mockResolvedValue(MOCK_APPROVAL_LEAVE);
   mockParentFindById.mockResolvedValue(MOCK_PARENT);
+  mockFindLeaveById.mockResolvedValue({ id: "LR1", leaveTypeId: "LT1" });
+  mockFindLeaveTypeById.mockResolvedValue(MOCK_LEAVE_TYPE);
 });
 
 describe("getLeaveDetailsByToken service", () => {
@@ -53,6 +75,8 @@ describe("getLeaveDetailsByToken service", () => {
     expect(result.approvalId).toBe("AP1");
     expect(result.targetType).toBe("LEAVE_REQUEST");
     expect(result.studentName).toBe("John Doe");
+    expect(result.leaveTypeName).toBe("Internship");
+    expect(result.leaveTypeDescription).toBe("Leave for internship-related travel");
     expect(result.leaveReason).toBe("Family visit");
     expect(result.parentName).toBe("Parent Name");
   });
@@ -70,6 +94,15 @@ describe("getLeaveDetailsByToken service", () => {
     });
 
     await expect(getLeaveDetailsByToken("expired-token")).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("returns empty leave type when the leave type cannot be resolved", async () => {
+    mockFindLeaveTypeById.mockResolvedValue(null);
+
+    const result = await getLeaveDetailsByToken("valid-token");
+
+    expect(result.leaveTypeName).toBe("");
+    expect(result.leaveTypeDescription).toBe("");
   });
 
   it("throws ConflictError when approval already processed", async () => {

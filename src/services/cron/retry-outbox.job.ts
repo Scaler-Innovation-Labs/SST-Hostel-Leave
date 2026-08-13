@@ -1,9 +1,14 @@
 import { outboxRepository } from "@/db/repositories/outbox/outbox.repository";
 import { logger } from "@/lib/logger";
-import { processPendingEvents } from "@/services/outbox/outbox-worker.service";
+import {
+  MAX_RETRIES,
+  processPendingEvents,
+} from "@/services/outbox/outbox-worker.service";
 
 export async function runRetryOutboxJob(): Promise<{ job: string; resetCount: number; processed: number; failed: number; skipped: number }> {
-  const failedEvents = await outboxRepository.findFailed(100);
+  // Only reset events that still have attempts left — exhausted events stay
+  // FAILED instead of looping forever.
+  const failedEvents = await outboxRepository.findFailed(100, MAX_RETRIES);
 
   let resetCount = 0;
   for (const event of failedEvents) {

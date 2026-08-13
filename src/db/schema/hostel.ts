@@ -40,6 +40,9 @@ export const hostels = pgTable("hostels", {
   /** Slack user group (S...) or user (U...) id to CC on Slack notifications for this hostel's admins. */
   slackAdminGroupId: text("slack_admin_group_id"),
 
+  /** Slack channel (C... id or #name) that admin/staff Slack alerts for this hostel post to. Falls back to SLACK_CHANNEL_ID when unset. */
+  slackChannelId: text("slack_channel_id"),
+
   isActive: boolean("is_active")
     .default(true)
     .notNull(),

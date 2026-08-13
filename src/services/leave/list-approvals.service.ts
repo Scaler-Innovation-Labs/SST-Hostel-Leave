@@ -1,4 +1,5 @@
 import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { type LeaveApproval,leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
@@ -26,13 +27,26 @@ export async function listApprovals(
 
   const isPoc = currentUser.roles.includes(ROLES.POC);
 
+  // When a specific leave is requested (approval chain / detail view), return
+  // the FULL chain — every step including parent rows and already-decided
+  // rows. The POC action-queue defaults (their pending rows only) apply ONLY
+  // to the list/dashboard view, otherwise the detail view would mistake the
+  // POC row for the current step while the server acts on the parent row.
+  const isChainRequest = !!query.leaveRequestId;
+
   // Staff visibility: HOSTEL-scoped roles see only approvals for students
   // in their hostels. No scopes = unrestricted (ALL).
   const hostelIds =
     isStaffScopeRestricted(currentUser) ? getScopedHostelIds(currentUser) : undefined;
 
+  // A POC queue is an action queue: default to only their pending approvals,
+  // so items the POC already acted on drop out of the dashboard list.
+  const effectiveStatus =
+    query.status as LeaveApprovalDecision | undefined ??
+    (isPoc && !isChainRequest ? LEAVE_APPROVAL_DECISION.PENDING : undefined);
+
   return leaveApprovalRepository.findByFilters({
-    status: query.status as LeaveApprovalDecision | undefined,
+    status: effectiveStatus,
     leaveRequestId: query.leaveRequestId,
     dateFrom: query.dateFrom ? new Date(query.dateFrom) : undefined,
     dateTo: query.dateTo ? new Date(query.dateTo) : undefined,
@@ -41,8 +55,8 @@ export async function listApprovals(
     hostelId: query.hostelId,
     hostelIds,
     leaveTypeId: query.leaveTypeId,
-    approverUserId: isPoc ? currentUser.id : undefined,
-    excludeLeaveStatuses: [LEAVE_REQUEST_STATUS.CANCELLED],
+    approverUserId: isPoc && !isChainRequest ? currentUser.id : undefined,
+    excludeLeaveStatuses: isChainRequest ? undefined : [LEAVE_REQUEST_STATUS.CANCELLED],
     page: query.page,
     limit: query.limit,
   });

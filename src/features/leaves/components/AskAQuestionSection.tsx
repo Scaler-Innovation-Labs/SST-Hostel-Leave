@@ -1,13 +1,13 @@
 "use client";
 
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { CheckCircle2, Clock, HelpCircle, Loader2, Paperclip, SendHorizonal } from "lucide-react";
+import { CheckCircle2, Clock, HelpCircle, Loader2, MessageSquarePlus, Paperclip, SendHorizonal } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 
 import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
-import { answerLeaveQuestion, getQuestionsUrl, uploadLeaveDocument } from "@/lib/api/leave-api";
+import { answerLeaveQuestion, askLeaveQuestion, getQuestionsUrl, uploadLeaveDocument } from "@/lib/api/leave-api";
 import { cn } from "@/lib/utils";
 
 export type QuestionItem = {
@@ -25,6 +25,10 @@ export type QuestionItem = {
 
 type AskAQuestionSectionProps = {
   leaveId: string;
+  /** Show the "Ask a question" composer (staff view). Defaults to false. */
+  canAsk?: boolean;
+  /** Show the "Answer this question" action on pending questions (student view). Defaults to false. */
+  canAnswer?: boolean;
 };
 
 const ROLE_STYLES: Record<string, string> = {
@@ -35,7 +39,9 @@ const ROLE_STYLES: Record<string, string> = {
   PARENT: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
 };
 
-export function AskAQuestionSection({ leaveId }: AskAQuestionSectionProps) {
+export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false }: AskAQuestionSectionProps) {
+  const [questionText, setQuestionText] = useState("");
+  const [asking, setAsking] = useState(false);
   const [answeringId, setAnsweringId] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -48,6 +54,22 @@ export function AskAQuestionSection({ leaveId }: AskAQuestionSectionProps) {
   );
 
   const questions = data?.data?.items ?? [];
+
+  const handleAsk = useCallback(async () => {
+    if (!questionText.trim()) return;
+
+    setAsking(true);
+    try {
+      await askLeaveQuestion(leaveId, questionText.trim());
+      toast.success("Question submitted");
+      setQuestionText("");
+      await mutate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to submit question");
+    } finally {
+      setAsking(false);
+    }
+  }, [leaveId, questionText, mutate]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -81,12 +103,49 @@ export function AskAQuestionSection({ leaveId }: AskAQuestionSectionProps) {
   }, [leaveId, answerText, selectedFile, mutate]);
 
   if (isLoading) return <CollapsibleSection title="Questions" icon={HelpCircle}><div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div></CollapsibleSection>;
-  if (questions.length === 0) return null;
+  if (questions.length === 0 && !canAsk) return null;
 
   return (
     <CollapsibleSection title="Questions" icon={HelpCircle}>
       <div className="space-y-4">
-        {questions.map((question) => (
+        {/* Ask a question (staff) */}
+        {canAsk && (
+          <div className="rounded-xl border border-border bg-muted/30 p-4">
+            <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+              <MessageSquarePlus className="h-4 w-4 text-muted-foreground" />
+              Ask the student a question
+            </p>
+            <textarea
+              value={questionText}
+              onChange={(e) => setQuestionText(e.target.value)}
+              placeholder="Type your question for the student..."
+              rows={3}
+              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring disabled:opacity-50"
+              disabled={asking}
+            />
+            <div className="mt-2 flex justify-end">
+              <button
+                onClick={handleAsk}
+                disabled={asking || !questionText.trim()}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              >
+                {asking ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <SendHorizonal className="h-4 w-4" />
+                )}
+                {asking ? "Submitting..." : "Ask Question"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {questions.length === 0 && canAsk ? (
+          <p className="py-4 text-center text-sm text-muted-foreground">
+            No questions yet. Ask the student for more information above.
+          </p>
+        ) : (
+          questions.map((question) => (
             <div
               key={question.id}
               className={cn(
@@ -141,7 +200,7 @@ export function AskAQuestionSection({ leaveId }: AskAQuestionSectionProps) {
               )}
 
               {/* Answer form for pending question */}
-              {question.status === "pending" && answeringId === question.id && (
+              {canAnswer && question.status === "pending" && answeringId === question.id && (
                 <div className="mt-3 ml-12 space-y-3">
                   <textarea
                     value={answerText}
@@ -205,7 +264,7 @@ export function AskAQuestionSection({ leaveId }: AskAQuestionSectionProps) {
               )}
 
               {/* Pending but not answering - show Answer button */}
-              {question.status === "pending" && answeringId !== question.id && (
+              {canAnswer && question.status === "pending" && answeringId !== question.id && (
                 <div className="mt-3 ml-12">
                   <button
                     onClick={() => setAnsweringId(question.id)}
@@ -216,9 +275,17 @@ export function AskAQuestionSection({ leaveId }: AskAQuestionSectionProps) {
                   </button>
                 </div>
               )}
+
+              {/* Pending, staff viewer - hint */}
+              {!canAnswer && question.status === "pending" && (
+                <p className="mt-2 ml-12 text-xs text-muted-foreground">
+                  Waiting for the student&apos;s response.
+                </p>
+              )}
             </div>
-          ))}
-        </div>
+          ))
+        )}
+      </div>
     </CollapsibleSection>
   );
 }

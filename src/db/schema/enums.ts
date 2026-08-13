@@ -35,6 +35,7 @@ export const leaveStatusEnum = pgEnum(
     "REJECTED",
     "CANCELLED",
     "EXPIRED",
+    "OVERDUE",
     "COMPLETED",
   ]
 );
@@ -200,6 +201,7 @@ export const notificationRecipientTypeEnum =
       "WARDEN",
       "POC",
       "ADMIN",
+      "HOSTEL_ADMIN",
       "SUPER_ADMIN",
     ]
   );
@@ -243,6 +245,8 @@ export const notificationEventEnum =
       "LEAVE_EXTENSION_REJECTED",
       "LEAVE_OVERDUE",
       "PARENT_APPROVAL_REQUESTED",
+      "LEAVE_APPROVAL_REQUIRED",
+      "LEAVE_POC_REVIEW_REQUIRED",
       "QR_GENERATED",
       "QR_SCANNED",
       "QR_INVALIDATED",

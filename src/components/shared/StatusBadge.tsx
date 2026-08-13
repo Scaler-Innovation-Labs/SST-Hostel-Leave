@@ -7,6 +7,7 @@ type Status =
   | "active"
   | "cancelled"
   | "expired"
+  | "overdue"
   | "completed"
   | "auto_approved"
   | "parent_approval";
@@ -22,6 +23,7 @@ const styles: Record<Status, string> = {
   active: "bg-primary/10 text-primary",
   cancelled: "bg-muted text-muted-foreground",
   expired: "bg-muted text-muted-foreground",
+  overdue: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
   completed: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
   auto_approved: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
   parent_approval: "bg-violet-500/10 text-violet-600 dark:text-violet-400",

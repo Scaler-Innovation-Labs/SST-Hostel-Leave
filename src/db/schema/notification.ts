@@ -28,6 +28,7 @@ import { parents } from "./hostel";
 import {
   leaveExtensions,
   leaveRequests,
+  leaveTypes,
 } from "./leave";
 
 // =====================================================
@@ -44,6 +45,14 @@ export const notificationTemplates = pgTable(
     eventKey: text("event_key").notNull(),
 
     channel: notificationChannelEnum("channel").notNull(),
+
+    /** Leave type this template belongs to (null = global template for the event). */
+    leaveTypeId: uuid("leave_type_id").references(
+      () => leaveTypes.id,
+      {
+        onDelete: "set null",
+      }
+    ),
 
     subject: text("subject"),
 

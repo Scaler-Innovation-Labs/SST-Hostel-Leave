@@ -53,6 +53,13 @@ type ApprovalCommandCardProps = {
    * detail route (e.g. extension approvals, which act inline).
    */
   disableNavigation?: boolean;
+  /**
+   * The current viewer's role. Defaults to "ADMIN" behavior: action buttons
+   * are hidden while the leave waits on a parent or POC step (not your turn).
+   * A POC viewer sees only their own assigned rows, so for them the buttons
+   * must show on POC-waiting cards.
+   */
+  viewerRole?: "POC" | "ADMIN" | "SUPER_ADMIN";
 };
 
 function formatDate(d: Date | string): string {
@@ -97,13 +104,23 @@ function workflowStepLabel(stepKey: string): string {
   return cleaned || "Step";
 }
 
-export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disableNavigation }: ApprovalCommandCardProps) {
+export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disableNavigation, viewerRole }: ApprovalCommandCardProps) {
   const router = useRouter();
   const pathname = usePathname();
   const detailPrefix = hrefPrefix ?? pathname;
   const lr = item.leaveRequest;
   const isPending = item.decision === LEAVE_APPROVAL_DECISION.PENDING;
   const isApproved = item.decision === LEAVE_APPROVAL_DECISION.APPROVED || item.decision === LEAVE_APPROVAL_DECISION.AUTO_APPROVED;
+  const leaveStatus = lr?.status ?? null;
+  const isLeavePending = leaveStatus === LEAVE_REQUEST_STATUS.PENDING;
+  const headerBadge =
+    isPending
+      ? "PENDING"
+      : leaveStatus === LEAVE_REQUEST_STATUS.PENDING
+        ? isApproved
+          ? "APPROVED"
+          : "REJECTED"
+        : leaveStatus ?? "DONE";
 
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -117,23 +134,64 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
   const [documentsVerified, setDocumentsVerified] = useState(false);
 
   const destination = lr?.submittedForm?.destination as string | undefined;
-  const parentPending = !!item.approverParentId && !item.parentApprovalVerifiedAt;
   const waitingOn = lr?.currentStepKey ?? (lr?.status === LEAVE_REQUEST_STATUS.PENDING ? VIEW_STEP_KEY.POLICY : VIEW_STEP_KEY.COMPLETE);
   const isExtension = !!item.leaveExtensionId;
   const isSpecialLeave = (item.leaveTypeUiConfig?.isSpecial as boolean | undefined) ?? false;
+  const isPocViewer = viewerRole === "POC";
   const leaveColor =
     typeof item.leaveTypeUiConfig?.color === "string" ? item.leaveTypeUiConfig.color : null;
 
   // Status color for the left rail — the decision at a glance.
-  const statusColor = isApproved
-    ? "#10b981"
-    : isPending
+  const statusColor =
+    isPending
       ? "#f59e0b"
-      : "#ef4444";
+      : leaveStatus === LEAVE_REQUEST_STATUS.REJECTED ||
+          leaveStatus === LEAVE_REQUEST_STATUS.CANCELLED ||
+          leaveStatus === LEAVE_REQUEST_STATUS.EXPIRED ||
+          leaveStatus === LEAVE_REQUEST_STATUS.OVERDUE
+        ? "#ef4444"
+        : "#10b981";
 
-  // The leave is still waiting on an earlier step (parent or POC) — not this approver's turn yet.
-  const showWaitingPanel =
-    (waitingOn.includes("PARENT") && parentPending) || waitingOn.includes("POC");
+  // Role required by the currently active workflow step. When it doesn't match
+  // this viewer's role, the approver's turn hasn't come yet — show a waiting
+  // panel instead of action buttons (e.g. a POC who already approved now sees
+  // "waiting on admin approval", not an Approve button).
+  const currentStepRole =
+    (item.workflowSteps ?? []).find((s) => s.stepKey === waitingOn)?.approverRoleCode ?? null;
+
+  // Determine whether THIS viewer is the one whose action the current step
+  // needs. Admin/super-admin pages don't pass a viewerRole, so default to
+  // ADMIN there. A parent step has no role code (approverRoleCode null) — a
+  // POC must wait on it, while an admin can override it.
+  const effectiveViewerRole = viewerRole ?? "ADMIN";
+
+  // Buttons only appear when the row itself is still pending, the leave is
+  // still pending, AND the active step belongs to this viewer. A SUPER_ADMIN
+  // acts on ADMIN steps (and SUPER_ADMIN steps if a workflow uses them); a
+  // POC only on POC steps. Rows the viewer already decided (e.g. an approved
+  // POC row while the leave waits on admin) show their decision instead.
+  const isViewerTurn =
+    isPending &&
+    isLeavePending &&
+    (currentStepRole === effectiveViewerRole ||
+      (effectiveViewerRole === "SUPER_ADMIN" && currentStepRole === "ADMIN"));
+
+  // A pending row waiting on an earlier step that isn't this approver's turn
+  // — show a waiting panel instead of action buttons.
+  const showWaitingPanel = isPending && isLeavePending && !isViewerTurn;
+
+  const failedStepLabel =
+    leaveStatus === LEAVE_REQUEST_STATUS.REJECTED
+      ? (() => {
+          const failedStep = (item.workflowSteps ?? []).find(
+            (s) => s.stepOrder === lr?.currentStepOrder,
+          );
+          if (failedStep?.stepKey) return workflowStepLabel(failedStep.stepKey);
+          if (waitingOn === VIEW_STEP_KEY.POLICY || waitingOn === VIEW_STEP_KEY.SUBMITTED)
+            return "Policy";
+          return null;
+        })()
+      : null;
 
   const avatarColor = AVATAR_COLORS[Math.abs((item.studentName ?? "").charCodeAt(0) || 0) % 5] ?? "bg-muted text-muted-foreground";
 
@@ -308,7 +366,11 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
       tabIndex={disableNavigation ? undefined : 0}
       onKeyDown={(e) => {
         if (disableNavigation || !lr?.id) return;
+        // Only navigate when the card itself has focus — a keypress on an inner
+        // control (e.g. Approve/Reject button) must not open the details page.
+        if (e.target !== e.currentTarget) return;
         if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
           router.push(`${detailPrefix.replace(/\/+$/, "")}/${lr.id}`);
         }
       }}
@@ -331,10 +393,16 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
         <div className="flex items-center gap-2">
           <span className={cn(
             "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
-            isPending ? "bg-amber-500/10 text-amber-600" : isApproved ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600",
+            isPending
+              ? "bg-amber-500/10 text-amber-600"
+              : leaveStatus === LEAVE_REQUEST_STATUS.REJECTED || leaveStatus === LEAVE_REQUEST_STATUS.CANCELLED
+                ? "bg-red-500/10 text-red-600"
+                : leaveStatus === LEAVE_REQUEST_STATUS.EXPIRED || leaveStatus === LEAVE_REQUEST_STATUS.OVERDUE
+                  ? "bg-red-500/10 text-red-600"
+                  : "bg-emerald-500/10 text-emerald-600",
           )}>
-            <span className={cn("h-1.5 w-1.5 rounded-full", isPending ? "bg-amber-500" : isApproved ? "bg-emerald-500" : "bg-red-500")} />
-            {isPending ? "PENDING" : isApproved ? "APPROVED" : "REJECTED"}
+            <span className={cn("h-1.5 w-1.5 rounded-full", isPending ? "bg-amber-500" : leaveStatus === LEAVE_REQUEST_STATUS.REJECTED || leaveStatus === LEAVE_REQUEST_STATUS.CANCELLED || leaveStatus === LEAVE_REQUEST_STATUS.EXPIRED || leaveStatus === LEAVE_REQUEST_STATUS.OVERDUE ? "bg-red-500" : "bg-emerald-500")} />
+            {headerBadge}
           </span>
           {isExtension && (
             <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-600">Extension</span>
@@ -406,7 +474,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
 
         {/* Right — actions / status */}
         <div className="flex shrink-0 items-center justify-center sm:w-44">
-          {isPending ? (
+          {isLeavePending && isPending ? (
             <div className="flex w-full flex-col gap-2">
               {showWaitingPanel ? (
                 <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-border bg-muted/40 px-3 py-3 text-center">
@@ -448,14 +516,32 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
             </div>
           ) : (
             <div className="flex flex-col items-center gap-1.5">
-              {isApproved ? (
-                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              {leaveStatus === LEAVE_REQUEST_STATUS.REJECTED || leaveStatus === LEAVE_REQUEST_STATUS.CANCELLED ? (
+                <>
+                  <XCircle className="h-5 w-5 text-red-500" />
+                  <span className="text-xs font-semibold uppercase tracking-wide text-red-600">
+                    {leaveStatus === LEAVE_REQUEST_STATUS.CANCELLED
+                      ? "Cancelled"
+                      : failedStepLabel
+                        ? `Rejected by ${failedStepLabel}`
+                        : "Rejected"}
+                  </span>
+                </>
+              ) : leaveStatus === LEAVE_REQUEST_STATUS.EXPIRED || leaveStatus === LEAVE_REQUEST_STATUS.OVERDUE ? (
+                <>
+                  <XCircle className="h-5 w-5 text-red-500" />
+                  <span className="text-xs font-semibold uppercase tracking-wide text-red-600">
+                    {leaveStatus === LEAVE_REQUEST_STATUS.EXPIRED ? "Expired" : "Overdue"}
+                  </span>
+                </>
               ) : (
-                <XCircle className="h-5 w-5 text-red-500" />
+                <>
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                  <span className="text-xs font-semibold uppercase tracking-wide text-emerald-600">
+                    {leaveStatus === LEAVE_REQUEST_STATUS.COMPLETED ? "Completed" : "Approved"}
+                  </span>
+                </>
               )}
-              <span className={cn("text-xs font-semibold uppercase tracking-wide", isApproved ? "text-emerald-600" : "text-red-600")}>
-                {isApproved ? "Approved" : "Rejected"}
-              </span>
             </div>
           )}
         </div>
@@ -523,41 +609,47 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
               />
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
-                CC recipients <span className="text-muted-foreground/50">(optional)</span>
-              </label>
-              <input
-                type="text"
-                value={ccEmailsInput}
-                onChange={(e) => setCcEmailsInput(e.target.value)}
-                placeholder="name@example.com, another@example.com"
-                className="w-full rounded-lg border border-input bg-background p-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-ring focus:ring-1 focus:ring-ring"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                These addresses will be CC&apos;d on the approval email sent to the student.
-              </p>
-            </div>
+            {!isPocViewer && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
+                  CC recipients <span className="text-muted-foreground/50">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={ccEmailsInput}
+                  onChange={(e) => setCcEmailsInput(e.target.value)}
+                  placeholder="name@example.com, another@example.com"
+                  className="w-full rounded-lg border border-input bg-background p-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  These addresses will be CC&apos;d on the approval email sent to the student.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2.5 rounded-lg border border-border bg-muted/30 p-3">
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={notifyStudent}
-                  onChange={(e) => setNotifyStudent(e.target.checked)}
-                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                />
-                <span className="text-sm">Notify student</span>
-              </label>
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={notifyParent}
-                  onChange={(e) => setNotifyParent(e.target.checked)}
-                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                />
-                <span className="text-sm">Notify parent</span>
-              </label>
+              {!isPocViewer && (
+                <>
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={notifyStudent}
+                      onChange={(e) => setNotifyStudent(e.target.checked)}
+                      className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm">Notify student</span>
+                  </label>
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={notifyParent}
+                      onChange={(e) => setNotifyParent(e.target.checked)}
+                      className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm">Notify parent</span>
+                  </label>
+                </>
+              )}
               {isSpecialLeave && (
                 <label className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950">
                   <input

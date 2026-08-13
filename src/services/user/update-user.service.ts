@@ -49,7 +49,19 @@ export async function updateUser(id: string, dto: UpdateUserDto, actorUserId: st
       const rolesByCode = new Map(
         (await userRoleRepository.findRolesByCodes(dto.roleCodes, tx)).map((r) => [r.code, r.id])
       );
-      const roleIds = dto.roleCodes.map((code) => rolesByCode.get(code)).filter((id): id is string => !!id);
+      // Roles with hostel scopes are managed by roleScopes below — exclude
+      // them so replaceRoles does not recreate a global (unscoped) row for
+      // the same role. Empty hostelIds means "all hostels", which stays a
+      // global row.
+      const scopedCodes = new Set(
+        (dto.roleScopes ?? [])
+          .filter((s) => s.hostelIds.length > 0)
+          .map((s) => s.roleCode)
+      );
+      const roleIds = dto.roleCodes
+        .filter((code) => !scopedCodes.has(code))
+        .map((code) => rolesByCode.get(code))
+        .filter((id): id is string => !!id);
       await userRepository.replaceRoles(id, roleIds, tx);
     }
 

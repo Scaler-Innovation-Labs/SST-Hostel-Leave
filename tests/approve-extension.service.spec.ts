@@ -37,6 +37,7 @@ const mockApprovalCreateMany = vi.fn();
 const mockLeaveFindById = vi.fn();
 const mockLeaveUpdateById = vi.fn();
 const mockAuditRecord = vi.fn();
+const mockPublish = vi.fn();
 
 vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
   leaveExtensionRepository: {
@@ -75,7 +76,7 @@ vi.mock("@/lib/auth/authorization", () => ({
 
 vi.mock("@/services/outbox/outbox.service", () => ({
   outboxService: {
-    publish: vi.fn().mockResolvedValue(undefined),
+    publish: (...args: any[]) => mockPublish(...args),
     publishMany: vi.fn().mockResolvedValue(undefined),
   },
 }));
@@ -112,6 +113,13 @@ describe("approveExtension service", () => {
     });
     expect(mockExtensionUpdateCurrentStep).toHaveBeenCalledWith("EXT1", "S2", 2, expect.any(Object));
     expect(mockExtensionUpdateById).not.toHaveBeenCalled();
+    expect(mockPublish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "LEAVE_APPROVAL_REQUIRED",
+        payload: expect.objectContaining({ leaveId: "L1", extensionId: "EXT1", stepKey: "S2", stepOrder: 2 }),
+      }),
+      expect.any(Object)
+    );
   });
 
   it("approves final step and updates leave endAt", async () => {
@@ -147,7 +155,7 @@ describe("approveExtension service", () => {
     );
     expect(mockLeaveUpdateById).toHaveBeenCalledWith(
       "L1",
-      { endAt: new Date("2026-06-20") },
+      { endAt: new Date("2026-06-20"), status: "APPROVED" },
       expect.any(Object)
     );
   });
@@ -178,7 +186,7 @@ describe("approveExtension service", () => {
     );
     expect(mockLeaveUpdateById).toHaveBeenCalledWith(
       "L1",
-      { endAt: new Date("2026-06-20") },
+      { endAt: new Date("2026-06-20"), status: "APPROVED" },
       expect.any(Object)
     );
   });

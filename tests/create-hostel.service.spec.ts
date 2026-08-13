@@ -61,4 +61,15 @@ describe("createHostel service", () => {
       expect.any(Object)
     );
   });
+
+  it("passes the slack channel id through to the repository", async () => {
+    const input = { ...VALID_INPUT, slackChannelId: "#leave-hostel-neeladri" };
+
+    await createHostel(input, { id: "U1" });
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ slackChannelId: "#leave-hostel-neeladri" }),
+      expect.any(Object)
+    );
+  });
 });

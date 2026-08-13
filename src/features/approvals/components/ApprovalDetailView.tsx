@@ -18,6 +18,7 @@ import {
   FileArchive,
   FileSpreadsheet,
   FileText,
+  HelpCircle,
   History,
   Image,
   Info,
@@ -71,6 +72,7 @@ import {
 import { CATEGORY_COLORS } from "@/constants/leave/leave-category";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { useApprovalChain } from "@/features/approvals/hooks/use-approval-chain";
+import { AskAQuestionSection } from "@/features/leaves/components/AskAQuestionSection";
 import { useLeaves } from "@/features/leaves/hooks/use-leaves";
 import { useDocuments } from "@/hooks/use-documents";
 import { useMovement } from "@/hooks/use-movement";
@@ -85,6 +87,8 @@ import { cn } from "@/lib/utils";
 type ApprovalDetailViewProps = {
   leaveId: string;
   onBack: () => void;
+  /** Who is viewing — POC viewers get a simplified approve/reject dialog. */
+  viewerRole?: "POC" | "ADMIN" | "SUPER_ADMIN";
 };
 
 type AuditEntry = {
@@ -226,6 +230,7 @@ const TAB_CONFIG = [
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "audit", label: "Audit", icon: History },
   { id: "documents", label: "Documents", icon: FileText },
+  { id: "questions", label: "Questions", icon: HelpCircle },
 ];
 
 const avatarColors = [
@@ -361,7 +366,12 @@ function DetailRow({ label, children, className }: { label: string; children: Re
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════
 
-export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps) {
+export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDetailViewProps) {
+  // The override action is available to admins and super admins.
+  const canOverride = viewerRole === "ADMIN" || viewerRole === "SUPER_ADMIN";
+  // POC approval is a simple yes/no — notification/CC options are admin-only.
+  const isPocViewer = viewerRole === "POC";
+
   // ── Data fetching ──
   const { data: rawLeaveData, isLoading: leaveLoading, error: leaveError, mutate: leaveMutate } = useSWR(
     leaveId ? getLeaveUrl(leaveId) : null,
@@ -469,6 +479,27 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
   const currentApproval = useMemo(
     () => sortedApprovals.find((a) => a.decision === "pending"),
     [sortedApprovals],
+  );
+
+  // The leave's action buttons are only for the approver of the CURRENT step.
+  // A POC who already approved (workflow moved to ADMIN) must no longer see
+  // Approve/Reject — the page should show the new waiting state instead.
+  const viewerCanAct = useMemo(() => {
+    if (!isPending || !currentApproval) return false;
+    const requiredRole = currentApproval.approverRoleCode;
+    if (!requiredRole) return false;
+    if (viewerRole === "SUPER_ADMIN") return requiredRole === "ADMIN" || requiredRole === "SUPER_ADMIN";
+    if (viewerRole === "POC") return requiredRole === "POC";
+    if (viewerRole === "ADMIN") return requiredRole === "ADMIN";
+    return false;
+  }, [isPending, currentApproval, viewerRole]);
+
+  // Did this viewer already approve/reject this request in an earlier step?
+  const viewerAlreadyActed = useMemo(
+    () => sortedApprovals.some(
+      (a) => a.approverRoleCode === viewerRole && (a.decision === "approved" || a.decision === "rejected" || a.decision === "auto_approved"),
+    ),
+    [sortedApprovals, viewerRole],
   );
 
   const allApproved = useMemo(
@@ -1247,6 +1278,11 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
               </SectionCard>
             </TabsContent>
 
+            {/* ▸ QUESTIONS TAB */}
+            <TabsContent value="questions" className="mt-5">
+              <AskAQuestionSection leaveId={leaveId} canAsk />
+            </TabsContent>
+
             {/* ▸ DOCUMENTS TAB */}
             <TabsContent value="documents" className="mt-5">
               <SectionCard title="Attachments" icon={FileText}>
@@ -1347,8 +1383,8 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
             </div>
           </div>
 
-          {/* Actions Card */}
-          {isPending && (
+          {/* Actions Card — only visible when this leave is waiting on the viewer's step */}
+          {isPending && currentApproval && viewerCanAct && (
             <div className="rounded-xl border border-border bg-card shadow-sm">
               <div className="border-b border-border px-4 py-3">
                 <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -1380,17 +1416,57 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
                   <Download className="h-3.5 w-3.5" />
                   Download PDF
                 </Button>
-                <div className="border-t border-border pt-2.5">
+                {canOverride && (
+                  <div className="border-t border-border pt-2.5">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => { setOverrideOpen(true); setOverrideError(""); }}
+                      className="w-full gap-1.5 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+                    >
+                      <Zap className="h-3.5 w-3.5" />
+                      Override
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Waiting Card — leave is pending, but it is not this viewer's turn */}
+          {isPending && currentApproval && !viewerCanAct && (
+            <div className="rounded-xl border border-border bg-card shadow-sm">
+              <div className="border-b border-border px-4 py-3">
+                <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  Waiting
+                </h3>
+              </div>
+              <div className="space-y-2.5 p-4 text-sm">
+                <p className="text-muted-foreground">
+                  This request is waiting on{" "}
+                  <span className="font-medium text-foreground">
+                    {(currentApproval.approverRoleCode ?? "next approver").replace(/_/g, " ")}
+                  </span>{" "}
+                  approval.
+                </p>
+                {viewerAlreadyActed && (
+                  <p className="flex items-center gap-1.5 text-xs text-emerald-600">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Your approval has been recorded.
+                  </p>
+                )}
+                {canOverride && (
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => { setOverrideOpen(true); setOverrideError(""); }}
                     className="w-full gap-1.5 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
                   >
                     <Zap className="h-3.5 w-3.5" />
-                    Superadmin Override
+                    Override
                   </Button>
-                </div>
+                )}
               </div>
             </div>
           )}
@@ -1462,41 +1538,47 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
               />
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
-                CC recipients <span className="text-muted-foreground/50">(optional)</span>
-              </label>
-              <input
-                type="text"
-                value={ccEmailsInput}
-                onChange={(e) => setCcEmailsInput(e.target.value)}
-                placeholder="name@example.com, another@example.com"
-                className="w-full rounded-lg border border-input bg-background p-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-ring focus:ring-1 focus:ring-ring"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                These addresses will be CC&apos;d on the approval email sent to the student.
-              </p>
-            </div>
+            {!isPocViewer && (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
+                  CC recipients <span className="text-muted-foreground/50">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={ccEmailsInput}
+                  onChange={(e) => setCcEmailsInput(e.target.value)}
+                  placeholder="name@example.com, another@example.com"
+                  className="w-full rounded-lg border border-input bg-background p-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  These addresses will be CC&apos;d on the approval email sent to the student.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2.5 rounded-lg border border-border bg-muted/30 p-3">
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={notifyStudent}
-                  onChange={(e) => setNotifyStudent(e.target.checked)}
-                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                />
-                <span className="text-sm">Notify student</span>
-              </label>
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={notifyParent}
-                  onChange={(e) => setNotifyParent(e.target.checked)}
-                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                />
-                <span className="text-sm">Notify parent</span>
-              </label>
+              {!isPocViewer && (
+                <>
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={notifyStudent}
+                      onChange={(e) => setNotifyStudent(e.target.checked)}
+                      className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm">Notify student</span>
+                  </label>
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={notifyParent}
+                      onChange={(e) => setNotifyParent(e.target.checked)}
+                      className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm">Notify parent</span>
+                  </label>
+                </>
+              )}
               {isSpecialLeave && (
                 <label className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950">
                   <input
@@ -1650,24 +1732,28 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
                   <p className="text-xs text-muted-foreground">Allow student to reapply with corrections</p>
                 </div>
               </label>
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={notifyStudent}
-                  onChange={(e) => setNotifyStudent(e.target.checked)}
-                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                />
-                <span className="text-sm">Notify student</span>
-              </label>
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={notifyParent}
-                  onChange={(e) => setNotifyParent(e.target.checked)}
-                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
-                />
-                <span className="text-sm">Notify parent</span>
-              </label>
+              {!isPocViewer && (
+                <>
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={notifyStudent}
+                      onChange={(e) => setNotifyStudent(e.target.checked)}
+                      className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm">Notify student</span>
+                  </label>
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={notifyParent}
+                      onChange={(e) => setNotifyParent(e.target.checked)}
+                      className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                    />
+                    <span className="text-sm">Notify parent</span>
+                  </label>
+                </>
+              )}
             </div>
 
             {actionError && (
@@ -1710,7 +1796,7 @@ export function ApprovalDetailView({ leaveId, onBack }: ApprovalDetailViewProps)
                 <ShieldAlert className="h-5 w-5 text-amber-600" />
               </div>
               <div>
-                <AlertDialogTitle className="text-lg">Superadmin Override</AlertDialogTitle>
+                <AlertDialogTitle className="text-lg">Override Approval</AlertDialogTitle>
                 <AlertDialogDescription>
                   Force-advance this leave request through the approval workflow.
                 </AlertDialogDescription>

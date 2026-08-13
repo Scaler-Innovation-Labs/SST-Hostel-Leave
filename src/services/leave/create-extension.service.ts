@@ -13,6 +13,7 @@ import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.reposito
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 import type { CreateExtensionDto } from "@/dto/leave/create-extension.dto";
+import { getPublicBaseUrl } from "@/lib/base-url";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { resolveApprovalSource } from "@/lib/workflows/resolve-approval-source";
@@ -40,9 +41,12 @@ export async function createExtension(
     throw new NotFoundError("LeaveRequest");
   }
 
-  if (leave.status !== LEAVE_REQUEST_STATUS.APPROVED) {
+  if (
+    leave.status !== LEAVE_REQUEST_STATUS.APPROVED &&
+    leave.status !== LEAVE_REQUEST_STATUS.OVERDUE
+  ) {
     throw new ConflictError(
-      "Can only extend APPROVED leave requests"
+      "Can only extend APPROVED or OVERDUE leave requests"
     );
   }
 
@@ -103,9 +107,12 @@ export async function createExtension(
 
     if (!leaveInTx) throw new NotFoundError("LeaveRequest");
 
-    if (leaveInTx.status !== LEAVE_REQUEST_STATUS.APPROVED) {
+    if (
+      leaveInTx.status !== LEAVE_REQUEST_STATUS.APPROVED &&
+      leaveInTx.status !== LEAVE_REQUEST_STATUS.OVERDUE
+    ) {
       throw new ConflictError(
-        "Can only extend APPROVED leave requests"
+        "Can only extend APPROVED or OVERDUE leave requests"
       );
     }
 
@@ -238,6 +245,9 @@ export async function createExtension(
             leaveRequestId,
             {
               endAt: requestedEnd,
+              // An extended OVERDUE leave is authorized again through the new
+              // end date; no-op for already-APPROVED leaves.
+              status: LEAVE_REQUEST_STATUS.APPROVED,
             },
             tx
           );
@@ -260,7 +270,7 @@ export async function createExtension(
         const approvalId = stepKeyToApprovalId.get(step.stepKey);
         if (!approvalId) continue;
 
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+        const baseUrl = getPublicBaseUrl();
         await outboxService.publish({
           eventType: OUTBOX_EVENT_TYPE.PARENT_APPROVAL_REQUIRED,
           aggregateType: AGGREGATE_TYPE.LEAVE_EXTENSION,

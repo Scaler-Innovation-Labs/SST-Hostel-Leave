@@ -17,6 +17,7 @@ export type ConfigStatus = {
     configured: boolean;
     botToken: boolean;
     channelId: boolean;
+    pocChannelId: boolean;
   };
   system: {
     baseUrl: boolean;

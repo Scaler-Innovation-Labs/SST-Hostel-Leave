@@ -1,7 +1,7 @@
 import type { InferSelectModel } from "drizzle-orm";
 import { and, asc, desc, eq, inArray, like, not, notInArray, or, sql } from "drizzle-orm";
 
-import { roles, userRoles, users } from "@/db";
+import { hostels, roles, userRoles, users } from "@/db";
 import { db } from "@/lib/db";
 
 export type User = InferSelectModel<typeof users>;
@@ -14,6 +14,8 @@ export type UserWithRoles = User & {
     assignedAt: Date;
     scopeType: string | null;
     scopeId: string | null;
+    /** Name of the scoped entity (e.g. hostel name) when scopeId is set. */
+    scopeName: string | null;
   }>;
 };
 
@@ -99,7 +101,7 @@ export const userRepository = {
       .offset((filters.page - 1) * filters.limit);
 
     const userIds = rows.map((r) => r.id);
-    const roleMap = new Map<string, Array<{ roleId: string; roleCode: string; roleName: string; assignedAt: Date; scopeType: string | null; scopeId: string | null }>>();
+    const roleMap = new Map<string, Array<{ roleId: string; roleCode: string; roleName: string; assignedAt: Date; scopeType: string | null; scopeId: string | null; scopeName: string | null }>>();
     if (userIds.length > 0) {
       const allUserRoles = await dbClient
         .select({
@@ -115,12 +117,40 @@ export const userRepository = {
         .innerJoin(roles, eq(userRoles.roleId, roles.id))
         .where(inArray(userRoles.userId, userIds));
 
+      const scopeIds = [
+        ...new Set(
+          allUserRoles
+            .map((ur) => ur.scopeId)
+            .filter((id): id is string => !!id)
+        ),
+      ];
+      const hostelsByScopeId =
+        scopeIds.length > 0
+          ? new Map(
+              (
+                await dbClient
+                  .select({ id: hostels.id, name: hostels.name })
+                  .from(hostels)
+                  .where(inArray(hostels.id, scopeIds))
+              ).map((h) => [h.id, h.name])
+            )
+          : new Map<string, string>();
+
       for (const ur of allUserRoles) {
         const list = roleMap.get(ur.userId);
+        const row = {
+          roleId: ur.roleId,
+          roleCode: ur.roleCode,
+          roleName: ur.roleName,
+          assignedAt: ur.assignedAt,
+          scopeType: ur.scopeType,
+          scopeId: ur.scopeId,
+          scopeName: ur.scopeId ? (hostelsByScopeId.get(ur.scopeId) ?? null) : null,
+        };
         if (list) {
-          list.push({ roleId: ur.roleId, roleCode: ur.roleCode, roleName: ur.roleName, assignedAt: ur.assignedAt, scopeType: ur.scopeType, scopeId: ur.scopeId });
+          list.push(row);
         } else {
-          roleMap.set(ur.userId, [{ roleId: ur.roleId, roleCode: ur.roleCode, roleName: ur.roleName, assignedAt: ur.assignedAt, scopeType: ur.scopeType, scopeId: ur.scopeId }]);
+          roleMap.set(ur.userId, [row]);
         }
       }
     }
@@ -164,9 +194,31 @@ export const userRepository = {
       .innerJoin(roles, eq(userRoles.roleId, roles.id))
       .where(eq(userRoles.userId, id));
 
+    const scopeIds = [
+      ...new Set(
+        userRolesRows
+          .map((ur) => ur.scopeId)
+          .filter((id): id is string => !!id)
+      ),
+    ];
+    const hostelsByScopeId =
+      scopeIds.length > 0
+        ? new Map(
+            (
+              await dbClient
+                .select({ id: hostels.id, name: hostels.name })
+                .from(hostels)
+                .where(inArray(hostels.id, scopeIds))
+            ).map((h) => [h.id, h.name])
+          )
+        : new Map<string, string>();
+
     return {
       ...rows[0]!,
-      userRoles: userRolesRows,
+      userRoles: userRolesRows.map((ur) => ({
+        ...ur,
+        scopeName: ur.scopeId ? (hostelsByScopeId.get(ur.scopeId) ?? null) : null,
+      })),
     };
   },
 

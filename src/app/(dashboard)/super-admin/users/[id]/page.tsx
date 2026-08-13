@@ -267,21 +267,30 @@ export default function SuperAdminUserDetailPage() {
                   No roles assigned
                 </p>
               ) : (
-                user.userRoles.map((r) => (
+                user.userRoles.map((r, index) => (
                   <div
-                    key={r.roleCode}
+                    key={`${r.roleId}-${r.scopeType ?? "ALL"}-${r.scopeId ?? "ALL"}-${index}`}
                     className={`rounded-xl border px-4 py-3 ${ROLE_STYLES[r.roleCode] ?? "bg-muted text-muted-foreground border-border"}`}
                   >
                     <div className="flex items-center gap-2">
                       <Shield className="h-4 w-4 shrink-0" />
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-sm font-medium">
                           {ROLE_LABELS[r.roleCode] ?? r.roleName}
+                          {r.scopeType === "HOSTEL" && r.scopeName && (
+                            <span className="ml-1.5 text-[10px] font-normal opacity-60">
+                              · {r.scopeName}
+                            </span>
+                          )}
+                          {r.scopeType === "HOSTEL" && !r.scopeName && (
+                            <span className="ml-1.5 text-[10px] font-normal opacity-60">
+                              · Hostel-scoped
+                            </span>
+                          )}
                         </p>
                         {r.assignedAt && (
                           <p className="text-[10px] opacity-70">
-                            Since{" "}
-                            {new Date(r.assignedAt).toLocaleDateString()}
+                            Since {new Date(r.assignedAt).toLocaleDateString()}
                           </p>
                         )}
                       </div>

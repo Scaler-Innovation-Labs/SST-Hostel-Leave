@@ -16,6 +16,7 @@ import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 import type { CreateLeaveDto } from "@/dto/leave/create-leave.dto";
+import { getPublicBaseUrl } from "@/lib/base-url";
 import { db } from "@/lib/db";
 import { AuthorizationError, ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { resolveApprovalSource } from "@/lib/workflows/resolve-approval-source";
@@ -272,7 +273,7 @@ export async function createLeave(
         const approvalId = stepKeyToApprovalId.get(step.stepKey);
         if (!approvalId) continue;
 
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+        const baseUrl = getPublicBaseUrl();
         await outboxService.publish({
           eventType: OUTBOX_EVENT_TYPE.PARENT_APPROVAL_REQUIRED,
           aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,

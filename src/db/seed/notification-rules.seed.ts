@@ -27,14 +27,23 @@ type LeaveTypeRuleDraft = {
   rules: RuleDraft[];
 };
 
+// Staff alerts fire when the relevant workflow step becomes current, never on
+// submission:
+//   - POC review  → LEAVE_POC_REVIEW_REQUIRED (POC step current, i.e. the
+//     parent already approved when a parent step exists)
+//   - Admin review → LEAVE_APPROVAL_REQUIRED (ADMIN step current, i.e. after
+//     POC or parent approval)
+// Leave types whose FIRST step is the POC step (no parent step) keep their
+// POC alert on LEAVE_SUBMITTED so the POC is notified immediately.
 const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
   {
     leaveTypeCode: "RE_EXAM",
     rules: [
       {
-        eventType: NOTIFICATION_EVENT.LEAVE_SUBMITTED,
+        // Parent approved → ADMIN step current.
+        eventType: NOTIFICATION_EVENT.LEAVE_APPROVAL_REQUIRED,
         templateCode: "leave_submitted_slack_re_exam",
-        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.WARDEN],
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.HOSTEL_ADMIN],
         channels: [NOTIFICATION_CHANNEL.SLACK],
         enabled: true,
         customRecipients: null,
@@ -61,9 +70,10 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
     leaveTypeCode: "LONG_LEAVE",
     rules: [
       {
-        eventType: NOTIFICATION_EVENT.LEAVE_SUBMITTED,
+        // Parent approved → ADMIN step current.
+        eventType: NOTIFICATION_EVENT.LEAVE_APPROVAL_REQUIRED,
         templateCode: "leave_submitted_slack_long_leave",
-        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.WARDEN],
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.HOSTEL_ADMIN],
         channels: [NOTIFICATION_CHANNEL.SLACK],
         enabled: true,
         customRecipients: null,
@@ -90,9 +100,10 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
     leaveTypeCode: "LATE_ENTRY",
     rules: [
       {
-        eventType: NOTIFICATION_EVENT.LEAVE_SUBMITTED,
+        // Parent approved → ADMIN step current.
+        eventType: NOTIFICATION_EVENT.LEAVE_APPROVAL_REQUIRED,
         templateCode: "leave_submitted_slack_late_entry",
-        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.WARDEN],
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.HOSTEL_ADMIN],
         channels: [NOTIFICATION_CHANNEL.SLACK],
         enabled: true,
         customRecipients: null,
@@ -119,6 +130,8 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
     leaveTypeCode: "LATE_STAY_COLLEGE",
     rules: [
       {
+        // No parent step — the POC step is first, so the POC is alerted on
+        // submission and acts immediately.
         eventType: NOTIFICATION_EVENT.LEAVE_SUBMITTED,
         templateCode: "leave_submitted_slack_late_stay_poc",
         recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.POC],
@@ -134,15 +147,26 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
         enabled: true,
         customRecipients: null,
       },
+      {
+        // POC approved → the ADMIN step is now current: alert the hostel's
+        // admin(s) via Slack using the "awaiting your review" template.
+        eventType: NOTIFICATION_EVENT.LEAVE_APPROVAL_REQUIRED,
+        templateCode: "leave_submitted_slack_late_stay_admin",
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.HOSTEL_ADMIN],
+        channels: [NOTIFICATION_CHANNEL.SLACK],
+        enabled: true,
+        customRecipients: null,
+      },
     ],
   },
   {
     leaveTypeCode: "DIFFERENT_HOSTEL",
     rules: [
       {
-        eventType: NOTIFICATION_EVENT.LEAVE_SUBMITTED,
+        // Parent approved → ADMIN step current.
+        eventType: NOTIFICATION_EVENT.LEAVE_APPROVAL_REQUIRED,
         templateCode: "leave_submitted_slack_diff_hostel",
-        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.WARDEN],
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.HOSTEL_ADMIN],
         channels: [NOTIFICATION_CHANNEL.SLACK],
         enabled: true,
         customRecipients: null,
@@ -169,14 +193,6 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
     leaveTypeCode: "HOLIDAY",
     rules: [
       {
-        eventType: NOTIFICATION_EVENT.LEAVE_SUBMITTED,
-        templateCode: "leave_submitted_slack_holiday",
-        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.WARDEN],
-        channels: [NOTIFICATION_CHANNEL.SLACK],
-        enabled: true,
-        customRecipients: null,
-      },
-      {
         eventType: NOTIFICATION_EVENT.LEAVE_APPROVED,
         templateCode: "leave_approved_email_holiday",
         recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT, NOTIFICATION_RECIPIENT_TYPE.PARENT],
@@ -190,9 +206,20 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
     leaveTypeCode: "INTERNSHIP",
     rules: [
       {
-        eventType: NOTIFICATION_EVENT.LEAVE_SUBMITTED,
+        // Parent approved → POC step current: alert the POC now (not on
+        // submission, which happens before the parent has reviewed).
+        eventType: NOTIFICATION_EVENT.LEAVE_POC_REVIEW_REQUIRED,
         templateCode: "leave_submitted_slack_internship_poc",
         recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.POC],
+        channels: [NOTIFICATION_CHANNEL.SLACK],
+        enabled: true,
+        customRecipients: null,
+      },
+      {
+        // POC approved → ADMIN step current: alert the hostel's admin(s).
+        eventType: NOTIFICATION_EVENT.LEAVE_APPROVAL_REQUIRED,
+        templateCode: "leave_submitted_slack_internship_admin",
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.HOSTEL_ADMIN],
         channels: [NOTIFICATION_CHANNEL.SLACK],
         enabled: true,
         customRecipients: null,
@@ -219,9 +246,19 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
     leaveTypeCode: "MARRIAGE_BEREAVEMENT",
     rules: [
       {
-        eventType: NOTIFICATION_EVENT.LEAVE_SUBMITTED,
+        // Parent approved → POC step current: alert the POC now.
+        eventType: NOTIFICATION_EVENT.LEAVE_POC_REVIEW_REQUIRED,
+        templateCode: "leave_submitted_slack_marriage_poc",
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.POC],
+        channels: [NOTIFICATION_CHANNEL.SLACK],
+        enabled: true,
+        customRecipients: null,
+      },
+      {
+        // POC approved → ADMIN step current: alert the hostel's admin(s).
+        eventType: NOTIFICATION_EVENT.LEAVE_APPROVAL_REQUIRED,
         templateCode: "leave_submitted_slack_marriage",
-        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.WARDEN],
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.HOSTEL_ADMIN],
         channels: [NOTIFICATION_CHANNEL.SLACK],
         enabled: true,
         customRecipients: null,
@@ -243,6 +280,19 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
         customRecipients: null,
       },
     ],
+  },
+];
+
+// Global rules apply to every leave type (leave_type_id = NULL). OVERDUE
+// alerts email the student only, asking them to extend the leave.
+const GLOBAL_RULES: RuleDraft[] = [
+  {
+    eventType: NOTIFICATION_EVENT.LEAVE_OVERDUE,
+    templateCode: "leave_overdue_email_student",
+    recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT],
+    channels: [NOTIFICATION_CHANNEL.EMAIL],
+    enabled: true,
+    customRecipients: null,
   },
 ];
 
@@ -272,6 +322,53 @@ export async function seedNotificationRules() {
 
   let inserted = 0;
 
+  const insertRule = async (rule: RuleDraft, leaveTypeId: string | null) => {
+    const templateId = templatesByCode.get(rule.templateCode);
+    if (!templateId) {
+      logger.warn("Template code not found", { templateCode: rule.templateCode });
+      return;
+    }
+
+    const [created] = await db
+      .insert(notificationRules)
+      .values({
+        leaveTypeId,
+        eventType: rule.eventType,
+        templateId,
+        enabled: rule.enabled,
+        customRecipients: rule.customRecipients,
+      })
+      .returning();
+
+    if (!created) return;
+
+    const ruleId = created.id;
+
+    if (rule.recipientTypes.length > 0) {
+      await db.insert(notificationRuleRecipients).values(
+        rule.recipientTypes.map((r) => ({
+          ruleId,
+          recipientType: r,
+        })),
+      );
+    }
+
+    if (rule.channels.length > 0) {
+      await db.insert(notificationRuleChannels).values(
+        rule.channels.map((c) => ({
+          ruleId,
+          channel: c,
+        })),
+      );
+    }
+
+    inserted++;
+  };
+
+  for (const rule of GLOBAL_RULES) {
+    await insertRule(rule, null);
+  }
+
   for (const group of LEAVE_TYPE_RULES) {
     const leaveTypeId = leaveTypeByCode.get(group.leaveTypeCode);
     if (!leaveTypeId) {
@@ -280,46 +377,7 @@ export async function seedNotificationRules() {
     }
 
     for (const rule of group.rules) {
-      const templateId = templatesByCode.get(rule.templateCode);
-      if (!templateId) {
-        logger.warn("Template code not found", { templateCode: rule.templateCode });
-        continue;
-      }
-
-      const [created] = await db
-        .insert(notificationRules)
-        .values({
-          leaveTypeId,
-          eventType: rule.eventType,
-          templateId,
-          enabled: rule.enabled,
-          customRecipients: rule.customRecipients,
-        })
-        .returning();
-
-      if (!created) continue;
-
-      const ruleId = created.id;
-
-      if (rule.recipientTypes.length > 0) {
-        await db.insert(notificationRuleRecipients).values(
-          rule.recipientTypes.map((r) => ({
-            ruleId,
-            recipientType: r,
-          })),
-        );
-      }
-
-      if (rule.channels.length > 0) {
-        await db.insert(notificationRuleChannels).values(
-          rule.channels.map((c) => ({
-            ruleId,
-            channel: c,
-          })),
-        );
-      }
-
-      inserted++;
+      await insertRule(rule, leaveTypeId);
     }
   }
 

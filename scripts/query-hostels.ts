@@ -14,6 +14,7 @@ async function main() {
         code: r.code,
         name: r.name,
         slackAdminGroupId: r.slackAdminGroupId,
+        slackChannelId: r.slackChannelId,
         isActive: r.isActive,
       })),
       null,

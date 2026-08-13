@@ -9,5 +9,5 @@ export default function SuperAdminApprovalDetailPage() {
   const router = useRouter();
   const id = params.id as string;
 
-  return <ApprovalDetailView leaveId={id} onBack={() => router.push("/super-admin/approvals")} />;
+  return <ApprovalDetailView leaveId={id} onBack={() => router.push("/super-admin/approvals")} viewerRole="SUPER_ADMIN" />;
 }

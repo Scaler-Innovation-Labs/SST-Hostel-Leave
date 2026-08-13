@@ -92,11 +92,6 @@ export const NAVIGATION = {
       href: ROUTES.POC_DASHBOARD,
       icon: LayoutDashboard,
     },
-    {
-      label: "Approvals",
-      href: ROUTES.POC_APPROVALS,
-      icon: FileText,
-    },
   ],
 
   guard: [

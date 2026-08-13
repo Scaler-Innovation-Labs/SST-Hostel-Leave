@@ -254,6 +254,115 @@ describe("parentApproveDecision", () => {
     expect(mockAuditRecord).toHaveBeenCalled();
   });
 
+  it("publishes LEAVE_APPROVAL_REQUIRED when a next step becomes current after parent approval", async () => {
+    mockFindByParentApprovalToken.mockResolvedValue({
+      id: "LA1",
+      leaveRequestId: "LR1",
+      leaveExtensionId: null,
+      leaveExtension: null,
+      approverParentId: "P1",
+      parentApprovalExpiresAt: new Date(Date.now() + 3600000),
+      decision: "PENDING",
+      parentApprovalToken: TOKEN_HASH,
+      stepOrder: 1,
+      studentName: "Test",
+      studentRollNumber: "001",
+      leaveRequest: { id: "LR1", reason: "r", startAt: new Date(), endAt: new Date(), status: "PENDING", submittedForm: null },
+    });
+    mockUpdateParentDecision.mockResolvedValue({ id: "LA1", decision: "APPROVED" });
+    mockFindNextByDecision.mockResolvedValue({
+      stepKey: "POC_APPROVAL",
+      stepOrder: 2,
+    });
+    mockLeaveFindById.mockResolvedValue({
+      id: "LR1",
+      studentId: "S1",
+    });
+
+    const result = await parentApproveDecision(RAW_TOKEN, {
+      decision: "APPROVED",
+    });
+
+    expect(result.decision).toBe("APPROVED");
+    expect(mockLeaveUpdateCurrentStep).toHaveBeenCalledWith(
+      "LR1",
+      "POC_APPROVAL",
+      2,
+      expect.anything()
+    );
+    expect(outboxService.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "LEAVE_APPROVAL_REQUIRED",
+        aggregateId: "LR1",
+        payload: expect.objectContaining({
+          leaveId: "LR1",
+          studentId: "S1",
+          stepKey: "POC_APPROVAL",
+          stepOrder: 2,
+        }),
+      }),
+      expect.anything()
+    );
+    expect(mockLeaveUpdateById).not.toHaveBeenCalled();
+  });
+
+  it("publishes LEAVE_APPROVAL_REQUIRED when a next extension step becomes current", async () => {
+    mockFindByParentApprovalToken.mockResolvedValue({
+      id: "LA1",
+      leaveRequestId: "LR1",
+      leaveExtensionId: "EXT1",
+      leaveExtension: {
+        id: "EXT1",
+        extensionNumber: 2,
+        reason: "Need more time",
+        currentEndAt: new Date("2026-06-15"),
+        requestedEndAt: new Date("2026-06-22"),
+        status: "PENDING",
+        submittedForm: null,
+        leaveRequestId: "LR1",
+      },
+      approverParentId: "P1",
+      parentApprovalExpiresAt: new Date(Date.now() + 3600000),
+      decision: "PENDING",
+      parentApprovalToken: TOKEN_HASH,
+      stepOrder: 1,
+      studentName: "Test",
+      studentRollNumber: "001",
+      leaveRequest: null,
+    });
+    mockUpdateParentDecision.mockResolvedValue({ id: "LA1", decision: "APPROVED" });
+    mockFindNextByDecision.mockResolvedValue({
+      stepKey: "ADMIN_APPROVAL",
+      stepOrder: 3,
+    });
+
+    const result = await parentApproveDecision(RAW_TOKEN, {
+      decision: "APPROVED",
+    });
+
+    expect(result.decision).toBe("APPROVED");
+    expect(mockExtensionUpdateCurrentStep).toHaveBeenCalledWith(
+      "EXT1",
+      "ADMIN_APPROVAL",
+      3,
+      expect.anything()
+    );
+    expect(outboxService.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "LEAVE_APPROVAL_REQUIRED",
+        aggregateId: "EXT1",
+        payload: expect.objectContaining({
+          leaveId: "LR1",
+          extensionId: "EXT1",
+          stepKey: "ADMIN_APPROVAL",
+          stepOrder: 3,
+        }),
+      }),
+      expect.anything()
+    );
+    expect(mockExtensionUpdateById).not.toHaveBeenCalled();
+  });
+
   it("rejects extension via parent decision", async () => {
     mockFindByParentApprovalToken.mockResolvedValue({
       id: "LA1",

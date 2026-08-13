@@ -9,6 +9,15 @@ import { toast } from "sonner";
 
 import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
 import type { CreateLeaveDto } from "@/dto/leave/create-leave.dto";
@@ -38,6 +47,7 @@ export default function NewLeavePage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pocUsers, setPocUsers] = useState<PocUser[]>([]);
   const [pocLoading, setPocLoading] = useState(false);
+  const [showPocPermissionNotice, setShowPocPermissionNotice] = useState(false);
 
   const {
     register,
@@ -63,6 +73,13 @@ export default function NewLeavePage() {
   );
   const needsPoc = (selectedLeaveType as LeaveTypeItem | undefined)?.requiresPoc ?? false;
   const dynamicSchema = parseLeaveFormSchema(selectedLeaveType?.formSchema);
+
+  // "Late Stay At College" requests must be verbally approved by the POC
+  // before the student submits — remind them whenever this type is selected.
+  useEffect(() => {
+    const isLateStay = selectedLeaveType?.code === "LATE_STAY_COLLEGE";
+    setShowPocPermissionNotice(isLateStay);
+  }, [selectedLeaveTypeId, selectedLeaveType?.code]);
 
   useEffect(() => {
     unregister("submittedForm");
@@ -281,6 +298,20 @@ export default function NewLeavePage() {
           </Button>
         </div>
       </form>
+
+      <AlertDialog open={showPocPermissionNotice} onOpenChange={setShowPocPermissionNotice}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>POC Permission Required</AlertDialogTitle>
+            <AlertDialogDescription>
+              Please submit your request only after getting the permission from the POC.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowPocPermissionNotice(false)}>I understand</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

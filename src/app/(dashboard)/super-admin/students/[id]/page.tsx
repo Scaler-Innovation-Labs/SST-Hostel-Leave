@@ -8,5 +8,5 @@ export default function SuperAdminStudentDetailPage() {
   const params = useParams();
   const id = params.id as string;
 
-  return <StudentDetailView studentId={id} basePath="/super-admin/students" />;
+  return <StudentDetailView studentId={id} basePath="/super-admin/students" viewerRole="SUPER_ADMIN" />;
 }

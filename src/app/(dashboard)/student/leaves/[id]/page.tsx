@@ -140,7 +140,7 @@ function SummaryHero({ leave }: { leave: Record<string, unknown> }) {
           <div>
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-xl font-bold">{leave.leaveTypeName as string} Leave</h1>
-              <StatusBadge status={status as "approved" | "pending" | "rejected" | "active" | "cancelled" | "expired" | "completed"} />
+              <StatusBadge status={status as "approved" | "pending" | "rejected" | "active" | "cancelled" | "expired" | "overdue" | "completed"} />
             </div>
             <div className="mt-3 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
               <div>
@@ -743,6 +743,10 @@ export default function StudentLeaveDetailPage() {
   const status = (leave.status as string)?.toLowerCase();
   const isPending = status === "pending";
   const isApproved = status === "approved";
+  // OVERDUE leaves can be extended (the overdue email asks the student to
+  // extend) but not cancelled by the student.
+  const isOverdue = status === "overdue";
+  const isExtendable = isApproved || isOverdue;
   const isCancellable = isPending || isApproved;
 
   const studentName = (leave.userFullName as string) || `${leave.studentFirstName ?? ""} ${leave.studentLastName ?? ""}`.trim() || "";
@@ -785,7 +789,7 @@ export default function StudentLeaveDetailPage() {
               Cancel Leave
             </Button>
           )}
-          {isApproved && (
+          {isExtendable && (
             <Button variant="default" size="sm" onClick={() => setExtending(!extending)} className="gap-1.5">
               <RotateCcw className="h-4 w-4" />
               {extending ? "Close" : "Request Extension"}
@@ -818,10 +822,10 @@ export default function StudentLeaveDetailPage() {
       )}
 
       {/* 4. QR Pass */}
-      {isApproved && <QRPassSection leaveId={id} />}
+      {(isApproved || isOverdue) && <QRPassSection leaveId={id} />}
 
       {/* 5. Questions */}
-      <AskAQuestionSection leaveId={id} />
+      <AskAQuestionSection leaveId={id} canAnswer />
 
       {/* 6. Documents */}
       <DocumentList leaveId={id} />

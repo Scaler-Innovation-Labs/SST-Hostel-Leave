@@ -125,6 +125,7 @@ export async function approveLeave(
           leaveId,
           studentId: leaveInTx.studentId,
           decision: LEAVE_APPROVAL_DECISION.REJECTED,
+          rejectedBy: "ADMIN",
         },
       }, tx);
 
@@ -152,7 +153,22 @@ export async function approveLeave(
       tx
     );
 
-    if (nextResult) return nextResult;
+    if (nextResult) {
+      // A later workflow step is now current (e.g. admin review after POC
+      // approval). Notify the next approver via the approval queue rules.
+      await outboxService.publish({
+        eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVAL_REQUIRED,
+        aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
+        aggregateId: leaveId,
+        payload: {
+          leaveId,
+          studentId: leaveInTx.studentId,
+          stepKey: nextResult.stepKey,
+          stepOrder: nextResult.stepOrder,
+        },
+      }, tx);
+      return nextResult;
+    }
 
     const nextState = getNextState(
       leaveInTx.status,

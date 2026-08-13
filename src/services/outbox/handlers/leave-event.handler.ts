@@ -7,12 +7,15 @@ import {
   NOTIFICATION_EVENT,
   type NotificationEvent,
 } from "@/constants/notification/notification-event";
+import { getRejectionTemplateCode } from "@/constants/notification/rejection-template-code";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
+import { getPublicBaseUrl } from "@/lib/base-url";
 import { logger } from "@/lib/logger";
 import { recordMovement } from "@/services/movement/record-movement.service";
 import {
@@ -28,10 +31,14 @@ const LEAVE_EVENT_TO_NOTIFICATION: Record<string, NotificationEvent> = {
   LEAVE_CANCELLED: NOTIFICATION_EVENT.LEAVE_CANCELLED,
   LEAVE_COMPLETED: NOTIFICATION_EVENT.LEAVE_COMPLETED,
   LEAVE_EXPIRED: NOTIFICATION_EVENT.LEAVE_EXPIRED,
+  LEAVE_OVERDUE: NOTIFICATION_EVENT.LEAVE_OVERDUE,
   LEAVE_EXTENDED: NOTIFICATION_EVENT.LEAVE_EXTENSION_REQUESTED,
   LEAVE_EXTENSION_APPROVED: NOTIFICATION_EVENT.LEAVE_EXTENSION_APPROVED,
   LEAVE_EXTENSION_REJECTED: NOTIFICATION_EVENT.LEAVE_EXTENSION_REJECTED,
   PARENT_APPROVAL_REQUIRED: NOTIFICATION_EVENT.PARENT_APPROVAL_REQUESTED,
+  // Fires when a later workflow step becomes current (e.g. admin review
+  // after POC approval). Rules decide who gets notified per leave type.
+  LEAVE_APPROVAL_REQUIRED: NOTIFICATION_EVENT.LEAVE_APPROVAL_REQUIRED,
 };
 
 type ResolvedContext = {
@@ -41,6 +48,7 @@ type ResolvedContext = {
   studentId?: string;
   parentId?: string;
   leaveTypeId?: string;
+  leaveTypeCode?: string;
   hostelId?: string;
   cc?: string[];
 };
@@ -120,6 +128,7 @@ async function resolveContext(
   if (studentName) variables.studentName = studentName;
   if (payload.requestNumber) variables.requestNumber = String(payload.requestNumber);
 
+  let leaveTypeCode: string | undefined;
   if (leave) {
     variables.dates = `${formatDate(leave.startAt)} – ${formatDate(leave.endAt)}`;
     variables.startDate = formatDate(leave.startAt);
@@ -127,6 +136,7 @@ async function resolveContext(
 
     const leaveType = await leaveTypeRepository.findById(leave.leaveTypeId);
     if (leaveType) {
+      leaveTypeCode = leaveType.code;
       variables.leaveCategory = leaveType.category;
       variables.leaveTypeName = leaveType.name;
     }
@@ -137,7 +147,7 @@ async function resolveContext(
   if (payload.decision) variables.decision = String(payload.decision);
   if (studentRollNumber) variables.rollNumber = studentRollNumber;
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const baseUrl = getPublicBaseUrl();
 
   // CC recipients supplied at approval time (e.g. extra recipients on the
   // student email). Only string emails are honoured.
@@ -164,6 +174,20 @@ async function resolveContext(
     }
   }
 
+  // Staff review links. POC alerts (late-stay on submit, or any POC step
+  // becoming current after parent approval) link to the POC leave detail
+  // page; admin alerts (admin step current) link to the admin detail page.
+  if (leaveId) {
+    const stepKey = String(payload.stepKey ?? "");
+    if (eventType === OUTBOX_EVENT_TYPE.LEAVE_CREATED) {
+      variables.approvalLink = `${baseUrl}/poc/approvals/${leaveId}`;
+    } else if (eventType === OUTBOX_EVENT_TYPE.LEAVE_APPROVAL_REQUIRED) {
+      variables.approvalLink = stepKey.includes(WORKFLOW_STEP_KEY.POC_APPROVAL)
+        ? `${baseUrl}/poc/approvals/${leaveId}`
+        : `${baseUrl}/admin/approvals/${leaveId}`;
+    }
+  }
+
   return {
     email,
     phone,
@@ -171,6 +195,7 @@ async function resolveContext(
     studentId: resolvedStudentId,
     parentId,
     leaveTypeId: leave?.leaveTypeId ?? undefined,
+    leaveTypeCode,
     hostelId,
     cc,
   };
@@ -191,10 +216,31 @@ export async function handleLeaveEvent(
     }
   }
 
-  const notificationType = LEAVE_EVENT_TO_NOTIFICATION[eventType];
+  // Step-aware dispatch: when a workflow step becomes current, the event is
+  // routed to the POC review channel if the step is a POC step (i.e. the
+  // parent already approved), otherwise to the admin approval-required
+  // channel (admin step current after POC/parent approval).
+  let notificationType = LEAVE_EVENT_TO_NOTIFICATION[eventType];
+  if (
+    eventType === OUTBOX_EVENT_TYPE.LEAVE_APPROVAL_REQUIRED &&
+    String(payload.stepKey ?? "").includes(WORKFLOW_STEP_KEY.POC_APPROVAL)
+  ) {
+    notificationType = NOTIFICATION_EVENT.LEAVE_POC_REVIEW_REQUIRED;
+  }
 
   if (notificationType && eventType !== OUTBOX_EVENT_TYPE.PARENT_APPROVAL_REQUIRED) {
     const context = await resolveContext(eventType, payload);
+
+    // Rejections pick their template explicitly (parent vs admin wording);
+    // every other event is dispatched through the configured rules.
+    let templateCode: string | undefined;
+    if (notificationType === NOTIFICATION_EVENT.LEAVE_REJECTED) {
+      const rejectedBy: "PARENT" | "ADMIN" =
+        payload.rejectedBy === "PARENT" ? "PARENT" : "ADMIN";
+      templateCode =
+        getRejectionTemplateCode(context.leaveTypeCode ?? "", rejectedBy) ??
+        undefined;
+    }
 
     await notificationService.notify(notificationType, {
       leaveRequestId: leaveId,
@@ -207,6 +253,7 @@ export async function handleLeaveEvent(
       recipientEmail: context.email,
       recipientPhone: context.phone,
       cc: context.cc,
+      templateCode,
       variables: context.variables,
     });
 
@@ -286,9 +333,31 @@ export async function handleLeaveEvent(
 
     if (
       eventType === OUTBOX_EVENT_TYPE.LEAVE_EXPIRED &&
-      (currentState === MOVEMENT_STATE.APPROVED_LEAVE ||
-        currentState === MOVEMENT_STATE.CHECKED_OUT ||
-        currentState === MOVEMENT_STATE.OUTSIDE_HOSTEL)
+      currentState === MOVEMENT_STATE.APPROVED_LEAVE
+    ) {
+      // EXPIRED = approved but never checked out, so the student is still
+      // inside the hostel. The permission lapses and the student reverts to
+      // IN_HOSTEL (they never physically left).
+      try {
+        await recordMovement({
+          studentId,
+          leaveRequestId: leaveId,
+          fromState: MOVEMENT_STATE.APPROVED_LEAVE,
+          toState: MOVEMENT_STATE.IN_HOSTEL,
+          eventType: MOVEMENT_EVENT.QR_INVALIDATED,
+          movementMethod: MOVEMENT_METHOD.SYSTEM,
+        });
+        logger.info("Movement recorded for leave expiry (never checked out)", { leaveId });
+      } catch (error) {
+        logger.error("Failed to record movement for leave expiry", { leaveId, error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+
+    if (
+      eventType === OUTBOX_EVENT_TYPE.LEAVE_OVERDUE &&
+      (currentState === MOVEMENT_STATE.CHECKED_OUT ||
+        currentState === MOVEMENT_STATE.OUTSIDE_HOSTEL ||
+        currentState === MOVEMENT_STATE.APPROVED_LEAVE)
     ) {
       try {
         await recordMovement({
@@ -299,9 +368,9 @@ export async function handleLeaveEvent(
           eventType: MOVEMENT_EVENT.AUTO_OVERDUE,
           movementMethod: MOVEMENT_METHOD.SYSTEM,
         });
-        logger.info("Movement recorded for leave expiry", { leaveId });
+        logger.info("Movement recorded for overdue leave", { leaveId });
       } catch (error) {
-        logger.error("Failed to record movement for leave expiry", { leaveId, error: error instanceof Error ? error.message : String(error) });
+        logger.error("Failed to record movement for overdue leave", { leaveId, error: error instanceof Error ? error.message : String(error) });
       }
     }
   }

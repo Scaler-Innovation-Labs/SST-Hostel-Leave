@@ -152,16 +152,29 @@ async function resolveRecipientContacts(
 			}));
 		}
 
-		case NOTIFICATION_RECIPIENT_TYPE.WARDEN:
 		case NOTIFICATION_RECIPIENT_TYPE.POC: {
+			// POC alerts are not scoped — every POC-role user is a recipient
+			// regardless of the hostel the leave belongs to.
+			const roleUserIds = await userRoleRepository.findUserIdsByRoleCode(ROLES.POC);
+			if (roleUserIds.length === 0) return [];
+			const pocUsers = await userRepository.findByIds(roleUserIds);
+			return pocUsers.map((u) => ({
+				email: u.email ?? undefined,
+				phone: u.phone ?? undefined,
+				userId: u.id,
+			}));
+		}
+
+		case NOTIFICATION_RECIPIENT_TYPE.WARDEN: {
 			const hostelId = context.hostelId ?? null;
 			if (!hostelId) return [];
-			const roleCode = recipientType === NOTIFICATION_RECIPIENT_TYPE.WARDEN ? "WARDEN" : ROLES.POC;
-			const roleUserIds = await userRoleRepository.findUserIdsByRoleCode(roleCode);
+			const roleUserIds = await userRoleRepository.findUserIdsByRoleCode("WARDEN");
 			if (roleUserIds.length === 0) return [];
 			const hostelUsers = await userRepository.findByIds(roleUserIds);
 			return hostelUsers
-				.filter((u) => u.hostelId === hostelId)
+				// A warden without a hostel assignment (hostelId null) is
+				// unrestricted and receives alerts for every hostel.
+				.filter((u) => !u.hostelId || u.hostelId === hostelId)
 				.map((u) => ({ email: u.email ?? undefined, phone: u.phone ?? undefined, userId: u.id }));
 		}
 
@@ -178,14 +191,32 @@ async function resolveRecipientContacts(
 			}));
 		}
 
+		case NOTIFICATION_RECIPIENT_TYPE.HOSTEL_ADMIN: {
+			const hostelId = context.hostelId ?? null;
+			if (!hostelId) return [];
+			const roleUserIds = await userRoleRepository.findUserIdsByRoleCode(ROLES.ADMIN);
+			if (roleUserIds.length === 0) return [];
+			const adminUsers = await userRepository.findByIds(roleUserIds);
+			return adminUsers
+				// An admin without a hostel assignment (hostelId null) is
+				// unrestricted and receives alerts for every hostel.
+				.filter((u) => !u.hostelId || u.hostelId === hostelId)
+				.map((u) => ({
+					email: u.email ?? undefined,
+					phone: u.phone ?? undefined,
+					userId: u.id,
+				}));
+		}
+
 		default:
 			return [];
 	}
 }
 
 async function getRecipientForChannel(
-	contact: { email?: string; phone?: string; userId?: string; parentId?: string },
-	channel: NotificationChannel
+	contact: { type?: NotificationRecipientType; email?: string; phone?: string; userId?: string; parentId?: string },
+	channel: NotificationChannel,
+	hostelId?: string
 ): Promise<string | null> {
 	switch (channel) {
 		case NOTIFICATION_CHANNEL.EMAIL:
@@ -196,7 +227,20 @@ async function getRecipientForChannel(
 		case NOTIFICATION_CHANNEL.WEBHOOK:
 			return contact.userId ?? null;
 		case NOTIFICATION_CHANNEL.SLACK:
-			return process.env.SLACK_CHANNEL_ID ?? "slack-channel";
+			// POC-targeted alerts post to their own channel (SLACK_POC_CHANNEL_ID),
+			// falling back to the main channel when unset.
+			if (contact.type === NOTIFICATION_RECIPIENT_TYPE.POC) {
+				return process.env.SLACK_POC_CHANNEL_ID || process.env.SLACK_CHANNEL_ID || "slack-channel";
+			}
+			// Admin/staff alerts follow the hostel's own Slack channel when one is
+			// configured on the hostel, falling back to the global SLACK_CHANNEL_ID.
+			if (hostelId) {
+				const hostel = await hostelRepository.findById(hostelId);
+				if (hostel?.slackChannelId) return hostel.slackChannelId;
+			}
+			// "slack-channel" is a sentinel meaning "no channel configured" — the
+			// provider stubs out when the env fallback is also missing.
+			return process.env.SLACK_CHANNEL_ID || "slack-channel";
 		default:
 			return null;
 	}
@@ -295,6 +339,7 @@ export const notificationService = {
 					const recipient = await getRecipientForChannel(
 						{ email: context.recipientEmail, phone: context.recipientPhone, userId: context.userId },
 						channel,
+						context.hostelId,
 					);
 					if (recipient) {
 						await deliverToRecipient(eventType, context, template, channel, recipient, context.userId, context.parentId);
@@ -308,8 +353,10 @@ export const notificationService = {
 				context.leaveTypeId,
 			);
 
+			// Rule-driven only — no fallback. If nothing is configured for this
+			// event + leave type, nothing is sent (this prevents sending every
+			// matching template for the event, which duplicated parent SMS).
 			if (rules.length === 0) {
-				await this.notifyViaTemplates(eventType, context);
 				return { success: true, failures };
 			}
 
@@ -360,9 +407,46 @@ export const notificationService = {
 						continue;
 					}
 
-					// For non-email channels: send individually
+					// Slack: the recipient is a channel, so multiple contacts (e.g.
+					// several admins/POCs) must not produce duplicate posts — send
+					// exactly one message per unique channel.
+					if (channel === NOTIFICATION_CHANNEL.SLACK) {
+						const channels = [
+							...new Set(
+								(
+									await Promise.all(
+										allContacts.map((c) =>
+											getRecipientForChannel(c, channel, context.hostelId)
+										)
+									)
+								).filter((r): r is string => !!r)
+							),
+						];
+
+						for (const recipient of channels) {
+							try {
+								const primaryContact =
+									allContacts.find((c) => c.userId) ?? allContacts[0];
+								await deliverToRecipient(
+									eventType,
+									context,
+									template,
+									channel,
+									recipient,
+									primaryContact?.userId,
+									primaryContact?.parentId,
+								);
+							} catch (deliveryError) {
+								const msg = `Failed to deliver ${channel} to ${recipient}: ${deliveryError instanceof Error ? deliveryError.message : String(deliveryError)}`;
+								failures.push(msg);
+							}
+						}
+						continue;
+					}
+
+					// Other non-email channels (per-user): send individually
 					for (const contact of allContacts) {
-						const recipient = await getRecipientForChannel(contact, channel);
+						const recipient = await getRecipientForChannel(contact, channel, context.hostelId);
 						if (!recipient) continue;
 
 						try {
@@ -420,33 +504,5 @@ export const notificationService = {
 			sentAt: result.success ? new Date() : null,
 			metadata: context?.metadata ?? null,
 		});
-	},
-
-	async notifyViaTemplates(
-		eventType: NotificationEvent,
-		context: NotificationContext
-	): Promise<void> {
-		const templates = await notificationTemplateRepository.findActiveByEventKey(eventType);
-		if (templates.length === 0) return;
-
-		for (const template of templates) {
-			const channel = template.channel as NotificationChannel;
-			const recipient = await getRecipientForChannel(
-				{ email: context.recipientEmail, phone: context.recipientPhone, userId: context.userId },
-				channel,
-			);
-
-			if (!recipient) continue;
-
-			await deliverToRecipient(
-				eventType,
-				context,
-				template,
-				channel,
-				recipient,
-				context.userId,
-				context.parentId,
-			);
-		}
 	},
 };

@@ -134,6 +134,7 @@ async function handleLeaveDecision(
       aggregateId: approval.leaveRequestId!,
       payload: {
         leaveRequestId: approval.leaveRequestId,
+        rejectedBy: "PARENT",
       },
     }, tx);
   } else {
@@ -153,6 +154,26 @@ async function handleLeaveDecision(
         next.stepOrder,
         tx
       );
+
+      const leaveInTx = await leaveRepository.findById(
+        approval.leaveRequestId!,
+        tx
+      );
+
+      // A later workflow step is now current (e.g. POC/admin review after
+      // parent approval). Publish the step-current event so the approval
+      // queue Slack alerts fire — without it no notification reaches POC/admin.
+      await outboxService.publish({
+        eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVAL_REQUIRED,
+        aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
+        aggregateId: approval.leaveRequestId!,
+        payload: {
+          leaveId: approval.leaveRequestId,
+          studentId: leaveInTx?.studentId,
+          stepKey: next.stepKey,
+          stepOrder: next.stepOrder,
+        },
+      }, tx);
     } else {
       await leaveRepository.updateById(
         approval.leaveRequestId!,
@@ -259,6 +280,21 @@ async function handleExtensionDecision(
         next.stepOrder,
         tx
       );
+
+      // A later workflow step is now current (e.g. admin review after parent
+      // approval). Publish the step-current event so the approval queue Slack
+      // alerts fire — without it no notification reaches the next approver.
+      await outboxService.publish({
+        eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVAL_REQUIRED,
+        aggregateType: AGGREGATE_TYPE.LEAVE_EXTENSION,
+        aggregateId: extensionId,
+        payload: {
+          leaveId: leaveRequestId,
+          extensionId,
+          stepKey: next.stepKey,
+          stepOrder: next.stepOrder,
+        },
+      }, tx);
     } else {
       const extension = await leaveExtensionRepository.findByIdWithLeave(extensionId, tx);
 

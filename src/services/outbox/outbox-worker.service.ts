@@ -7,7 +7,7 @@ import { handleLeaveEvent } from "./handlers/leave-event.handler";
 import { handleMovementEvent } from "./handlers/movement-event.handler";
 import { handleNotificationEvent } from "./handlers/notification-event.handler";
 
-const MAX_RETRIES = 5;
+export const MAX_RETRIES = 5;
 
 function getHandler(
   eventType: string

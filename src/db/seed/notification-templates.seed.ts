@@ -1,6 +1,6 @@
 import { NOTIFICATION_CHANNEL } from "@/constants/notification/notification-channel";
 import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event";
-import { notificationTemplates } from "@/db";
+import { leaveTypes as leaveTypesTable, notificationTemplates } from "@/db";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 
@@ -519,6 +519,20 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Dear Parent,{{StudentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
     },
     {
+      code: "leave_submitted_slack_marriage_poc",
+      eventKey: NOTIFICATION_EVENT.LEAVE_POC_REVIEW_REQUIRED,
+      channel: NOTIFICATION_CHANNEL.SLACK,
+      subject: null,
+      templateBody:
+        "Dear POC,\n\n" +
+        "A Special Leave ({{leaveCategory}}) request approved by the parent is awaiting your review.\n" +
+        "Student: {{studentName}} ({{rollNumber}})\n" +
+        "Leave Duration: {{startDate}} to {{endDate}}\n" +
+        "Reason: {{reason}}\n\n" +
+        "Kindly review the request and approve or reject it using the link below:\n" +
+        "{{approvalLink}}",
+    },
+    {
       code: "leave_submitted_slack_marriage",
       eventKey: NOTIFICATION_EVENT.LEAVE_SUBMITTED,
       channel: NOTIFICATION_CHANNEL.SLACK,
@@ -536,22 +550,77 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
 
 export { LEAVE_TYPE_TEMPLATES };
 
+// Global templates apply to every leave type (leave_type_id = NULL). OVERDUE
+// alerts go to the student only: the student checked out but has not returned
+// by the leave end date, and is asked to extend the leave.
+const GLOBAL_TEMPLATES: TemplateSeed[] = [
+  {
+    code: "leave_overdue_email_student",
+    eventKey: NOTIFICATION_EVENT.LEAVE_OVERDUE,
+    channel: NOTIFICATION_CHANNEL.EMAIL,
+    subject: "Your Leave is Overdue — Please Extend or Return",
+    templateBody:
+      "Dear {{studentName}},\n\n" +
+      "Your {{leaveTypeName}} leave for the period from {{startDate}} to {{endDate}} is now overdue. You checked out of the hostel for this leave but have not yet checked back in.\n\n" +
+      "Please return to the hostel immediately, or extend your leave so your absence remains authorized. Extensions can be requested from your leave details page.\n\n" +
+      "Your QR pass remains active for checking back in.\n\n" +
+      "If you require any assistance, kindly contact the Hostel Administration.\n\n" +
+      "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+  },
+];
+
 export async function seedNotificationTemplates() {
   let count = 0;
 
-  const allTemplates = Object.values(LEAVE_TYPE_TEMPLATES).flat();
+  const leaveTypeRows = await db
+    .select({ id: leaveTypesTable.id, code: leaveTypesTable.code })
+    .from(leaveTypesTable);
+  const leaveTypeIdByCode = new Map(leaveTypeRows.map((lt) => [lt.code, lt.id]));
 
-  for (const template of allTemplates) {
+  for (const [leaveTypeCode, templates] of Object.entries(LEAVE_TYPE_TEMPLATES)) {
+    const leaveTypeId = leaveTypeIdByCode.get(leaveTypeCode) ?? null;
+
+    for (const template of templates) {
+      await db.insert(notificationTemplates).values({
+        code: template.code,
+        eventKey: template.eventKey,
+        channel: template.channel as "EMAIL" | "SMS" | "PUSH" | "WEBHOOK" | "SLACK",
+        leaveTypeId,
+        subject: template.subject,
+        templateBody: template.templateBody,
+        isActive: true,
+      }).onConflictDoUpdate({
+        target: notificationTemplates.code,
+        set: {
+          subject: template.subject,
+          templateBody: template.templateBody,
+          leaveTypeId,
+          isActive: true,
+          updatedAt: new Date(),
+        },
+      });
+      count++;
+    }
+  }
+
+  for (const template of GLOBAL_TEMPLATES) {
     await db.insert(notificationTemplates).values({
       code: template.code,
       eventKey: template.eventKey,
       channel: template.channel as "EMAIL" | "SMS" | "PUSH" | "WEBHOOK" | "SLACK",
+      leaveTypeId: null,
       subject: template.subject,
       templateBody: template.templateBody,
       isActive: true,
     }).onConflictDoUpdate({
       target: notificationTemplates.code,
-      set: { subject: template.subject, templateBody: template.templateBody, isActive: true, updatedAt: new Date() },
+      set: {
+        subject: template.subject,
+        templateBody: template.templateBody,
+        leaveTypeId: null,
+        isActive: true,
+        updatedAt: new Date(),
+      },
     });
     count++;
   }

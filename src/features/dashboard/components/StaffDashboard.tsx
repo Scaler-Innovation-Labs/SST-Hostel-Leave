@@ -35,6 +35,8 @@ type StaffDashboardProps = {
   basePath: string;
   title: string;
   description: string;
+  /** Quick actions shown in the grid. Replaces the standard role actions when provided. */
+  actions?: StaffQuickAction[];
   /** Extra quick actions appended after the standard ones (e.g. role-specific pages). */
   extraActions?: StaffQuickAction[];
 };
@@ -90,7 +92,7 @@ function SectionHeader({ title, children }: { title: string; children?: React.Re
   );
 }
 
-export function StaffDashboard({ basePath, title, description, extraActions = [] }: StaffDashboardProps) {
+export function StaffDashboard({ basePath, title, description, actions, extraActions = [] }: StaffDashboardProps) {
   const { stats, isLoading, isError, mutate } = useDashboardStats();
 
   if (isLoading) return <LoadingState count={4} />;
@@ -99,13 +101,13 @@ export function StaffDashboard({ basePath, title, description, extraActions = []
   const s = stats as StaffDashboardStats;
   const pendingTotal = s.pendingApprovals + s.pendingExtensions;
 
-  const actions = [...defaultActions(basePath), ...extraActions];
+  const actionsToShow = (actions ?? defaultActions(basePath)).concat(extraActions);
   const counts: Record<string, number> = {
     [`${basePath}/approvals`]: s.pendingApprovals,
     [`${basePath}/extension-approvals`]: s.pendingExtensions,
     [`${basePath}/overdue`]: s.overdueStudents,
   };
-  const withCount = actions.map((action) => ({
+  const withCount = actionsToShow.map((action) => ({
     ...action,
     count: counts[action.href] ?? 0,
   }));

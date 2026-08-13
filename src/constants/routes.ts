@@ -12,7 +12,6 @@ export const ROUTES = {
   ADMIN_STUDENT_DETAIL: "/admin/students",
   GUARD_SCANNER: "/guard/scanner",
   POC_DASHBOARD: "/poc/dashboard",
-  POC_APPROVALS: "/poc/approvals",
   ADMIN_APPROVALS: "/admin/approvals",
   ADMIN_EXTENSION_APPROVALS: "/admin/extension-approvals",
   ADMIN_MOVEMENTS: "/admin/movements",

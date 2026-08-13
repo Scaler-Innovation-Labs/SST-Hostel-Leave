@@ -9,10 +9,39 @@ vi.mock("@/services/notification/notification.service", () => ({
   },
 }));
 
+const mockFindLeaveById = vi.fn();
+const mockFindStudentById = vi.fn();
+const mockFindUserById = vi.fn();
+
+vi.mock("@/db/repositories/leave/leave.repository", () => ({
+  leaveRepository: {
+    findById: (...args: any[]) => mockFindLeaveById(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/student/student.repository", () => ({
+  studentRepository: {
+    findById: (...args: any[]) => mockFindStudentById(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/user/user.repository", () => ({
+  userRepository: {
+    findById: (...args: any[]) => mockFindUserById(...args),
+  },
+}));
+
 import { handleNotificationEvent } from "@/services/outbox/handlers/notification-event.handler";
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mockFindLeaveById.mockResolvedValue({
+    id: "L1",
+    studentId: "S1",
+    leaveTypeId: "LT1",
+  });
+  mockFindStudentById.mockResolvedValue({ id: "S1", userId: "U1" });
+  mockFindUserById.mockResolvedValue({ id: "U1", hostelId: "H1" });
 });
 
 function makeEvent(overrides: Record<string, unknown> = {}) {
@@ -43,9 +72,12 @@ describe("handleNotificationEvent", () => {
   it("dispatches notification with correct type and context", async () => {
     await handleNotificationEvent(makeEvent());
 
+    expect(mockFindLeaveById).toHaveBeenCalledWith("L1");
     expect(mockNotify).toHaveBeenCalledWith("LEAVE_APPROVED", {
       leaveRequestId: "L1",
       leaveExtensionId: undefined,
+      leaveTypeId: "LT1",
+      hostelId: "H1",
       userId: "U1",
       parentId: null,
       recipientEmail: "student@test.com",
@@ -66,11 +98,31 @@ describe("handleNotificationEvent", () => {
     expect(mockNotify).toHaveBeenCalledWith("LEAVE_EXTENSION_APPROVED", {
       leaveRequestId: "L1",
       leaveExtensionId: "EXT1",
+      leaveTypeId: "LT1",
+      hostelId: "H1",
       userId: "U1",
       parentId: "P1",
       recipientEmail: "student@test.com",
       recipientPhone: "+1234567890",
       variables: { extensionId: "EXT1" },
+    });
+  });
+
+  it("omits leaveTypeId and hostelId when the leave cannot be resolved", async () => {
+    mockFindLeaveById.mockResolvedValue(null);
+
+    await handleNotificationEvent(makeEvent());
+
+    expect(mockNotify).toHaveBeenCalledWith("LEAVE_APPROVED", {
+      leaveRequestId: "L1",
+      leaveExtensionId: undefined,
+      leaveTypeId: undefined,
+      hostelId: undefined,
+      userId: "U1",
+      parentId: null,
+      recipientEmail: "student@test.com",
+      recipientPhone: "+1234567890",
+      variables: { leaveId: "L1" },
     });
   });
 

@@ -20,6 +20,7 @@ type HostelItem = {
   curfewStartTime: string | null;
   curfewEndTime: string | null;
   slackAdminGroupId: string | null;
+  slackChannelId: string | null;
   isActive: boolean;
 };
 
@@ -31,6 +32,7 @@ type Draft = {
   curfewStartTime: string;
   curfewEndTime: string;
   slackAdminGroupId: string;
+  slackChannelId: string;
   isActive: boolean;
 };
 
@@ -41,6 +43,7 @@ const EMPTY_DRAFT: Draft = {
   curfewStartTime: "",
   curfewEndTime: "",
   slackAdminGroupId: "",
+  slackChannelId: "",
   isActive: true,
 };
 
@@ -62,6 +65,7 @@ export default function HostelsPage() {
       curfewStartTime: hostel.curfewStartTime ?? "",
       curfewEndTime: hostel.curfewEndTime ?? "",
       slackAdminGroupId: hostel.slackAdminGroupId ?? "",
+      slackChannelId: hostel.slackChannelId ?? "",
       isActive: hostel.isActive,
     });
     setMessage(null);
@@ -87,6 +91,7 @@ export default function HostelsPage() {
         curfewStartTime: draft.curfewStartTime || null,
         curfewEndTime: draft.curfewEndTime || null,
         slackAdminGroupId: draft.slackAdminGroupId.trim() || null,
+        slackChannelId: draft.slackChannelId.trim() || null,
         isActive: draft.isActive,
       };
       await saveHostel(payload, draft.id);
@@ -181,9 +186,16 @@ export default function HostelsPage() {
               mono
               placeholder="Slack group/user id (e.g. S0123AB456)"
             />
+            <Field
+              label="Admin Slack Channel"
+              value={draft.slackChannelId}
+              onChange={(slackChannelId) => setDraft({ ...draft, slackChannelId })}
+              mono
+              placeholder="Channel id or #name (e.g. #leave-hostel-neeladri)"
+            />
           </div>
           <p className="text-xs text-muted-foreground">
-            Added to Slack notifications as CC for this hostel&apos;s leave activity. Leave blank to disable.
+            Slack alerts for this hostel&apos;s admins post here; falls back to SLACK_CHANNEL_ID when blank. The admin tag is CC&apos;d on each post. Leave both blank to disable.
           </p>
 
           <label className="flex items-center gap-2 text-sm">

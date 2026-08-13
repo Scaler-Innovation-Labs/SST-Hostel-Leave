@@ -1,5 +1,5 @@
 import { ApiResponse } from "@/lib/api/response";
-import { processPendingEvents } from "@/services/outbox/outbox-worker.service";
+import { runRetryOutboxJob } from "@/services/cron/retry-outbox.job";
 
 export async function GET(request: Request) {
   try {
@@ -10,7 +10,9 @@ export async function GET(request: Request) {
       return ApiResponse.error("UNAUTHORIZED", "Unauthorized", 401);
     }
 
-    const result = await processPendingEvents();
+    // Resets failed events (within attempt budget) and processes pending
+    // events in a single run — the separate /api/cron/retry schedule is gone.
+    const result = await runRetryOutboxJob();
 
     return ApiResponse.success({ result });
   } catch (error) {

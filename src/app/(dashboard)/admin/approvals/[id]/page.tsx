@@ -9,5 +9,5 @@ export default function AdminApprovalDetailPage() {
   const router = useRouter();
   const id = params.id as string;
 
-  return <ApprovalDetailView leaveId={id} onBack={() => router.push("/admin/approvals")} />;
+  return <ApprovalDetailView leaveId={id} onBack={() => router.push("/admin/approvals")} viewerRole="ADMIN" />;
 }

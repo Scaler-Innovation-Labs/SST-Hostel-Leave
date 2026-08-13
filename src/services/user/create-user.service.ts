@@ -54,7 +54,16 @@ export async function createUser(dto: CreateUserDto, actorUserId: string | null 
     );
 
     if (dto.roleCodes && dto.roleCodes.length > 0) {
+      // Roles with hostel scopes are assigned by roleScopes below — a global
+      // (unscoped) row for the same role would duplicate the assignment.
+      // Empty hostelIds means "all hostels", which stays a global row.
+      const scopedCodes = new Set(
+        (dto.roleScopes ?? [])
+          .filter((s) => s.hostelIds.length > 0)
+          .map((s) => s.roleCode)
+      );
       for (const code of dto.roleCodes) {
+        if (scopedCodes.has(code)) continue;
         const roleId = roleIdsByCode.get(code);
         if (roleId) {
           await userRoleRepository.create(user.id, roleId, tx);

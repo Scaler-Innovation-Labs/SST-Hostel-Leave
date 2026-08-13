@@ -102,6 +102,13 @@ describe("approveLeave service", () => {
     expect(mockUpdateDecisionById).toHaveBeenCalledWith("A1", "APPROVED", "U1", undefined, expect.any(Date), expect.any(Object), undefined, undefined);
     expect(mockUpdateCurrentStep).toHaveBeenCalledWith("L1", "S2", 2, expect.any(Object));
     expect(mockRecordMovement).not.toHaveBeenCalled();
+    expect(mockPublish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "LEAVE_APPROVAL_REQUIRED",
+        payload: expect.objectContaining({ leaveId: "L1", stepKey: "S2", stepOrder: 2 }),
+      }),
+      expect.any(Object)
+    );
   });
 
   it("approves final step and sets leave to APPROVED", async () => {

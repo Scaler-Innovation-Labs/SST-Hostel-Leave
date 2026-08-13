@@ -77,4 +77,16 @@ describe("updateHostel service", () => {
 
     expect(mockUpdateById).toHaveBeenCalledWith("H1", expect.objectContaining({ slackAdminGroupId: null }), expect.any(Object));
   });
+
+  it("updates the slack channel id when provided", async () => {
+    const input = { ...VALID_INPUT, slackChannelId: "#leave-hostel-neeladri" };
+
+    await updateHostel("H1", input, { id: "U1" });
+
+    expect(mockUpdateById).toHaveBeenCalledWith(
+      "H1",
+      expect.objectContaining({ slackChannelId: "#leave-hostel-neeladri" }),
+      expect.any(Object)
+    );
+  });
 });

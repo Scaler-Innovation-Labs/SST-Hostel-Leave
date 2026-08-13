@@ -1,8 +1,8 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, asc, desc, eq, gte, inArray, isNull, like, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, like, lte, or, sql } from "drizzle-orm";
 
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
-import { leaveRequests, leaveTypes, students, users } from "@/db";
+import { leaveRequests, leaveTypes, qrPasses, students, users } from "@/db";
 import { db } from "@/lib/db";
 
 type LeaveDbClient = Pick<typeof db, "insert" | "select" | "update">;
@@ -139,16 +139,44 @@ export const leaveRepository = {
 		const rows = await dbClient
 			.select()
 			.from(leaveRequests)
+			.leftJoin(qrPasses, eq(qrPasses.leaveRequestId, leaveRequests.id))
 			.where(
 				and(
 					eq(leaveRequests.status, LEAVE_REQUEST_STATUS.APPROVED),
 					lte(leaveRequests.endAt, before),
-					isNull(leaveRequests.actualReturnAt)
+					isNull(leaveRequests.actualReturnAt),
+					// EXPIRED = approved but never checked out. Exclude leaves
+					// that have an active QR pass (i.e. the student left).
+					isNull(qrPasses.firstScanAt)
 				)
 			)
 			.orderBy(leaveRequests.endAt);
 
-		return rows;
+		return rows.map((row) => row.leave_requests);
+	},
+
+	async findOverdueLeaves(
+		before: Date,
+		dbClient: Pick<typeof db, "select"> = db
+	): Promise<LeaveRequest[]> {
+		const rows = await dbClient
+			.select()
+			.from(leaveRequests)
+			.innerJoin(qrPasses, eq(qrPasses.leaveRequestId, leaveRequests.id))
+			.where(
+				and(
+					eq(leaveRequests.status, LEAVE_REQUEST_STATUS.APPROVED),
+					lte(leaveRequests.endAt, before),
+					isNull(leaveRequests.actualReturnAt),
+					// OVERDUE = checked out for this leave (QR first-scanned)
+					// but not returned (pass not closed) after the end date.
+					isNotNull(qrPasses.firstScanAt),
+					isNull(qrPasses.closedAt)
+				)
+			)
+			.orderBy(leaveRequests.endAt);
+
+		return rows.map((row) => row.leave_requests);
 	},
 
   async findByFilters(

@@ -109,6 +109,7 @@ export async function rejectLeave(
         leaveId,
         studentId: leaveInTx.studentId,
         decision: LEAVE_APPROVAL_DECISION.REJECTED,
+        rejectedBy: "ADMIN",
         reason: dto.comments ?? "",
       },
     }, tx);

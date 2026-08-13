@@ -108,7 +108,22 @@ export async function approveExtension(
       tx
     );
 
-    if (nextResult) return nextResult;
+    if (nextResult) {
+      // A later workflow step is now current (e.g. admin review after POC
+      // approval). Notify the next approver via the approval queue rules.
+      await outboxService.publish({
+        eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVAL_REQUIRED,
+        aggregateType: AGGREGATE_TYPE.LEAVE_EXTENSION,
+        aggregateId: extensionId,
+        payload: {
+          leaveId: extensionInTx.leaveRequestId,
+          extensionId,
+          stepKey: nextResult.stepKey,
+          stepOrder: nextResult.stepOrder,
+        },
+      }, tx);
+      return nextResult;
+    }
 
     await leaveExtensionRepository.updateById(
       extensionId,
@@ -125,6 +140,9 @@ export async function approveExtension(
       extensionInTx.leaveRequestId,
       {
         endAt: extensionInTx.requestedEndAt,
+        // An extended OVERDUE leave is authorized again through the new end
+        // date; no-op for already-APPROVED leaves.
+        status: LEAVE_REQUEST_STATUS.APPROVED,
       },
       tx
     );
