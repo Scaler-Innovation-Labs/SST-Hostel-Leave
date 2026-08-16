@@ -31,12 +31,13 @@ async function main() {
     types: "public_channel,private_channel",
     limit: 200,
   });
-  const matches = (list.channels ?? []).filter(
-    (c: any) => (c.name ?? "").toLowerCase().includes("leave-hostel") || (c.id ?? "").includes("leave-hostel")
+  const channels = list.channels ?? [];
+  const matches = channels.filter(
+    (c) => (c.name ?? "").toLowerCase().includes("leave-hostel") || (c.id ?? "").includes("leave-hostel")
   );
   for (const c of matches) console.log(`${c.id} | ${c.name} | ${c.is_private ? "private" : "public"} | member=${c.is_member ?? "?"}`);
 
-  const target = matches.find((c: any) => c.name === "leave-hostel-poc");
+  const target = matches.find((c) => c.name === "leave-hostel-poc");
   if (target) {
     const ts = logs.find((l) => l.deliveryStatus === "SENT")?.providerMessageId?.replace("slack-", "");
     console.log(`\n═══ CONVERSATION HISTORY: ${target.name} (${target.id}), latest=${ts ?? "none"} ═══`);

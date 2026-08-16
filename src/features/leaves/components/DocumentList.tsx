@@ -14,7 +14,7 @@ import { deleteLeaveDocument } from "@/lib/api/leave-api";
 
 function getFileIcon(mimeType: string | null) {
   if (!mimeType) return <FileText className="h-5 w-5" />;
-  if (mimeType.startsWith("image/")) return <Image className="h-5 w-5" />;
+  if (mimeType.startsWith("image/")) return <Image aria-label="Image document" className="h-5 w-5" />;
   return <FileText className="h-5 w-5" />;
 }
 

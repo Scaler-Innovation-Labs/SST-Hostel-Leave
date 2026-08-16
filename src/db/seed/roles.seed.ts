@@ -1,6 +1,6 @@
 import { roles } from "@/db";
-import type { db } from "@/lib/db";
 import { ROLES } from "@/lib/auth/roles";
+import type { db } from "@/lib/db";
 
 export async function seedRoles(
   database: typeof db

@@ -63,20 +63,21 @@ export default function NotificationRulesPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [draft, setDraft] = useState<RuleDraft>(EMPTY_RULE);
 
-  const loadRules = async () => {
-    setLoading(true);
-    try {
-      const data = await fetchGlobalRules();
-      setRules(data);
-    } catch {
-      /* ignore */
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadRules();
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await fetchGlobalRules();
+        if (!cancelled) setRules(data);
+      } catch {
+        /* ignore */
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const startNew = () => {

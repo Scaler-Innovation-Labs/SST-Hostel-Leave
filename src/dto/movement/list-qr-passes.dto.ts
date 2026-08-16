@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { sortSchema } from "@/dto/shared/sort.dto";
 
 const listQrPassesSchema = z.object({

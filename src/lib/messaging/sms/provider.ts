@@ -30,6 +30,6 @@ export type SmsResult = {
   error?: string
 }
 
-export interface SmsProvider {
+export type SmsProvider = {
   send(payload: SmsPayload): Promise<SmsResult>
 }

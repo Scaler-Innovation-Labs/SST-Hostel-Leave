@@ -31,6 +31,6 @@ export type EmailResult = {
   error?: string
 }
 
-export interface EmailProvider {
+export type EmailProvider = {
   send(payload: EmailPayload): Promise<EmailResult>
 }

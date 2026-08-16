@@ -1,7 +1,7 @@
 import {
-  SESClient,
   SendEmailCommand,
   type SendEmailCommandInput,
+  SESClient,
 } from "@aws-sdk/client-ses"
 
 import { logger } from "@/lib/logger"

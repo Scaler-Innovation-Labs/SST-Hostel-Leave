@@ -79,13 +79,13 @@ async function main() {
   // ── Helper to create a leave + approvals ──
   async function createLeaveWithApprovals(
     leaveTypeCode: string,
-    status: string,
+    status: (typeof LEAVE_REQUEST_STATUS)[keyof typeof LEAVE_REQUEST_STATUS],
     currentStepKey: string | null,
     currentStepOrder: number | null,
     approvals: Array<{
       stepKey: string;
       stepOrder: number;
-      decision: string;
+      decision: (typeof LEAVE_APPROVAL_DECISION)[keyof typeof LEAVE_APPROVAL_DECISION];
       approverRoleId: string | null;
     }>,
     daysAgo: number,
@@ -114,7 +114,7 @@ async function main() {
         studentId,
         leaveTypeId: leaveType.id,
         reason: `Dummy leave request for testing — ${leaveType.name} (${status})`,
-        status: status as any,
+        status,
         currentStepKey,
         currentStepOrder,
         startAt,
@@ -136,7 +136,7 @@ async function main() {
         stepKey: app.stepKey,
         stepOrder: app.stepOrder,
         approverRoleId: app.approverRoleId,
-        decision: app.decision as any,
+        decision: app.decision,
         approvalSource: LEAVE_APPROVAL_SOURCE.WEB,
         actedAt: app.decision !== LEAVE_APPROVAL_DECISION.PENDING ? new Date() : null,
         createdAt,

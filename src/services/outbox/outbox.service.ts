@@ -6,6 +6,7 @@ import type {
 } from "@/constants/outbox/event-types";
 import { OUTBOX_STATUS } from "@/constants/outbox/outbox-status";
 import { outboxRepository } from "@/db/repositories/outbox/outbox.repository";
+import type { db } from "@/lib/db";
 import { ValidationError } from "@/lib/errors";
 
 export type PublishEventInput = {
@@ -35,10 +36,7 @@ function validateEvent(
 export const outboxService = {
   async publish(
     input: PublishEventInput,
-    dbClient?: Pick<
-      typeof import("@/lib/db").db,
-      "insert" | "select" | "update"
-    >
+    dbClient?: Pick<typeof db, "insert" | "select" | "update">
   ): Promise<void> {
     validateEvent(input);
 
@@ -57,10 +55,7 @@ export const outboxService = {
 
   async publishMany(
     inputs: PublishEventInput[],
-    dbClient?: Pick<
-      typeof import("@/lib/db").db,
-      "insert" | "select" | "update"
-    >
+    dbClient?: Pick<typeof db, "insert" | "select" | "update">
   ): Promise<void> {
     for (const input of inputs) {
       validateEvent(input);

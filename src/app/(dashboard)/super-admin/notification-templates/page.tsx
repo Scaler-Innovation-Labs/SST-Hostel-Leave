@@ -11,9 +11,9 @@ import { EVENT_LABELS } from "@/constants/notification/notification-labels";
 import {
   createTemplate,
   deleteTemplate,
+  type NotificationTemplate,
   updateTemplate,
   useNotificationTemplates,
-  type NotificationTemplate,
 } from "@/features/notifications/hooks/use-notification-templates";
 
 const CHANNEL_LABELS: Record<string, string> = {

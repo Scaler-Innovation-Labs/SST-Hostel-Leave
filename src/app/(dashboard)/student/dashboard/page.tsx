@@ -132,7 +132,7 @@ export default function StudentDashboardPage() {
     })();
 
     return () => { cancelled = true; };
-  }, [needsToken, activeLeave?.id, userId, qrTokenReady, qrError]);
+  }, [needsToken, activeLeave?.id, userId, qrTokenReady, qrError, retryStats, storeToken]);
 
   const hasQr = !!(activeQr && (qrToken || qrTokenReady));
   const loadingQr = needsToken && !qrError;

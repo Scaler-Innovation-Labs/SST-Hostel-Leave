@@ -20,10 +20,12 @@ export function SearchBar({
   className,
 }: SearchBarProps) {
   const [internalValue, setInternalValue] = useState(externalValue ?? "");
+  const [prevExternal, setPrevExternal] = useState(externalValue);
 
-  useEffect(() => {
+  if (prevExternal !== externalValue) {
+    setPrevExternal(externalValue);
     setInternalValue(externalValue ?? "");
-  }, [externalValue]);
+  }
 
   useEffect(() => {
     if (externalValue !== undefined) return;

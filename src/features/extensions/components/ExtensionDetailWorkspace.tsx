@@ -17,10 +17,10 @@ import {
 import { useState } from "react";
 
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
-import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { useLeave } from "@/features/leaves/hooks/use-leaves";
 import { approveExtension } from "@/lib/api/extension-api";
 import { logger } from "@/lib/logger";

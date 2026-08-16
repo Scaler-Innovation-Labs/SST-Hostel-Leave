@@ -4,8 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
+import useSWR from "swr";
 
 import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
@@ -25,6 +26,7 @@ import type { CreateLeaveFormDto } from "@/dto/leave/create-leave-form.dto";
 import { createLeaveFormSchema } from "@/dto/leave/create-leave-form.dto";
 import { DynamicLeaveFields } from "@/features/leaves/components/DynamicLeaveFields";
 import { type LeaveTypeOption as LeaveTypeItem, useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
+import { fetcher } from "@/lib/api/fetcher";
 import { createLeave } from "@/lib/api/leave-api";
 import { formatDateRange } from "@/lib/date-utils";
 import { parseLeaveFormSchema } from "@/lib/leave-form-schema";
@@ -45,14 +47,13 @@ export default function NewLeavePage() {
   const { leaveTypes, isLoading: typesLoading, isError: typesError } = useLeaveTypes();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [pocUsers, setPocUsers] = useState<PocUser[]>([]);
-  const [pocLoading, setPocLoading] = useState(false);
   const [showPocPermissionNotice, setShowPocPermissionNotice] = useState(false);
+  const [prevIsLateStay, setPrevIsLateStay] = useState(false);
 
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     unregister,
     formState: { errors },
   } = useForm<CreateLeaveFormDto>({
@@ -64,39 +65,31 @@ export default function NewLeavePage() {
     },
   });
 
-  const startAt = watch("startAt");
-  const endAt = watch("endAt");
-  const reason = watch("reason");
-  const selectedLeaveTypeId = watch("leaveTypeId");
+  const startAt = useWatch({ control, name: "startAt" });
+  const endAt = useWatch({ control, name: "endAt" });
+  const reason = useWatch({ control, name: "reason" });
+  const selectedLeaveTypeId = useWatch({ control, name: "leaveTypeId" });
   const selectedLeaveType = leaveTypes.find(
     (lt: LeaveTypeItem) => lt.id === selectedLeaveTypeId,
   );
   const needsPoc = (selectedLeaveType as LeaveTypeItem | undefined)?.requiresPoc ?? false;
   const dynamicSchema = parseLeaveFormSchema(selectedLeaveType?.formSchema);
 
+  const pocKey = needsPoc ? "/api/v1/users/pocs" : null;
+  const { data: pocData, isLoading: pocLoading } = useSWR<PocUser[]>(pocKey, fetcher);
+  const pocUsers = pocData ?? [];
+
   // "Late Stay At College" requests must be verbally approved by the POC
   // before the student submits — remind them whenever this type is selected.
-  useEffect(() => {
-    const isLateStay = selectedLeaveType?.code === "LATE_STAY_COLLEGE";
+  const isLateStay = selectedLeaveType?.code === "LATE_STAY_COLLEGE";
+  if (prevIsLateStay !== isLateStay) {
+    setPrevIsLateStay(isLateStay);
     setShowPocPermissionNotice(isLateStay);
-  }, [selectedLeaveTypeId, selectedLeaveType?.code]);
+  }
 
   useEffect(() => {
     unregister("submittedForm");
   }, [selectedLeaveTypeId, unregister]);
-
-  useEffect(() => {
-    if (needsPoc && pocUsers.length === 0) {
-      setPocLoading(true);
-      fetch("/api/v1/users/pocs")
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.success) setPocUsers(data.data ?? []);
-        })
-        .catch(() => {})
-        .finally(() => setPocLoading(false));
-    }
-  }, [needsPoc, pocUsers.length]);
 
   const canShowDatePreview = startAt && endAt && new Date(startAt) < new Date(endAt);
 

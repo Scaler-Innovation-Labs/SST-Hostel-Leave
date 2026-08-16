@@ -3,7 +3,6 @@ export type {
 	NewMovementEvent,
 } from "./movement-event.repository";
 export { movementEventRepository } from "./movement-event.repository";
-
 export type { NewQrPass,QrPass } from "./qr-pass.repository";
 export { qrPassRepository } from "./qr-pass.repository";
 export type { NewQrScanLog,QrScanLog } from "./qr-scan-log.repository";

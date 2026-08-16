@@ -50,8 +50,14 @@ export class ApiResponse {
         meta.cause = error.cause.message;
         meta.causeStack = error.cause.stack;
       }
-      if ("query" in error) meta.query = (error as any).query;
-      if ("params" in error) meta.params = (error as any).params;
+      if ("query" in error) {
+        const queryError = error as { query?: unknown };
+        meta.query = queryError.query;
+      }
+      if ("params" in error) {
+        const paramsError = error as { params?: unknown };
+        meta.params = paramsError.params;
+      }
       logger.error("Unhandled API error", meta);
     } else {
       logger.error("Unhandled API error", { error: String(error) });
