@@ -412,6 +412,8 @@ export const leaveApprovals = pgTable("leave_approvals", {
     requestDecisionStepIdx: index("la_request_decision_step_idx").on(table.leaveRequestId, table.decision, table.stepOrder),
     extensionDecisionStepIdx: index("la_extension_decision_step_idx").on(table.leaveExtensionId, table.decision, table.stepOrder),
     parentDecisionCreatedIdx: index("la_parent_decision_created_idx").on(table.approverParentId, table.decision, table.createdAt),
+    createdAtIndex: index("la_created_at_idx").on(table.createdAt),
+    actedAtIndex: index("la_acted_at_idx").on(table.actedAt),
   })
 );
 

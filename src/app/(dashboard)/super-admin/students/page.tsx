@@ -8,9 +8,9 @@ import useSWR from "swr";
 import * as XLSX from "xlsx";
 
 import { PageHeader } from "@/components/shared/PageHeader";
+import { Pagination } from "@/components/shared/Pagination";
 import { Button } from "@/components/ui/button";
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+import { fetcher } from "@/lib/api/fetcher";
 
 type StudentItem = {
   student: {
@@ -53,6 +53,10 @@ type DraftStudent = {
   roomNumber: string;
   hostelId: string;
   isActive: boolean;
+  parentName: string;
+  parentPhone: string;
+  parentEmail: string;
+  parentRelationship: string;
 };
 
 const EMPTY_DRAFT: DraftStudent = {
@@ -65,6 +69,10 @@ const EMPTY_DRAFT: DraftStudent = {
   roomNumber: "",
   hostelId: "",
   isActive: true,
+  parentName: "",
+  parentPhone: "",
+  parentEmail: "",
+  parentRelationship: "",
 };
 
 type ParentRecord = {
@@ -114,30 +122,30 @@ export default function SuperAdminStudentsPage() {
   const [parentForm, setParentForm] = useState<NewParentForm>(EMPTY_PARENT_FORM);
   const [savingParent, setSavingParent] = useState(false);
 
-  const { data, isLoading, error, mutate } = useSWR<{ success: boolean; data: StudentListResponse }>(
+  const { data, isLoading, error, mutate } = useSWR<StudentListResponse>(
     `/api/v1/students?page=${page}&limit=20${search ? `&search=${encodeURIComponent(search)}` : ""}`,
     fetcher,
   );
 
-  const { data: academicGroupsData } = useSWR<{ success: boolean; data: Array<{ id: string; name: string; code: string | null }> }>(
+  const { data: academicGroups } = useSWR<Array<{ id: string; name: string; code: string | null }>>(
     "/api/v1/academic-groups",
     fetcher,
   );
 
-  const { data: hostelsData } = useSWR<{ success: boolean; data: Array<{ id: string; name: string }> }>(
+  const { data: hostels } = useSWR<Array<{ id: string; name: string }>>(
     "/api/v1/hostels",
     fetcher,
   );
 
-  const { data: parentsData, mutate: mutateParents } = useSWR<{ success: boolean; data: { items: ParentRecord[] } }>(
+  const { data: parentsData, mutate: mutateParents } = useSWR<{ items: ParentRecord[] }>(
     draft.id ? `/api/v1/parents?studentId=${draft.id}&limit=50` : null,
     fetcher,
   );
 
-  const students = data?.data;
-  const academicGroups = academicGroupsData?.data ?? [];
-  const hostels = hostelsData?.data ?? [];
-  const parents = parentsData?.data?.items ?? [];
+  const students = data;
+  const academicGroupsList = academicGroups ?? [];
+  const hostelsList = hostels ?? [];
+  const parents = parentsData?.items ?? [];
 
   const startNew = () => {
     setDraft(EMPTY_DRAFT);
@@ -156,6 +164,10 @@ export default function SuperAdminStudentsPage() {
       roomNumber: item.student.roomNumber ?? "",
       hostelId: item.user?.hostelId ?? "",
       isActive: item.user?.isActive ?? true,
+      parentName: "",
+      parentPhone: "",
+      parentEmail: "",
+      parentRelationship: "",
     });
     setBulkSection(null);
     setParentForm(EMPTY_PARENT_FORM);
@@ -197,6 +209,10 @@ export default function SuperAdminStudentsPage() {
             academicGroupId: draft.academicGroupId,
             roomNumber: draft.roomNumber || null,
             hostelId: draft.hostelId || null,
+            parentName: draft.parentName,
+            parentPhone: draft.parentPhone,
+            parentEmail: draft.parentEmail || "",
+            parentRelationship: draft.parentRelationship,
           }),
         });
         const json = await res.json();
@@ -409,7 +425,7 @@ export default function SuperAdminStudentsPage() {
           <p className="text-xs text-muted-foreground">
             {bulkSection === "parents"
               ? "Upload a CSV (.csv) or Excel (.xlsx/.xls) file. Required fields: <code>studentId</code>, <code>name</code>, <code>phone</code>, <code>relationship</code>."
-              : "Upload a CSV (.csv) or Excel (.xlsx/.xls) file. Required fields: <code>rollNumber</code>, <code>fullName</code>, <code>academicGroupId</code>."}
+              : "Upload a CSV (.csv) or Excel (.xlsx/.xls) file. Required fields: <code>rollNumber</code>, <code>fullName</code>, <code>academicGroupId</code>, <code>parentName</code>, <code>parentPhone</code>, <code>parentRelationship</code>."}
           </p>
           <div className="flex gap-3">
             <input
@@ -428,7 +444,7 @@ export default function SuperAdminStudentsPage() {
             placeholder={
               bulkSection === "parents"
                 ? '[{ "studentId": "uuid", "name": "Father Name", "phone": "9876543210", "relationship": "Father" }]'
-                : '[{ "rollNumber": "S001", "fullName": "John Doe", "academicGroupId": "uuid-here" }]'
+                : '[{ "rollNumber": "S001", "fullName": "John Doe", "academicGroupId": "uuid-here", "parentName": "John Doe Sr.", "parentPhone": "9123456789", "parentRelationship": "Father" }]'
             }
             rows={4}
           />
@@ -521,25 +537,16 @@ export default function SuperAdminStudentsPage() {
               ))}
 
               {students.totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 pt-2">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page <= 1}
-                    className="rounded-lg border border-border px-3 py-1.5 text-sm disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <span className="text-sm text-muted-foreground">
-                    {students.page} / {students.totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPage((p) => Math.min(students.totalPages, p + 1))}
-                    disabled={page >= students.totalPages}
-                    className="rounded-lg border border-border px-3 py-1.5 text-sm disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </div>
+                <Pagination
+                  page={students.page}
+                  totalPages={students.totalPages}
+                  onPageChange={setPage}
+                  variant="plain"
+                  labelPosition="center"
+                  labelFormat="slash"
+                  bordered={false}
+                  className="pt-2"
+                />
               )}
             </div>
           )}
@@ -592,7 +599,7 @@ export default function SuperAdminStudentsPage() {
                 className="h-9 w-full rounded-lg border bg-background px-3 text-xs"
               >
                 <option value="">Select academic group...</option>
-                {academicGroups.map((g) => (
+                {academicGroupsList.map((g) => (
                   <option key={g.id} value={g.id}>
                     {g.name}{g.code ? ` (${g.code})` : ""}
                   </option>
@@ -646,7 +653,7 @@ export default function SuperAdminStudentsPage() {
                   className="h-9 w-full rounded-lg border bg-background px-3 text-xs"
                 >
                   <option value="">No hostel</option>
-                  {hostels.map((h) => (
+                  {hostelsList.map((h) => (
                     <option key={h.id} value={h.id}>{h.name}</option>
                   ))}
                 </select>
@@ -663,12 +670,69 @@ export default function SuperAdminStudentsPage() {
                 Active
               </label>
             )}
+
+            {!draft.id && (
+              <div className="rounded-xl border border-dashed p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <Users className="size-4 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold">Parent / Guardian</h3>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="block text-sm">
+                    <span className="mb-1 block font-medium">Parent Name *</span>
+                    <input
+                      value={draft.parentName}
+                      onChange={(e) => setDraft({ ...draft, parentName: e.target.value })}
+                      className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                      placeholder="Parent name"
+                    />
+                  </label>
+
+                  <label className="block text-sm">
+                    <span className="mb-1 block font-medium">Parent Phone *</span>
+                    <input
+                      value={draft.parentPhone}
+                      onChange={(e) => setDraft({ ...draft, parentPhone: e.target.value })}
+                      className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                      placeholder="Parent phone"
+                    />
+                  </label>
+
+                  <label className="block text-sm">
+                    <span className="mb-1 block font-medium">Relationship *</span>
+                    <input
+                      value={draft.parentRelationship}
+                      onChange={(e) => setDraft({ ...draft, parentRelationship: e.target.value })}
+                      className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                      placeholder="e.g. Father, Mother, Guardian"
+                    />
+                  </label>
+
+                  <label className="block text-sm">
+                    <span className="mb-1 block font-medium">Parent Email (optional)</span>
+                    <input
+                      type="email"
+                      value={draft.parentEmail}
+                      onChange={(e) => setDraft({ ...draft, parentEmail: e.target.value })}
+                      className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                      placeholder="parent@example.com"
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2">
             <Button
               onClick={handleSave}
-              disabled={!draft.fullName || !draft.rollNumber || !draft.academicGroupId || saving !== null}
+              disabled={
+                !draft.fullName ||
+                !draft.rollNumber ||
+                !draft.academicGroupId ||
+                (!draft.id && (!draft.parentName || !draft.parentPhone || !draft.parentRelationship)) ||
+                saving !== null
+              }
             >
               <Save className="size-4" />
               {saving === (draft.id ?? "new") ? "Saving..." : "Save Student"}

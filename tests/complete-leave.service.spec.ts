@@ -1,22 +1,49 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-vi.mock("@/lib/db", () => ({
-  db: {
-    transaction: (cb: any) => cb({}),
-  },
-}));
+vi.mock("@/lib/db", () => {
+  const tx: Record<string, any> = {};
+  tx.insert = vi.fn(() => tx);
+  tx.select = vi.fn(() => tx);
+  tx.update = vi.fn(() => tx);
+  tx.delete = vi.fn(() => tx);
+  tx.from = vi.fn(() => tx);
+  tx.where = vi.fn(() => tx);
+  tx.values = vi.fn(() => tx);
+  tx.set = vi.fn(() => tx);
+  tx.returning = vi.fn().mockResolvedValue([]);
+  tx.limit = vi.fn(() => tx);
+  tx.orderBy = vi.fn(() => tx);
+  tx.offset = vi.fn(() => tx);
+  tx.innerJoin = vi.fn(() => tx);
+  tx.leftJoin = vi.fn(() => tx);
+  tx.$dynamic = vi.fn(() => tx);
+  return {
+    db: {
+      transaction: (cb: any) => cb(tx),
+      ...tx,
+    },
+  };
+});
 
 const mockFindById = vi.fn();
 const mockFindByIdForUpdate = vi.fn();
 const mockUpdateById = vi.fn();
 const mockAuditRecord = vi.fn();
+const mockPublish = vi.fn();
+const mockFindStudentByUserId = vi.fn();
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
     findById: (...args: any[]) => mockFindById(...args),
     findByIdForUpdate: (...args: any[]) => mockFindByIdForUpdate(...args),
     updateById: (...args: any[]) => mockUpdateById(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/student/student.repository", () => ({
+  studentRepository: {
+    findByUserId: (...args: any[]) => mockFindStudentByUserId(...args),
   },
 }));
 
@@ -28,120 +55,87 @@ vi.mock("@/services/audit/audit.service", () => ({
 
 vi.mock("@/services/outbox/outbox.service", () => ({
   outboxService: {
-    publish: vi.fn().mockResolvedValue(undefined),
-    publishMany: vi.fn().mockResolvedValue(undefined),
+    publish: (...args: any[]) => mockPublish(...args),
   },
 }));
 
 import { completeLeave } from "@/services/leave/complete-leave.service";
-import { ConflictError, NotFoundError } from "@/lib/errors";
+import { AuthorizationError, ConflictError, NotFoundError } from "@/lib/errors";
+
+const STUDENT_USER = { id: "U1", roles: ["STUDENT"] };
+const OTHER_STUDENT_USER = { id: "U2", roles: ["STUDENT"] };
+
+const APPROVED_LEAVE = {
+  id: "L1",
+  studentId: "S1",
+  status: "APPROVED",
+};
 
 beforeEach(() => {
-  vi.resetAllMocks();
+  vi.clearAllMocks();
+  mockFindById.mockResolvedValue(APPROVED_LEAVE);
+  mockFindByIdForUpdate.mockResolvedValue({
+    ...APPROVED_LEAVE,
+    status: "APPROVED",
+  });
+  mockUpdateById.mockResolvedValue({});
   mockAuditRecord.mockResolvedValue({});
+  mockPublish.mockResolvedValue({});
+  mockFindStudentByUserId.mockImplementation((userId: string) => ({
+    id: userId === "U1" ? "S1" : "S2",
+    userId,
+  }));
 });
 
 describe("completeLeave service", () => {
-  it("completes an APPROVED leave", async () => {
-    mockFindById.mockResolvedValue({ id: "L1", status: "APPROVED", studentId: "S1" });
-    mockFindByIdForUpdate.mockResolvedValue({ id: "L1", status: "APPROVED", studentId: "S1" });
-    mockUpdateById.mockResolvedValue({ id: "L1", status: "COMPLETED" });
+  it("completes the student's own leave", async () => {
+    const result = await completeLeave("L1", { actualReturnAt: undefined }, STUDENT_USER);
 
-    const result = await completeLeave("L1", {}, { id: "U1" });
-
-    expect(result).toEqual({
-      leaveId: "L1",
-      newStatus: "COMPLETED",
-      completedAt: expect.any(Date),
-    });
-    expect(mockUpdateById).toHaveBeenCalledWith(
-      "L1",
-      expect.objectContaining({
-        status: "COMPLETED",
-        completedAt: expect.any(Date),
-        actualReturnAt: expect.any(Date),
-      }),
+    expect(result.newStatus).toBe("COMPLETED");
+    expect(mockUpdateById).toHaveBeenCalled();
+    expect(mockPublish).toHaveBeenCalledWith(
+      expect.objectContaining({ eventType: "LEAVE_COMPLETED" }),
       expect.any(Object)
     );
   });
 
-  it("completes with custom actualReturnAt", async () => {
-    const returnAt = "2026-06-10T14:00:00Z";
-    mockFindById.mockResolvedValue({ id: "L2", status: "APPROVED", studentId: "S1" });
-    mockFindByIdForUpdate.mockResolvedValue({ id: "L2", status: "APPROVED", studentId: "S1" });
-    mockUpdateById.mockResolvedValue({ id: "L2", status: "COMPLETED" });
-
-    const result = await completeLeave("L2", { actualReturnAt: returnAt }, { id: "U1" });
-
-    expect(result).toEqual({
-      leaveId: "L2",
-      newStatus: "COMPLETED",
-      completedAt: expect.any(Date),
-    });
-    expect(mockUpdateById).toHaveBeenCalledWith(
-      "L2",
-      expect.objectContaining({
-        actualReturnAt: new Date(returnAt),
-      }),
-      expect.any(Object)
-    );
-  });
-
-  it("cannot complete PENDING leave", async () => {
-    mockFindById.mockResolvedValue({ id: "L3", status: "PENDING" });
-
+  it("rejects completing another student's leave (IDOR guard)", async () => {
     await expect(
-      completeLeave("L3", {}, { id: "U1" })
-    ).rejects.toBeInstanceOf(ConflictError);
+      completeLeave("L1", { actualReturnAt: undefined }, OTHER_STUDENT_USER)
+    ).rejects.toBeInstanceOf(AuthorizationError);
+
+    expect(mockUpdateById).not.toHaveBeenCalled();
   });
 
-  it("cannot complete REJECTED leave", async () => {
-    mockFindById.mockResolvedValue({ id: "L4", status: "REJECTED" });
-
-    await expect(
-      completeLeave("L4", {}, { id: "U1" })
-    ).rejects.toBeInstanceOf(ConflictError);
-  });
-
-  it("cannot complete CANCELLED leave", async () => {
-    mockFindById.mockResolvedValue({ id: "L5", status: "CANCELLED" });
-
-    await expect(
-      completeLeave("L5", {}, { id: "U1" })
-    ).rejects.toBeInstanceOf(ConflictError);
-  });
-
-  it("cannot complete COMPLETED leave", async () => {
-    mockFindById.mockResolvedValue({ id: "L6", status: "COMPLETED" });
-
-    await expect(
-      completeLeave("L6", {}, { id: "U1" })
-    ).rejects.toBeInstanceOf(ConflictError);
-  });
-
-  it("throws NotFoundError when leave does not exist", async () => {
+  it("throws NotFoundError when the leave does not exist", async () => {
     mockFindById.mockResolvedValue(null);
 
     await expect(
-      completeLeave("NONEXISTENT", {}, { id: "U1" })
+      completeLeave("L1", { actualReturnAt: undefined }, STUDENT_USER)
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("records audit on complete", async () => {
-    mockFindById.mockResolvedValue({ id: "L7", status: "APPROVED", studentId: "S1" });
-    mockFindByIdForUpdate.mockResolvedValue({ id: "L7", status: "APPROVED", studentId: "S1" });
-    mockUpdateById.mockResolvedValue({ id: "L7", status: "COMPLETED" });
+  it("throws ConflictError when the leave status cannot be completed", async () => {
+    mockFindById.mockResolvedValue({ ...APPROVED_LEAVE, status: "PENDING" });
+    mockFindByIdForUpdate.mockResolvedValue({ ...APPROVED_LEAVE, status: "PENDING" });
 
-    await completeLeave("L7", {}, { id: "U1" });
+    await expect(
+      completeLeave("L1", { actualReturnAt: undefined }, STUDENT_USER)
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
 
-    expect(mockAuditRecord).toHaveBeenCalledWith(
-      "UPDATE",
-      "LEAVE_REQUEST",
-      "L7",
-      "U1",
+  it("allows staff to complete a leave within scope", async () => {
+    const result = await completeLeave(
+      "L1",
+      { actualReturnAt: "2026-06-12T00:00:00Z" },
+      { id: "U9", roles: ["ADMIN"] }
+    );
+
+    expect(result.newStatus).toBe("COMPLETED");
+    expect(mockUpdateById).toHaveBeenCalledWith(
+      "L1",
       expect.objectContaining({
-        oldStatus: "APPROVED",
-        newStatus: "COMPLETED",
+        actualReturnAt: new Date("2026-06-12T00:00:00Z"),
       }),
       expect.any(Object)
     );

@@ -1,5 +1,5 @@
 import { ROLE_SCOPE_TYPE } from "@/constants/auth/role-scope";
-import { type Student,studentRepository } from "@/db/repositories/student/student.repository";
+import { studentRepository } from "@/db/repositories/student/student.repository";
 import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
 import { AuthorizationError } from "@/lib/errors";
@@ -23,11 +23,6 @@ export function getScopedEntityIds(
 /** Hostel ids the current user is restricted to (empty = ALL hostels). */
 export function getScopedHostelIds(currentUser: CurrentUser): string[] {
   return getScopedEntityIds(currentUser, ROLE_SCOPE_TYPE.HOSTEL);
-}
-
-/** Department ids the current user is restricted to (empty = ALL departments). */
-export function getScopedDepartmentIds(currentUser: CurrentUser): string[] {
-  return getScopedEntityIds(currentUser, ROLE_SCOPE_TYPE.DEPARTMENT);
 }
 
 /**
@@ -59,24 +54,6 @@ export function isStaffScopeRestricted(currentUser: CurrentUser): boolean {
     (isAdmin && !hasUnrestrictedRoleAccess(currentUser, ROLES.ADMIN)) ||
     (isPoc && !hasUnrestrictedRoleAccess(currentUser, ROLES.POC))
   );
-}
-
-/**
- * Whether the current user may access a given hostel.
- * - SUPER_ADMIN: true
- * - ADMIN/POC: true when unscoped, or the hostel is within scope
- * - Other roles: false
- */
-export function hasAccessToHostel(
-  currentUser: CurrentUser,
-  hostelId: string
-): boolean {
-  if (currentUser.roles.includes(ROLES.SUPER_ADMIN)) return true;
-  if (!currentUser.roles.some((r) => r === ROLES.ADMIN || r === ROLES.POC)) {
-    return false;
-  }
-  if (!isStaffScopeRestricted(currentUser)) return true;
-  return getScopedHostelIds(currentUser).includes(hostelId);
 }
 
 /**
@@ -113,14 +90,6 @@ export async function canAccessLeave(
   return getScopedHostelIds(currentUser).includes(studentHostelId);
 }
 
-/** Alias of {@link canAccessLeave} used on detail/action endpoints. */
-export async function hasAccessToLeave(
-  currentUser: CurrentUser,
-  leave: { studentId: string }
-): Promise<boolean> {
-  return canAccessLeave(currentUser, leave);
-}
-
 /**
  * Whether the current user may access a given student profile.
  * - SUPER_ADMIN / unrestricted ADMIN-POC: true
@@ -151,22 +120,14 @@ export async function hasAccessToStudent(
   return getScopedHostelIds(currentUser).includes(studentHostelId);
 }
 
-/**
- * Whether the current user may access a given movement event (tied to a student).
- */
-export async function hasAccessToMovement(
+/** Throws when the current user may not access the given student profile. */
+export async function assertCanAccessStudent(
   currentUser: CurrentUser,
-  movement: { studentId: string }
-): Promise<boolean> {
-  if (currentUser.roles.some((r) => r === ROLES.STUDENT)) {
-    try {
-      await verifyStudentOwnership(currentUser, movement.studentId);
-      return true;
-    } catch {
-      return false;
-    }
+  studentId: string
+): Promise<void> {
+  if (!(await hasAccessToStudent(currentUser, studentId))) {
+    throw new AuthorizationError("You do not have access to this student");
   }
-  return hasAccessToStudent(currentUser, movement.studentId);
 }
 
 /** Throws when the current user may not access the given leave request. */
@@ -193,15 +154,3 @@ export async function verifyStudentOwnership(
   }
 }
 
-export async function requireCurrentUserStudent(currentUser: CurrentUser): Promise<Student> {
-  if (currentUser.roles.some(r => r === ROLES.ADMIN || r === ROLES.POC || r === ROLES.SUPER_ADMIN)) {
-    throw new AuthorizationError("Only students can perform this action");
-  }
-
-  const student = await studentRepository.findByUserId(currentUser.id);
-  if (!student) {
-    throw new AuthorizationError("Student profile not found");
-  }
-
-  return student;
-}

@@ -8,8 +8,11 @@ import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
+import { requireRole } from "@/lib/auth/authorization";
+import { ROLES } from "@/lib/auth/roles";
+import type { CurrentUser } from "@/lib/auth/types";
 import { transaction } from "@/lib/db/transaction";
-import { ConflictError, NotFoundError } from "@/lib/errors";
+import { AuthorizationError, ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 
@@ -27,9 +30,16 @@ export type SuperadminOverrideResult = {
 export async function superadminOverrideLeave(
   leaveId: string,
   mode: OverrideMode,
-  userId: string,
+  currentUser: CurrentUser,
   comments?: string,
 ): Promise<SuperadminOverrideResult> {
+  // Defense in depth: the route already gates this to SUPER_ADMIN, but the
+  // service enforces it too so no future caller can invoke the override
+  // with a lesser privilege (e.g. a hostel-scoped ADMIN).
+  requireRole(currentUser, ROLES.SUPER_ADMIN);
+
+  const userId = currentUser.id;
+
   return await transaction(async (tx) => {
     const leave = await leaveRepository.findByIdForUpdate(leaveId, tx);
     if (!leave) throw new NotFoundError("LeaveRequest");
@@ -53,6 +63,16 @@ export async function superadminOverrideLeave(
 
     if (actionable.length === 0) {
       throw new ConflictError("No approvals to override");
+    }
+
+    // Parent consent is the point of the SMS-link step — an override must
+    // never silently force through a step the parent rejected or never saw.
+    // Parent steps carry approverParentId; overriding them would defeat the
+    // whole parent-approval audit trail.
+    if (actionable.some((s) => s.approverParentId !== null)) {
+      throw new AuthorizationError(
+        "Parent approval steps cannot be overridden — resolve them via the parent approval link"
+      );
     }
 
     // When recovering from rejection, revert leave status to PENDING
@@ -84,6 +104,25 @@ export async function superadminOverrideLeave(
     if (remainingPending.length > 0) {
       const nextStep = remainingPending[0]!;
       await leaveRepository.updateCurrentStep(leaveId, nextStep.stepKey, nextStep.stepOrder, tx);
+
+      // A later workflow step is now current after the override — notify the
+      // next approver via the approval queue rules.
+      await outboxService.publish(
+        {
+          eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVAL_REQUIRED,
+          aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
+          aggregateId: leaveId,
+          payload: {
+            leaveId,
+            studentId: leave.studentId,
+            stepKey: nextStep.stepKey,
+            stepOrder: nextStep.stepOrder,
+            overridden: true,
+            mode,
+          },
+        },
+        tx,
+      );
 
       return {
         leaveId,

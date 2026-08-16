@@ -23,6 +23,10 @@ export async function GET(request: Request) {
       "gender",
       "roomNumber",
       "hostelId",
+      "parentName",
+      "parentPhone",
+      "parentRelationship",
+      "parentEmail",
     ];
 
     const exampleRow = [
@@ -34,6 +38,10 @@ export async function GET(request: Request) {
       "MALE",
       "A-101",
       "<hostel-uuid-or-empty>",
+      "John Doe Sr.",
+      "9123456789",
+      "Father",
+      "parent@example.com",
     ];
 
     if (format === "csv") {

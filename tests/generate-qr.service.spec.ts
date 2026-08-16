@@ -32,6 +32,7 @@ const mockLeaveTypeFindById = vi.fn();
 const mockStudentFindByUserId = vi.fn();
 const mockQrPassCreate = vi.fn();
 const mockQrPassRegenerate = vi.fn();
+const mockFindUsableExitPass = vi.fn();
 const mockAuditRecord = vi.fn().mockResolvedValue({});
 const mockOutboxPublish = vi.fn().mockResolvedValue({});
 
@@ -40,12 +41,13 @@ vi.mock("@/db/repositories/movement/qr-pass.repository", () => ({
     findByLeaveRequestId: (...args: any[]) => mockFindByLeaveRequestId(...args),
     create: (...args: any[]) => mockQrPassCreate(...args),
     regenerate: (...args: any[]) => mockQrPassRegenerate(...args),
+    findUsableExitPassForStudent: (...args: any[]) => mockFindUsableExitPass(...args),
   },
 }));
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
-    findById: (...args: any[]) => mockLeaveFindById(...args),
+    findByIdForUpdate: (...args: any[]) => mockLeaveFindById(...args),
   },
 }));
 
@@ -86,6 +88,7 @@ const VALID_INPUT = {
 beforeEach(() => {
   vi.resetAllMocks();
   mockFindByLeaveRequestId.mockResolvedValue(null);
+  mockFindUsableExitPass.mockResolvedValue(null);
   mockStudentFindByUserId.mockResolvedValue({ id: "S1" });
   mockLeaveTypeFindById.mockResolvedValue({ id: "LT1", qrMode: "EXIT_ONLY" });
   mockLeaveFindById.mockResolvedValue({
@@ -93,6 +96,8 @@ beforeEach(() => {
     studentId: "S1",
     leaveTypeId: "LT1",
     status: "APPROVED",
+    startAt: new Date("2026-06-10T00:00:00Z"),
+    endAt: new Date("2026-06-12T00:00:00Z"),
   });
   mockQrPassCreate.mockResolvedValue({
     id: "QP1",
@@ -151,12 +156,20 @@ describe("generateQrPass service", () => {
       expect(mockQrPassCreate).not.toHaveBeenCalled();
     });
 
-    it("does not mint a new credential for a non-active (dead) pass", async () => {
+    it("re-issues a fresh token for an invalidated-but-never-used pass (contract §7)", async () => {
       mockFindByLeaveRequestId.mockResolvedValue({
         id: "QP-INVALIDATED",
         status: "INVALIDATED",
         tokenHash: "old-hash",
         token: "old-token",
+        qrType: "LEAVE_EXIT",
+        firstScanAt: null,
+        closedAt: null,
+        expiresAt: null,
+      });
+      mockQrPassRegenerate.mockResolvedValue({
+        id: "QP-INVALIDATED",
+        tokenHash: "new-hash",
         qrType: "LEAVE_EXIT",
         expiresAt: null,
       });
@@ -164,8 +177,47 @@ describe("generateQrPass service", () => {
       const result = await generateQrPass(VALID_INPUT);
 
       expect(result.passId).toBe("QP-INVALIDATED");
+      expect(result.token).toBeTruthy();
+      expect(mockQrPassRegenerate).toHaveBeenCalledWith(
+        "QP-INVALIDATED",
+        expect.objectContaining({ token: expect.any(String) }),
+        expect.any(Object)
+      );
+      expect(mockQrPassCreate).not.toHaveBeenCalled();
+    });
+
+    it("does not re-issue a pass that was already used (dead for good)", async () => {
+      mockFindByLeaveRequestId.mockResolvedValue({
+        id: "QP-USED",
+        status: "USED",
+        tokenHash: "old-hash",
+        token: "old-token",
+        qrType: "LEAVE_EXIT",
+        firstScanAt: new Date("2026-06-10T10:00:00Z"),
+        closedAt: new Date("2026-06-12T10:00:00Z"),
+        expiresAt: null,
+      });
+
+      const result = await generateQrPass(VALID_INPUT);
+
+      expect(result.passId).toBe("QP-USED");
       expect(result.token).toBe("");
       expect(mockQrPassRegenerate).not.toHaveBeenCalled();
+      expect(mockQrPassCreate).not.toHaveBeenCalled();
+    });
+
+    it("rejects generation when another usable-for-exit pass exists for the student (contract §7)", async () => {
+      mockFindUsableExitPass.mockResolvedValue({
+        id: "QP-OTHER",
+        status: "ACTIVE",
+        tokenHash: "other-hash",
+        token: "other-token",
+        qrType: "LEAVE_EXIT",
+      });
+
+      await expect(
+        generateQrPass(VALID_INPUT)
+      ).rejects.toBeInstanceOf(ValidationError);
       expect(mockQrPassCreate).not.toHaveBeenCalled();
     });
   });
@@ -213,6 +265,14 @@ describe("generateQrPass service", () => {
       );
     });
 
+    it("window-gates the new pass (validFrom = startAt, expiresAt = endAt + 24h grace)", async () => {
+      await generateQrPass(VALID_INPUT);
+
+      const createCall = mockQrPassCreate.mock.calls[0][0];
+      expect(createCall.validFrom.toISOString()).toBe("2026-06-10T00:00:00.000Z");
+      expect(createCall.expiresAt.toISOString()).toBe("2026-06-13T00:00:00.000Z"); // endAt + 24h
+    });
+
     it("stores the raw token so the app and email render the same QR", async () => {
       const result = await generateQrPass(VALID_INPUT);
 
@@ -225,20 +285,18 @@ describe("generateQrPass service", () => {
       expect(result.token.length).toBe(64);
     });
 
-    it("passes optional expiresAt when provided", async () => {
-      const expiresAt = new Date("2026-07-01");
-
+    it("ignores any client-supplied expiry and derives it from the leave window", async () => {
+      // Client-controlled expiry is not part of the input contract anymore;
+      // even if supplied it must be ignored server-side (the field is read
+      // from the leave window, never from the request).
       await generateQrPass({
         ...VALID_INPUT,
-        expiresAt,
+        expiresAt: new Date("2030-01-01"),
       });
 
-      expect(mockQrPassCreate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          expiresAt,
-        }),
-        expect.any(Object)
-      );
+      const createCall = mockQrPassCreate.mock.calls[0][0];
+      // Derived from leave endAt + 24h grace, never the client value.
+      expect(createCall.expiresAt.toISOString()).toBe("2026-06-13T00:00:00.000Z");
     });
   });
 

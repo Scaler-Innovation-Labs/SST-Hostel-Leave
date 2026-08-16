@@ -9,8 +9,7 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { deleteDepartment, saveDepartment } from "@/lib/api/department-api";
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((r) => r.data ?? r);
+import { fetcher } from "@/lib/api/fetcher";
 
 type DepartmentItem = {
   id: string;

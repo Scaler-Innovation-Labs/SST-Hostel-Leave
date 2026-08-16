@@ -1,8 +1,9 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, like, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, like, lte, ne, notExists, or, sql } from "drizzle-orm";
 
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
-import { leaveRequests, leaveTypes, qrPasses, students, users } from "@/db";
+import { QR_MODE } from "@/constants/leave/qr-mode";
+import { leaveExtensions, leaveRequests, leaveTypes, qrPasses, students, users } from "@/db";
 import { db } from "@/lib/db";
 
 type LeaveDbClient = Pick<typeof db, "insert" | "select" | "update">;
@@ -16,6 +17,11 @@ export type LeaveWithRelations = {
   leave: LeaveRequest;
   student: typeof students.$inferSelect | null;
   user: typeof users.$inferSelect | null;
+  leaveType: typeof leaveTypes.$inferSelect | null;
+};
+
+export type OverlappingLeave = {
+  leave: LeaveRequest;
   leaveType: typeof leaveTypes.$inferSelect | null;
 };
 
@@ -81,20 +87,32 @@ export const leaveRepository = {
 
 	async findOverlappingLeaves(
 		studentId: string,
-		leaveTypeId: string,
 		startAt: Date,
 		endAt: Date,
-		dbClient: Pick<typeof db, "select"> = db
-	): Promise<LeaveRequest[]> {
+		options: {
+			dbClient?: Pick<typeof db, "select">;
+			excludeLeaveRequestId?: string;
+		} = {}
+	): Promise<OverlappingLeave[]> {
+		const { dbClient = db, excludeLeaveRequestId } = options;
+
 		const rows = await dbClient
-			.select()
+			.select({ leave: leaveRequests, leaveType: leaveTypes })
 			.from(leaveRequests)
+			.innerJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
 			.where(
 				and(
 					eq(leaveRequests.studentId, studentId),
-					eq(leaveRequests.leaveTypeId, leaveTypeId),
+					inArray(leaveRequests.status, [
+						LEAVE_REQUEST_STATUS.PENDING,
+						LEAVE_REQUEST_STATUS.APPROVED,
+						LEAVE_REQUEST_STATUS.OVERDUE,
+					]),
 					gte(leaveRequests.endAt, startAt),
-					lte(leaveRequests.startAt, endAt)
+					lte(leaveRequests.startAt, endAt),
+					...(excludeLeaveRequestId
+						? [ne(leaveRequests.id, excludeLeaveRequestId)]
+						: [])
 				)
 			)
 			.orderBy(leaveRequests.startAt);
@@ -134,11 +152,13 @@ export const leaveRepository = {
 
 	async findExpiredLeaves(
 		before: Date,
-		dbClient: Pick<typeof db, "select"> = db
+		dbClient: Pick<typeof db, "select"> = db,
+		limit?: number
 	): Promise<LeaveRequest[]> {
-		const rows = await dbClient
+		const query = dbClient
 			.select()
 			.from(leaveRequests)
+			.innerJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
 			.leftJoin(qrPasses, eq(qrPasses.leaveRequestId, leaveRequests.id))
 			.where(
 				and(
@@ -146,20 +166,66 @@ export const leaveRepository = {
 					lte(leaveRequests.endAt, before),
 					isNull(leaveRequests.actualReturnAt),
 					// EXPIRED = approved but never checked out. Exclude leaves
-					// that have an active QR pass (i.e. the student left).
+					// that have an active QR pass (i.e. the student left), and
+					// non-QR leaves — those auto-COMPLETE instead (T16).
+					ne(leaveTypes.qrMode, QR_MODE.NONE),
 					isNull(qrPasses.firstScanAt)
 				)
 			)
 			.orderBy(leaveRequests.endAt);
+
+		const rows = limit ? await query.limit(limit) : await query;
+
+		return rows.map((row) => row.leave_requests);
+	},
+
+	/**
+	 * Contract T16: APPROVED non-QR leaves have no movement to reconcile, so
+	 * once their window ends they auto-COMPLETE (EXPIRED is the wrong end
+	 * state). A leave with a PENDING extension is excluded — the extension
+	 * may still be approved to widen the window.
+	 */
+async findAutoCompleteDueNonQrLeaves(
+		before: Date,
+		dbClient: Pick<typeof db, "select"> = db,
+		limit?: number
+	): Promise<LeaveRequest[]> {
+		const query = dbClient
+			.select()
+			.from(leaveRequests)
+			.innerJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
+			.where(
+				and(
+					eq(leaveRequests.status, LEAVE_REQUEST_STATUS.APPROVED),
+					lte(leaveRequests.endAt, before),
+					isNull(leaveRequests.actualReturnAt),
+					eq(leaveTypes.qrMode, QR_MODE.NONE),
+					notExists(
+						dbClient
+							.select()
+							.from(leaveExtensions)
+							.where(
+								and(
+									eq(leaveExtensions.leaveRequestId, leaveRequests.id),
+									eq(leaveExtensions.status, LEAVE_REQUEST_STATUS.PENDING)
+								)
+							)
+					)
+				)
+			)
+			.orderBy(leaveRequests.endAt);
+
+		const rows = limit ? await query.limit(limit) : await query;
 
 		return rows.map((row) => row.leave_requests);
 	},
 
 	async findOverdueLeaves(
 		before: Date,
-		dbClient: Pick<typeof db, "select"> = db
+		dbClient: Pick<typeof db, "select"> = db,
+		limit?: number
 	): Promise<LeaveRequest[]> {
-		const rows = await dbClient
+		const query = dbClient
 			.select()
 			.from(leaveRequests)
 			.innerJoin(qrPasses, eq(qrPasses.leaveRequestId, leaveRequests.id))
@@ -175,6 +241,8 @@ export const leaveRepository = {
 				)
 			)
 			.orderBy(leaveRequests.endAt);
+
+		const rows = limit ? await query.limit(limit) : await query;
 
 		return rows.map((row) => row.leave_requests);
 	},

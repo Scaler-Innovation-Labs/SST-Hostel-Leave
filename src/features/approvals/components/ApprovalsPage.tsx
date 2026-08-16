@@ -3,12 +3,7 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 
-const fetcher = async (url: string) => {
-  const res = await fetch(url);
-  if (!res.ok) return [];
-  const r = await res.json();
-  return r.data ?? [];
-};
+import { fetcher } from "@/lib/api/fetcher";
 
 const OVERDUE_LIMIT = 200;
 

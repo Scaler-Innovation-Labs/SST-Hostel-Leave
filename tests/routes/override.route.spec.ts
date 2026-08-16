@@ -48,7 +48,25 @@ describe("POST /api/v1/admin/leaves/[id]/override", () => {
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
     expect(body.data).toEqual(RESULT);
-    expect(mockOverride).toHaveBeenCalledWith("L1", "ALL", "U1", "Approving manually");
+    expect(mockOverride).toHaveBeenCalledWith(
+      "L1",
+      "ALL",
+      { id: "U1", roles: ["SUPER_ADMIN"] },
+      "Approving manually"
+    );
+  });
+
+  it("rejects an ADMIN caller", async () => {
+    mockRequireAnyRole.mockImplementation(() => {
+      throw new Error("FORBIDDEN");
+    });
+
+    const res = await POST(jsonReq({ mode: "ALL" }), {
+      params: Promise.resolve({ id: "L1" }),
+    });
+
+    expect(res.status).toBe(500);
+    expect(mockOverride).not.toHaveBeenCalled();
   });
 
   it("rejects an invalid mode", async () => {

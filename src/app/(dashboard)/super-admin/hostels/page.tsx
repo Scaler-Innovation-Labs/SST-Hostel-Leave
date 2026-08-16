@@ -8,9 +8,8 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
+import { fetcher } from "@/lib/api/fetcher";
 import { deleteHostel, saveHostel } from "@/lib/api/hostel-api";
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((r) => r.data ?? r);
 
 type HostelItem = {
   id: string;

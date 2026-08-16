@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-const mockNotify = vi.fn().mockResolvedValue(undefined);
+const mockNotify = vi.fn().mockResolvedValue({ success: true, failures: [] });
 
 vi.mock("@/services/notification/notification.service", () => ({
   notificationService: {
@@ -35,6 +35,7 @@ import { handleNotificationEvent } from "@/services/outbox/handlers/notification
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mockNotify.mockResolvedValue({ success: true, failures: [] });
   mockFindLeaveById.mockResolvedValue({
     id: "L1",
     studentId: "S1",
@@ -130,5 +131,16 @@ describe("handleNotificationEvent", () => {
     await handleNotificationEvent(makeEvent({ notificationType: null }));
 
     expect(mockNotify).not.toHaveBeenCalled();
+  });
+
+  it("rethrows when notification delivery fails so the outbox retries", async () => {
+    mockNotify.mockResolvedValue({
+      success: false,
+      failures: ["Provider reported delivery failure: 500"],
+    });
+
+    await expect(handleNotificationEvent(makeEvent())).rejects.toThrow(
+      /Notification delivery failed/
+    );
   });
 });

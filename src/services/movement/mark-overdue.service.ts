@@ -2,14 +2,16 @@ import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
 import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { studentRepository } from "@/db/repositories/student/student.repository";
+import type { CurrentUser } from "@/lib/auth/types";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { assertCanAccessStudent } from "@/services/shared/authorization.service";
 
 import { recordMovement } from "./record-movement.service";
 
 export type MarkOverdueInput = {
   studentId: string;
-  recordedBy: string;
+  currentUser: CurrentUser;
 };
 
 export type MarkOverdueResult = {
@@ -27,12 +29,15 @@ export async function markOverdue(
     throw new NotFoundError("Student");
   }
 
+  // Hostel-scope guard: a scoped ADMIN must only mutate students in their
+  // own hostel; SUPER_ADMIN is unrestricted.
+  await assertCanAccessStudent(input.currentUser, input.studentId);
+
   const currentState = student.currentLocationState;
 
   if (
     currentState !== MOVEMENT_STATE.CHECKED_OUT &&
-    currentState !== MOVEMENT_STATE.OUTSIDE_HOSTEL &&
-    currentState !== MOVEMENT_STATE.APPROVED_LEAVE
+    currentState !== MOVEMENT_STATE.OUTSIDE_HOSTEL
   ) {
     throw new ConflictError(
       `Cannot mark overdue from state: ${currentState}`
@@ -46,7 +51,7 @@ export async function markOverdue(
       toState: MOVEMENT_STATE.OVERDUE,
       eventType: MOVEMENT_EVENT.AUTO_OVERDUE,
       movementMethod: MOVEMENT_METHOD.SYSTEM,
-      recordedBy: input.recordedBy,
+      recordedBy: input.currentUser.id,
       isManualOverride: true,
       dbClient: tx,
     });

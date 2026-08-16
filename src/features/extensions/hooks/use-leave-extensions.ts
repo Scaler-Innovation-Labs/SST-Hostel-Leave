@@ -1,8 +1,7 @@
 import useSWR from "swr";
 
 import { getExtensionsUrl } from "@/lib/api/extension-api";
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((r) => r.data ?? r);
+import { fetcher } from "@/lib/api/fetcher";
 
 export function useLeaveExtensions(leaveId: string) {
   const url = leaveId ? getExtensionsUrl(leaveId) : null;

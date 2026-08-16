@@ -3,7 +3,7 @@ import { leaveDocumentRepository } from "@/db/repositories/leave/leave-document.
 import type { CurrentUser } from "@/lib/auth/types";
 import { uploadFromBuffer } from "@/lib/cloudinary";
 import { NotFoundError, ValidationError } from "@/lib/errors";
-import { verifyStudentOwnership } from "@/services/shared/authorization.service";
+import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
@@ -15,6 +15,8 @@ const ALLOWED_MIME_TYPES = [
 ];
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+const MAX_DOCUMENT_TYPE_LENGTH = 50;
 
 export type UploadDocumentResult = {
   id: string;
@@ -34,15 +36,21 @@ export async function uploadLeaveDocument(
   file: File,
   documentType: string,
   uploadedBy: string,
-  currentUser?: CurrentUser,
+  currentUser: CurrentUser,
 ): Promise<UploadDocumentResult> {
   if (file.size > MAX_FILE_SIZE) {
     throw new ValidationError("File size must be less than 10MB");
   }
 
+  if (file.size === 0) {
+    throw new ValidationError("File cannot be empty");
+  }
+
   if (!ALLOWED_MIME_TYPES.includes(file.type)) {
     throw new ValidationError("File type not supported. Allowed: JPG, PNG, GIF, PDF, DOC, DOCX");
   }
+
+  const normalizedDocumentType = documentType.trim().slice(0, MAX_DOCUMENT_TYPE_LENGTH) || "GENERAL";
 
   const leave = await leaveRepository.findById(leaveRequestId);
 
@@ -50,9 +58,9 @@ export async function uploadLeaveDocument(
     throw new NotFoundError("LeaveRequest");
   }
 
-  if (currentUser) {
-    await verifyStudentOwnership(currentUser, leave.studentId);
-  }
+  // IDOR guard: students may only upload to their own leaves; staff must be
+  // within the leave's hostel scope.
+  await assertCanAccessLeave(currentUser, leave);
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -67,7 +75,7 @@ export async function uploadLeaveDocument(
   const document = await leaveDocumentRepository.create({
     leaveRequestId,
     uploadedBy,
-    documentType,
+    documentType: normalizedDocumentType,
     documentStatus: "ACTIVE",
     fileName: sanitizedFileName,
     fileUrl: uploadResult.secureUrl,

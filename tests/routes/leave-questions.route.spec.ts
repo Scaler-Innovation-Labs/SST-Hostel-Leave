@@ -43,7 +43,11 @@ describe("GET /api/v1/leaves/[id]/questions", () => {
 
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(mockListQuestions).toHaveBeenLastCalledWith("LR1", expect.objectContaining({ page: 1, limit: 50 }));
+    expect(mockListQuestions).toHaveBeenLastCalledWith(
+      "LR1",
+      expect.objectContaining({ page: 1, limit: 50 }),
+      expect.objectContaining({ id: "U1" }),
+    );
   });
 
   it("forwards page and limit", async () => {
@@ -54,7 +58,11 @@ describe("GET /api/v1/leaves/[id]/questions", () => {
       ctx,
     );
 
-    expect(mockListQuestions).toHaveBeenLastCalledWith("LR1", expect.objectContaining({ page: 2, limit: 25 }));
+    expect(mockListQuestions).toHaveBeenLastCalledWith(
+      "LR1",
+      expect.objectContaining({ page: 2, limit: 25 }),
+      expect.objectContaining({ id: "U1" }),
+    );
   });
 });
 

@@ -1,10 +1,5 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import useSWR from "swr";
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((r) => r.data ?? r);
-
 import {
   Building2,
   CheckCircle2,
@@ -15,10 +10,13 @@ import {
   User,
   X,
 } from "lucide-react";
+import { useMemo, useState } from "react";
+import useSWR from "swr";
 
 import { HostelFilter } from "@/components/shared/HostelFilter";
 import { InfoCard } from "@/components/shared/InfoCard";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { Pagination } from "@/components/shared/Pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -34,6 +32,7 @@ import { VIEW_STEP_KEY, WORKFLOW_STEP_KEY, WORKFLOW_STEP_KEYS } from "@/constant
 import { ApprovalCommandCard } from "@/features/approvals/components/ApprovalCommandCard";
 import { useExtensionApprovals } from "@/features/extensions/hooks/use-approve-extension";
 import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
+import { fetcher } from "@/lib/api/fetcher";
 import { computeDateRange, DATE_RANGE_OPTIONS } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 
@@ -427,29 +426,12 @@ export function ExtensionApprovalsPage() {
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-border pt-4">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page <= 1}
-            onClick={() => setPage(page - 1)}
-          >
-            Previous
-          </Button>
-          <span className="text-xs text-muted-foreground">
-            Page {page} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={page >= totalPages}
-            onClick={() => setPage(page + 1)}
-          >
-            Next
-          </Button>
-        </div>
-      )}
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        labelPosition="center"
+      />
     </div>
   );
 }

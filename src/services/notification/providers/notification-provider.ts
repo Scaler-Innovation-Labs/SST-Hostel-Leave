@@ -2,6 +2,8 @@ export type NotificationPayload = {
 	to: string | string[];
 	subject?: string;
 	body: string;
+	/** Email-only: HTML render of `body` with user values escaped. */
+	htmlBody?: string;
 	metadata?: Record<string, unknown>;
 	templateCode?: string;
 	providerMetadata?: Record<string, unknown>;

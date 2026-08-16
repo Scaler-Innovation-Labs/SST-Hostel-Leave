@@ -6,11 +6,11 @@ import type { CurrentUser } from "@/lib/auth/types";
 import { deleteByPublicId, extractPublicIdFromUrl } from "@/lib/cloudinary";
 import { NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
-import { verifyStudentOwnership } from "@/services/shared/authorization.service";
+import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
 export async function deleteLeaveDocument(
   documentId: string,
-  currentUser?: CurrentUser,
+  currentUser: CurrentUser,
 ): Promise<void> {
   const document = await leaveDocumentRepository.findById(documentId);
 
@@ -18,10 +18,12 @@ export async function deleteLeaveDocument(
     throw new NotFoundError("LeaveDocument");
   }
 
-  if (currentUser && document.leaveRequestId) {
+  // IDOR guard: students may only delete their own leave's documents; staff
+  // must be within the leave's hostel scope.
+  if (document.leaveRequestId) {
     const leave = await leaveRepository.findById(document.leaveRequestId);
     if (leave) {
-      await verifyStudentOwnership(currentUser, leave.studentId);
+      await assertCanAccessLeave(currentUser, leave);
     }
   }
 

@@ -51,6 +51,10 @@ export const outboxEvents = pgTable(
     processedAt: timestamp("processed_at", {
       withTimezone: true,
     }),
+
+    claimedAt: timestamp("claimed_at", {
+      withTimezone: true,
+    }),
   },
   (table) => ({
     statusIndex: index("outbox_events_status_idx").on(

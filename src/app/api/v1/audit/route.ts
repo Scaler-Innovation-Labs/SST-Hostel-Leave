@@ -5,11 +5,11 @@ import { auditService } from "@/services/audit/audit.service";
 
 export async function GET(request: Request) {
   try {
-    const user = await requireAuth();
+    const currentUser = await requireAuth();
     const url = new URL(request.url);
     const query = listAuditSchema.parse(Object.fromEntries(url.searchParams));
 
-    const result = await auditService.listAuditLogs(query, user);
+    const result = await auditService.listAuditLogs(query, currentUser);
     return ApiResponse.success(result);
   } catch (error) {
     return ApiResponse.fromError(error);

@@ -1,8 +1,8 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Inbox } from "lucide-react";
+import { Inbox } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/shared/Pagination";
 import { cn } from "@/lib/utils";
 
 import { ExtensionCard, type ExtensionCardItem } from "./ExtensionCard";
@@ -80,31 +80,15 @@ export function ExtensionQueue({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-border pt-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={page <= 1}
-            onClick={() => onPageChange(page - 1)}
-            className="gap-1"
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Previous
-          </Button>
-          <span className="text-xs text-muted-foreground">
-            {page} / {totalPages}
-          </span>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={page >= totalPages}
-            onClick={() => onPageChange(page + 1)}
-            className="gap-1"
-          >
-            Next
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+          variant="ghost"
+          labelPosition="center"
+          labelFormat="slash"
+          className="pt-3"
+        />
       )}
     </div>
   );

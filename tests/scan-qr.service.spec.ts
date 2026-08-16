@@ -20,6 +20,9 @@ vi.mock("@/lib/db", () => ({
 }));
 
 const mockFindByTokenHash = vi.fn();
+const mockFindById = vi.fn();
+const mockFindUsableExitPass = vi.fn();
+const mockFindOpenSessionPass = vi.fn();
 const mockMarkAsFirstScanned = vi.fn();
 const mockMarkAsClosed = vi.fn();
 const mockInvalidate = vi.fn();
@@ -28,11 +31,15 @@ const mockRecordMovement = vi.fn();
 const mockStudentFindById = vi.fn();
 const mockAuditRecord = vi.fn().mockResolvedValue({});
 const mockOutboxPublish = vi.fn().mockResolvedValue({});
+const mockLeaveFindByIdForUpdate = vi.fn();
 const mockLeaveUpdateById = vi.fn().mockResolvedValue({});
 
 vi.mock("@/db/repositories/movement/qr-pass.repository", () => ({
   qrPassRepository: {
     findByTokenHash: (...args: any[]) => mockFindByTokenHash(...args),
+    findById: (...args: any[]) => mockFindById(...args),
+    findUsableExitPassForStudent: (...args: any[]) => mockFindUsableExitPass(...args),
+    findOpenSessionPassForStudent: (...args: any[]) => mockFindOpenSessionPass(...args),
     markAsFirstScanned: (...args: any[]) => mockMarkAsFirstScanned(...args),
     markAsClosed: (...args: any[]) => mockMarkAsClosed(...args),
     invalidate: (...args: any[]) => mockInvalidate(...args),
@@ -53,6 +60,7 @@ vi.mock("@/db/repositories/student/student.repository", () => ({
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
+    findByIdForUpdate: (...args: any[]) => mockLeaveFindByIdForUpdate(...args),
     updateById: (...args: any[]) => mockLeaveUpdateById(...args),
   },
 }));
@@ -83,6 +91,13 @@ beforeEach(() => {
   mockMarkAsFirstScanned.mockResolvedValue({ id: "PASS1" });
   mockMarkAsClosed.mockResolvedValue({ id: "PASS1" });
   mockInvalidate.mockResolvedValue({ id: "PASS1" });
+  mockFindUsableExitPass.mockResolvedValue(null);
+  mockFindOpenSessionPass.mockResolvedValue(null);
+  mockFindById.mockResolvedValue({ id: "PASS1", status: "ACTIVE" });
+  mockLeaveFindByIdForUpdate.mockResolvedValue({
+    id: "L1",
+    status: "APPROVED",
+  });
   mockStudentFindById.mockResolvedValue({
     id: "S1",
     currentLocationState: "CHECKED_OUT",
@@ -156,6 +171,66 @@ describe("scanQrPass service", () => {
       expect(result.failureReason).toBe("QR pass has expired");
       expect(mockInvalidate).toHaveBeenCalledWith("PASS1");
     });
+
+    it("rejects EXIT_SCAN before the pass is valid (future leave window)", async () => {
+      mockFindByTokenHash.mockResolvedValue({
+        ...VALID_PASS,
+        validFrom: new Date("2099-01-01"),
+        expiresAt: null,
+      });
+
+      const result = await scanQrPass({
+        token: "future-token",
+        scannedBy: "U1",
+        scanType: "EXIT_SCAN",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.failureReason).toContain("QR pass is not valid until");
+      expect(mockScanLogCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ scanResult: "FAILED" })
+      );
+    });
+
+    it("rejects EXIT_SCAN when another usable-for-exit pass exists for the student", async () => {
+      mockFindByTokenHash.mockResolvedValue(VALID_PASS);
+      mockFindUsableExitPass.mockResolvedValue({ id: "PASS-OTHER" });
+
+      const result = await scanQrPass({
+        token: "exit-token",
+        scannedBy: "U1",
+        scanType: "EXIT_SCAN",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.failureReason).toBe("Another active QR exists for a conflicting leave");
+      expect(mockMarkAsFirstScanned).not.toHaveBeenCalled();
+    });
+
+    it("rejects EXIT_SCAN when the student already has an open movement session", async () => {
+      mockFindByTokenHash.mockResolvedValue(VALID_PASS);
+      mockFindOpenSessionPass.mockResolvedValue({
+        id: "PASS-OPEN",
+        leaveRequestId: "L1",
+        firstScanAt: new Date(),
+        closedAt: null,
+      });
+
+      const result = await scanQrPass({
+        token: "exit-token",
+        scannedBy: "U1",
+        scanType: "EXIT_SCAN",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.failureReason).toBe(
+        "Student already has an open movement session"
+      );
+      expect(mockMarkAsFirstScanned).not.toHaveBeenCalled();
+      expect(mockScanLogCreate).toHaveBeenCalledWith(
+        expect.objectContaining({ scanResult: "FAILED" })
+      );
+    });
   });
 
   describe("timestamp validation", () => {
@@ -206,8 +281,9 @@ describe("scanQrPass service", () => {
   });
 
   describe("EXIT_SCAN flow", () => {
-    it("creates scan log, marks pass, and records movement in transaction", async () => {
+    it("creates scan log, marks pass, and records movement from IN_HOSTEL in transaction (contract T4)", async () => {
       mockFindByTokenHash.mockResolvedValue(VALID_PASS);
+      mockStudentFindById.mockResolvedValue({ id: "S1", currentLocationState: "IN_HOSTEL" });
 
       const result = await scanQrPass({
         token: "exit-token",
@@ -231,7 +307,7 @@ describe("scanQrPass service", () => {
           studentId: "S1",
           leaveRequestId: "L1",
           qrPassId: "PASS1",
-          fromState: "APPROVED_LEAVE",
+          fromState: "IN_HOSTEL",
           toState: "OUTSIDE_HOSTEL",
           eventType: "EXIT_HOSTEL",
           movementMethod: "QR",
@@ -240,9 +316,62 @@ describe("scanQrPass service", () => {
         })
       );
     });
+
+    it("derives fromState from the student's actual location (legacy APPROVED_LEAVE bridge)", async () => {
+      mockFindByTokenHash.mockResolvedValue(VALID_PASS);
+      mockStudentFindById.mockResolvedValue({ id: "S1", currentLocationState: "APPROVED_LEAVE" });
+
+      await scanQrPass({
+        token: "exit-token",
+        scannedBy: "U1",
+        scanType: "EXIT_SCAN",
+      });
+
+      expect(mockRecordMovement).toHaveBeenCalledWith(
+        expect.objectContaining({ fromState: "APPROVED_LEAVE", toState: "OUTSIDE_HOSTEL" })
+      );
+    });
+
+    it("lets recordMovement reject an exit while the student is already outside", async () => {
+      mockFindByTokenHash.mockResolvedValue(VALID_PASS);
+      mockStudentFindById.mockResolvedValue({ id: "S1", currentLocationState: "OUTSIDE_HOSTEL" });
+
+      await scanQrPass({
+        token: "exit-token",
+        scannedBy: "U1",
+        scanType: "EXIT_SCAN",
+      });
+
+      // fromState must mirror the student's real state so the state machine
+      // rejects OUTSIDE_HOSTEL + EXIT_HOSTEL.
+      expect(mockRecordMovement).toHaveBeenCalledWith(
+        expect.objectContaining({ fromState: "OUTSIDE_HOSTEL", toState: "OUTSIDE_HOSTEL" })
+      );
+    });
   });
 
   describe("RETURN_SCAN flow", () => {
+    it("allows the return scan after the leave window has passed (overdue return)", async () => {
+      // expiresAt in the past — the window has ended, but the open session's
+      // return must still work (contract T8: overdue students return by QR).
+      mockFindByTokenHash.mockResolvedValue({
+        ...VALID_RETURN_PASS,
+        expiresAt: new Date("2020-01-01"),
+      });
+
+      const result = await scanQrPass({
+        token: "return-token",
+        scannedBy: "U1",
+        scanType: "RETURN_SCAN",
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockMarkAsClosed).toHaveBeenCalledWith("PASS2", expect.any(Object));
+      expect(mockRecordMovement).toHaveBeenCalledWith(
+        expect.objectContaining({ eventType: "ENTER_HOSTEL", toState: "IN_HOSTEL" })
+      );
+    });
+
     it("creates scan log, marks pass closed, records movement, and completes leave", async () => {
       mockFindByTokenHash.mockResolvedValue(VALID_RETURN_PASS);
 

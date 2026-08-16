@@ -35,5 +35,4 @@ export const ROUTES = {
   SUPER_ADMIN_MOVEMENTS: "/super-admin/movements",
   SUPER_ADMIN_STUDENTS: "/super-admin/students",
   SUPER_ADMIN_ACADEMIC_GROUPS: "/super-admin/academic-groups",
-  NOTIFICATIONS: "/notifications",
 } as const;

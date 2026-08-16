@@ -1,5 +1,3 @@
-import QRCode from "qrcode";
-
 import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
 import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
@@ -12,10 +10,13 @@ import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
+import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 import { getPublicBaseUrl } from "@/lib/base-url";
+import { formatShortDate } from "@/lib/date-utils";
+import { NotFoundError, ValidationError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { recordMovement } from "@/services/movement/record-movement.service";
 import {
@@ -52,14 +53,6 @@ type ResolvedContext = {
   hostelId?: string;
   cc?: string[];
 };
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 async function resolveContext(
   eventType: string,
@@ -130,9 +123,9 @@ async function resolveContext(
 
   let leaveTypeCode: string | undefined;
   if (leave) {
-    variables.dates = `${formatDate(leave.startAt)} – ${formatDate(leave.endAt)}`;
-    variables.startDate = formatDate(leave.startAt);
-    variables.endDate = formatDate(leave.endAt);
+    variables.dates = `${formatShortDate(leave.startAt)} – ${formatShortDate(leave.endAt)}`;
+    variables.startDate = formatShortDate(leave.startAt);
+    variables.endDate = formatShortDate(leave.endAt);
 
     const leaveType = await leaveTypeRepository.findById(leave.leaveTypeId);
     if (leaveType) {
@@ -158,19 +151,21 @@ async function resolveContext(
 
   // Embed the actual scannable pass QR in the approval email. One token per
   // approved leave — the exact same QR the student sees in the app. The raw
-  // token rides in the outbox payload; the QR is rendered server-side as a
-  // self-contained data URI (no third-party QR API).
+  // token is fetched from the qr_passes row at render time (it is never
+  // published into outbox payloads, so bearer credentials are not persisted
+  // at rest in the outbox table). The email <img> points at the hosted PNG
+  // route keyed by qrPassId — the token itself never enters a URL or the
+  // email markup (a data: URI would be stripped by Gmail, showing only the
+  // alt text).
   if (eventType === OUTBOX_EVENT_TYPE.LEAVE_APPROVED) {
     variables.qrDashboardUrl = `${baseUrl}/student/dashboard`;
     variables.leaveUrl = `${baseUrl}/student/leaves/${leaveId}`;
 
-    const qrToken = payload.qrToken;
-    if (typeof qrToken === "string" && qrToken.length > 0) {
-      variables.qrCodeUrl = await QRCode.toDataURL(qrToken, {
-        width: 200,
-        margin: 2,
-        color: { dark: "#000000", light: "#ffffff" },
-      });
+    const pass = leaveId
+      ? await qrPassRepository.findByLeaveRequestId(leaveId)
+      : null;
+    if (pass?.id) {
+      variables.qrCodeUrl = `${baseUrl}/api/v1/qr/${pass.id}/image`;
     }
   }
 
@@ -242,7 +237,7 @@ export async function handleLeaveEvent(
         undefined;
     }
 
-    await notificationService.notify(notificationType, {
+    const result = await notificationService.notify(notificationType, {
       leaveRequestId: leaveId,
       leaveExtensionId: payload.extensionId as string | undefined,
       leaveTypeId: context.leaveTypeId,
@@ -256,6 +251,14 @@ export async function handleLeaveEvent(
       templateCode,
       variables: context.variables,
     });
+
+    // A notification that never delivered must not be marked PROCESSED —
+    // rethrow so the outbox worker requeues/retries the event.
+    if (!result.success) {
+      throw new Error(
+        `Notification delivery failed for ${eventType} (${notificationType}): ${result.failures.join("; ")}`
+      );
+    }
 
     logger.info("Notification dispatched", { eventType, notificationType });
   } else if (!notificationType) {
@@ -274,17 +277,40 @@ export async function handleLeaveEvent(
     const approvalStepKey = payload.approvalStepKey as string;
 
     if (leaveRequestId && studentId && approvalStepId) {
+      const logIdentifier = leaveExtensionId ? `extension ${leaveExtensionId}` : `leave ${leaveRequestId}`;
       try {
         await generateParentApproval(
           { leaveRequestId, leaveExtensionId, studentId, studentName, leaveDates, leaveReason, baseUrl },
           { id: approvalStepId, stepKey: approvalStepKey },
         );
-        const logIdentifier = leaveExtensionId ? `extension ${leaveExtensionId}` : `leave ${leaveRequestId}`;
         logger.info("Parent approval generated for", { target: logIdentifier });
       } catch (error) {
-        const logIdentifier = leaveExtensionId ? `extension ${leaveExtensionId}` : `leave ${leaveRequestId}`;
-        logger.error("Failed to generate parent approval for", { target: logIdentifier, error: error instanceof Error ? error.message : String(error) });
+        // Permanent, non-retryable: the student has no parent or the parent
+        // has no phone — retrying can never succeed. Log and swallow so the
+        // outbox marks the event processed instead of burning retries.
+        if (error instanceof NotFoundError || error instanceof ValidationError) {
+          logger.warn("Parent approval skipped (permanent failure)", {
+            target: logIdentifier,
+            error: error.message,
+          });
+        } else {
+          // Transient failure (DB/network): rethrow so the outbox worker
+          // requeues the event and retries — never silently drop the parent
+          // request.
+          logger.error("Failed to generate parent approval for", {
+            target: logIdentifier,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          throw error;
+        }
       }
+    } else {
+      logger.warn("PARENT_APPROVAL_REQUIRED payload missing required fields", {
+        eventType,
+        hasLeaveRequestId: !!leaveRequestId,
+        hasStudentId: !!studentId,
+        hasApprovalStepId: !!approvalStepId,
+      });
     }
     return;
   }
@@ -293,26 +319,18 @@ export async function handleLeaveEvent(
     const student = await studentRepository.findById(studentId);
     const currentState = student?.currentLocationState;
 
+    // Contract T2: leave approval NEVER mutates the student's physical
+    // location. APPROVED is an authorization; whether it is "current" is
+    // derived from the leave window at read/scan time. (Legacy
+    // APPROVED_LEAVE rows created before this contract are reconciled in the
+    // Phase-6 migration; the cancel/expire reverts below keep their paths
+    // working until then.)
     if (eventType === OUTBOX_EVENT_TYPE.LEAVE_APPROVED) {
-      if (currentState === MOVEMENT_STATE.APPROVED_LEAVE) {
-        logger.warn("Student already in APPROVED_LEAVE state — skipping movement recording for overlapping leave approval", { leaveId, studentId });
-      } else if (currentState !== MOVEMENT_STATE.IN_HOSTEL) {
-        logger.warn("Unexpected student state for leave approval — expected IN_HOSTEL or APPROVED_LEAVE, found", { currentState, leaveId, studentId });
-      } else {
-        try {
-          await recordMovement({
-            studentId,
-            leaveRequestId: leaveId,
-            fromState: MOVEMENT_STATE.IN_HOSTEL,
-            toState: MOVEMENT_STATE.APPROVED_LEAVE,
-            eventType: MOVEMENT_EVENT.LEAVE_APPROVED,
-            movementMethod: MOVEMENT_METHOD.SYSTEM,
-          });
-          logger.info("Movement recorded for leave approval", { leaveId });
-        } catch (error) {
-          logger.error("Failed to record movement for leave approval", { leaveId, error: error instanceof Error ? error.message : String(error) });
-        }
-      }
+      logger.info("Leave approved — movement state intentionally unchanged", {
+        leaveId,
+        studentId,
+        currentState,
+      });
     }
 
     if (eventType === OUTBOX_EVENT_TYPE.LEAVE_CANCELLED && currentState === MOVEMENT_STATE.APPROVED_LEAVE) {
@@ -353,11 +371,16 @@ export async function handleLeaveEvent(
       }
     }
 
+    // Contract T7: the overdue transition now happens atomically inside
+    // markOverdueSingleLeave (leave status + location + AUTO_OVERDUE event in
+    // one transaction), so this block is a legacy fallback that only fires
+    // when the student is still OUTSIDE/CHECKED_OUT — e.g. an outbox row
+    // published before the atomic change. Once the state is OVERDUE it is a
+    // no-op.
     if (
       eventType === OUTBOX_EVENT_TYPE.LEAVE_OVERDUE &&
       (currentState === MOVEMENT_STATE.CHECKED_OUT ||
-        currentState === MOVEMENT_STATE.OUTSIDE_HOSTEL ||
-        currentState === MOVEMENT_STATE.APPROVED_LEAVE)
+        currentState === MOVEMENT_STATE.OUTSIDE_HOSTEL)
     ) {
       try {
         await recordMovement({
@@ -368,7 +391,7 @@ export async function handleLeaveEvent(
           eventType: MOVEMENT_EVENT.AUTO_OVERDUE,
           movementMethod: MOVEMENT_METHOD.SYSTEM,
         });
-        logger.info("Movement recorded for overdue leave", { leaveId });
+        logger.info("Movement recorded for overdue leave (legacy fallback)", { leaveId });
       } catch (error) {
         logger.error("Failed to record movement for overdue leave", { leaveId, error: error instanceof Error ? error.message : String(error) });
       }

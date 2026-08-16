@@ -11,16 +11,13 @@ import { HostelFilter } from "@/components/shared/HostelFilter";
 import { InfoCard } from "@/components/shared/InfoCard";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { Pagination } from "@/components/shared/Pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { useStudents } from "@/features/students/hooks/use-students";
+import { fetcher } from "@/lib/api/fetcher";
 import { cn } from "@/lib/utils";
-
-const fetcher = (url: string) =>
-  fetch(url)
-    .then((r) => r.json())
-    .then((r) => r.data ?? r);
 
 type HostelOption = { id: string; name: string; code: string };
 
@@ -239,31 +236,7 @@ export function OverdueStudentsPage({ detailBasePath }: OverdueStudentsPageProps
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-border pt-4">
-              <p className="text-sm text-muted-foreground">
-                Page {page} of {totalPages}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page <= 1}
-                  onClick={() => setPage(page - 1)}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={page >= totalPages}
-                  onClick={() => setPage(page + 1)}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
+          <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </>
       )}
     </div>

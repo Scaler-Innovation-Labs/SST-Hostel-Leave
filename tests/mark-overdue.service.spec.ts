@@ -18,11 +18,13 @@ vi.mock("@/lib/db/transaction", () => ({
 }));
 
 const mockStudentFindById = vi.fn();
+const mockStudentFindByIdWithRelations = vi.fn();
 const mockRecordMovement = vi.fn();
 
 vi.mock("@/db/repositories/student/student.repository", () => ({
   studentRepository: {
     findById: (...args: any[]) => mockStudentFindById(...args),
+    findByIdWithRelations: (...args: any[]) => mockStudentFindByIdWithRelations(...args),
   },
 }));
 
@@ -31,11 +33,14 @@ vi.mock("@/services/movement/record-movement.service", () => ({
 }));
 
 import { markOverdue } from "@/services/movement/mark-overdue.service";
-import { ConflictError, NotFoundError } from "@/lib/errors";
+import { AuthorizationError, ConflictError, NotFoundError } from "@/lib/errors";
+
+const OVERRIDE_USER = { id: "SYSTEM", roles: ["SUPER_ADMIN"] };
 
 beforeEach(() => {
   vi.resetAllMocks();
   mockRecordMovement.mockResolvedValue({ id: "ME1" });
+  mockStudentFindByIdWithRelations.mockResolvedValue(null);
 });
 
 describe("markOverdue service", () => {
@@ -44,7 +49,7 @@ describe("markOverdue service", () => {
       mockStudentFindById.mockResolvedValue(null);
 
       await expect(
-        markOverdue({ studentId: "NONEXISTENT", recordedBy: "SYSTEM" })
+        markOverdue({ studentId: "NONEXISTENT", currentUser: OVERRIDE_USER })
       ).rejects.toBeInstanceOf(NotFoundError);
     });
 
@@ -55,7 +60,7 @@ describe("markOverdue service", () => {
       });
 
       await expect(
-        markOverdue({ studentId: "S1", recordedBy: "SYSTEM" })
+        markOverdue({ studentId: "S1", currentUser: OVERRIDE_USER })
       ).rejects.toBeInstanceOf(ConflictError);
     });
 
@@ -70,7 +75,7 @@ describe("markOverdue service", () => {
 
       const result = await markOverdue({
         studentId: "S1",
-        recordedBy: "SYSTEM",
+        currentUser: OVERRIDE_USER,
       });
 
       expect(result).toEqual({
@@ -100,7 +105,7 @@ describe("markOverdue service", () => {
 
       await markOverdue({
         studentId: "S1",
-        recordedBy: "SYSTEM",
+        currentUser: OVERRIDE_USER,
       });
 
       expect(mockRecordMovement).toHaveBeenCalledWith(
@@ -111,23 +116,15 @@ describe("markOverdue service", () => {
       );
     });
 
-    it("marks APPROVED_LEAVE student as overdue", async () => {
+    it("rejects APPROVED_LEAVE student (legacy state, contract T2)", async () => {
       mockStudentFindById.mockResolvedValue({
         id: "S1",
         currentLocationState: "APPROVED_LEAVE",
       });
 
-      await markOverdue({
-        studentId: "S1",
-        recordedBy: "SYSTEM",
-      });
-
-      expect(mockRecordMovement).toHaveBeenCalledWith(
-        expect.objectContaining({
-          fromState: "APPROVED_LEAVE",
-          toState: "OVERDUE",
-        })
-      );
+      await expect(
+        markOverdue({ studentId: "S1", currentUser: OVERRIDE_USER })
+      ).rejects.toBeInstanceOf(ConflictError);
     });
   });
 
@@ -138,7 +135,7 @@ describe("markOverdue service", () => {
         currentLocationState: "CHECKED_OUT",
       });
 
-      await markOverdue({ studentId: "S1", recordedBy: "SYSTEM" });
+      await markOverdue({ studentId: "S1", currentUser: OVERRIDE_USER });
 
       expect(mockRecordMovement).toHaveBeenCalledTimes(1);
     });
@@ -153,8 +150,36 @@ describe("markOverdue service", () => {
       );
 
       await expect(
-        markOverdue({ studentId: "S1", recordedBy: "SYSTEM" })
+        markOverdue({ studentId: "S1", currentUser: OVERRIDE_USER })
       ).rejects.toBeInstanceOf(ConflictError);
+    });
+  });
+
+  describe("hostel-scope enforcement", () => {
+    it("rejects a hostel-scoped admin marking overdue a student from another hostel", async () => {
+      mockStudentFindById.mockResolvedValue({
+        id: "S1",
+        currentLocationState: "CHECKED_OUT",
+      });
+
+      mockStudentFindByIdWithRelations.mockResolvedValue({
+        student: { id: "S1" },
+        user: { hostelId: "H2" },
+        locationState: null,
+      });
+
+      const scopedAdmin = {
+        id: "U9",
+        roles: ["ADMIN"],
+        roleScopes: [
+          { roleCode: "ADMIN", scopeType: "HOSTEL", scopeId: "H1" },
+        ],
+      };
+
+      await expect(
+        markOverdue({ studentId: "S1", currentUser: scopedAdmin })
+      ).rejects.toBeInstanceOf(AuthorizationError);
+      expect(mockRecordMovement).not.toHaveBeenCalled();
     });
   });
 });

@@ -80,6 +80,15 @@ export const qrPasses = pgTable("qr_passes", {
     .defaultNow()
     .notNull(),
 
+  // Contract (docs/movement-contract.md): a pass is a RECORD that belongs to
+  // one leave. `validFrom` (= leave startAt) and `expiresAt` (= leave endAt +
+  // return grace) define its usability window. A pass can be ACTIVE but NOT
+  // usable: future approved leaves hold gated passes so the approval email can
+  // carry the QR image, but the token only becomes scannable inside the window.
+  validFrom: timestamp("valid_from", {
+    withTimezone: true,
+  }),
+
   expiresAt: timestamp("expires_at", {
     withTimezone: true,
   }),
@@ -158,6 +167,10 @@ export const qrScanLogs = pgTable("qr_scan_logs", {
   scannedByIndex: index(
     "qr_scan_logs_scanned_by_idx"
   ).on(table.scannedBy),
+
+  scannedAtIndex: index(
+    "qr_scan_logs_scanned_at_idx"
+  ).on(table.scannedAt),
   })
   );
 

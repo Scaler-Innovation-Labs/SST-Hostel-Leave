@@ -1,8 +1,7 @@
 import useSWR from "swr";
 
+import { fetcher } from "@/lib/api/fetcher";
 import { getUsersUrl, getUserUrl } from "@/lib/api/user-api";
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((r) => r.data ?? r);
 
 export function useUsers(params?: {
   search?: string;

@@ -15,11 +15,13 @@ function getHandler(
   if (
     eventType.startsWith("LEAVE_") ||
     eventType === "QR_GENERATED" ||
-    eventType === "QR_SCANNED"
+    eventType === "QR_SCANNED" ||
+    eventType === "QR_INVALIDATED"
   ) {
     if (
       eventType === "QR_GENERATED" ||
-      eventType === "QR_SCANNED"
+      eventType === "QR_SCANNED" ||
+      eventType === "QR_INVALIDATED"
     ) {
       return handleMovementEvent;
     }
@@ -103,14 +105,18 @@ export async function processPendingEvents(): Promise<{
       if (
         (eventRow.attemptCount ?? 0) + 1 >= MAX_RETRIES
       ) {
+        // Exhausted: mark FAILED with the attempt budget consumed so the
+        // cron never requeues a permanently failing event.
         await outboxRepository.markFailed(
           eventRow.id,
-          errorMessage
+          errorMessage,
+          MAX_RETRIES
         );
       } else {
-        await outboxRepository.incrementAttemptCount(
-          eventRow.id
-        );
+        // Transient failure: requeue as PENDING with one more attempt
+        // counted. The status must be reset — an event left in PROCESSING
+        // is invisible to both findPending and findFailed.
+        await outboxRepository.releaseForRetry(eventRow.id);
       }
       failed++;
     }

@@ -55,6 +55,7 @@ describe("GET /api/v1/admin/notification-logs", () => {
     expect(body.data.items[0].channel).toBe("EMAIL");
     expect(mockListNotificationLogs).toHaveBeenLastCalledWith(
       expect.objectContaining({ channel: "EMAIL" }),
+      expect.objectContaining({ id: "U1", roles: ["ADMIN"] }),
     );
   });
 
@@ -67,6 +68,7 @@ describe("GET /api/v1/admin/notification-logs", () => {
 
     expect(mockListNotificationLogs).toHaveBeenLastCalledWith(
       expect.objectContaining({ eventType: "LEAVE_APPROVED", page: 2, limit: 10 }),
+      expect.objectContaining({ id: "U1", roles: ["ADMIN"] }),
     );
   });
 

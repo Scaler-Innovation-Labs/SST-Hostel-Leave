@@ -7,9 +7,9 @@ import useSWR from "swr";
 import * as XLSX from "xlsx";
 
 import { PageHeader } from "@/components/shared/PageHeader";
+import { Pagination } from "@/components/shared/Pagination";
 import { Button } from "@/components/ui/button";
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+import { fetcher } from "@/lib/api/fetcher";
 
 type ParentItem = {
   id: string;
@@ -73,18 +73,18 @@ export default function SuperAdminParentsPage() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data, isLoading, error, mutate } = useSWR<{ success: boolean; data: ParentListResponse }>(
+  const { data, isLoading, error, mutate } = useSWR<ParentListResponse>(
     `/api/v1/parents?page=${page}&limit=20${search ? `&search=${encodeURIComponent(search)}` : ""}`,
     fetcher,
   );
 
-  const { data: studentsData } = useSWR<{ success: boolean; data: { items: StudentItem[] } }>(
+  const { data: studentsData } = useSWR<{ items: StudentItem[] }>(
     studentSearch ? `/api/v1/students?search=${encodeURIComponent(studentSearch)}&limit=10` : null,
     fetcher,
   );
 
-  const parents = data?.data;
-  const students = studentsData?.data?.items ?? [];
+  const parents = data;
+  const students = studentsData?.items ?? [];
 
   const startNew = () => {
     setDraft(EMPTY_DRAFT);
@@ -373,25 +373,16 @@ export default function SuperAdminParentsPage() {
               ))}
 
               {parents.totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 pt-2">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page <= 1}
-                    className="rounded-lg border border-border px-3 py-1.5 text-sm disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <span className="text-sm text-muted-foreground">
-                    {parents.page} / {parents.totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPage((p) => Math.min(parents.totalPages, p + 1))}
-                    disabled={page >= parents.totalPages}
-                    className="rounded-lg border border-border px-3 py-1.5 text-sm disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </div>
+                <Pagination
+                  page={parents.page}
+                  totalPages={parents.totalPages}
+                  onPageChange={setPage}
+                  variant="plain"
+                  labelPosition="center"
+                  labelFormat="slash"
+                  bordered={false}
+                  className="pt-2"
+                />
               )}
             </div>
           )}

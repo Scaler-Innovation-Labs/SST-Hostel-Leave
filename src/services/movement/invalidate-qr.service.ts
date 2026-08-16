@@ -4,11 +4,14 @@ import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
 import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { QR_STATUS } from "@/constants/movement/qr-status";
+import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
+import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
+import { outboxService } from "@/services/outbox/outbox.service";
 
 import { recordMovement } from "./record-movement.service";
 
@@ -16,6 +19,8 @@ export type InvalidateQrInput = {
   qrPassId: string;
   recordedBy: string;
   reason?: string;
+  /** Caller identity. Students may only invalidate their own pass. */
+  isOwnerOnly?: boolean;
 };
 
 export type InvalidateQrResult = {
@@ -30,6 +35,10 @@ export async function invalidateQrPass(
 
   if (!qrPass) {
     throw new NotFoundError("QRPass");
+  }
+
+  if (input.isOwnerOnly && qrPass.studentId !== input.recordedBy) {
+    throw new ConflictError("Cannot invalidate another student's QR pass");
   }
 
   if (qrPass.status !== QR_STATUS.ACTIVE) {
@@ -75,6 +84,17 @@ export async function invalidateQrPass(
       },
       tx
     );
+
+    await outboxService.publish({
+      eventType: OUTBOX_EVENT_TYPE.QR_INVALIDATED,
+      aggregateType: AGGREGATE_TYPE.QR_PASS,
+      aggregateId: qrPass.id,
+      payload: {
+        studentId: qrPass.studentId,
+        leaveRequestId: qrPass.leaveRequestId,
+        qrPassId: qrPass.id,
+      },
+    }, tx);
 
     return {
       qrPassId: input.qrPassId,

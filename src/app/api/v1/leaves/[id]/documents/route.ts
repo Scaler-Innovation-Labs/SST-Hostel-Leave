@@ -10,7 +10,7 @@ export async function GET(
   routeContext: { params: Promise<{ id: string }> },
 ) {
   try {
-    requireAnyRole(await requireAuth(), [
+    const currentUser = requireAnyRole(await requireAuth(), [
       ROLES.STUDENT,
       ROLES.ADMIN,
       ROLES.POC,
@@ -18,7 +18,7 @@ export async function GET(
     ]);
 
     const { id } = await routeContext.params;
-    const documents = await listLeaveDocuments(id);
+    const documents = await listLeaveDocuments(id, currentUser);
 
     return ApiResponse.success(documents);
   } catch (error) {
@@ -42,7 +42,9 @@ export async function POST(
 
     const formData = await request.formData();
     const file = formData.get("file");
-    const documentType = (formData.get("documentType") as string) ?? "GENERAL";
+    const rawDocumentType = formData.get("documentType");
+    const documentType =
+      typeof rawDocumentType === "string" ? rawDocumentType : "GENERAL";
 
     if (!file || !(file instanceof File)) {
       return ApiResponse.error("VALIDATION_ERROR", "File is required", 400);

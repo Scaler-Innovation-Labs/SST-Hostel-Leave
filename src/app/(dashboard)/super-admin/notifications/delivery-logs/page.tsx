@@ -12,9 +12,7 @@ import { NOTIFICATION_DELIVERY_STATUSES } from "@/constants/notification/notific
 import { NOTIFICATION_EVENTS } from "@/constants/notification/notification-event";
 import { getEventColor,getEventLabel } from "@/constants/notification/notification-labels";
 import type { NotificationLog } from "@/db/repositories/notification/notification-log.repository";
-
-const fetcher = (url: string) =>
-  fetch(url).then((r) => r.json()).then((r) => r.data ?? r);
+import { fetcher } from "@/lib/api/fetcher";
 
 const CHANNEL_LABELS: Record<string, string> = {
   EMAIL: "Email",

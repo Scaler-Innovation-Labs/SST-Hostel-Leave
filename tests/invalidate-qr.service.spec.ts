@@ -22,6 +22,7 @@ const mockQrPassInvalidate = vi.fn();
 const mockStudentFindById = vi.fn();
 const mockRecordMovement = vi.fn();
 const mockAuditRecord = vi.fn().mockResolvedValue({});
+const mockOutboxPublish = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@/db/repositories/movement/qr-pass.repository", () => ({
   qrPassRepository: {
@@ -43,6 +44,13 @@ vi.mock("@/services/movement/record-movement.service", () => ({
 vi.mock("@/services/audit/audit.service", () => ({
   auditService: {
     record: (...args: any[]) => mockAuditRecord(...args),
+  },
+}));
+
+vi.mock("@/services/outbox/outbox.service", () => ({
+  outboxService: {
+    publish: (...args: any[]) => mockOutboxPublish(...args),
+    publishMany: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -204,6 +212,53 @@ describe("invalidateQrPass service", () => {
           recordedBy: "U1",
         })
       ).rejects.toBeInstanceOf(ConflictError);
+    });
+  });
+
+  describe("outbox publication", () => {
+    it("publishes a QR_INVALIDATED outbox event", async () => {
+      await invalidateQrPass({
+        qrPassId: "QP1",
+        recordedBy: "U1",
+      });
+
+      expect(mockOutboxPublish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: "QR_INVALIDATED",
+          aggregateType: "QR_PASS",
+          aggregateId: "QP1",
+          payload: expect.objectContaining({
+            studentId: "S1",
+            leaveRequestId: "LR1",
+            qrPassId: "QP1",
+          }),
+        }),
+        expect.any(Object)
+      );
+    });
+  });
+
+  describe("ownership guard", () => {
+    it("blocks a student from invalidating another student's pass", async () => {
+      await expect(
+        invalidateQrPass({
+          qrPassId: "QP1",
+          recordedBy: "SOMEONE_ELSE",
+          isOwnerOnly: true,
+        })
+      ).rejects.toBeInstanceOf(ConflictError);
+
+      expect(mockQrPassInvalidate).not.toHaveBeenCalled();
+    });
+
+    it("allows a student to invalidate their own pass", async () => {
+      await expect(
+        invalidateQrPass({
+          qrPassId: "QP1",
+          recordedBy: "S1",
+          isOwnerOnly: true,
+        })
+      ).resolves.toEqual({ qrPassId: "QP1", movementEventId: "ME1" });
     });
   });
 });

@@ -3,6 +3,7 @@ import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { QR_STATUS } from "@/constants/movement/qr-status";
 import type { QrType } from "@/constants/movement/qr-type";
+import { getQrExpiryFromLeaveEnd } from "@/constants/movement/qr-window";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
@@ -19,7 +20,6 @@ export type GenerateQrInput = {
 	leaveRequestId: string;
 	userId: string;
 	qrType: QrType;
-	expiresAt?: Date;
 }
 
 export type QrPassResult = {
@@ -45,7 +45,12 @@ export async function generateQrPass(
 	}
 
 	return await db.transaction(async (tx) => {
-		const leaveRequest = await leaveRepository.findById(
+		// Row-lock the leave so two concurrent generate calls for the same
+		// leave serialize: the second blocks until the first commits, then
+		// sees the existing pass and returns its stored token instead of
+		// racing to create a duplicate (which the unique index would reject
+		// with an opaque 500).
+		const leaveRequest = await leaveRepository.findByIdForUpdate(
 			input.leaveRequestId,
 			tx
 		);
@@ -90,21 +95,53 @@ export async function generateQrPass(
 			tx
 		);
 
+		// Contract §2: the pass is window-gated. validFrom = leave startAt;
+		// expiresAt = leave endAt + return grace. The token may only be used
+		// inside that window (enforced at scan time). The expiry is ALWAYS
+		// derived server-side — a client-supplied value could extend the
+		// credential beyond the authorized leave window.
+		const validFrom = leaveRequest.startAt;
+		const expiresAt = getQrExpiryFromLeaveEnd(leaveRequest.endAt);
+		const now = new Date();
+
 		const token = generateToken();
 		const tokenHash = await sha256(token);
-		const expiresAt = input.expiresAt ?? null;
 
-		// One QR pass (and one stable token) per leave. An existing pass is
-		// never re-tokened: an ACTIVE pass returns its stored token so the
-		// student can simply display it again. A pass that was created before
-		// raw tokens were stored (token is NULL) gets a token written once as
-		// a repair. Non-active passes are dead by the leave lifecycle and get
-		// no new credential.
+		// Contract §7 invariant: a student may have at most ONE currently
+		// usable-for-exit pass. Future approved leaves hold ACTIVE passes
+		// OUTSIDE their window — those do not count and do not block. Creating
+		// or re-issuing a credential while ANOTHER in-window pass exists would
+		// create the ambiguity the contract forbids.
+		//
+		// Only checked when we are about to mint/refresh a credential; the
+		// "return the stored token" path below never creates a second usable
+		// pass.
+		if (
+			!existingPass ||
+			existingPass.status !== QR_STATUS.ACTIVE
+		) {
+			const conflicting = await qrPassRepository.findUsableExitPassForStudent(
+				student.id,
+				existingPass?.id ?? "",
+				now,
+				tx
+			);
+
+			if (conflicting) {
+				throw new ValidationError(
+					"Another QR pass is currently active for a conflicting leave. Resolve it before generating a new one."
+				);
+			}
+		}
+
 		if (existingPass) {
 			if (
 				existingPass.status === QR_STATUS.ACTIVE &&
 				existingPass.token
 			) {
+				// One QR pass (and one stable token) per leave: an ACTIVE pass
+				// simply returns its stored token so the student can display
+				// the exact same QR again.
 				return {
 					passId: existingPass.id,
 					token: existingPass.token,
@@ -119,7 +156,7 @@ export async function generateQrPass(
 				// can be rendered again. This is a repair, not a re-issue.
 				const pass = await qrPassRepository.regenerate(
 					existingPass.id,
-					{ tokenHash, qrType: input.qrType, expiresAt, token },
+					{ tokenHash, qrType: input.qrType, validFrom, expiresAt, token },
 					tx
 				);
 
@@ -131,6 +168,7 @@ export async function generateQrPass(
 					{
 						qrType: input.qrType,
 						leaveRequestId: input.leaveRequestId,
+						reason: "legacy pass repair (missing raw token)",
 					},
 					tx
 				);
@@ -144,7 +182,56 @@ export async function generateQrPass(
 						leaveRequestId: input.leaveRequestId,
 						studentId: student.id,
 						qrType: input.qrType,
-						qrToken: token,
+					},
+				}, tx);
+
+				return {
+					passId: pass.id,
+					token,
+					tokenHash,
+					qrType: pass.qrType,
+					expiresAt: pass.expiresAt,
+				};
+			}
+
+			if (
+				!existingPass.firstScanAt &&
+				!existingPass.closedAt
+			) {
+				// Contract §7: an INVALIDATED-but-never-used pass (e.g. the old
+				// dashboard auto-reveal bug, or an admin invalidation of an
+				// unused credential) may be re-issued with a FRESH token on the
+				// same row — the leave is still APPROVED (checked above), so a
+				// new credential is legitimate. A used/closed pass is dead for
+				// good.
+				const pass = await qrPassRepository.regenerate(
+					existingPass.id,
+					{ tokenHash, qrType: input.qrType, validFrom, expiresAt, token },
+					tx
+				);
+
+				await auditService.record(
+					AUDIT_ACTION.UPDATE,
+					AUDIT_ENTITY_TYPE.QR_PASS,
+					pass.id,
+					input.userId,
+					{
+						qrType: input.qrType,
+						leaveRequestId: input.leaveRequestId,
+						reason: "re-issued invalidated-but-unused pass",
+					},
+					tx
+				);
+
+				await outboxService.publish({
+					eventType: OUTBOX_EVENT_TYPE.QR_GENERATED,
+					aggregateType: AGGREGATE_TYPE.QR_PASS,
+					aggregateId: pass.id,
+					payload: {
+						qrPassId: pass.id,
+						leaveRequestId: input.leaveRequestId,
+						studentId: student.id,
+						qrType: input.qrType,
 					},
 				}, tx);
 
@@ -173,6 +260,7 @@ export async function generateQrPass(
 			tokenHash,
 			token,
 			status: QR_STATUS.ACTIVE,
+			validFrom,
 			expiresAt,
 		}, tx);
 
@@ -197,7 +285,6 @@ export async function generateQrPass(
 				leaveRequestId: input.leaveRequestId,
 				studentId: student.id,
 				qrType: input.qrType,
-				qrToken: token,
 			},
 		}, tx);
 

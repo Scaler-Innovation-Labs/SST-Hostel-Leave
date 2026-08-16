@@ -12,14 +12,14 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    requireAnyRole(await requireAuth(), [
+    const currentUser = requireAnyRole(await requireAuth(), [
       ROLES.POC,
       ROLES.ADMIN,
       ROLES.SUPER_ADMIN,
     ]);
 
     const { id } = await params;
-    const result = await getStudent(id);
+    const result = await getStudent(id, currentUser);
 
     return ApiResponse.success(result);
   } catch (error) {

@@ -11,7 +11,7 @@ import { userRepository } from "@/db/repositories/user/user.repository";
 import type { Activity, ApprovalStep, DashboardStats, StaffDashboardStats, StudentDashboardStats } from "@/dto/dashboard/dashboard-stats.dto";
 import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
-import { NotFoundError } from "@/lib/errors";
+import { AuthorizationError, NotFoundError } from "@/lib/errors";
 import { getScopedHostelIds, isStaffScopeRestricted } from "@/services/shared/authorization.service";
 
 function fillDateRange(startDate: Date, endDate: Date, data: Array<{ date: string; count: number }>): Array<{ date: string; value: number }> {
@@ -34,6 +34,21 @@ export async function getDashboardStats(
 
   if (isStudent) {
     return getStudentStats(currentUser.id);
+  }
+
+  // Staff stats are sensitive (system-wide pending approvals, overdue counts,
+  // per-hostel breakdowns). Only staff roles may read them — a GUARD (or any
+  // future non-staff role) must not fall through to the staff path.
+  const isStaff = currentUser.roles.some(
+    (role) =>
+      role === ROLES.ADMIN ||
+      role === ROLES.POC ||
+      role === ROLES.SUPER_ADMIN
+  );
+  if (!isStaff) {
+    throw new AuthorizationError(
+      "Only staff can access dashboard statistics"
+    );
   }
 
   return getStaffStats(currentUser, status);
@@ -88,16 +103,47 @@ async function getStudentStats(userId: string): Promise<StudentDashboardStats> {
     }),
   ]);
 
-  const activeLeave = approvedLeavesResult.items[0] ?? null;
-  const pendingLeave = pendingLeavesResult.items[0] ?? null;
-
   const latestMovement = await movementEventRepository.findLatestByStudentId(student.id);
 
   const qrPassesList = await qrPassRepository.findByStudentId(student.id);
-  const activeQr = qrPassesList.find(
-    (q) => q.status === "ACTIVE" && (!q.expiresAt || q.expiresAt > new Date())
-  ) ?? null;
+  const approvedLeavesList = approvedLeavesResult.items;
+  const now = new Date();
 
+  // Contract §5: current leave resolution order — the leave owning the open
+  // movement session (student physically outside/overdue on it), else the
+  // APPROVED leave whose window contains now. NEVER "most recently approved".
+  const openSessionPass = qrPassesList.find(
+    (q) => q.firstScanAt && !q.closedAt
+  );
+  const activeLeave =
+    (openSessionPass
+      ? approvedLeavesList.find((l) => l.leave.id === openSessionPass.leaveRequestId) ?? null
+      : null) ??
+    approvedLeavesList.find(
+      (l) => l.leave.startAt <= now && now <= l.leave.endAt
+    ) ??
+    null;
+
+  // Contract §6: next upcoming = earliest APPROVED leave starting in the future.
+  const upcomingLeave =
+    approvedLeavesList
+      .filter((l) => l.leave.startAt > now)
+      .sort((a, b) => a.leave.startAt.getTime() - b.leave.startAt.getTime())[0] ??
+    null;
+
+  // Contract §7: the QR shown is the ACTIVE pass of the CURRENT leave only.
+  // A future approved leave may hold an ACTIVE pass record (window-gated);
+  // it is never exposed as "current" — that was the first-active-QR bug.
+  const activeQr = activeLeave
+    ? (qrPassesList.find(
+        (q) =>
+          q.status === "ACTIVE" &&
+          q.leaveRequestId === activeLeave.leave.id &&
+          (!q.expiresAt || q.expiresAt > now)
+      ) ?? null)
+    : null;
+
+  const pendingLeave = pendingLeavesResult.items[0] ?? null;
   const targetLeave = activeLeave ?? pendingLeave;
   const approvalProgress: ApprovalStep[] | null = targetLeave
     ? await loadApprovalProgress(targetLeave.leave.id)
@@ -130,6 +176,15 @@ async function getStudentStats(userId: string): Promise<StudentDashboardStats> {
         }
       : null,
     currentLocation: latestMovement?.toState ?? student.currentLocationState ?? "UNKNOWN",
+    upcomingLeave: upcomingLeave
+      ? {
+          id: upcomingLeave.leave.id,
+          leaveType: upcomingLeave.leaveType?.name ?? "Unknown",
+          startAt: upcomingLeave.leave.startAt.toISOString(),
+          endAt: upcomingLeave.leave.endAt.toISOString(),
+          status: upcomingLeave.leave.status,
+        }
+      : null,
     activeQr: activeQr
       ? {
           passId: activeQr.id,

@@ -4,6 +4,23 @@ import { policyRepository } from "@/db/repositories/policy/policy.repository";
 import { db } from "@/lib/db";
 import type { PolicyCheckEntry, PolicyResult } from "@/types/policy/policy-result";
 
+// The curfew window is expressed in IST wall-clock time (e.g. "23:00").
+// Server timezones vary (UTC on Vercel), so extract the local hour/minute in
+// Asia/Kolkata instead of relying on the server's own timezone offset.
+const IST_HOUR_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Kolkata",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+function getIstHourMinute(date: Date): { hour: number; minute: number } {
+  const parts = IST_HOUR_FORMATTER.formatToParts(date);
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
+  const minute = Number(parts.find((p) => p.type === "minute")?.value ?? 0);
+  return { hour, minute };
+}
+
 type PolicyEvaluationContext = {
   leaveType: {
     id: string;
@@ -88,8 +105,10 @@ function evaluatePolicy(
         }
         const curfewHour = parts[0]!;
         const curfewMinute = parts[1]!;
-        const returnHour = context.endAt.getHours();
-        const returnMinute = context.endAt.getMinutes();
+        // Compare in IST, not server-local time — on Vercel the runtime is
+        // UTC, so getHours() would misjudge every curfew by 5:30.
+        const { hour: returnHour, minute: returnMinute } =
+          getIstHourMinute(context.endAt);
 
         if (
           returnHour > curfewHour ||

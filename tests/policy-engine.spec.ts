@@ -42,6 +42,38 @@ describe("policyEngine", () => {
     expect(result.requirements).toEqual(["Parent gate: Parent approval required"]);
   });
 
+  it("evaluates curfew against IST wall-clock time, not server-local time", async () => {
+    // Curfew at 23:00 IST. 22:45 IST is inside the window; the same instant
+    // is 17:15 UTC on a server running in UTC — if the policy compared
+    // server-local time, it would wrongly reject an in-window return.
+    const curfewPolicy = {
+      name: "Hostel curfew",
+      policyType: "TIME_WINDOW",
+      config: { type: "CURFEW", latestReturnTime: "23:00" },
+    };
+    findActiveByLeaveTypeId.mockResolvedValue([curfewPolicy]);
+
+    // 2025-06-01 22:45 IST = 2025-06-01 17:15 UTC
+    const istEvening = new Date("2025-06-01T17:15:00.000Z");
+    const allowed = await policyEngine.evaluate({
+      ...context,
+      startAt: new Date("2025-06-01T00:00:00.000Z"),
+      endAt: istEvening,
+    });
+    expect(allowed.allowed).toBe(true);
+
+    // 2025-06-01 23:30 IST = 2025-06-01 18:00 UTC — past the curfew even in
+    // IST, so the policy must still block.
+    const istLate = new Date("2025-06-01T18:00:00.000Z");
+    const blocked = await policyEngine.evaluate({
+      ...context,
+      startAt: new Date("2025-06-01T00:00:00.000Z"),
+      endAt: istLate,
+    });
+    expect(blocked.allowed).toBe(false);
+    expect(blocked.restrictions[0]).toContain("curfew");
+  });
+
   describe("department / batch year scoping", () => {
     it("applies policy when student matches department", async () => {
       const deptId = "11111111-1111-4111-8111-111111111111";

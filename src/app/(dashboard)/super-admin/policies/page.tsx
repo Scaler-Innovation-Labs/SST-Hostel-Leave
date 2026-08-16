@@ -12,13 +12,9 @@ import { Button } from "@/components/ui/button";
 import { POLICY_TYPES } from "@/dto/policy/save-policy.dto";
 import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
 import { usePolicies } from "@/hooks/use-policies";
+import { fetcher } from "@/lib/api/fetcher";
 import { savePolicy } from "@/lib/api/policy-api";
 import { cn } from "@/lib/utils";
-
-const fetcher = (url: string) =>
-  fetch(url)
-    .then((r) => r.json())
-    .then((r) => r.data ?? r);
 
 type DepartmentItem = {
   id: string;

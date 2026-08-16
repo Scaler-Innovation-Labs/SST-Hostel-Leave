@@ -90,7 +90,10 @@ export const outboxRepository = {
   ): Promise<OutboxEvent | null> {
     const rows = await dbClient
       .update(outboxEvents)
-      .set({ status: OUTBOX_STATUS.PROCESSING })
+      .set({
+        status: OUTBOX_STATUS.PROCESSING,
+        claimedAt: new Date(),
+      })
       .where(
         and(
           eq(outboxEvents.id, id),
@@ -121,6 +124,7 @@ export const outboxRepository = {
   async markFailed(
     id: string,
     error: string,
+    attemptCount?: number,
     dbClient: Pick<typeof db, "update"> = db
   ): Promise<OutboxEvent | null> {
     const rows = await dbClient
@@ -128,6 +132,7 @@ export const outboxRepository = {
       .set({
         status: OUTBOX_STATUS.FAILED,
         lastError: error,
+        ...(attemptCount !== undefined ? { attemptCount } : {}),
       })
       .where(eq(outboxEvents.id, id))
       .returning();
@@ -153,16 +158,66 @@ export const outboxRepository = {
     return rows[0] ?? null;
   },
 
-  async incrementAttemptCount(
+  /**
+   * Requeue a PROCESSING event after a transient handler failure. The event
+   * goes back to PENDING (with one more attempt counted) so the next worker
+   * run picks it up again — previously the event stayed PROCESSING forever
+   * and was invisible to both findPending and findFailed.
+   */
+  async releaseForRetry(
     id: string,
     dbClient: Pick<typeof db, "update"> = db
-  ): Promise<void> {
-    await dbClient
+  ): Promise<OutboxEvent | null> {
+    const rows = await dbClient
       .update(outboxEvents)
       .set({
+        status: OUTBOX_STATUS.PENDING,
         attemptCount: sql`COALESCE(${outboxEvents.attemptCount}, 0) + 1`,
+        claimedAt: null,
       })
-      .where(eq(outboxEvents.id, id));
+      .where(
+        and(
+          eq(outboxEvents.id, id),
+          eq(outboxEvents.status, OUTBOX_STATUS.PROCESSING)
+        )
+      )
+      .returning();
+
+    return rows[0] ?? null;
+  },
+
+  /**
+   * Crash recovery: requeue PROCESSING events whose claim is stale. A claim
+   * is stale when the worker that took it died mid-processing (no
+   * markProcessed/markFailed/releaseForRetry ever arrived) — either the
+   * claim timestamp is missing (legacy rows) or older than the grace period.
+   */
+  async requeueStuckProcessing(
+    graceMinutes: number,
+    dbClient: Pick<typeof db, "update"> = db
+  ): Promise<number> {
+    const cutoff = new Date(
+      Date.now() - graceMinutes * 60_000
+    );
+
+    const rows = await dbClient
+      .update(outboxEvents)
+      .set({
+        status: OUTBOX_STATUS.PENDING,
+        claimedAt: null,
+      })
+      .where(
+        and(
+          eq(outboxEvents.status, OUTBOX_STATUS.PROCESSING),
+          or(
+            isNull(outboxEvents.claimedAt),
+            lt(outboxEvents.claimedAt, cutoff)
+          )
+        )
+      )
+      .returning();
+
+    return rows.length;
   },
 };
 

@@ -35,7 +35,6 @@ export type RecordMovementInput = {
 };
 
 const EVENT_TYPE_TO_ACTION: Record<string, MovementAction> = {
-  LEAVE_APPROVED: "APPROVE_LEAVE",
   EXIT_HOSTEL: "EXIT_HOSTEL",
   ENTER_HOSTEL: "ENTER_HOSTEL",
   AUTO_OVERDUE: "MARK_OVERDUE",
@@ -69,7 +68,11 @@ export async function recordMovement(
   }
 
   const exec = async (client: DbClient) => {
-    const student = await studentRepository.findById(
+    // Row-lock the student so two concurrent scans (e.g. double-tap at the
+    // gate) cannot both read the same state and both record a transition —
+    // the second transaction blocks on FOR UPDATE and then fails the state
+    // mismatch check instead of double-writing a movement event.
+    const student = await studentRepository.findByIdForUpdate(
       input.studentId,
       client
     );

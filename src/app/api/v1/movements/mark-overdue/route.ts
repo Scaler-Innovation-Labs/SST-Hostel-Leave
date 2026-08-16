@@ -17,7 +17,7 @@ export async function POST(request: Request) {
 
     const result = await markOverdue({
       studentId: dto.studentId,
-      recordedBy: currentUser.id,
+      currentUser,
     });
 
     return ApiResponse.success(result);

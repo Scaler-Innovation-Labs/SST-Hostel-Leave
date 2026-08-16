@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { fetcher } from "@/lib/api/fetcher";
 
 const ROLE_OPTIONS = [
   { value: "STUDENT", label: "Student" },
@@ -30,9 +31,6 @@ const GENDER_OPTIONS = [
 
 // Roles that can be restricted to specific hostels.
 const SCOPABLE_ROLES = ["ADMIN", "POC"];
-
-const fetcher = (url: string) =>
-  fetch(url).then((r) => r.json()).then((r) => r.data ?? r);
 
 type HostelOption = { id: string; name: string; code: string };
 

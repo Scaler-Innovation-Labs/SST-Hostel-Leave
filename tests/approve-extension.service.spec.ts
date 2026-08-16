@@ -64,6 +64,22 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
   },
 }));
 
+const mockLeaveTypeFindById = vi.fn();
+
+vi.mock("@/db/repositories/leave/leave-type.repository", () => ({
+  leaveTypeRepository: {
+    findById: (...args: any[]) => mockLeaveTypeFindById(...args),
+  },
+}));
+
+vi.mock("@/services/leave/overlap-guard.service", () => ({
+  assertNoConflictingOverlap: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/services/shared/authorization.service", () => ({
+  assertCanAccessLeave: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("@/services/audit/audit.service", () => ({
   auditService: {
     record: (...args: any[]) => mockAuditRecord(...args),
@@ -88,6 +104,8 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockAuditRecord.mockResolvedValue({});
   mockUpdateDecisionById.mockResolvedValue({ id: "A1", decision: "APPROVED" });
+  mockLeaveFindById.mockResolvedValue({ id: "L1", studentId: "ST1" });
+  mockLeaveTypeFindById.mockResolvedValue({ id: "LT1", qrMode: "NONE" });
 });
 
 describe("approveExtension service", () => {

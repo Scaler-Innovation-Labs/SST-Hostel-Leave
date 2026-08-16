@@ -56,7 +56,7 @@ export async function handleNotificationEvent(
     payload.leaveRequestId as string | undefined
   );
 
-  await notificationService.notify(notificationType, {
+  const result = await notificationService.notify(notificationType, {
     leaveRequestId: payload.leaveRequestId as
       | string
       | undefined,
@@ -75,6 +75,14 @@ export async function handleNotificationEvent(
       | undefined,
     variables,
   });
+
+  // A notification that never delivered must not be marked PROCESSED —
+  // rethrow so the outbox worker requeues/retries the event.
+  if (!result.success) {
+    throw new Error(
+      `Notification delivery failed for ${notificationType}: ${result.failures.join("; ")}`
+    );
+  }
 
   logger.info("Notification dispatched", { notificationType });
 }

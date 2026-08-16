@@ -10,6 +10,9 @@ vi.mock("@/lib/db", () => ({
 const mockLeaveFindById = vi.fn();
 const mockLeaveFindByIdForUpdate = vi.fn();
 const mockLeaveUpdateById = vi.fn();
+const mockLeaveFindOverlapping = vi.fn().mockResolvedValue([]);
+const mockPassFindByLeaveRequestId = vi.fn().mockResolvedValue(null);
+const mockPassUpdateExpiresAt = vi.fn().mockResolvedValue({});
 const mockExtensionCreate = vi.fn();
 const mockExtensionFindById = vi.fn();
 const mockExtensionFindByIdForUpdate = vi.fn();
@@ -20,12 +23,21 @@ const mockApprovalCreateMany = vi.fn();
 const mockAuditRecord = vi.fn();
 const mockWorkflowResolve = vi.fn();
 const mockWorkflowGetFirstStep = vi.fn();
+const mockWorkflowGetNextStep = vi.fn().mockReturnValue(undefined);
+const mockStudentFindByUserId = vi.fn();
+
+vi.mock("@/db/repositories/student/student.repository", () => ({
+  studentRepository: {
+    findByUserId: (...args: any[]) => mockStudentFindByUserId(...args),
+  },
+}));
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
     findById: (...args: any[]) => mockLeaveFindById(...args),
     findByIdForUpdate: (...args: any[]) => mockLeaveFindByIdForUpdate(...args),
     updateById: (...args: any[]) => mockLeaveUpdateById(...args),
+    findOverlappingLeaves: (...args: any[]) => mockLeaveFindOverlapping(...args),
   },
 }));
 
@@ -46,6 +58,13 @@ vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
 vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
   leaveApprovalRepository: {
     createMany: (...args: any[]) => mockApprovalCreateMany(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/movement/qr-pass.repository", () => ({
+  qrPassRepository: {
+    findByLeaveRequestId: (...args: any[]) => mockPassFindByLeaveRequestId(...args),
+    updateExpiresAt: (...args: any[]) => mockPassUpdateExpiresAt(...args),
   },
 }));
 
@@ -71,6 +90,7 @@ vi.mock("@/services/workflow/workflow-engine", () => ({
   workflowEngine: {
     resolve: (...args: any[]) => mockWorkflowResolve(...args),
     getFirstStep: (...args: any[]) => mockWorkflowGetFirstStep(...args),
+    getNextStep: (...args: any[]) => mockWorkflowGetNextStep(...args),
   },
 }));
 
@@ -122,9 +142,11 @@ beforeEach(async () => {
     allowExtensions: true,
     maxExtensionCount: 3,
     defaultWorkflowId: "WF1",
+    qrMode: "NONE",
   });
   mockPolicyEvaluate.mockResolvedValue({ allowed: true, restrictions: [] });
   mockApprovalCreateMany.mockResolvedValue([{ id: "AP1" }]);
+  mockLeaveFindOverlapping.mockResolvedValue([]);
   mockWorkflowResolve.mockResolvedValue({
     steps: [
       { stepKey: "WARDEN", stepOrder: 1, approverRoleId: "ROLE1" },
@@ -155,7 +177,7 @@ describe("createExtension service", () => {
         requestedEndAt: "2026-06-20T23:59:59Z",
         reason: "Need more time",
       },
-      { id: "U1" }
+      { id: "U1", roles: ["ADMIN"] }
     );
 
     expect(result).toEqual({
@@ -180,7 +202,7 @@ describe("createExtension service", () => {
       createExtension(
         "L2",
         { requestedEndAt: "2026-06-20T23:59:59Z", reason: "Test" },
-        { id: "U1" }
+        { id: "U1", roles: ["ADMIN"] }
       )
     ).rejects.toBeInstanceOf(ConflictError);
   });
@@ -196,7 +218,7 @@ describe("createExtension service", () => {
       createExtension(
         "L3",
         { requestedEndAt: "2026-06-20T23:59:59Z", reason: "Test" },
-        { id: "U1" }
+        { id: "U1", roles: ["ADMIN"] }
       )
     ).rejects.toBeInstanceOf(ConflictError);
   });
@@ -213,7 +235,7 @@ describe("createExtension service", () => {
       createExtension(
         "L4",
         { requestedEndAt: "2026-06-10T23:59:59Z", reason: "Test" },
-        { id: "U1" }
+        { id: "U1", roles: ["ADMIN"] }
       )
     ).rejects.toBeInstanceOf(ValidationError);
   });
@@ -225,8 +247,154 @@ describe("createExtension service", () => {
       createExtension(
         "NONEXISTENT",
         { requestedEndAt: "2026-06-20T23:59:59Z", reason: "Test" },
-        { id: "U1" }
+        { id: "U1", roles: ["ADMIN"] }
       )
     ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("auto-approves extension with no overlap conflict", async () => {
+    mockLeaveFindById.mockResolvedValue({
+      id: "L1",
+      studentId: "S1",
+      status: "APPROVED",
+      startAt: new Date("2026-06-10"),
+      endAt: new Date("2026-06-15"),
+      leaveTypeId: "LT1",
+    });
+    mockLeaveFindByIdForUpdate.mockResolvedValue({
+      id: "L1",
+      studentId: "S1",
+      status: "APPROVED",
+      startAt: new Date("2026-06-10"),
+      endAt: new Date("2026-06-15"),
+      leaveTypeId: "LT1",
+    });
+    mockWorkflowResolve.mockResolvedValue({
+      steps: [{ stepKey: "AUTO1", stepOrder: 1, approverRoleId: null, approvalMethod: "AUTO" }],
+    });
+    mockWorkflowGetFirstStep.mockReturnValue({ stepKey: "AUTO1", stepOrder: 1, approvalMethod: "AUTO" });
+    mockLeaveFindOverlapping.mockResolvedValue([]);
+
+    const result = await createExtension(
+      "L1",
+      { requestedEndAt: "2026-06-20T23:59:59Z", reason: "Need more time" },
+      { id: "U1", roles: ["ADMIN"] }
+    );
+
+    expect(result.status).toBe("PENDING");
+    expect(mockLeaveUpdateById).toHaveBeenCalledWith(
+      "L1",
+      expect.objectContaining({ endAt: new Date("2026-06-20T23:59:59Z") }),
+      expect.anything()
+    );
+    expect(mockLeaveFindOverlapping).toHaveBeenCalled();
+  });
+
+  it("extends the QR pass window on AUTO approval (T14)", async () => {
+    mockLeaveFindById.mockResolvedValue({
+      id: "L1",
+      studentId: "S1",
+      status: "APPROVED",
+      startAt: new Date("2026-06-10"),
+      endAt: new Date("2026-06-15"),
+      leaveTypeId: "LT1",
+    });
+    mockLeaveFindByIdForUpdate.mockResolvedValue({
+      id: "L1",
+      studentId: "S1",
+      status: "APPROVED",
+      startAt: new Date("2026-06-10"),
+      endAt: new Date("2026-06-15"),
+      leaveTypeId: "LT1",
+    });
+    mockWorkflowResolve.mockResolvedValue({
+      steps: [{ stepKey: "AUTO1", stepOrder: 1, approverRoleId: null, approvalMethod: "AUTO" }],
+    });
+    mockWorkflowGetFirstStep.mockReturnValue({ stepKey: "AUTO1", stepOrder: 1, approvalMethod: "AUTO" });
+    const { leaveTypeRepository } = await import("@/db/repositories/leave/leave-type.repository");
+    (leaveTypeRepository.findById as any).mockResolvedValue({
+      id: "LT1",
+      code: "HOME_PASS",
+      allowExtensions: true,
+      maxExtensionCount: 3,
+      defaultWorkflowId: "WF1",
+      qrMode: "BOTH",
+    });
+    mockPassFindByLeaveRequestId.mockResolvedValue({ id: "QP1", status: "ACTIVE" });
+
+    await createExtension(
+      "L1",
+      { requestedEndAt: "2026-06-20T23:59:59Z", reason: "Need more time" },
+      { id: "U1", roles: ["ADMIN"] }
+    );
+
+    expect(mockPassUpdateExpiresAt).toHaveBeenCalledWith(
+      "QP1",
+      new Date(new Date("2026-06-20T23:59:59Z").getTime() + 24 * 60 * 60 * 1000),
+      expect.anything()
+    );
+  });
+
+  it("rejects auto-approved extension overlapping a QR-enabled leave", async () => {
+    mockLeaveFindById.mockResolvedValue({
+      id: "L1",
+      studentId: "S1",
+      status: "APPROVED",
+      startAt: new Date("2026-06-10"),
+      endAt: new Date("2026-06-15"),
+      leaveTypeId: "LT1",
+    });
+    mockLeaveFindByIdForUpdate.mockResolvedValue({
+      id: "L1",
+      studentId: "S1",
+      status: "APPROVED",
+      startAt: new Date("2026-06-10"),
+      endAt: new Date("2026-06-15"),
+      leaveTypeId: "LT1",
+    });
+    mockWorkflowResolve.mockResolvedValue({
+      steps: [{ stepKey: "AUTO1", stepOrder: 1, approverRoleId: null, approvalMethod: "AUTO" }],
+    });
+    mockWorkflowGetFirstStep.mockReturnValue({ stepKey: "AUTO1", stepOrder: 1, approvalMethod: "AUTO" });
+    const { leaveTypeRepository } = await import("@/db/repositories/leave/leave-type.repository");
+    (leaveTypeRepository.findById as any).mockResolvedValue({
+      id: "LT1",
+      code: "HOME_PASS",
+      allowExtensions: true,
+      maxExtensionCount: 3,
+      defaultWorkflowId: "WF1",
+      qrMode: "BOTH",
+    });
+    mockLeaveFindOverlapping.mockResolvedValue([
+      { leave: { id: "LR-OTHER", leaveTypeId: "LT-OTHER" }, leaveType: { qrMode: "BOTH" } },
+    ]);
+
+    await expect(
+      createExtension(
+        "L1",
+        { requestedEndAt: "2026-06-20T23:59:59Z", reason: "Need more time" },
+        { id: "U1", roles: ["ADMIN"] }
+      )
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("rejects a student extending another student's leave (IDOR guard)", async () => {
+    mockStudentFindByUserId.mockResolvedValue({ id: "S-OTHER", userId: "U2" });
+
+    mockLeaveFindById.mockResolvedValue({
+      id: "L1",
+      studentId: "S1",
+      status: "APPROVED",
+      endAt: new Date("2026-06-15"),
+      leaveTypeId: "LT1",
+    });
+
+    await expect(
+      createExtension(
+        "L1",
+        { requestedEndAt: "2026-06-20T23:59:59Z", reason: "Need more time" },
+        { id: "U2", roles: ["STUDENT"] }
+      )
+    ).rejects.toBeInstanceOf((await import("@/lib/errors")).AuthorizationError);
   });
 });

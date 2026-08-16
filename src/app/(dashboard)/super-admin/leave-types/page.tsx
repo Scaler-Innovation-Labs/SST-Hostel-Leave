@@ -11,11 +11,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { CATEGORY_COLORS, LEAVE_TYPE_COLOR_PALETTE } from "@/constants/leave/leave-category";
 import { LEAVE_WORKFLOW_MODE } from "@/constants/leave/workflow-mode";
-
-const fetcher = (url: string) =>
-  fetch(url)
-    .then((r) => r.json())
-    .then((r) => r.data ?? r);
+import { fetcher } from "@/lib/api/fetcher";
 
 type FormField = {
   key: string;

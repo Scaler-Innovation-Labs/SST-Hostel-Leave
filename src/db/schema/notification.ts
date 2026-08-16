@@ -184,6 +184,10 @@ export const notificationLogs = pgTable(
   leaveRequestIdIndex: index(
     "notification_logs_leave_request_id_idx"
   ).on(table.leaveRequestId),
+
+  createdAtIndex: index(
+    "notification_logs_created_at_idx"
+  ).on(table.createdAt),
 })
 
 );

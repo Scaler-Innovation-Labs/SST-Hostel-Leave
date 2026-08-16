@@ -9,8 +9,7 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { deleteAcademicGroup, saveAcademicGroup } from "@/lib/api/academic-group-api";
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((r) => r.data ?? r);
+import { fetcher } from "@/lib/api/fetcher";
 
 type DepartmentItem = { id: string; code: string; name: string };
 type AcademicGroupItem = {

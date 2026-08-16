@@ -24,6 +24,8 @@ export type ExpireBatchResult = {
   errors: string[];
 };
 
+const BATCH_SIZE = 100;
+
 export async function expireSingleLeave(
   leaveId: string,
   currentUser: { id: string }
@@ -115,28 +117,43 @@ export async function expireOverdueLeaves(
   currentUser: { id: string }
 ): Promise<ExpireBatchResult> {
   const now = new Date();
-  const expiredLeaves = await leaveRepository.findExpiredLeaves(now);
 
   const result: ExpireBatchResult = {
-    total: expiredLeaves.length,
+    total: 0,
     expired: 0,
     skipped: 0,
     errors: [],
   };
 
-  for (const leave of expiredLeaves) {
-    try {
-      if (!canTransition(leave.status, LEAVE_ACTION.EXPIRE)) {
-        result.skipped++;
-        continue;
-      }
+  // Process in bounded batches so a large backlog cannot starve the worker.
+  // Each pass commits its work, so a fresh query only sees unprocessed leaves.
+  while (true) {
+    const expiredLeaves = await leaveRepository.findExpiredLeaves(now, undefined, BATCH_SIZE);
 
-      await expireSingleLeave(leave.id, currentUser);
-      result.expired++;
-    } catch (error) {
-      result.errors.push(
-        `Failed to expire ${leave.id}: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
+    if (expiredLeaves.length === 0) {
+      break;
+    }
+
+    result.total += expiredLeaves.length;
+
+    for (const leave of expiredLeaves) {
+      try {
+        if (!canTransition(leave.status, LEAVE_ACTION.EXPIRE)) {
+          result.skipped++;
+          continue;
+        }
+
+        await expireSingleLeave(leave.id, currentUser);
+        result.expired++;
+      } catch (error) {
+        result.errors.push(
+          `Failed to expire ${leave.id}: ${error instanceof Error ? error.message : "Unknown error"}`
+        );
+      }
+    }
+
+    if (expiredLeaves.length < BATCH_SIZE) {
+      break;
     }
   }
 

@@ -27,6 +27,15 @@ export function formatDate(dateStr: string): string {
   }
 }
 
+/** "12 Jun 2026" for a Date object — shared by outbox message handlers. */
+export function formatShortDate(date: Date): string {
+  return date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export function formatDateTime(dateStr: string): string {
   try {
     return format(parseISO(dateStr), "MMM d, yyyy h:mm a");

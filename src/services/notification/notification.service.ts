@@ -1,10 +1,8 @@
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import type { NotificationChannel } from "@/constants/notification/notification-channel";
 import { NOTIFICATION_CHANNEL } from "@/constants/notification/notification-channel";
-import type { NotificationDeliveryStatus } from "@/constants/notification/notification-delivery-status";
 import { NOTIFICATION_DELIVERY_STATUS } from "@/constants/notification/notification-delivery-status";
 import type { NotificationEvent } from "@/constants/notification/notification-event";
-import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event";
 import type { NotificationRecipientType } from "@/constants/notification/notification-recipient-type";
 import { NOTIFICATION_RECIPIENT_TYPE } from "@/constants/notification/notification-recipient-type";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
@@ -41,15 +39,62 @@ export type NotificationContext = {
 	variables: Record<string, string>;
 };
 
+/**
+ * Variable keys that carry bearer credentials and must never be persisted
+ * into notification_logs.metadata: parent-approval links embed the raw
+ * 64-hex consent token, and qrCodeUrl is a QR data-URI encoding the raw
+ * pass token. Anything else in context.variables is safe to keep for audit.
+ */
+const SENSITIVE_METADATA_KEYS: ReadonlySet<string> = new Set([
+	"approvalLink",
+	"qrCodeUrl",
+	"qrToken",
+]);
+
+function isSensitiveMetadataKey(key: string): boolean {
+	return SENSITIVE_METADATA_KEYS.has(key) || /token|secret/i.test(key);
+}
+
+/** Drops credential-bearing entries from a variables map before logging. */
+function sanitizeLogMetadata(
+	variables: Record<string, string>
+): Record<string, string> {
+	return Object.fromEntries(
+		Object.entries(variables).filter(
+			([key]) => !isSensitiveMetadataKey(key)
+		)
+	);
+}
+
+/**
+ * HTML-escapes a single template variable value. Used for the email HTML
+ * body render — template-authored markup (the QR <img>, <a>, <strong> tags)
+ * must survive raw, while user-supplied values (reason, names, URLs) are
+ * escaped so a reason like "<script>" or "A & B" cannot inject markup.
+ */
+function escapeHtmlValue(value: string): string {
+	return value
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
+}
+
 function resolveTemplate(
 	templateBody: string,
-	variables: Record<string, string>
+	variables: Record<string, string>,
+	options: { escapeHtml?: boolean } = {}
 ): string {
 	let resolved = templateBody;
 	for (const [key, value] of Object.entries(variables)) {
+		// Function replacer (not a string): a string replacement interprets
+		// $-sequences ($&, $', $` …) inside the value, so a reason or name
+		// containing "$" would be corrupted. Keys are trusted template
+		// placeholders; values are user-supplied data.
 		resolved = resolved.replace(
 			new RegExp(`\\{\\{${key}\\}\\}`, "g"),
-			value
+			() => (options.escapeHtml ? escapeHtmlValue(value) : value)
 		);
 	}
 	return resolved;
@@ -216,7 +261,10 @@ async function resolveRecipientContacts(
 async function getRecipientForChannel(
 	contact: { type?: NotificationRecipientType; email?: string; phone?: string; userId?: string; parentId?: string },
 	channel: NotificationChannel,
-	hostelId?: string
+	hostelId?: string,
+	/** Pre-resolved hostel Slack channel id — avoids an N+1 hostel lookup when
+	 *  resolving many contacts for the same hostel. */
+	resolvedHostelSlackChannelId?: string | null,
 ): Promise<string | null> {
 	switch (channel) {
 		case NOTIFICATION_CHANNEL.EMAIL:
@@ -234,6 +282,7 @@ async function getRecipientForChannel(
 			}
 			// Admin/staff alerts follow the hostel's own Slack channel when one is
 			// configured on the hostel, falling back to the global SLACK_CHANNEL_ID.
+			if (resolvedHostelSlackChannelId) return resolvedHostelSlackChannelId;
 			if (hostelId) {
 				const hostel = await hostelRepository.findById(hostelId);
 				if (hostel?.slackChannelId) return hostel.slackChannelId;
@@ -272,6 +321,15 @@ async function deliverToRecipient(
 	if (!provider) return;
 
 	const resolvedBody = resolveTemplate(template.templateBody, context.variables);
+	// The email HTML body escapes user-supplied values (template-authored
+	// markup like the QR <img> survives raw); the plain-text body keeps raw
+	// values so SMS/plain-text recipients never see &amp; / &lt; entities.
+	const resolvedHtmlBody =
+		channel === NOTIFICATION_CHANNEL.EMAIL
+			? resolveTemplate(template.templateBody, context.variables, {
+					escapeHtml: true,
+			  })
+			: undefined;
 	const resolvedSubject = template.subject
 		? resolveTemplate(template.subject, context.variables)
 		: undefined;
@@ -293,6 +351,7 @@ async function deliverToRecipient(
 		to: recipient,
 		subject: resolvedSubject,
 		body: resolvedBody,
+		htmlBody: resolvedHtmlBody,
 		metadata: context.variables,
 		templateCode: template.code,
 		providerMetadata,
@@ -300,11 +359,11 @@ async function deliverToRecipient(
 		cc,
 	});
 
-	const deliveryStatus: NotificationDeliveryStatus = result.success
-		? NOTIFICATION_DELIVERY_STATUS.SENT
-		: NOTIFICATION_DELIVERY_STATUS.FAILED;
-
-	const logMetadata = { ...context.variables };
+	// Credentials (parent approval links, QR data-URIs) must not be persisted
+	// at rest in notification_logs.metadata — strip them before writing.
+	const logMetadata: Record<string, string> = sanitizeLogMetadata(
+		context.variables
+	);
 	if (mentions.length > 0) logMetadata.slackMentions = mentions.join(", ");
 	if (cc && cc.length > 0) logMetadata.ccEmails = cc.join(", ");
 
@@ -316,12 +375,25 @@ async function deliverToRecipient(
 		channel,
 		eventType,
 		recipient: Array.isArray(recipient) ? recipient.join(", ") : recipient,
-		deliveryStatus,
+		deliveryStatus: result.success
+			? NOTIFICATION_DELIVERY_STATUS.SENT
+			: NOTIFICATION_DELIVERY_STATUS.FAILED,
 		providerResponse: result.error ?? null,
 		providerMessageId: result.messageId ?? null,
 		sentAt: result.success ? new Date() : null,
 		metadata: logMetadata,
 	});
+
+	// A provider that reports failure (as opposed to throwing) must still
+	// surface as a failed delivery — otherwise notify() records success and
+	// the outbox marks the event PROCESSED even though nothing was sent.
+	// Throwing here lets the per-channel try/catch in notify() collect it
+	// into the failures list so the event is retried.
+	if (!result.success) {
+		throw new Error(
+			`Provider reported delivery failure: ${result.error ?? "unknown error"}`
+		);
+	}
 }
 
 export const notificationService = {
@@ -411,12 +483,25 @@ export const notificationService = {
 					// several admins/POCs) must not produce duplicate posts — send
 					// exactly one message per unique channel.
 					if (channel === NOTIFICATION_CHANNEL.SLACK) {
+						// All non-POC contacts share the hostel's channel — resolve it
+						// once instead of once per contact (N+1 on a multi-admin hostel).
+						const hostel = context.hostelId
+							? await hostelRepository.findById(context.hostelId)
+							: null;
+						const resolvedHostelSlackChannelId =
+							hostel?.slackChannelId ?? null;
+
 						const channels = [
 							...new Set(
 								(
 									await Promise.all(
 										allContacts.map((c) =>
-											getRecipientForChannel(c, channel, context.hostelId)
+											getRecipientForChannel(
+												c,
+												channel,
+												context.hostelId,
+												resolvedHostelSlackChannelId,
+											)
 										)
 									)
 								).filter((r): r is string => !!r)
@@ -472,37 +557,5 @@ export const notificationService = {
 		}
 
 		return { success: failures.length === 0, failures };
-	},
-
-	async sendSms(
-		to: string,
-		body: string,
-		context?: {
-			eventType?: NotificationEvent;
-			leaveRequestId?: string;
-			leaveExtensionId?: string;
-			parentId?: string;
-			metadata?: Record<string, unknown>;
-		},
-	): Promise<void> {
-		const provider = createSmsProvider();
-		const result = await provider.send({ to, body });
-
-		await notificationLogRepository.create({
-			leaveRequestId: context?.leaveRequestId ?? null,
-			leaveExtensionId: context?.leaveExtensionId ?? null,
-			userId: null,
-			parentId: context?.parentId ?? null,
-			channel: NOTIFICATION_CHANNEL.SMS,
-			eventType: context?.eventType ?? NOTIFICATION_EVENT.LEAVE_SUBMITTED,
-			recipient: to,
-			deliveryStatus: result.success
-				? NOTIFICATION_DELIVERY_STATUS.SENT
-				: NOTIFICATION_DELIVERY_STATUS.FAILED,
-			providerResponse: result.error ?? null,
-			providerMessageId: result.messageId ?? null,
-			sentAt: result.success ? new Date() : null,
-			metadata: context?.metadata ?? null,
-		});
 	},
 };

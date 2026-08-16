@@ -8,12 +8,12 @@ import { listNotificationLogs } from "@/services/notification/list-notification-
 
 export async function GET(request: Request) {
   try {
-    requireAnyRole(await requireAuth(), [ROLES.ADMIN, ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.ADMIN, ROLES.SUPER_ADMIN]);
 
     const url = new URL(request.url);
     const query = listNotificationLogsSchema.parse(Object.fromEntries(url.searchParams));
 
-    const result = await listNotificationLogs(query);
+    const result = await listNotificationLogs(query, currentUser);
 
     return ApiResponse.success(result);
   } catch (error) {

@@ -1,12 +1,18 @@
 import { analyticsPeriodSchema } from "@/dto/analytics/analytics-period.dto";
 import { ApiResponse } from "@/lib/api/response";
+import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
+import { ROLES } from "@/lib/auth/roles";
 import { logger } from "@/lib/logger";
 import { getRejectionAnalytics } from "@/services/analytics/get-rejection-analytics.service";
 
 export async function GET(request?: Request) {
   try {
-    const currentUser = await requireAuth();
+    const currentUser = requireAnyRole(await requireAuth(), [
+      ROLES.ADMIN,
+      ROLES.POC,
+      ROLES.SUPER_ADMIN,
+    ]);
 
     let period: "7d" | "30d" | "90d" | "all" | undefined;
     if (request) {

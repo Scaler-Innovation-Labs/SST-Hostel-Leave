@@ -34,7 +34,10 @@ export function createEmailProvider() {
           to: actualTo,
           subject: payload.subject ?? "No Subject",
           text: payload.body,
-          html: payload.body.split("\n").map((line) => `<p>${line}</p>`).join(""),
+          // When the notification service provides an escaped HTML render it
+          // wins; otherwise fall back to the legacy per-line <p> wrap (no
+          // escaping — used only for direct provider calls / tests).
+          html: payload.htmlBody ?? payload.body.split("\n").map((line) => `<p>${line}</p>`).join(""),
           cc: payload.cc && payload.cc.length > 0 ? payload.cc : undefined,
         })
 

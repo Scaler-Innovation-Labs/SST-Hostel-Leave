@@ -2,6 +2,7 @@ import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
+import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { type Student,studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 import type { CreateStudentDto } from "@/dto/student/create-student.dto";
@@ -40,6 +41,21 @@ export async function createStudent(
         academicGroupId: dto.academicGroupId,
         roomNumber: dto.roomNumber ?? null,
         currentLocationState: MOVEMENT_STATE.IN_HOSTEL,
+      },
+      tx,
+    );
+
+    // Every student gets a primary parent at creation time so workflow
+    // steps that require parent approval always have someone to send the
+    // approval link to.
+    await parentRepository.create(
+      {
+        studentId: student.id,
+        name: dto.parentName,
+        phone: dto.parentPhone,
+        email: dto.parentEmail || null,
+        relationship: dto.parentRelationship,
+        isPrimary: true,
       },
       tx,
     );

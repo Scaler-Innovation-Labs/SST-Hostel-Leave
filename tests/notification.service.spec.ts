@@ -38,6 +38,14 @@ vi.mock("@/db/repositories/hostel/hostel.repository", () => ({
   },
 }));
 
+const mockFindParentById = vi.fn();
+
+vi.mock("@/db/repositories/parent/parent.repository", () => ({
+  parentRepository: {
+    findById: (...args: any[]) => mockFindParentById(...args),
+  },
+}));
+
 vi.mock("@/db/repositories/notification/notification-rule.repository", () => ({
   notificationRuleRepository: {
     findActiveByEvent: (...args: any[]) => mockFindActiveByEvent(...args),
@@ -181,6 +189,93 @@ describe("notificationService", () => {
     );
   });
 
+  it("does not corrupt template values containing dollar signs", async () => {
+    // String.replace() with a string replacement treats $& / $' / $` as
+    // special sequences — a user-supplied reason like "Paid $& to travel"
+    // would have been mangled. The function replacer must keep it verbatim.
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R2b",
+        leaveTypeId: null,
+        eventType: "LEAVE_REJECTED",
+        templateId: "T2b",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "leave_rejected_email",
+        recipients: [{ recipientType: "STUDENT" }],
+        channels: [{ channel: "EMAIL" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
+      {
+        id: "T2b",
+        eventKey: "LEAVE_REJECTED",
+        channel: "EMAIL",
+        templateBody: "Reason: {{reason}}",
+        subject: "Leave Rejected",
+        isActive: true,
+      },
+    ]);
+
+    await notificationService.notify("LEAVE_REJECTED", {
+      leaveRequestId: "L2b",
+      userId: "U1",
+      recipientEmail: "test@example.com",
+      variables: { reason: "Paid $& to travel and $' after" },
+    });
+
+    expect(mockEmailSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: "Reason: Paid $& to travel and $' after",
+      })
+    );
+  });
+
+  it("escapes user values in the email htmlBody but keeps body raw", async () => {
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R8",
+        eventKey: "LEAVE_REJECTED",
+        leaveTypeId: null,
+        templateId: "T8",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "leave_rejected_email",
+        recipients: [{ recipientType: "STUDENT" }],
+        channels: [{ channel: "EMAIL" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
+      {
+        id: "T8",
+        eventKey: "LEAVE_REJECTED",
+        channel: "EMAIL",
+        templateBody: "Reason: {{reason}}",
+        subject: "Leave Rejected",
+        isActive: true,
+      },
+    ]);
+
+    await notificationService.notify("LEAVE_REJECTED", {
+      leaveRequestId: "L8e",
+      userId: "U1",
+      recipientEmail: "test@example.com",
+      variables: { reason: 'A <script>alert(1)</script> & "quoted"' },
+    });
+
+    expect(mockEmailSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: 'Reason: A <script>alert(1)</script> & "quoted"',
+        htmlBody:
+          "Reason: A &lt;script&gt;alert(1)&lt;/script&gt; &amp; &quot;quoted&quot;",
+      })
+    );
+  });
+
   it("skips notification when no template found", async () => {
     mockFindByEventKey.mockResolvedValue([]);
 
@@ -251,6 +346,60 @@ describe("notificationService", () => {
         providerMessageId: "sms-456",
       })
     );
+  });
+
+  it("strips bearer credentials from notification log metadata", async () => {
+    // Parent-approval links embed the raw 64-hex consent token and QR data
+    // URIs encode the raw pass token — neither may be persisted at rest in
+    // notification_logs.metadata.
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R4b",
+        leaveTypeId: null,
+        eventType: "PARENT_APPROVAL_REQUESTED",
+        templateId: "T4b",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "parent_sms_template",
+        recipients: [{ recipientType: "PARENT" }],
+        channels: [{ channel: "SMS" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
+      {
+        id: "T4b",
+        eventKey: "PARENT_APPROVAL_REQUESTED",
+        channel: "SMS",
+        templateBody: "Dear Parent, click {{approvalLink}}",
+        isActive: true,
+      },
+    ]);
+    mockFindParentById.mockResolvedValue({
+      id: "P1",
+      email: null,
+      phone: "+919999999999",
+    });
+
+    await notificationService.notify("PARENT_APPROVAL_REQUESTED", {
+      leaveRequestId: "L8",
+      parentId: "P1",
+      variables: {
+        leaveId: "L8",
+        studentName: "Neerasa",
+        approvalLink: "https://sst-hostel-leave.vercel.app/parent-approve/abc123def456",
+        qrCodeUrl: "data:image/png;base64,RAWQRDATA",
+      },
+    });
+
+    const logCall = mockLogCreate.mock.calls[0]![0];
+    expect(logCall.metadata).toEqual({
+      leaveId: "L8",
+      studentName: "Neerasa",
+    });
+    expect(logCall.metadata.approvalLink).toBeUndefined();
+    expect(logCall.metadata.qrCodeUrl).toBeUndefined();
   });
 
   it("logs FAILED status when provider fails", async () => {

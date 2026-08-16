@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { vi, describe, it, expect, beforeEach } from "vitest";
 
 const mockFindByIdWithRelations = vi.fn();
 
@@ -10,32 +10,57 @@ vi.mock("@/db/repositories/student/student.repository", () => ({
 }));
 
 import { getStudent } from "@/services/student/get-student.service";
-import { NotFoundError } from "@/lib/errors";
+import { AuthorizationError, NotFoundError } from "@/lib/errors";
 
-const MOCK_STUDENT = {
-  id: "S1",
-  fullName: "Student One",
-  rollNumber: "R1",
-  user: { id: "U1", email: "test@example.com" },
-  hostel: { id: "H1", name: "Boys Hostel" },
+const STUDENT_WITH_RELATIONS = {
+  student: { id: "S1" },
+  user: { id: "U1", hostelId: "H1", fullName: "Neerasa" },
+  locationState: null,
 };
 
 beforeEach(() => {
-  vi.resetAllMocks();
-  mockFindByIdWithRelations.mockResolvedValue(MOCK_STUDENT);
+  vi.clearAllMocks();
+  mockFindByIdWithRelations.mockResolvedValue(STUDENT_WITH_RELATIONS);
 });
 
 describe("getStudent service", () => {
-  it("returns student by id with relations", async () => {
-    const result = await getStudent("S1");
+  it("returns the student for a super admin", async () => {
+    const result = await getStudent("S1", {
+      id: "U9",
+      roles: ["SUPER_ADMIN"],
+    });
 
-    expect(result).toEqual(MOCK_STUDENT);
+    expect(result.student.id).toBe("S1");
     expect(mockFindByIdWithRelations).toHaveBeenCalledWith("S1");
   });
 
-  it("throws NotFoundError when student does not exist", async () => {
+  it("throws NotFoundError when the student does not exist", async () => {
     mockFindByIdWithRelations.mockResolvedValue(null);
 
-    await expect(getStudent("NONEXISTENT")).rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      getStudent("S1", { id: "U9", roles: ["SUPER_ADMIN"] })
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("rejects a hostel-scoped admin viewing a student outside their hostels", async () => {
+    const scopedAdmin = {
+      id: "U2",
+      roles: ["ADMIN"],
+      roleScopes: [
+        { roleCode: "ADMIN", scopeType: "HOSTEL", scopeId: "H1" },
+      ],
+    };
+    mockFindByIdWithRelations.mockResolvedValue({
+      student: { id: "S2" },
+      user: { id: "U2", hostelId: "H2" },
+      locationState: null,
+    });
+
+    await expect(getStudent("S2", scopedAdmin)).rejects.toBeInstanceOf(
+      AuthorizationError
+    );
+    // The guard resolves the student's hostel before denying, so the lookup
+    // happens — but the profile is never returned to the caller.
+    expect(mockFindByIdWithRelations).toHaveBeenCalledWith("S2");
   });
 });

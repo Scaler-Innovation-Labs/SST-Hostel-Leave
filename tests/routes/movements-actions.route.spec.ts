@@ -19,6 +19,7 @@ vi.mock("@/lib/auth/require-auth", () => ({
 vi.mock("@/lib/auth/authorization", () => ({
   requireAnyRole: (...args: any[]) => mockRequireAnyRole(...args),
   requireRole: (...args: any[]) => mockRequireRole(...args),
+  hasRole: (user: any, role: string) => user.roles?.includes(role),
 }));
 
 vi.mock("@/services/movement/generate-qr.service", () => ({
@@ -80,7 +81,6 @@ describe("POST /api/v1/movements/generate-qr", () => {
       leaveRequestId: UUID,
       userId: "U1",
       qrType: "LEAVE_EXIT",
-      expiresAt: undefined,
     });
   });
 
@@ -99,7 +99,7 @@ describe("POST /api/v1/movements/qr-passes/invalidate", () => {
 
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(mockInvalidateQr).toHaveBeenCalledWith({ qrPassId: UUID, recordedBy: "U1", reason: "Lost card" });
+    expect(mockInvalidateQr).toHaveBeenCalledWith({ qrPassId: UUID, recordedBy: "U1", reason: "Lost card", isOwnerOnly: false });
   });
 
   it("rejects a missing qrPassId", async () => {
@@ -117,7 +117,11 @@ describe("POST /api/v1/movements/manual-return", () => {
 
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(mockManualReturn).toHaveBeenCalledWith({ studentId: UUID, recordedBy: "U1", reason: undefined });
+    expect(mockManualReturn).toHaveBeenCalledWith({
+      studentId: UUID,
+      currentUser: expect.objectContaining({ id: "U1", roles: ["ADMIN"] }),
+      reason: undefined,
+    });
   });
 });
 
@@ -128,7 +132,10 @@ describe("POST /api/v1/movements/mark-overdue", () => {
 
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(mockMarkOverdue).toHaveBeenCalledWith({ studentId: UUID, recordedBy: "U1" });
+    expect(mockMarkOverdue).toHaveBeenCalledWith({
+      studentId: UUID,
+      currentUser: expect.objectContaining({ id: "U1", roles: ["ADMIN"] }),
+    });
   });
 
   it("rejects a missing studentId", async () => {
@@ -141,7 +148,7 @@ describe("POST /api/v1/movements/mark-overdue", () => {
 
 describe("POST /api/v1/movements/record", () => {
   it("records a movement event", async () => {
-    const body = { studentId: UUID, fromState: "IN_HOSTEL", toState: "CHECKED_OUT", eventType: "EXIT_HOSTEL", movementMethod: "QR_SCAN" };
+    const body = { studentId: UUID, fromState: "IN_HOSTEL", toState: "CHECKED_OUT", eventType: "EXIT_HOSTEL", movementMethod: "QR" };
     const res = await RECORD(jsonReq(body, "http://localhost:3000/api/v1/movements/record"));
     const parsed = await res.json();
 
@@ -153,10 +160,22 @@ describe("POST /api/v1/movements/record", () => {
         fromState: "IN_HOSTEL",
         toState: "CHECKED_OUT",
         eventType: "EXIT_HOSTEL",
-        movementMethod: "QR_SCAN",
+        movementMethod: "QR",
         recordedBy: "U1",
       }),
     );
+  });
+
+  it("rejects a GUARD from the raw movement recorder", async () => {
+    mockRequireAnyRole.mockReturnValue({ id: "U9", roles: ["GUARD"] });
+
+    const body = { studentId: UUID, fromState: "IN_HOSTEL", toState: "CHECKED_OUT", eventType: "EXIT_HOSTEL", movementMethod: "QR" };
+    const res = await RECORD(jsonReq(body, "http://localhost:3000/api/v1/movements/record"));
+    const parsed = await res.json();
+
+    expect(res.status).toBe(403);
+    expect(parsed.success).toBe(false);
+    expect(mockRecordMovement).not.toHaveBeenCalled();
   });
 
   it("rejects a body missing eventType", async () => {

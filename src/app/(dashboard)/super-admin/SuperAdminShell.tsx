@@ -8,7 +8,6 @@ import { useState } from "react";
 import { ProfileMenu } from "@/components/layout/ProfileMenu";
 import { MobileSidebar,SuperAdminSidebar } from "@/components/layout/SuperAdminSidebar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Logo } from "@/components/shared/Logo";
 import { PageTransition } from "@/components/shared/PageTransition";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -66,7 +65,6 @@ export function SuperAdminShell({ children }: SuperAdminShellProps) {
           </SignedOut>
 
           <SignedIn>
-            <NotificationBell />
             <ProfileMenu />
           </SignedIn>
         </div>

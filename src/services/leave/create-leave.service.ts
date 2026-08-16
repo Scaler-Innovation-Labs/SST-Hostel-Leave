@@ -21,6 +21,7 @@ import { db } from "@/lib/db";
 import { AuthorizationError, ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { resolveApprovalSource } from "@/lib/workflows/resolve-approval-source";
 import { auditService } from "@/services/audit/audit.service";
+import { assertNoConflictingOverlap } from "@/services/leave/overlap-guard.service";
 import { validateLeaveSubmittedForm } from "@/services/leave/validate-leave-form.service";
 import { notificationService } from "@/services/notification/notification.service";
 import { outboxService } from "@/services/outbox/outbox.service";
@@ -121,17 +122,14 @@ export async function createLeave(
   const created = await db.transaction(async (tx) => {
     await studentRepository.findByIdForUpdate(student.id, tx);
 
-    const overlapping = await leaveRepository.findOverlappingLeaves(
-      student.id,
-      dto.leaveTypeId,
-      new Date(dto.startAt),
-      new Date(dto.endAt),
-      tx
-    );
-
-    if (overlapping.length > 0) {
-      throw new ConflictError("Overlapping leave exists");
-    }
+    await assertNoConflictingOverlap({
+      studentId: student.id,
+      startAt: new Date(dto.startAt),
+      endAt: new Date(dto.endAt),
+      qrMode: leaveType.qrMode,
+      leaveTypeId: leaveType.id,
+      dbClient: tx,
+    });
 
     const { steps: approvalSteps } =
       await workflowEngine.resolve(

@@ -5,7 +5,7 @@ const mockFindPending = vi.fn();
 const mockMarkProcessing = vi.fn();
 const mockMarkProcessed = vi.fn();
 const mockMarkFailed = vi.fn();
-const mockIncrementAttemptCount = vi.fn();
+const mockReleaseForRetry = vi.fn();
 
 vi.mock("@/db/repositories/outbox/outbox.repository", () => ({
   outboxRepository: {
@@ -13,7 +13,7 @@ vi.mock("@/db/repositories/outbox/outbox.repository", () => ({
     markProcessing: (...args: any[]) => mockMarkProcessing(...args),
     markProcessed: (...args: any[]) => mockMarkProcessed(...args),
     markFailed: (...args: any[]) => mockMarkFailed(...args),
-    incrementAttemptCount: (...args: any[]) => mockIncrementAttemptCount(...args),
+    releaseForRetry: (...args: any[]) => mockReleaseForRetry(...args),
   },
 }));
 
@@ -143,7 +143,7 @@ describe("processPendingEvents", () => {
     expect(result).toEqual({ processed: 0, failed: 0, skipped: 1 });
   });
 
-  it("increments attempt count on handler failure", async () => {
+  it("requeues event for retry on transient handler failure", async () => {
     mockHandleLeaveEvent.mockRejectedValue(new Error("Handler failed"));
     const event = makeEvent({ attemptCount: 0 });
     mockFindPending.mockResolvedValue([event]);
@@ -152,10 +152,11 @@ describe("processPendingEvents", () => {
     const result = await processPendingEvents();
 
     expect(result.failed).toBe(1);
-    expect(mockIncrementAttemptCount).toHaveBeenCalled();
+    expect(mockReleaseForRetry).toHaveBeenCalledWith("OE1");
+    expect(mockMarkFailed).not.toHaveBeenCalled();
   });
 
-  it("marks as failed after MAX_RETRIES attempts", async () => {
+  it("marks as failed with exhausted attempt budget after MAX_RETRIES attempts", async () => {
     mockHandleLeaveEvent.mockRejectedValue(new Error("Handler failed"));
     const event = makeEvent({ attemptCount: 4 });
     mockFindPending.mockResolvedValue([event]);
@@ -164,7 +165,8 @@ describe("processPendingEvents", () => {
     const result = await processPendingEvents();
 
     expect(result.failed).toBe(1);
-    expect(mockMarkFailed).toHaveBeenCalled();
+    expect(mockMarkFailed).toHaveBeenCalledWith("OE1", "Handler failed", 5);
+    expect(mockReleaseForRetry).not.toHaveBeenCalled();
   });
 
   it("processes multiple batch events", async () => {

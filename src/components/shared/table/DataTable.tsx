@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/shared/Pagination";
 import { cn } from "@/lib/utils";
 
 type Column<T> = {
@@ -82,29 +82,12 @@ export function DataTable<T extends Record<string, unknown>>({
       </div>
 
       {totalPages !== undefined && totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-border px-4 py-3">
-          <p className="text-xs text-muted-foreground">
-            Page {page} of {totalPages}
-          </p>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="xs"
-              disabled={page <= 1}
-              onClick={() => onPageChange?.(page - 1)}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="xs"
-              disabled={page >= totalPages}
-              onClick={() => onPageChange?.(page + 1)}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={(p) => onPageChange?.(p)}
+          className="px-4 py-3"
+        />
       )}
     </div>
   );

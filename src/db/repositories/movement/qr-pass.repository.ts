@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, asc, eq, inArray, isNotNull, isNull, lt, lte, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNotNull, isNull, lt, lte, ne, or, sql } from "drizzle-orm";
 
 import { QR_STATUS } from "@/constants/movement/qr-status";
 import type { QrType } from "@/constants/movement/qr-type";
@@ -29,6 +29,7 @@ export const qrPassRepository = {
 		input: {
 			tokenHash: string;
 			qrType: QrType;
+			validFrom?: Date | null;
 			expiresAt: Date | null;
 			/** New raw pass token — replaces the old one (only used to repair legacy passes). */
 			token?: string;
@@ -39,6 +40,7 @@ export const qrPassRepository = {
 			tokenHash: input.tokenHash,
 			qrType: input.qrType,
 			status: QR_STATUS.ACTIVE,
+			validFrom: input.validFrom ?? null,
 			expiresAt: input.expiresAt,
 			generatedAt: new Date(),
 			firstScanAt: null,
@@ -126,6 +128,24 @@ export const qrPassRepository = {
 		return rows[0] ?? null;
 	},
 
+	/**
+	 * Contract T14: an extended leave's QR window grows with the new end
+	 * date (valid_from stays at the original startAt).
+	 */
+	async updateExpiresAt(
+		id: string,
+		expiresAt: Date,
+		dbClient: Pick<typeof db, "update"> = db
+	): Promise<QrPass | null> {
+		const rows = await dbClient
+			.update(qrPasses)
+			.set({ expiresAt })
+			.where(eq(qrPasses.id, id))
+			.returning();
+
+		return rows[0] ?? null;
+	},
+
 	async markAsFirstScanned(
 		id: string,
 		dbClient: Pick<typeof db, "update"> = db
@@ -175,19 +195,83 @@ export const qrPassRepository = {
 
   async findExpired(
     before: Date,
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
+    limit?: number
   ): Promise<QrPass[]> {
-    const rows = await dbClient
+    const query = dbClient
       .select()
       .from(qrPasses)
       .where(
         and(
           eq(qrPasses.status, QR_STATUS.ACTIVE),
-          lte(qrPasses.expiresAt, before)
+          lte(qrPasses.expiresAt, before),
+          // Contract: an open session's return QR must stay alive so an
+          // overdue student can still check back in. Only retire passes that
+          // were never used for exit.
+          isNull(qrPasses.firstScanAt)
         )
       );
 
+    const rows = limit ? await query.limit(limit) : await query;
+
     return rows;
+  },
+
+  /**
+   * Contract §2: an open movement session is derived from the pass itself —
+   * firstScanAt IS NOT NULL AND closedAt IS NULL (credential still ACTIVE).
+   * At most one may exist per student: EXIT is gated on there being none
+   * (T4), RETURN must target it, and manual return closes it (T9).
+   */
+  async findOpenSessionPassForStudent(
+    studentId: string,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<QrPass | null> {
+    const rows = await dbClient
+      .select()
+      .from(qrPasses)
+      .where(
+        and(
+          eq(qrPasses.studentId, studentId),
+          eq(qrPasses.status, QR_STATUS.ACTIVE),
+          isNotNull(qrPasses.firstScanAt),
+          isNull(qrPasses.closedAt)
+        )
+      )
+      .limit(1);
+
+    return rows[0] ?? null;
+  },
+
+  /**
+   * Contract §2/§7 invariant: at most one currently usable-for-exit movement
+   * QR per student. "Usable for exit" = ACTIVE + never first-scanned + inside
+   * its window (valid_from <= now <= expires_at). Null window bounds are
+   * treated as unconstrained (legacy rows). Future approved leaves hold ACTIVE
+   * passes OUTSIDE their window — they do not count as usable.
+   */
+  async findUsableExitPassForStudent(
+    studentId: string,
+    excludePassId: string,
+    now: Date,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<QrPass | null> {
+    const rows = await dbClient
+      .select()
+      .from(qrPasses)
+      .where(
+        and(
+          eq(qrPasses.studentId, studentId),
+          ne(qrPasses.id, excludePassId),
+          eq(qrPasses.status, QR_STATUS.ACTIVE),
+          isNull(qrPasses.firstScanAt),
+          or(isNull(qrPasses.validFrom), lte(qrPasses.validFrom, now)),
+          or(isNull(qrPasses.expiresAt), gte(qrPasses.expiresAt, now))
+        )
+      )
+      .limit(1);
+
+    return rows[0] ?? null;
   },
 
   /**

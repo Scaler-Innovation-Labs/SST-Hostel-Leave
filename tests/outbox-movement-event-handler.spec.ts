@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-const mockNotify = vi.fn().mockResolvedValue(undefined);
+const mockNotify = vi.fn().mockResolvedValue({ success: true, failures: [] });
 
 vi.mock("@/services/notification/notification.service", () => ({
   notificationService: {
@@ -34,6 +34,7 @@ import { userRepository } from "@/db/repositories/user/user.repository";
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mockNotify.mockResolvedValue({ success: true, failures: [] });
   // Default: all repositories return null (no data resolved)
   (leaveRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
   (studentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
@@ -98,7 +99,21 @@ describe("handleMovementEvent", () => {
       leaveRequestId: "L1",
       recipientEmail: "student@test.com",
       recipientPhone: "+1234567890",
+      // The notification_logs.userId column references users.id — the
+      // handler must pass the resolved user id (U1), never the student id.
+      userId: "U1",
       variables: expect.objectContaining({ qrPassId: "QP1" }),
     }));
+  });
+
+  it("rethrows when notification delivery fails so the outbox retries", async () => {
+    mockNotify.mockResolvedValue({
+      success: false,
+      failures: ["Provider reported delivery failure: 500"],
+    });
+
+    await expect(handleMovementEvent(makeEvent("QR_GENERATED"))).rejects.toThrow(
+      /Notification delivery failed/
+    );
   });
 });

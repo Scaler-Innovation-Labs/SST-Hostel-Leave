@@ -4,11 +4,13 @@ import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import type { CompleteLeaveDto } from "@/dto/leave/complete-leave.dto";
+import type { CurrentUser } from "@/lib/auth/types";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { canTransition, getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
+import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
 export type CompleteLeaveResult = {
   leaveId: string;
@@ -19,11 +21,15 @@ export type CompleteLeaveResult = {
 export async function completeLeave(
   leaveId: string,
   dto: CompleteLeaveDto,
-  currentUser: { id: string }
+  currentUser: CurrentUser
 ): Promise<CompleteLeaveResult> {
   const leave = await leaveRepository.findById(leaveId);
 
   if (!leave) throw new NotFoundError("LeaveRequest");
+
+  // IDOR guard: a STUDENT may only complete their own leave; staff must be
+  // within the leave's hostel scope.
+  await assertCanAccessLeave(currentUser, leave);
 
   if (!canTransition(leave.status, LEAVE_ACTION.COMPLETE)) {
     throw new ConflictError(

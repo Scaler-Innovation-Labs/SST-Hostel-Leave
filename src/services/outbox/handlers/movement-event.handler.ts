@@ -5,6 +5,7 @@ import {
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
+import { formatShortDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import {
   notificationService,
@@ -14,21 +15,18 @@ import type { OutboxEventRow } from "@/types/outbox/outbox-event";
 const MOVEMENT_EVENT_TO_NOTIFICATION: Record<string, NotificationEvent> = {
   QR_GENERATED: NOTIFICATION_EVENT.QR_GENERATED,
   QR_SCANNED: NOTIFICATION_EVENT.QR_SCANNED,
+  QR_INVALIDATED: NOTIFICATION_EVENT.QR_INVALIDATED,
 };
 
 type ResolvedContext = {
   email?: string;
   phone?: string;
+  /** The user account backing the student — the correct value for the
+   *  notification_logs.userId column (which references users.id, NOT
+   *  students.id). */
+  userId?: string;
   variables: Record<string, string>;
 };
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 async function resolveContext(
   payload: Record<string, unknown>,
@@ -42,15 +40,17 @@ async function resolveContext(
 
   if (leaveRequestId) variables.leaveId = leaveRequestId;
 
-  // 1. Resolve student → user for name and contact
+  // 1. Resolve student → user for name, contact, and the user id
   const resolvedStudentId = studentId ?? null;
   let studentName = "";
   let email: string | undefined;
   let phone: string | undefined;
+  let userId: string | undefined;
 
   if (resolvedStudentId) {
     const student = await studentRepository.findById(resolvedStudentId);
     if (student) {
+      userId = student.userId;
       const user = await userRepository.findById(student.userId);
       if (user) {
         studentName = user.fullName;
@@ -65,12 +65,13 @@ async function resolveContext(
   if (leaveRequestId) {
     const leave = await leaveRepository.findById(leaveRequestId);
     if (leave) {
-      variables.dates = `${formatDate(leave.startAt)} – ${formatDate(leave.endAt)}`;
+      variables.dates = `${formatShortDate(leave.startAt)} – ${formatShortDate(leave.endAt)}`;
 
       // If we couldn't resolve from studentId, fall back to leave → student → user
       if (!resolvedStudentId) {
         const student = await studentRepository.findById(leave.studentId);
         if (student) {
+          userId = student.userId;
           const user = await userRepository.findById(student.userId);
           if (user) {
             studentName = user.fullName;
@@ -88,13 +89,17 @@ async function resolveContext(
   const scanType = payload.scanType as string | undefined;
   if (scanType) {
     variables.scanType = scanType === "EXIT_SCAN" ? "exit" : "return";
-    variables.time = new Date().toLocaleTimeString("en-IN", {
+    // Show the scan time in IST (the campus timezone) regardless of the
+    // server's own timezone — on Vercel the runtime is UTC.
+    variables.time = new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
       hour: "2-digit",
       minute: "2-digit",
-    });
+      hourCycle: "h23",
+    }).format(new Date());
   }
 
-  return { email, phone, variables };
+  return { email, phone, userId, variables };
 }
 
 export async function handleMovementEvent(
@@ -129,16 +134,26 @@ export async function handleMovementEvent(
       }
     }
 
-    await notificationService.notify(notificationType, {
+    const result = await notificationService.notify(notificationType, {
       leaveRequestId,
       leaveTypeId,
       studentId,
       hostelId,
-      userId: payload.studentId as string | undefined,
+      // The resolved USER account (users.id), never the student id — the
+      // column references users and the in-app provider routes by user.
+      userId: context.userId,
       recipientEmail: context.email,
       recipientPhone: context.phone,
       variables: context.variables,
     });
+
+    // A notification that never delivered must not be marked PROCESSED —
+    // rethrow so the outbox worker requeues/retries the event.
+    if (!result.success) {
+      throw new Error(
+        `Notification delivery failed for ${eventType} (${notificationType}): ${result.failures.join("; ")}`
+      );
+    }
 
     logger.info("Notification dispatched", { eventType, notificationType });
   } else {

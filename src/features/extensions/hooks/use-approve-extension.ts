@@ -2,8 +2,7 @@ import useSWR, { mutate as globalMutate } from "swr";
 
 import type { ApprovalQueueItem } from "@/features/approvals/hooks/use-approvals";
 import { getExtensionApprovalsUrl } from "@/lib/api/extension-api";
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((r) => r.data ?? r);
+import { fetcher } from "@/lib/api/fetcher";
 
 type UseExtensionApprovalsOptions = {
   status?: string;

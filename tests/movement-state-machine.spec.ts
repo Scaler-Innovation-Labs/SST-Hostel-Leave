@@ -11,13 +11,18 @@ import type { MovementState } from "@/constants/movement";
 
 describe("movement-state-machine", () => {
 	describe("canTransition", () => {
-		it("allows APPROVE_LEAVE from IN_HOSTEL", () => {
+		it("allows EXIT_HOSTEL directly from IN_HOSTEL (contract T4)", () => {
 			expect(
-				canTransition("IN_HOSTEL", MOVEMENT_ACTION.APPROVE_LEAVE)
+				canTransition("IN_HOSTEL", MOVEMENT_ACTION.EXIT_HOSTEL)
 			).toBe(true);
 		});
 
-		it("allows EXIT_HOSTEL from APPROVED_LEAVE", () => {
+		it("has no APPROVE_LEAVE action anymore (contract T2)", () => {
+			const allActions = Object.values(MOVEMENT_TRANSITIONS).flat();
+			expect(allActions).not.toContain("APPROVE_LEAVE");
+		});
+
+		it("allows EXIT_HOSTEL from APPROVED_LEAVE (legacy bridge)", () => {
 			expect(
 				canTransition(
 					"APPROVED_LEAVE",
@@ -62,16 +67,19 @@ describe("movement-state-machine", () => {
 			).toBe(true);
 		});
 
-		it("rejects invalid transition (EXIT_HOSTEL from IN_HOSTEL)", () => {
+		it("allows ENTER_HOSTEL from OVERDUE (contract T8 — return scan while overdue)", () => {
 			expect(
-				canTransition("IN_HOSTEL", MOVEMENT_ACTION.EXIT_HOSTEL)
+				canTransition("OVERDUE", MOVEMENT_ACTION.ENTER_HOSTEL)
+			).toBe(true);
+		});
+
+		it("rejects MARK_OVERDUE from IN_HOSTEL", () => {
+			expect(
+				canTransition("IN_HOSTEL", MOVEMENT_ACTION.MARK_OVERDUE)
 			).toBe(false);
 		});
 
 		it("rejects all invalid transitions from IN_HOSTEL", () => {
-			expect(
-				canTransition("IN_HOSTEL", MOVEMENT_ACTION.EXIT_HOSTEL)
-			).toBe(false);
 			expect(
 				canTransition("IN_HOSTEL", MOVEMENT_ACTION.ENTER_HOSTEL)
 			).toBe(false);
@@ -82,22 +90,19 @@ describe("movement-state-machine", () => {
 				canTransition("IN_HOSTEL", MOVEMENT_ACTION.MANUAL_RETURN)
 			).toBe(false);
 			expect(
-				canTransition(
-					"IN_HOSTEL",
-					MOVEMENT_ACTION.INVALIDATE_QR
-				)
+				canTransition("IN_HOSTEL", MOVEMENT_ACTION.INVALIDATE_QR)
 			).toBe(false);
 		});
 	});
 
 	describe("getNextState", () => {
-		it("transitions IN_HOSTEL -> APPROVED_LEAVE", () => {
+		it("transitions IN_HOSTEL -> OUTSIDE_HOSTEL (exit)", () => {
 			expect(
-				getNextState("IN_HOSTEL", MOVEMENT_ACTION.APPROVE_LEAVE)
-			).toBe("APPROVED_LEAVE");
+				getNextState("IN_HOSTEL", MOVEMENT_ACTION.EXIT_HOSTEL)
+			).toBe("OUTSIDE_HOSTEL");
 		});
 
-		it("transitions APPROVED_LEAVE -> OUTSIDE_HOSTEL", () => {
+		it("transitions APPROVED_LEAVE -> OUTSIDE_HOSTEL (legacy exit)", () => {
 			expect(
 				getNextState(
 					"APPROVED_LEAVE",
@@ -106,7 +111,7 @@ describe("movement-state-machine", () => {
 			).toBe("OUTSIDE_HOSTEL");
 		});
 
-		it("transitions APPROVED_LEAVE -> IN_HOSTEL (invalidate QR)", () => {
+		it("transitions APPROVED_LEAVE -> IN_HOSTEL (invalidate QR, legacy)", () => {
 			expect(
 				getNextState(
 					"APPROVED_LEAVE",
@@ -151,9 +156,18 @@ describe("movement-state-machine", () => {
 			).toBe("IN_HOSTEL");
 		});
 
+		it("transitions OVERDUE -> IN_HOSTEL (return scan, contract T8)", () => {
+			expect(
+				getNextState(
+					"OVERDUE",
+					MOVEMENT_ACTION.ENTER_HOSTEL
+				)
+			).toBe("IN_HOSTEL");
+		});
+
 		it("throws on invalid transition", () => {
 			expect(() =>
-				getNextState("IN_HOSTEL", MOVEMENT_ACTION.EXIT_HOSTEL)
+				getNextState("IN_HOSTEL", MOVEMENT_ACTION.MARK_OVERDUE)
 			).toThrow("Invalid movement transition");
 		});
 	});

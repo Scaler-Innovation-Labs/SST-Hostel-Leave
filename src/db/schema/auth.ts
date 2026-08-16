@@ -149,6 +149,10 @@ export const userRoles = pgTable(
       table.scopeType,
       table.scopeId
     ),
+
+    // findUserIdsByRoleCode resolves recipients by role; the composite
+    // unique index above leads with userId, so role-only lookups need this.
+    roleIdIndex: index("user_roles_role_id_idx").on(table.roleId),
   })
 );
 

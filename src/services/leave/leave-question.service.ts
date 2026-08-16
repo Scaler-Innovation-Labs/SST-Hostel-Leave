@@ -101,9 +101,12 @@ export async function answerQuestion(
 export async function listQuestions(
   leaveId: string,
   pagination: { page: number; limit: number },
+  currentUser: CurrentUser,
 ): Promise<ListLeaveQuestionsResult> {
   const leave = await leaveRepository.findById(leaveId);
   if (!leave) throw new NotFoundError("Leave request not found");
+
+  await assertCanAccessLeave(currentUser, leave);
 
   const { items, total } = await leaveQuestionRepository.findByLeaveRequestId(leaveId, pagination);
 

@@ -6,7 +6,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   Ban,
-  Bell,
   Calendar,
   Check,
   CheckCircle2,
@@ -99,17 +98,6 @@ type AuditEntry = {
   actorUserId: string | null;
   metadata: Record<string, unknown> | null;
   createdAt: string;
-};
-
-type NotificationItem = {
-  id: string;
-  eventType: string;
-  channel: string;
-  deliveryStatus: string;
-  readAt: string | null;
-  createdAt: string;
-  leaveRequestId: string | null;
-  metadata: Record<string, unknown> | null;
 };
 
 type LeaveApproval = {
@@ -227,7 +215,6 @@ const TAB_CONFIG = [
   { id: "overview", label: "Overview", icon: Eye },
   { id: "workflow", label: "Workflow", icon: Users },
   { id: "timeline", label: "Timeline", icon: Clock },
-  { id: "notifications", label: "Notifications", icon: Bell },
   { id: "audit", label: "Audit", icon: History },
   { id: "documents", label: "Documents", icon: FileText },
   { id: "questions", label: "Questions", icon: HelpCircle },
@@ -391,10 +378,6 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
     leaveId ? `/api/v1/audit?entityType=LEAVE_REQUEST&entityId=${leaveId}` : null,
   );
 
-  const { data: notifData, isLoading: notifLoading } = useSWR<{ data: { items: NotificationItem[]; total: number } }>(
-    leaveId ? `/api/v1/notifications?page=1&limit=50` : null,
-  );
-
   // Student data
   const rawLeave = rawLeaveData?.data as {
     leave: Record<string, unknown>;
@@ -524,14 +507,6 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
   const studentStatRejected = studentLeaves.filter((l: Record<string, unknown>) => l.status === LEAVE_REQUEST_STATUS.REJECTED).length;
   const studentStatCancelled = studentLeaves.filter((l: Record<string, unknown>) => l.status === LEAVE_REQUEST_STATUS.CANCELLED).length;
   const studentStatPending = studentLeaves.filter((l: Record<string, unknown>) => l.status === LEAVE_REQUEST_STATUS.PENDING).length;
-
-  // Notification filter
-  const leaveNotifications = useMemo(() => {
-    const items = (notifData?.data?.items as NotificationItem[]) ?? [];
-    return items.filter(
-      (n) => n.leaveRequestId === leaveId || (n.metadata as Record<string, unknown> | null)?.leaveRequestId === leaveId,
-    );
-  }, [notifData, leaveId]);
 
   // ── Actions ──
   const handleAction = useCallback(async () => {
@@ -1184,54 +1159,6 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     </div>
                   );
                 })()}
-              </SectionCard>
-            </TabsContent>
-
-            {/* ▸ NOTIFICATIONS TAB */}
-            <TabsContent value="notifications" className="mt-5">
-              <SectionCard title="Notifications" icon={Bell}>
-                {notifLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                  </div>
-                ) : leaveNotifications.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <Bell className="mb-3 h-10 w-10 text-muted-foreground/50" />
-                    <p className="text-sm text-muted-foreground">No notifications sent for this leave request.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {leaveNotifications.map((n) => (
-                      <div key={n.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3 transition-colors hover:bg-muted/30">
-                        <div
-                          className={cn(
-                            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-                            n.deliveryStatus === "SENT"
-                              ? "bg-emerald-500/10 text-emerald-500"
-                              : n.deliveryStatus === "FAILED"
-                              ? "bg-red-500/10 text-red-500"
-                              : "bg-muted text-muted-foreground",
-                          )}
-                        >
-                          {n.deliveryStatus === "SENT" ? <Check className="h-4 w-4" /> : n.deliveryStatus === "FAILED" ? <X className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium capitalize">
-                            {n.eventType.replace(/_/g, " ").toLowerCase()}
-                          </p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span className="capitalize">via {n.channel.toLowerCase()}</span>
-                            <span>· {formatRelative(n.createdAt)}</span>
-                            {n.deliveryStatus === "FAILED" && (
-                              <span className="text-red-500">Failed</span>
-                            )}
-                          </div>
-                        </div>
-                        {!n.readAt && <span className="h-2 w-2 rounded-full bg-primary" />}
-                      </div>
-                    ))}
-                  </div>
-                )}
               </SectionCard>
             </TabsContent>
 

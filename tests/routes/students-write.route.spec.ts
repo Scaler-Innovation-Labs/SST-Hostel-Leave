@@ -39,6 +39,9 @@ const VALID_BODY = {
   fullName: "John Doe",
   academicGroupId: "550e8400-e29b-41d4-a716-446655440000",
   email: "john@example.com",
+  parentName: "John Doe Sr.",
+  parentPhone: "9123456789",
+  parentRelationship: "Father",
 };
 
 beforeEach(() => {

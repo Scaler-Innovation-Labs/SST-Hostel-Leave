@@ -4,9 +4,6 @@ import { LEAVE_APPROVAL_SOURCE } from "@/constants/leave/approval-source";
 import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
-import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
-import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
-import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveApprovals } from "@/db";
@@ -22,7 +19,6 @@ import {
   NotFoundError,
 } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
-import { recordMovement } from "@/services/movement/record-movement.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 
 export type ParentDecisionResult = {
@@ -30,28 +26,20 @@ export type ParentDecisionResult = {
   decision: string;
 };
 
+// Single-token entry point. The historical 3-arg overload that took a
+// caller-supplied approvalId (and skipped token verification entirely) was
+// removed — it was a latent authorization bypass reachable only from the
+// dead inbound-SMS service. Every decision must authenticate via the raw
+// token hash.
 export async function parentApproveDecision(
   rawToken: string,
   dto: ParentDecisionDto
-): Promise<ParentDecisionResult>;
-
-export async function parentApproveDecision(
-  rawToken: string,
-  dto: ParentDecisionDto,
-  approvalId: string
-): Promise<ParentDecisionResult>;
-
-export async function parentApproveDecision(
-  rawToken: string,
-  dto: ParentDecisionDto,
-  approvalId?: string
 ): Promise<ParentDecisionResult> {
-  const tokenHash = approvalId ? "" : await sha256(rawToken);
+  const tokenHash = await sha256(rawToken);
 
   return await transaction(async (tx) => {
-    const approvalBase = approvalId
-      ? await leaveParentApprovalRepository.findById(approvalId, tx)
-      : await leaveParentApprovalRepository.findByParentApprovalToken(tokenHash, tx);
+    const approvalBase =
+      await leaveParentApprovalRepository.findByParentApprovalToken(tokenHash, tx);
 
     if (!approvalBase) {
       throw new NotFoundError("Approval");
@@ -213,17 +201,9 @@ async function handleLeaveDecision(
         },
       }, tx);
 
-      if (approvedLeave?.studentId) {
-        await recordMovement({
-          studentId: approvedLeave.studentId,
-          leaveRequestId: approval.leaveRequestId!,
-          fromState: MOVEMENT_STATE.IN_HOSTEL,
-          toState: MOVEMENT_STATE.APPROVED_LEAVE,
-          eventType: MOVEMENT_EVENT.LEAVE_APPROVED,
-          movementMethod: MOVEMENT_METHOD.SYSTEM,
-          dbClient: tx,
-        });
-      }
+      // Contract T2: approval never mutates the student's physical location.
+      // The leave is an authorization; movement changes only happen at scan /
+      // manual-return time.
     }
   }
 

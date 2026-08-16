@@ -10,7 +10,7 @@ export async function POST(
   try {
     const { token } = await routeContext.params;
 
-    rateLimit(`approve-decision:${token}`, 10, 900_000);
+    await rateLimit(`approve-decision:${token}`, 10, 900_000);
 
     const body = await request.json();
     const dto = parentDecisionSchema.parse(body);

@@ -22,6 +22,14 @@ export type StudentDashboardStats = {
     endAt: string;
     status: string;
   } | null;
+  /** Earliest APPROVED leave that starts in the future (contract §6). */
+  upcomingLeave: {
+    id: string;
+    leaveType: string;
+    startAt: string;
+    endAt: string;
+    status: string;
+  } | null;
   currentLocation: string;
   activeQr: {
     passId: string;

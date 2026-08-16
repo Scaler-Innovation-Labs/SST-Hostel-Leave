@@ -15,6 +15,14 @@ export async function listMovements(
   limit: number;
   totalPages: number;
 }> {
+  // Ownership check: a STUDENT may only see their own movements. The
+  // studentId filter is the direct attack surface — without a leaveRequestId
+  // a student could pass any studentId and read another student's history.
+  // Staff are scoped separately below via hostelIds.
+  if (query.studentId) {
+    await verifyStudentOwnership(currentUser, query.studentId);
+  }
+
   if (query.leaveRequestId) {
     const leave = await leaveRepository.findById(query.leaveRequestId);
     if (leave) {

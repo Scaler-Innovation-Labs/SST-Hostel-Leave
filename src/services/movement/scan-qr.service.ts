@@ -10,18 +10,13 @@ import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { qrScanLogRepository } from "@/db/repositories/movement/qr-scan-log.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
+import { sha256 } from "@/lib/crypto";
 import { transaction } from "@/lib/db/transaction";
-import { ConflictError } from "@/lib/errors";
+import { ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 
 import { recordMovement } from "./record-movement.service";
-
-async function hashToken(token: string): Promise<string> {
-	const encoder = new TextEncoder();
-	const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(token));
-	return Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
-}
 
 export type ScanQrInput = {
 	token: string;
@@ -40,7 +35,7 @@ export type ScanResult = {
 export async function scanQrPass(
 	input: ScanQrInput
 ): Promise<ScanResult> {
-	const tokenHash = await hashToken(input.token);
+	const tokenHash = await sha256(input.token);
 
 	const pass =
 		await qrPassRepository.findByTokenHash(tokenHash);
@@ -76,25 +71,6 @@ export async function scanQrPass(
 			success: false,
 			scanType: input.scanType ?? "EXIT_SCAN",
 			failureReason: `QR pass status is ${pass.status}`,
-		};
-	}
-
-	if (pass.expiresAt && new Date() > pass.expiresAt) {
-		await qrPassRepository.invalidate(pass.id);
-
-		const log = await qrScanLogRepository.create({
-			qrPassId: pass.id,
-			scannedBy: input.scannedBy,
-			scanType: input.scanType ?? "EXIT_SCAN",
-			scanResult: "FAILED",
-			failureReason: "QR pass has expired",
-		});
-
-		return {
-			scanLogId: log.id,
-			success: false,
-			scanType: input.scanType ?? "EXIT_SCAN",
-			failureReason: "QR pass has expired",
 		};
 	}
 
@@ -175,7 +151,122 @@ export async function scanQrPass(
 	}
 
 	if (input.scanType === "EXIT_SCAN") {
+		// Contract §2: usable-for-exit ⟺ ACTIVE + valid_from <= now <= expires_at.
+		// A future approved leave's pass is ACTIVE but outside its window — the
+		// token is not scannable until the leave starts.
+		if (pass.validFrom && new Date() < pass.validFrom) {
+			const log = await qrScanLogRepository.create({
+				qrPassId: pass.id,
+				scannedBy: input.scannedBy,
+				scanType: "EXIT_SCAN",
+				scanResult: "FAILED",
+				failureReason: `QR pass is not valid until ${pass.validFrom.toISOString()}`,
+			});
+
+			return {
+				scanLogId: log.id,
+				success: false,
+				scanType: "EXIT_SCAN",
+				failureReason: `QR pass is not valid until ${pass.validFrom.toISOString()}`,
+			};
+		}
+
+		if (pass.expiresAt && new Date() > pass.expiresAt) {
+			await qrPassRepository.invalidate(pass.id);
+
+			const log = await qrScanLogRepository.create({
+				qrPassId: pass.id,
+				scannedBy: input.scannedBy,
+				scanType: "EXIT_SCAN",
+				scanResult: "FAILED",
+				failureReason: "QR pass has expired",
+			});
+
+			return {
+				scanLogId: log.id,
+				success: false,
+				scanType: "EXIT_SCAN",
+				failureReason: "QR pass has expired",
+			};
+		}
+
+		// Contract §7: at most one currently usable-for-exit QR per student.
+		// If another in-window ACTIVE pass exists for the same student, the
+		// ownership is ambiguous — reject instead of guessing.
+		const conflicting =
+			await qrPassRepository.findUsableExitPassForStudent(
+				pass.studentId,
+				pass.id,
+				new Date()
+			);
+
+		if (conflicting) {
+			const log = await qrScanLogRepository.create({
+				qrPassId: pass.id,
+				scannedBy: input.scannedBy,
+				scanType: "EXIT_SCAN",
+				scanResult: "FAILED",
+				failureReason: "Another active QR exists for a conflicting leave",
+			});
+
+			return {
+				scanLogId: log.id,
+				success: false,
+				scanType: "EXIT_SCAN",
+				failureReason: "Another active QR exists for a conflicting leave",
+			};
+		}
+
+		// Contract T4: EXIT requires NO open movement session. A pass that was
+		// first-scanned but never closed means the student is already out (or
+		// a stale phantom session exists) — a second exit must not happen.
+		// (The usable-conflict check above only sees never-scanned passes, so
+		// an open session would slip past it.)
+		const openSession =
+			await qrPassRepository.findOpenSessionPassForStudent(
+				pass.studentId
+			);
+
+		if (openSession) {
+			const log = await qrScanLogRepository.create({
+				qrPassId: pass.id,
+				scannedBy: input.scannedBy,
+				scanType: "EXIT_SCAN",
+				scanResult: "FAILED",
+				failureReason: "Student already has an open movement session",
+			});
+
+			return {
+				scanLogId: log.id,
+				success: false,
+				scanType: "EXIT_SCAN",
+				failureReason: "Student already has an open movement session",
+			};
+		}
+
 		return await transaction(async (tx) => {
+			// Re-validate the pass inside the transaction — the snapshot read
+			// above may be stale (a concurrent invalidate/cancel can win the
+			// race between the two reads).
+			const passInTx = await qrPassRepository.findById(pass.id, tx);
+
+			if (!passInTx || passInTx.status !== QR_STATUS.ACTIVE) {
+				throw new ConflictError("QR pass is no longer active");
+			}
+
+			const student = await studentRepository.findById(pass.studentId, tx);
+
+			if (!student) {
+				throw new ConflictError("Student not found for QR pass");
+			}
+
+			// Contract T4: the exit scan is the physical transition. The student
+			// exits from their ACTUAL location — IN_HOSTEL under the new model,
+			// or legacy APPROVED_LEAVE for rows created before the temporal fix.
+			// recordMovement validates the transition against the state machine
+			// (so scanning while already outside/overdue fails with a 409).
+			const fromState = student.currentLocationState as MovementState;
+
 			const log = await qrScanLogRepository.create({
 				qrPassId: pass.id,
 				scannedBy: input.scannedBy,
@@ -189,7 +280,7 @@ export async function scanQrPass(
 				studentId: pass.studentId,
 				leaveRequestId: pass.leaveRequestId,
 				qrPassId: pass.id,
-				fromState: MOVEMENT_STATE.APPROVED_LEAVE,
+				fromState,
 				toState: MOVEMENT_STATE.OUTSIDE_HOSTEL,
 				eventType: "EXIT_HOSTEL",
 				movementMethod: "QR",
@@ -234,6 +325,37 @@ export async function scanQrPass(
 
 	if (input.scanType === "RETURN_SCAN") {
 		return await transaction(async (tx) => {
+			// Re-validate the pass inside the transaction — the snapshot read
+			// above may be stale (a concurrent invalidate/cancel can win the
+			// race between the two reads).
+			const passInTx = await qrPassRepository.findById(pass.id, tx);
+
+			if (!passInTx || passInTx.status !== QR_STATUS.ACTIVE) {
+				throw new ConflictError("QR pass is no longer active");
+			}
+
+			// Serialize with cancel/expire/override on the leave row. Without
+			// this lock, a RETURN scan racing a cancel could resurrect a
+			// CANCELLED leave as COMPLETED (the old code wrote COMPLETED with
+			// no state guard against a stale snapshot).
+			const leave = await leaveRepository.findByIdForUpdate(
+				pass.leaveRequestId,
+				tx
+			);
+
+			if (!leave) {
+				throw new NotFoundError("LeaveRequest");
+			}
+
+			if (
+				leave.status !== LEAVE_REQUEST_STATUS.APPROVED &&
+				leave.status !== LEAVE_REQUEST_STATUS.OVERDUE
+			) {
+				throw new ConflictError(
+					`Cannot complete leave in ${leave.status} status`
+				);
+			}
+
 			const student = await studentRepository.findById(pass.studentId, tx);
 
 			if (!student) {
@@ -283,7 +405,7 @@ export async function scanQrPass(
 				pass.leaveRequestId,
 				input.scannedBy,
 				{
-					oldStatus: LEAVE_REQUEST_STATUS.APPROVED,
+					oldStatus: leave.status,
 					newStatus: LEAVE_REQUEST_STATUS.COMPLETED,
 					completedAt: completedAt.toISOString(),
 				},

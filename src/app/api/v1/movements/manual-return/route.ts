@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
     const result = await manualReturn({
       studentId: dto.studentId,
-      recordedBy: currentUser.id,
+      currentUser,
       reason: dto.reason,
     });
 

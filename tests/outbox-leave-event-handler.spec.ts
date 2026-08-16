@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
-const mockNotify = vi.fn().mockResolvedValue(undefined);
+const mockNotify = vi.fn().mockResolvedValue({ success: true, failures: [] });
 
 vi.mock("@/services/notification/notification.service", () => ({
   notificationService: {
@@ -33,6 +33,12 @@ vi.mock("@/db/repositories/leave/leave-type.repository", () => ({
   },
 }));
 
+vi.mock("@/db/repositories/movement/qr-pass.repository", () => ({
+  qrPassRepository: {
+    findByLeaveRequestId: vi.fn(),
+  },
+}));
+
 vi.mock("@/db/repositories/parent/parent.repository", () => ({
   parentRepository: {
     findById: vi.fn(),
@@ -40,17 +46,27 @@ vi.mock("@/db/repositories/parent/parent.repository", () => ({
   },
 }));
 
+const mockGenerateParentApproval = vi.fn().mockResolvedValue(undefined);
+
+vi.mock("@/services/parent/generate-parent-approval.service", () => ({
+  generateParentApproval: (...args: any[]) => mockGenerateParentApproval(...args),
+}));
+
 import { handleLeaveEvent } from "@/services/outbox/handlers/leave-event.handler";
+import { generateParentApproval } from "@/services/parent/generate-parent-approval.service";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mockNotify.mockResolvedValue({ success: true, failures: [] });
   // Default: all repositories return null (no data resolved)
   (leaveRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
   (studentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
   (userRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+  (qrPassRepository.findByLeaveRequestId as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 });
 
 function makeEvent(eventType: string, overrides: Record<string, unknown> = {}) {
@@ -240,6 +256,40 @@ describe("handleLeaveEvent", () => {
     expect(mockNotify).not.toHaveBeenCalled();
   });
 
+  it("rethrows transient parent-approval failures so the outbox retries", async () => {
+    const event = makeEvent("PARENT_APPROVAL_REQUIRED", {
+      studentId: "S1",
+      studentName: "Neerasa",
+      leaveDates: "10 Jun - 12 Jun",
+      leaveReason: "Home",
+      baseUrl: "https://example.com",
+      approvalStepId: "AP1",
+      approvalStepKey: "PARENT_APPROVAL",
+    });
+    mockGenerateParentApproval.mockRejectedValueOnce(
+      new Error("database connection lost")
+    );
+
+    await expect(handleLeaveEvent(event)).rejects.toThrow("database connection lost");
+  });
+
+  it("swallows permanent parent-approval failures (no parent / no phone)", async () => {
+    const event = makeEvent("PARENT_APPROVAL_REQUIRED", {
+      studentId: "S1",
+      studentName: "Neerasa",
+      leaveDates: "10 Jun - 12 Jun",
+      leaveReason: "Home",
+      baseUrl: "https://example.com",
+      approvalStepId: "AP1",
+      approvalStepKey: "PARENT_APPROVAL",
+    });
+    mockGenerateParentApproval.mockRejectedValueOnce(
+      new (await import("@/lib/errors")).NotFoundError("Parent")
+    );
+
+    await expect(handleLeaveEvent(event)).resolves.toBeUndefined();
+  });
+
   it("passes payload fields to notification context", async () => {
     (leaveRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
       studentId: "S1",
@@ -282,10 +332,49 @@ describe("handleLeaveEvent", () => {
     expect(context.cc).toBeUndefined();
   });
 
+  it("points the approval email QR at the hosted image route (never a data URI)", async () => {
+    (leaveRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      studentId: "S1",
+      startAt: new Date("2026-06-01"),
+      endAt: new Date("2026-06-05"),
+    });
+    (studentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      userId: "U1",
+    });
+    (userRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      fullName: "Test Student",
+      email: "student@test.com",
+      phone: "+1234567890",
+      hostelId: "H1",
+    });
+    (qrPassRepository.findByLeaveRequestId as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "QP1",
+      token: "raw-token-must-stay-server-side",
+    });
+
+    await handleLeaveEvent(makeEvent("LEAVE_APPROVED"));
+
+    const context = mockNotify.mock.calls.find(([type]) => type === "LEAVE_APPROVED")?.[1];
+    expect(context.variables.qrCodeUrl).toContain("/api/v1/qr/QP1/image");
+    expect(context.variables.qrCodeUrl).not.toContain("data:image");
+    expect(context.variables.qrCodeUrl).not.toContain("raw-token");
+  });
+
   it("does not throw for unmapped event types", async () => {
     const event = makeEvent("UNMAPPED_EVENT");
 
     await expect(handleLeaveEvent(event)).resolves.toBeUndefined();
     expect(mockNotify).not.toHaveBeenCalled();
+  });
+
+  it("rethrows when notification delivery fails so the outbox retries", async () => {
+    mockNotify.mockResolvedValue({
+      success: false,
+      failures: ["Provider reported delivery failure: 500"],
+    });
+
+    await expect(handleLeaveEvent(makeEvent("LEAVE_CREATED"))).rejects.toThrow(
+      /Notification delivery failed/
+    );
   });
 });

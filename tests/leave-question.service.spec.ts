@@ -143,7 +143,7 @@ describe("answerQuestion service", () => {
 
 describe("listQuestions service", () => {
   it("lists questions for a leave", async () => {
-    const result = await listQuestions("LR1", { page: 1, limit: 20 });
+    const result = await listQuestions("LR1", { page: 1, limit: 20 }, { id: "U1", roles: ["ADMIN"] });
 
     expect(result.items).toHaveLength(1);
     expect(result.items[0]!.question).toBe("Why do you need leave?");
@@ -153,7 +153,7 @@ describe("listQuestions service", () => {
   it("throws NotFoundError when leave does not exist", async () => {
     mockLeaveFindById.mockResolvedValue(null);
 
-    await expect(listQuestions("NONEXISTENT", { page: 1, limit: 20 }))
+    await expect(listQuestions("NONEXISTENT", { page: 1, limit: 20 }, { id: "U1", roles: ["ADMIN"] }))
       .rejects.toBeInstanceOf(NotFoundError);
   });
 });

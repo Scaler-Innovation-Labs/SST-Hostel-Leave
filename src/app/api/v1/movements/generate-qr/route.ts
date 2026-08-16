@@ -16,7 +16,6 @@ export async function POST(request: Request) {
       leaveRequestId: dto.leaveRequestId,
       userId: currentUser.id,
       qrType: dto.qrType,
-      expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
     });
 
     return ApiResponse.created(result);

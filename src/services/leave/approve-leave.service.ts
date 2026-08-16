@@ -3,6 +3,7 @@ import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { QR_STATUS } from "@/constants/movement/qr-status";
+import { getQrExpiryFromLeaveEnd } from "@/constants/movement/qr-window";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveApprovals } from "@/db";
@@ -200,9 +201,11 @@ export async function approveLeave(
 
     // Create the QR pass first (when this leave type uses QR gates): ONE
     // token per approved leave, generated once and stable for its lifetime.
-    // The raw token is stored so the student app and the approval email can
-    // render the SAME scannable QR.
-    let qrToken: string | undefined;
+    // The raw token is stored on the pass row so the student app and the
+    // approval email can render the SAME scannable QR. The token is NOT
+    // published into outbox payloads — handlers fetch it from the pass at
+    // render time so bearer credentials are never persisted at rest in the
+    // outbox table.
     const leaveType = await leaveTypeRepository.findById(leaveInTx.leaveTypeId, tx);
     if (leaveType && leaveType.qrMode !== "NONE") {
       const raw = new Uint8Array(32);
@@ -211,14 +214,17 @@ export async function approveLeave(
       const tokenHash = await sha256(token);
       const qrType = leaveType.qrMode === "RETURN_ONLY" ? "LEAVE_RETURN" : "LEAVE_EXIT";
 
-      await qrPassRepository.create({
+      const pass = await qrPassRepository.create({
         leaveRequestId: leaveId,
         studentId: leaveInTx.studentId,
         qrType,
         tokenHash,
         token,
         status: QR_STATUS.ACTIVE,
-        expiresAt: null,
+        // Contract §2: the pass is window-gated — usable for exit only from
+        // the leave start until the leave end (+ return grace).
+        validFrom: leaveInTx.startAt,
+        expiresAt: getQrExpiryFromLeaveEnd(leaveInTx.endAt),
       }, tx);
 
       await outboxService.publish({
@@ -226,14 +232,12 @@ export async function approveLeave(
         aggregateType: AGGREGATE_TYPE.QR_PASS,
         aggregateId: leaveId,
         payload: {
+          qrPassId: pass.id,
           leaveRequestId: leaveId,
           studentId: leaveInTx.studentId,
           qrType,
-          qrToken: token,
         },
       }, tx);
-
-      qrToken = token;
     }
 
     await outboxService.publish({
@@ -245,7 +249,6 @@ export async function approveLeave(
         studentId: leaveInTx.studentId,
         decision: LEAVE_APPROVAL_DECISION.APPROVED,
         ccEmails: dto.ccEmails ?? [],
-        qrToken,
       },
     }, tx);
 

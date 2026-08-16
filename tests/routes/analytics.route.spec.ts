@@ -98,4 +98,26 @@ describe("GET /api/v1/analytics/*", () => {
     expect(res.status).toBe(401);
     expect(body.success).toBe(false);
   });
+
+  it.each(["leaves", "movements", "rejections", "students"])(
+    "rejects a STUDENT from the %s analytics endpoint",
+    async (endpoint) => {
+      const { requireAuth } = await import("@/lib/auth/require-auth");
+      requireAuth.mockResolvedValue({ id: "U2", roles: ["STUDENT"] });
+
+      const routes = {
+        leaves: GET_LEAVES,
+        movements: GET_MOVEMENTS,
+        rejections: GET_REJECTIONS,
+        students: GET_STUDENTS,
+      } as Record<string, () => Promise<Response>>;
+
+      const res = await routes[endpoint]!();
+      const body = await res.json();
+
+      expect(res.status).toBe(403);
+      expect(body.success).toBe(false);
+      expect(mockGetLeaveAnalytics).not.toHaveBeenCalled();
+    }
+  );
 });

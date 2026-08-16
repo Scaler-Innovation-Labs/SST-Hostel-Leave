@@ -17,8 +17,8 @@ import { useDashboardStats } from "@/features/dashboard/hooks/use-dashboard-stat
 import { useLeaves } from "@/features/leaves/hooks/use-leaves";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useQrToken } from "@/hooks/use-qr-token";
-import { generateQr, invalidateQr } from "@/lib/api/movement-api";
-import { formatDateRange, formatDateTime, formatRelative, formatTimeRemaining } from "@/lib/date-utils";
+import { generateQr } from "@/lib/api/movement-api";
+import { formatDate, formatDateRange, formatDateTime, formatRelative, formatTimeRemaining } from "@/lib/date-utils";
 
 function LocationBadge({ location }: { location: string }) {
   if (location === MOVEMENT_STATE.IN_HOSTEL) {
@@ -94,6 +94,7 @@ export default function StudentDashboardPage() {
 
   const s = stats as StudentDashboardStats | null;
   const activeLeave = s?.activeLeave ?? null;
+  const upcomingLeave = s?.upcomingLeave ?? null;
   const pendingCount = s?.pendingLeaves ?? 0;
   const approvedCount = s?.approvedLeaves ?? 0;
   const currentLocation = s?.currentLocation ?? MOVEMENT_STATE.IN_HOSTEL;
@@ -110,9 +111,10 @@ export default function StudentDashboardPage() {
 
     (async () => {
       try {
-        if (activeQr?.passId) {
-          await invalidateQr(activeQr.passId, "Auto-reveal on dashboard");
-        }
+        // Contract §7: never destroy a working pass. generateQr is idempotent
+        // for an ACTIVE pass — it returns the SAME stored token so the emailed
+        // QR and the app QR stay consistent. Only a broken (invalidated,
+        // never-used) pass is re-issued, and that happens inside the service.
         const result = (await generateQr(activeLeave.id, "LEAVE_EXIT")) as {
           passId: string;
           token: string;
@@ -189,6 +191,21 @@ export default function StudentDashboardPage() {
               <span className="inline-block mt-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary capitalize">
                 {activeLeave.status.toLowerCase()}
               </span>
+              {upcomingLeave && (
+                <p className="text-xs text-muted-foreground">
+                  Next: {upcomingLeave.leaveType} from {formatDate(upcomingLeave.startAt)}
+                </p>
+              )}
+            </div>
+          ) : upcomingLeave ? (
+            <div className="space-y-1">
+              <p className="font-medium">{upcomingLeave.leaveType}</p>
+              <p className="text-xs text-muted-foreground">
+                {formatDateRange(upcomingLeave.startAt, upcomingLeave.endAt)}
+              </p>
+              <span className="inline-block mt-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground capitalize">
+                Upcoming
+              </span>
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">No active leave</p>
@@ -228,6 +245,10 @@ export default function StudentDashboardPage() {
                 <p className="text-xs text-muted-foreground">{formatTimeRemaining(activeQr.expiresAt)}</p>
               )}
             </div>
+          ) : upcomingLeave ? (
+            <p className="text-sm text-muted-foreground">
+              QR available from {formatDate(upcomingLeave.startAt)}
+            </p>
           ) : (
             <p className="text-sm text-muted-foreground">No QR pass</p>
           )}

@@ -11,7 +11,7 @@ export async function GET(
   routeContext: { params: Promise<{ id: string }> },
 ) {
   try {
-    requireAnyRole(await requireAuth(), [
+    const currentUser = requireAnyRole(await requireAuth(), [
       ROLES.STUDENT,
       ROLES.POC,
       ROLES.ADMIN,
@@ -25,7 +25,7 @@ export async function GET(
       Object.fromEntries(url.searchParams),
     );
 
-    const result = await listQuestions(leaveId, query);
+    const result = await listQuestions(leaveId, query, currentUser);
 
     return ApiResponse.success(result);
   } catch (error) {

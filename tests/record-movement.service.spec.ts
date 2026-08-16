@@ -57,6 +57,9 @@ import { ConflictError, NotFoundError } from "@/lib/errors";
 
 beforeEach(() => {
   vi.resetAllMocks();
+  // recordMovement row-locks the student inside the transaction, so state
+  // reads flow through findByIdForUpdate.
+  mockFindStudentByIdForUpdate.mockResolvedValue({ id: "S1", currentLocationState: "IN_HOSTEL" });
   mockFindStudentById.mockResolvedValue({ id: "S1", currentLocationState: "IN_HOSTEL" });
   mockMovementEventCreate.mockResolvedValue({ id: "ME1" });
   mockUpdateCurrentLocationState.mockResolvedValue({ id: "S1" });
@@ -64,29 +67,29 @@ beforeEach(() => {
 
 describe("recordMovement service", () => {
   describe("state machine validation", () => {
-    it("accepts valid transition (IN_HOSTEL + LEAVE_APPROVED)", async () => {
+    it("accepts valid transition (IN_HOSTEL + EXIT_HOSTEL) — contract T4", async () => {
       const result = await recordMovement({
         studentId: "S1",
         leaveRequestId: "L1",
         fromState: "IN_HOSTEL",
-        toState: "APPROVED_LEAVE",
-        eventType: "LEAVE_APPROVED",
-        movementMethod: "SYSTEM",
+        toState: "OUTSIDE_HOSTEL",
+        eventType: "EXIT_HOSTEL",
+        movementMethod: "QR",
       });
 
       expect(result).toEqual({ id: "ME1" });
       expect(mockMovementEventCreate).toHaveBeenCalled();
-      expect(mockUpdateCurrentLocationState).toHaveBeenCalledWith("S1", "APPROVED_LEAVE", expect.any(Object));
+      expect(mockUpdateCurrentLocationState).toHaveBeenCalledWith("S1", "OUTSIDE_HOSTEL", expect.any(Object));
     });
 
-    it("rejects invalid transition (IN_HOSTEL + EXIT_HOSTEL)", async () => {
+    it("rejects invalid transition (IN_HOSTEL + AUTO_OVERDUE)", async () => {
       await expect(
         recordMovement({
           studentId: "S1",
           fromState: "IN_HOSTEL",
-          toState: "CHECKED_OUT",
-          eventType: "EXIT_HOSTEL",
-          movementMethod: "QR",
+          toState: "OVERDUE",
+          eventType: "AUTO_OVERDUE",
+          movementMethod: "SYSTEM",
         })
       ).rejects.toBeInstanceOf(ConflictError);
     });
@@ -97,26 +100,26 @@ describe("recordMovement service", () => {
           studentId: "S1",
           fromState: "IN_HOSTEL",
           toState: "IN_HOSTEL",
+          eventType: "EXIT_HOSTEL",
+          movementMethod: "QR",
+        })
+      ).rejects.toBeInstanceOf(ConflictError);
+    });
+
+    it("rejects unknown event type (LEAVE_APPROVED is no longer a movement event — contract T2)", async () => {
+      await expect(
+        recordMovement({
+          studentId: "S1",
+          fromState: "IN_HOSTEL",
+          toState: "OUTSIDE_HOSTEL",
           eventType: "LEAVE_APPROVED",
           movementMethod: "SYSTEM",
         })
       ).rejects.toBeInstanceOf(ConflictError);
     });
 
-    it("rejects unknown event type", async () => {
-      await expect(
-        recordMovement({
-          studentId: "S1",
-          fromState: "IN_HOSTEL",
-          toState: "APPROVED_LEAVE",
-          eventType: "UNKNOWN_EVENT",
-          movementMethod: "SYSTEM",
-        })
-      ).rejects.toBeInstanceOf(ConflictError);
-    });
-
     it("rejects transition from unknown state", async () => {
-      mockFindStudentById.mockResolvedValue({ id: "S1", currentLocationState: "UNKNOWN" });
+      mockFindStudentByIdForUpdate.mockResolvedValue({ id: "S1", currentLocationState: "UNKNOWN" });
 
       await expect(
         recordMovement({
@@ -130,7 +133,7 @@ describe("recordMovement service", () => {
     });
 
     it("accepts valid transition (APPROVED_LEAVE + EXIT_HOSTEL)", async () => {
-      mockFindStudentById.mockResolvedValue({ id: "S1", currentLocationState: "APPROVED_LEAVE" });
+      mockFindStudentByIdForUpdate.mockResolvedValue({ id: "S1", currentLocationState: "APPROVED_LEAVE" });
 
       await recordMovement({
         studentId: "S1",
@@ -144,7 +147,7 @@ describe("recordMovement service", () => {
     });
 
     it("accepts valid transition (CHECKED_OUT + ENTER_HOSTEL)", async () => {
-      mockFindStudentById.mockResolvedValue({ id: "S1", currentLocationState: "CHECKED_OUT" });
+      mockFindStudentByIdForUpdate.mockResolvedValue({ id: "S1", currentLocationState: "CHECKED_OUT" });
 
       await recordMovement({
         studentId: "S1",
@@ -160,29 +163,29 @@ describe("recordMovement service", () => {
 
   describe("student state validation", () => {
     it("throws NotFoundError when student not found", async () => {
-      mockFindStudentById.mockResolvedValue(null);
+      mockFindStudentByIdForUpdate.mockResolvedValue(null);
 
       await expect(
         recordMovement({
           studentId: "NONEXISTENT",
           fromState: "IN_HOSTEL",
-          toState: "APPROVED_LEAVE",
-          eventType: "LEAVE_APPROVED",
-          movementMethod: "SYSTEM",
+          toState: "OUTSIDE_HOSTEL",
+          eventType: "EXIT_HOSTEL",
+          movementMethod: "QR",
         })
       ).rejects.toBeInstanceOf(NotFoundError);
     });
 
     it("throws ConflictError when student state doesn't match fromState", async () => {
-      mockFindStudentById.mockResolvedValue({ id: "S1", currentLocationState: "APPROVED_LEAVE" });
+      mockFindStudentByIdForUpdate.mockResolvedValue({ id: "S1", currentLocationState: "APPROVED_LEAVE" });
 
       await expect(
         recordMovement({
           studentId: "S1",
           fromState: "IN_HOSTEL",
-          toState: "APPROVED_LEAVE",
-          eventType: "LEAVE_APPROVED",
-          movementMethod: "SYSTEM",
+          toState: "OUTSIDE_HOSTEL",
+          eventType: "EXIT_HOSTEL",
+          movementMethod: "QR",
         })
       ).rejects.toBeInstanceOf(ConflictError);
     });
@@ -193,9 +196,9 @@ describe("recordMovement service", () => {
       await recordMovement({
         studentId: "S1",
         fromState: "IN_HOSTEL",
-        toState: "APPROVED_LEAVE",
-        eventType: "LEAVE_APPROVED",
-        movementMethod: "SYSTEM",
+        toState: "OUTSIDE_HOSTEL",
+        eventType: "EXIT_HOSTEL",
+        movementMethod: "QR",
       });
 
       expect(mockMovementEventCreate).toHaveBeenCalledTimes(1);
@@ -208,15 +211,15 @@ describe("recordMovement service", () => {
       await recordMovement({
         studentId: "S1",
         fromState: "IN_HOSTEL",
-        toState: "APPROVED_LEAVE",
-        eventType: "LEAVE_APPROVED",
-        movementMethod: "SYSTEM",
+        toState: "OUTSIDE_HOSTEL",
+        eventType: "EXIT_HOSTEL",
+        movementMethod: "QR",
         dbClient: mockClient,
       });
 
-      expect(mockFindStudentById).toHaveBeenCalledWith("S1", mockClient);
+      expect(mockFindStudentByIdForUpdate).toHaveBeenCalledWith("S1", mockClient);
       expect(mockMovementEventCreate).toHaveBeenCalledWith(expect.any(Object), mockClient);
-      expect(mockUpdateCurrentLocationState).toHaveBeenCalledWith("S1", "APPROVED_LEAVE", mockClient);
+      expect(mockUpdateCurrentLocationState).toHaveBeenCalledWith("S1", "OUTSIDE_HOSTEL", mockClient);
     });
 
     it("does not call db.transaction when dbClient is provided", async () => {
@@ -225,9 +228,9 @@ describe("recordMovement service", () => {
       await recordMovement({
         studentId: "S1",
         fromState: "IN_HOSTEL",
-        toState: "APPROVED_LEAVE",
-        eventType: "LEAVE_APPROVED",
-        movementMethod: "SYSTEM",
+        toState: "OUTSIDE_HOSTEL",
+        eventType: "EXIT_HOSTEL",
+        movementMethod: "QR",
         dbClient: mockClient,
       });
 
@@ -242,9 +245,9 @@ describe("recordMovement service", () => {
       await recordMovement({
         studentId: "S1",
         fromState: "IN_HOSTEL",
-        toState: "APPROVED_LEAVE",
-        eventType: "LEAVE_APPROVED",
-        movementMethod: "SYSTEM",
+        toState: "OUTSIDE_HOSTEL",
+        eventType: "EXIT_HOSTEL",
+        movementMethod: "QR",
         recordedBy: "U1",
         isManualOverride: true,
         overrideReason: "Testing",

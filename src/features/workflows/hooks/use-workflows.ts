@@ -1,8 +1,7 @@
 import useSWR from "swr";
 
+import { fetcher } from "@/lib/api/fetcher";
 import { getWorkflowsUrl } from "@/lib/api/workflow-api";
-
-const fetcher = (url: string) => fetch(url).then((r) => r.json()).then((r) => r.data ?? r);
 
 export function useWorkflows(params?: {
   search?: string;

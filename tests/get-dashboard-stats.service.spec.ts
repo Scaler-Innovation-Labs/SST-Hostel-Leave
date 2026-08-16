@@ -126,9 +126,10 @@ describe("getDashboardStats", () => {
   });
 
   it("returns student stats with counts", async () => {
+    const now = new Date();
     mockFindByFilters.mockImplementation((filters) => {
       if (filters.status === "PENDING") return { items: [], total: 3 };
-      return { items: [{ leave: { id: "LR1", status: "APPROVED", startAt: new Date(), endAt: new Date() }, leaveType: { name: "Home Pass" } }], total: 1 };
+      return { items: [{ leave: { id: "LR1", status: "APPROVED", startAt: new Date(now.getTime() - 86400000), endAt: new Date(now.getTime() + 86400000) }, leaveType: { name: "Home Pass" } }], total: 1 };
     });
 
     const result = await getDashboardStats(STUDENT_USER);
@@ -141,14 +142,27 @@ describe("getDashboardStats", () => {
     expect(result.activeQr).toBeNull();
   });
 
-  it("returns an active QR pass for the student", async () => {
-    mockFindByFilters.mockResolvedValue({ items: [], total: 0 });
+  it("returns an active QR pass only for the current (window-contained) leave", async () => {
+    const now = new Date();
+    mockFindByFilters.mockImplementation((filters) => {
+      if (filters.status === "PENDING") return { items: [], total: 0 };
+      return { items: [{ leave: { id: "LR1", status: "APPROVED", startAt: new Date(now.getTime() - 86400000), endAt: new Date(now.getTime() + 86400000) }, leaveType: { name: "Home Pass" } }], total: 1 };
+    });
     mockFindByStudentId.mockResolvedValue([
       {
         id: "QP1",
+        leaveRequestId: "LR1",
         status: "ACTIVE",
         tokenHash: "abcdef123456",
-        expiresAt: new Date(Date.now() + 86400000),
+        expiresAt: new Date(now.getTime() + 86400000),
+      },
+      // A future leave's ACTIVE pass record must NOT be exposed as current.
+      {
+        id: "QP2",
+        leaveRequestId: "LR2",
+        status: "ACTIVE",
+        tokenHash: "zzz999000000",
+        expiresAt: new Date(now.getTime() + 86400000),
       },
     ]);
 
@@ -157,6 +171,56 @@ describe("getDashboardStats", () => {
     expect(result.activeQr).not.toBeNull();
     expect(result.activeQr.passId).toBe("QP1");
     expect(result.activeQr.token).toBe("abcdef12...");
+  });
+
+  it("keeps activeLeave null for future leaves and exposes the earliest as upcomingLeave", async () => {
+    const now = new Date();
+    mockFindByFilters.mockImplementation((filters) => {
+      if (filters.status === "PENDING") return { items: [], total: 0 };
+      return {
+        items: [
+          { leave: { id: "LR1", status: "APPROVED", startAt: new Date(now.getTime() + 10 * 86400000), endAt: new Date(now.getTime() + 12 * 86400000) }, leaveType: { name: "Internships" } },
+          { leave: { id: "LR2", status: "APPROVED", startAt: new Date(now.getTime() + 5 * 86400000), endAt: new Date(now.getTime() + 7 * 86400000) }, leaveType: { name: "Holiday" } },
+        ],
+        total: 2,
+      };
+    });
+
+    const result = await getDashboardStats(STUDENT_USER);
+
+    expect(result.activeLeave).toBeNull();
+    expect(result.activeQr).toBeNull();
+    expect(result.upcomingLeave?.id).toBe("LR2");
+  });
+
+  it("resolves the current leave to the open movement session's leave", async () => {
+    const now = new Date();
+    mockFindByFilters.mockImplementation((filters) => {
+      if (filters.status === "PENDING") return { items: [], total: 0 };
+      return {
+        items: [
+          { leave: { id: "LR_A", status: "APPROVED", startAt: new Date(now.getTime() - 20 * 86400000), endAt: new Date(now.getTime() - 10 * 86400000) }, leaveType: { name: "Old Leave" } },
+        ],
+        total: 1,
+      };
+    });
+    mockFindByStudentId.mockResolvedValue([
+      {
+        id: "QP1",
+        leaveRequestId: "LR_A",
+        status: "ACTIVE",
+        firstScanAt: new Date(now.getTime() - 15 * 86400000),
+        closedAt: null,
+        tokenHash: "abcdef123456",
+        expiresAt: null,
+      },
+    ]);
+
+    const result = await getDashboardStats(STUDENT_USER);
+
+    // The leave's window has ended but the session is still open (student
+    // outside/overdue) — it remains the current leave.
+    expect(result.activeLeave?.id).toBe("LR_A");
   });
 
   it("returns staff stats and passes the status filter to countByLeaveType", async () => {
@@ -181,5 +245,11 @@ describe("getDashboardStats", () => {
 
     expect(mockCountAll).toHaveBeenCalledWith(["H1"]);
     expect(mockCountByLeaveType).toHaveBeenCalledWith(["H1"], undefined);
+  });
+
+  it("rejects a GUARD from the staff stats path", async () => {
+    await expect(
+      getDashboardStats({ id: "U9", roles: ["GUARD"] })
+    ).rejects.toThrow("Only staff can access dashboard statistics");
   });
 });
