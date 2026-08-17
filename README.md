@@ -167,7 +167,7 @@ State changes publish events into an `outbox_events` table inside the same trans
 | Language          | TypeScript 5                                      |
 | Database          | PostgreSQL (Neon serverless)                      |
 | ORM               | Drizzle ORM                                       |
-| Authentication    | Clerk (staff/student) + parent OTP sessions (jose)|
+| Authentication    | Clerk (staff/student); parent approvals via tokenized links + OTP |
 | Validation        | Zod 4                                             |
 | Forms             | react-hook-form + zodResolver                     |
 | Data Fetching     | SWR                                               |

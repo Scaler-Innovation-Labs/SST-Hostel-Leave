@@ -199,17 +199,23 @@ Never create database columns for individual leave form fields.
 
 ## Parent Auth & Dashboards
 
-Parents are authenticated users through a dedicated OTP-based login flow.
+Parents approve leave requests through tokenized approval links, not a
+login flow. Every decision authenticates via the raw token from the
+approval link.
 
-Parents have access to:
-* Web dashboard (approvals, history, stats)
-* SMS-based approval (via inbound SMS parsing)
+Parents approve through:
 * Email-based approval (via tokenized links with OTP verification)
+* SMS-based approval (via inbound SMS parsing)
+* Portal approval (via the tokenized link page)
 
 Parent auth infrastructure:
-* OTP is sent via SMS/Email, verified against a session record
-* A signed JWT cookie is issued for the parent web session (7-day expiry)
-* No Clerk or social auth — parent auth is self-contained in `services/auth/parent-auth.service.ts`
+* The approval link token is sha256-hashed and matched against
+  `leave_approvals.parentApprovalToken`
+* OTP is verified against `leave_approvals.parentApprovalOtpHash` with
+  `parentApprovalExpiresAt` enforcing expiry
+* No JWT/session cookies and no Clerk auth — the flow lives in
+  `services/parent/*` (generate-parent-approval, get-leave-details-by-token,
+  parent-approve-decision) and `app/parent-approve/[token]`
 
 Parent approval sources are tracked via the `LEAVE_APPROVAL_SOURCE` constant:
 * `SMS`, `EMAIL`, `PORTAL` — each records how the parent approved/rejected
