@@ -1,6 +1,5 @@
 "use client";
 
-import { formatDistanceToNow } from "date-fns";
 import { ChevronRight, Mail, Plus, Search, Shield, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -37,7 +36,6 @@ type UserItem = {
   fullName: string;
   email: string;
   isActive: boolean;
-  lastLoginAt?: string;
   createdAt: string;
   userRoles: Array<{
     roleId: string;
@@ -197,11 +195,6 @@ export default function SuperAdminUsersPage() {
                       <Mail className="h-3 w-3" />
                       {user.email}
                     </span>
-                    {user.lastLoginAt && (
-                      <span>
-                        · {formatDistanceToNow(new Date(user.lastLoginAt), { addSuffix: true })}
-                      </span>
-                    )}
                   </div>
                 </div>
 

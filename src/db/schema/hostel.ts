@@ -95,11 +95,9 @@ export const parents = pgTable(
 
     relationship: text("relationship").notNull(),
 
-    isPrimary: boolean("is_primary")
-      .default(false)
-      .notNull(),
-
-    metadata: jsonb("metadata"),
+isPrimary: boolean("is_primary")
+    .default(false)
+    .notNull(),
 
     createdAt: timestamp("created_at", {
       withTimezone: true,

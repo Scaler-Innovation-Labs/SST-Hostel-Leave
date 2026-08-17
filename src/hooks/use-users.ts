@@ -25,7 +25,6 @@ export function useUsers(params?: {
         slackId?: string;
         gender?: string;
         isActive: boolean;
-        lastLoginAt?: string;
         createdAt: string;
         userRoles: Array<{
           roleId: string;
@@ -62,7 +61,6 @@ export function useUser(id: string) {
       slackId?: string;
       gender?: string;
       isActive: boolean;
-      lastLoginAt?: string;
       createdAt: string;
       userRoles: Array<{
         roleId: string;

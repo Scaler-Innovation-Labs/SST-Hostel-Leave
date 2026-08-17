@@ -14,7 +14,6 @@ export type ApprovalQueueItem = {
   createdAt: Date | string;
   stepKey: string | null;
   stepOrder: number | null;
-  parentApprovalVerifiedAt: Date | string | null;
   approverParentId: string | null;
   parentName: string | null;
   parentPhone: string | null;

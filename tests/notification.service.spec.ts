@@ -595,7 +595,7 @@ describe("notificationService", () => {
     expect(mockLogCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         channel: "EMAIL",
-        metadata: expect.objectContaining({ ccEmails: "warden@example.com, poc@example.com" }),
+        ccRecipients: ["warden@example.com", "poc@example.com"],
       })
     );
   });

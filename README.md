@@ -25,7 +25,7 @@ The system manages:
 
 - Leave requests and leave extensions
 - Config-driven approval workflows (no hardcoded approval chains)
-- Parent approvals via SMS, email, and portal (OTP-based)
+- Parent approvals via tokenized email/portal links
 - QR-based hostel entry/exit tracking with a guard scanner
 - Overdue leave detection and resolution
 - Multi-channel notifications (SMS, email, Slack)
@@ -58,7 +58,7 @@ The platform is designed as a configurable workflow engine rather than a hardcod
 ## Approval Workflows
 
 - Multi-step configurable approval chains per workflow definition
-- Parent approvals via SMS, email, or portal with OTP verification
+- Parent approvals via tokenized email/portal links
 - POC / Admin / Super Admin approval queues
 - Workflow snapshots for audit consistency, parent override flows
 
@@ -131,7 +131,7 @@ State changes publish events into an `outbox_events` table inside the same trans
 │   ├── app/
 │   │   ├── (auth)/              Clerk sign-in / redirect / sso-callback
 │   │   ├── (dashboard)/         admin · guard · poc · student · super-admin · profile
-│   │   ├── parent-approve/      Parent OTP approval pages
+│   │   ├── parent-approve/      Parent approval pages (tokenized links)
 │   │   ├── api/v1/              REST API per domain (leaves, movements, qr, ...)
 │   │   ├── api/cron/            Vercel cron endpoints (outbox, cleanup, maintenance)
 │   │   └── api/webhooks/        Clerk webhooks
@@ -167,7 +167,7 @@ State changes publish events into an `outbox_events` table inside the same trans
 | Language          | TypeScript 5                                      |
 | Database          | PostgreSQL (Neon serverless)                      |
 | ORM               | Drizzle ORM                                       |
-| Authentication    | Clerk (staff/student); parent approvals via tokenized links + OTP |
+| Authentication    | Clerk (staff/student); parent approvals via tokenized links |
 | Validation        | Zod 4                                             |
 | Forms             | react-hook-form + zodResolver                     |
 | Data Fetching     | SWR                                               |

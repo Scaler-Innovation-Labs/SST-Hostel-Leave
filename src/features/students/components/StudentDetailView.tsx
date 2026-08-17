@@ -82,7 +82,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
 
   const detail = student as {
     student: { id: string; rollNumber: string; currentLocationState: string; createdAt: string };
-    user: { fullName: string; email: string; phone?: string; gender?: string; isActive: boolean; lastLoginAt?: string; createdAt: string } | null;
+    user: { fullName: string; email: string; phone?: string; gender?: string; isActive: boolean; createdAt: string } | null;
     locationState: { code: string; name: string } | null;
   };
 
@@ -204,12 +204,6 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Phone</dt>
               <dd className="font-medium">{userData?.phone ?? "—"}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">Last Login</dt>
-              <dd className="font-medium">
-                {userData?.lastLoginAt ? formatDate(userData.lastLoginAt) : "Never"}
-              </dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted-foreground">Active</dt>

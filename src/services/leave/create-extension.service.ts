@@ -149,6 +149,7 @@ export async function createExtension(
           reason: dto.reason,
           status: LEAVE_REQUEST_STATUS.PENDING,
           submittedForm: dto.submittedForm ?? null,
+          policyResult,
           submittedAt: new Date(),
         },
         tx

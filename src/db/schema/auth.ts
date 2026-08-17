@@ -44,12 +44,6 @@ export const users = pgTable("users", {
     .default(true)
     .notNull(),
 
-  lastLoginAt: timestamp("last_login_at", {
-    withTimezone: true,
-  }),
-
-  metadata: jsonb("metadata"),
-
   createdAt: timestamp("created_at", {
     withTimezone: true,
   })

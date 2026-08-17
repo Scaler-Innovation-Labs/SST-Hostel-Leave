@@ -250,8 +250,6 @@ Tables:
 ```text
 notification_templates
 notification_logs
-inbound_sms_logs
-sheet_sync_logs
 ```
 
 Supports:

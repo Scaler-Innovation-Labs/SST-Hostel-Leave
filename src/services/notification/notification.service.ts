@@ -365,7 +365,6 @@ async function deliverToRecipient(
 		context.variables
 	);
 	if (mentions.length > 0) logMetadata.slackMentions = mentions.join(", ");
-	if (cc && cc.length > 0) logMetadata.ccEmails = cc.join(", ");
 
 	await notificationLogRepository.create({
 		leaveRequestId: context.leaveRequestId ?? null,
@@ -375,6 +374,7 @@ async function deliverToRecipient(
 		channel,
 		eventType,
 		recipient: Array.isArray(recipient) ? recipient.join(", ") : recipient,
+		ccRecipients: cc ?? null,
 		deliveryStatus: result.success
 			? NOTIFICATION_DELIVERY_STATUS.SENT
 			: NOTIFICATION_DELIVERY_STATUS.FAILED,

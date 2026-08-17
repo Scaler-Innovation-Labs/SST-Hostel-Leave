@@ -300,25 +300,6 @@ export default function SuperAdminUserDetailPage() {
               )}
             </div>
           </div>
-
-          {user.lastLoginAt && (
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
-              <h3 className="mb-3 flex items-center gap-2 text-base font-semibold">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                Activity
-              </h3>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Last Login</span>
-                  <span className="font-medium">
-                    {formatDistanceToNow(new Date(user.lastLoginAt), {
-                      addSuffix: true,
-                    })}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

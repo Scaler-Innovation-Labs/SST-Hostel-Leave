@@ -39,10 +39,8 @@ import {
   qrScanLogs,
 } from "./movement";
 import {
-  inboundSmsLogs,
   notificationLogs,
   notificationTemplates,
-  sheetSyncLogs,
 } from "./notification";
 import {
   notificationRuleChannels,
@@ -179,8 +177,6 @@ export const parentsRelations = relations(
 
     leaveApprovals: many(leaveApprovals),
 
-    inboundSmsLogs: many(inboundSmsLogs),
-
     notificationLogs: many(notificationLogs),
   })
 );
@@ -255,10 +251,6 @@ export const leaveRequestsRelations = relations(
     movementEvents: many(movementEvents),
 
     notificationLogs: many(notificationLogs),
-
-    inboundSmsLogs: many(inboundSmsLogs),
-
-    sheetSyncLogs: many(sheetSyncLogs),
   })
 );
 
@@ -290,10 +282,6 @@ export const leaveExtensionsRelations = relations(
     leaveDocuments: many(leaveDocuments),
 
     notificationLogs: many(notificationLogs),
-
-    inboundSmsLogs: many(inboundSmsLogs),
-
-    sheetSyncLogs: many(sheetSyncLogs),
   })
 );
 
@@ -499,27 +487,6 @@ export const notificationLogsRelations =
     })
   );
 
-export const inboundSmsLogsRelations =
-  relations(
-    inboundSmsLogs,
-    ({ one }) => ({
-      parent: one(parents, {
-        fields: [inboundSmsLogs.parentId],
-        references: [parents.id],
-      }),
-
-      leaveRequest: one(leaveRequests, {
-        fields: [inboundSmsLogs.leaveRequestId],
-        references: [leaveRequests.id],
-      }),
-
-      leaveExtension: one(leaveExtensions, {
-        fields: [inboundSmsLogs.leaveExtensionId],
-        references: [leaveExtensions.id],
-      }),
-    })
-  );
-
 export const notificationRulesRelations =
   relations(
     notificationRules,
@@ -569,21 +536,6 @@ export const notificationTemplatesRelations =
       rules: many(notificationRules),
     })
   );
-
-export const sheetSyncLogsRelations = relations(
-  sheetSyncLogs,
-  ({ one }) => ({
-    leaveRequest: one(leaveRequests, {
-      fields: [sheetSyncLogs.leaveRequestId],
-      references: [leaveRequests.id],
-    }),
-
-    leaveExtension: one(leaveExtensions, {
-      fields: [sheetSyncLogs.leaveExtensionId],
-      references: [leaveExtensions.id],
-    }),
-  })
-);
 
 // =====================================================
 // AUDIT RELATIONS

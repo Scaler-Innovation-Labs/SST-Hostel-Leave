@@ -153,8 +153,6 @@ export const leaveRequests = pgTable("leave_requests", {
 
   currentStepOrder: integer("current_step_order"),
 
-  approvalSnapshot: jsonb("approval_snapshot"),
-
   policyResult: jsonb("policy_result"),
 
   startAt: timestamp("start_at", {
@@ -170,12 +168,6 @@ export const leaveRequests = pgTable("leave_requests", {
   }),
 
   submittedForm: jsonb("submitted_form").notNull(),
-
-  metadata: jsonb("metadata"),
-
-  requestVersion: integer("request_version")
-    .default(1)
-    .notNull(),
 
   submittedAt: timestamp("submitted_at", {
     withTimezone: true,
@@ -212,8 +204,6 @@ export const leaveRequests = pgTable("leave_requests", {
   })
     .defaultNow()
     .notNull(),
-
-  leaveTypeVersion: integer("leave_type_version").default(1).notNull(),
 },
 (table) => ({
   requestNumberIndex: index(
@@ -222,7 +212,6 @@ export const leaveRequests = pgTable("leave_requests", {
   studentIdIndex: index("leave_requests_student_id_idx").on(table.studentId),
   leaveTypeIdIndex: index("leave_requests_leave_type_id_idx").on(table.leaveTypeId),
   statusIndex: index("leave_requests_status_idx").on(table.status),
-  requestVersionIndex: index("leave_requests_request_version_idx").on(table.requestVersion),
   startAtIndex: index("leave_requests_start_at_idx").on(table.startAt),
   endAtIndex: index("leave_requests_end_at_idx").on(table.endAt),
   studentDatesIdx: index("lr_student_dates_idx").on(table.studentId, table.startAt, table.endAt),
@@ -262,13 +251,9 @@ export const leaveExtensions = pgTable("leave_extensions", {
 
   currentStepOrder: integer("current_step_order"),
 
-  approvalSnapshot: jsonb("approval_snapshot"),
-
   policyResult: jsonb("policy_result"),
 
   submittedForm: jsonb("submitted_form"),
-
-  metadata: jsonb("metadata"),
 
   submittedAt: timestamp("submitted_at", {
     withTimezone: true,
@@ -365,21 +350,10 @@ export const leaveApprovals = pgTable("leave_approvals", {
   parentApprovalToken: text("parent_approval_token")
     .unique(),
 
-  parentApprovalOtpHash: text(
-    "parent_approval_otp_hash"
-  ),
-
   parentApprovalExpiresAt: timestamp(
     "parent_approval_expires_at",
     { withTimezone: true }
   ),
-
-  parentApprovalVerifiedAt: timestamp(
-    "parent_approval_verified_at",
-    { withTimezone: true }
-  ),
-
-  metadata: jsonb("metadata"),
 
   actedAt: timestamp("acted_at", {
     withTimezone: true,
@@ -456,8 +430,6 @@ export const leaveRejections = pgTable("leave_rejections", {
   endAt: timestamp("end_at", {
     withTimezone: true,
   }).notNull(),
-
-  metadata: jsonb("metadata"),
 
   createdAt: timestamp("created_at", {
     withTimezone: true,

@@ -254,31 +254,6 @@ export const notificationEventEnum =
   );
 
 // =====================================================
-// SMS
-// =====================================================
-
-export const smsParsedActionEnum =
-  pgEnum(
-    "sms_parsed_action",
-    [
-      "APPROVE",
-      "REJECT",
-      "UNKNOWN",
-    ]
-  );
-
-export const smsProcessingStatusEnum =
-  pgEnum(
-    "sms_processing_status",
-    [
-      "RECEIVED",
-      "PARSED",
-      "PROCESSED",
-      "FAILED",
-    ]
-  );
-
-// =====================================================
 // OUTBOX
 // =====================================================
 
@@ -291,20 +266,6 @@ export const outboxStatusEnum = pgEnum(
     "FAILED",
   ]
 );
-
-// =====================================================
-// SHEET SYNC
-// =====================================================
-
-export const sheetSyncStatusEnum =
-  pgEnum(
-    "sheet_sync_status",
-    [
-      "PENDING",
-      "SUCCESS",
-      "FAILED",
-    ]
-  );
 
 // =====================================================
 // QR MODE

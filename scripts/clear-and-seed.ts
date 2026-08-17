@@ -18,8 +18,6 @@ async function main() {
   await db.execute(sql`
     TRUNCATE TABLE
       audit_logs,
-      sheet_sync_logs,
-      inbound_sms_logs,
       notification_logs,
       notification_rule_recipients,
       notification_rule_channels,

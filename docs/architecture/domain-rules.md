@@ -585,22 +585,6 @@ Extension Approved
 
 ---
 
-## Inbound SMS
-
-Incoming parent replies are stored in:
-
-```text
-inbound_sms_logs
-```
-
-This is raw communication history.
-
-Never treat inbound logs as approval records.
-
-Approvals are stored separately.
-
----
-
 # Audit Domain
 
 ## Purpose
