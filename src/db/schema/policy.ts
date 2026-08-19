@@ -244,6 +244,14 @@ export const policyEvaluations = pgTable(
       }
     ),
 
+    /**
+     * Input values the evaluation was computed from (the rule's own config
+     * plus the resolved request inputs such as dates, batch year, extension
+     * count). Kept small; never the full policy definition — submittedForm
+     * already holds the form facts.
+     */
+    config: jsonb("config"),
+
     passed: boolean("passed").notNull(),
 
     /** The restriction/requirement message when the policy failed. */

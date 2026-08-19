@@ -345,6 +345,16 @@ export const userRepository = {
     return rows[0] ?? null;
   },
 
+  async touchLastLogin(
+    id: string,
+    dbClient: UserWriteDb = db
+  ): Promise<void> {
+    await dbClient
+      .update(users)
+      .set({ lastLoginAt: new Date() })
+      .where(eq(users.id, id));
+  },
+
   async updateProfile(
     id: string,
     input: {

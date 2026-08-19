@@ -205,11 +205,11 @@ export const leaveTypeVersions = pgTable(
 );
 
 // =====================================================
-// LEAVE EXECUTION CONTEXTS
+// LEAVE CONFIGURATION CONTEXTS
 // =====================================================
 
-export const leaveExecutionContexts = pgTable(
-  "leave_execution_contexts",
+export const leaveConfigurationContexts = pgTable(
+  "leave_configuration_contexts",
   {
     id: uuid("id").defaultRandom().primaryKey(),
 
@@ -241,10 +241,10 @@ export const leaveExecutionContexts = pgTable(
   },
   (table) => ({
     leaveTypeVersionIdIndex: index(
-      "lec_leave_type_version_id_idx"
+      "lcc_leave_type_version_id_idx"
     ).on(table.leaveTypeVersionId),
     workflowVersionIdIndex: index(
-      "lec_workflow_version_id_idx"
+      "lcc_workflow_version_id_idx"
     ).on(table.workflowVersionId),
   })
 );

@@ -28,25 +28,20 @@ export const policyVersionService = {
   },
 
   /**
-   * One latest version per policy. Policies without a version yet get v1
-   * created from their current state (self-healing for policies created
-   * before this feature shipped).
+   * Resolves the latest version of each requested policy. Version creation
+   * happens only on actual configuration mutation (createVersion); the
+   * runtime never repairs missing versions — a missing version is a data
+   * error and throws.
    */
-  async getOrCreateLatestVersions(
+  async getLatestVersions(
     policyIds: string[],
-    actorUserId: string | null = null,
     dbClient: VersionDbClient = db
   ): Promise<Map<string, PolicyVersion>> {
     const result = await policyVersionRepository.findManyLatestByPolicyIds(policyIds, dbClient);
 
-    for (const policyId of policyIds) {
-      if (!result.has(policyId)) {
-        const policy = await policyRepository.findById(policyId, dbClient);
-        if (policy) {
-          const version = await this.createVersionFromPolicy(policy, actorUserId, dbClient);
-          result.set(policyId, version);
-        }
-      }
+    const missing = policyIds.filter((policyId) => !result.has(policyId));
+    if (missing.length > 0) {
+      throw new NotFoundError(`PolicyVersion for policies: ${missing.join(", ")}`);
     }
 
     return result;

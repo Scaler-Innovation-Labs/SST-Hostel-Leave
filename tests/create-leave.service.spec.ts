@@ -82,24 +82,24 @@ vi.mock("@/services/policy/policy-engine", () => ({
 
 const mockLeaveTypeVersionGetOrCreate = vi.fn().mockResolvedValue({ id: "LTV1", version: 1 });
 const mockWorkflowVersionGetOrCreate = vi.fn().mockResolvedValue({ id: "WV1", version: 1 });
-const mockExecutionContextCreate = vi.fn().mockResolvedValue({ id: "LEC1" });
+const mockContextCreate = vi.fn().mockResolvedValue({ id: "LCC1" });
 const mockPolicyEvaluationCreateMany = vi.fn().mockResolvedValue([]);
 
 vi.mock("@/services/leave/leave-type-version.service", () => ({
   leaveTypeVersionService: {
-    getOrCreateLatestVersion: (...args: any[]) => mockLeaveTypeVersionGetOrCreate(...args),
+    getLatestVersion: (...args: any[]) => mockLeaveTypeVersionGetOrCreate(...args),
   },
 }));
 
 vi.mock("@/services/workflow/workflow-version.service", () => ({
   workflowVersionService: {
-    getOrCreateLatestVersion: (...args: any[]) => mockWorkflowVersionGetOrCreate(...args),
+    getLatestVersion: (...args: any[]) => mockWorkflowVersionGetOrCreate(...args),
   },
 }));
 
-vi.mock("@/db/repositories/leave/leave-execution-context.repository", () => ({
-  leaveExecutionContextRepository: {
-    create: (...args: any[]) => mockExecutionContextCreate(...args),
+vi.mock("@/db/repositories/leave/leave-configuration-context.repository", () => ({
+  leaveConfigurationContextRepository: {
+    create: (...args: any[]) => mockContextCreate(...args),
   },
 }));
 
@@ -155,7 +155,7 @@ describe("createLeave service", () => {
     mockAuditRecord.mockResolvedValue({});
     mockLeaveTypeVersionGetOrCreate.mockResolvedValue({ id: "LTV1", version: 1 });
     mockWorkflowVersionGetOrCreate.mockResolvedValue({ id: "WV1", version: 1 });
-    mockExecutionContextCreate.mockResolvedValue({ id: "LEC1" });
+    mockContextCreate.mockResolvedValue({ id: "LCC1" });
     mockPolicyEvaluationCreateMany.mockResolvedValue([]);
   });
 

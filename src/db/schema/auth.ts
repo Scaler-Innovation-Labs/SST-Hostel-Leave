@@ -44,6 +44,11 @@ export const users = pgTable("users", {
     .default(true)
     .notNull(),
 
+  /** Last successful sign-in (written by get-current-user on authenticated requests). */
+  lastLoginAt: timestamp("last_login_at", {
+    withTimezone: true,
+  }),
+
   createdAt: timestamp("created_at", {
     withTimezone: true,
   })

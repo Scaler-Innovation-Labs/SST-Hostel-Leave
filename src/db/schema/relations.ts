@@ -24,8 +24,8 @@ import {
 } from "./hostel";
 import {
   leaveApprovals,
+  leaveConfigurationContexts,
   leaveDocuments,
-  leaveExecutionContexts,
   leaveExtensions,
   leaveRejections,
   leaveRequests,
@@ -251,21 +251,21 @@ export const leaveTypeVersionsRelations = relations(
   })
 );
 
-export const leaveExecutionContextsRelations = relations(
-  leaveExecutionContexts,
+export const leaveConfigurationContextsRelations = relations(
+  leaveConfigurationContexts,
   ({ one }) => ({
     leaveRequest: one(leaveRequests, {
-      fields: [leaveExecutionContexts.leaveRequestId],
+      fields: [leaveConfigurationContexts.leaveRequestId],
       references: [leaveRequests.id],
     }),
 
     leaveTypeVersion: one(leaveTypeVersions, {
-      fields: [leaveExecutionContexts.leaveTypeVersionId],
+      fields: [leaveConfigurationContexts.leaveTypeVersionId],
       references: [leaveTypeVersions.id],
     }),
 
     workflowVersion: one(workflowVersions, {
-      fields: [leaveExecutionContexts.workflowVersionId],
+      fields: [leaveConfigurationContexts.workflowVersionId],
       references: [workflowVersions.id],
     }),
   })
@@ -284,9 +284,9 @@ export const leaveRequestsRelations = relations(
       references: [leaveTypes.id],
     }),
 
-    executionContext: one(leaveExecutionContexts, {
+    configurationContext: one(leaveConfigurationContexts, {
       fields: [leaveRequests.id],
-      references: [leaveExecutionContexts.leaveRequestId],
+      references: [leaveConfigurationContexts.leaveRequestId],
     }),
 
     leaveExtensions: many(leaveExtensions),

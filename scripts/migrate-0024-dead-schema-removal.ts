@@ -13,9 +13,10 @@ async function main() {
   // 1. Immutable configuration version tables
   // ============================================================
   // leave_type_versions / workflow_versions / policy_versions hold one row
-  // per configuration change. leave_execution_contexts points each leave at
-  // the exact versions it ran under; policy_evaluations records what each
-  // policy decided for that leave.
+  // per actual configuration change. leave_configuration_contexts points
+  // each leave at the exact versions it was created under; policy_evaluations
+  // records what each policy decided for that leave, including the input
+  // values the decision was computed from.
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS "workflow_versions" (
@@ -91,17 +92,17 @@ async function main() {
   console.log("  - created leave_type_versions");
 
   await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS "leave_execution_contexts" (
+    CREATE TABLE IF NOT EXISTS "leave_configuration_contexts" (
       "id" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
       "leave_request_id" uuid NOT NULL UNIQUE REFERENCES "leave_requests"("id") ON DELETE CASCADE,
       "leave_type_version_id" uuid NOT NULL REFERENCES "leave_type_versions"("id") ON DELETE RESTRICT,
       "workflow_version_id" uuid NOT NULL REFERENCES "workflow_versions"("id") ON DELETE RESTRICT,
       "created_at" timestamp with time zone DEFAULT now() NOT NULL
     );
-    CREATE INDEX IF NOT EXISTS "lec_leave_type_version_id_idx" ON "leave_execution_contexts" ("leave_type_version_id");
-    CREATE INDEX IF NOT EXISTS "lec_workflow_version_id_idx" ON "leave_execution_contexts" ("workflow_version_id");
+    CREATE INDEX IF NOT EXISTS "lcc_leave_type_version_id_idx" ON "leave_configuration_contexts" ("leave_type_version_id");
+    CREATE INDEX IF NOT EXISTS "lcc_workflow_version_id_idx" ON "leave_configuration_contexts" ("workflow_version_id");
   `);
-  console.log("  - created leave_execution_contexts");
+  console.log("  - created leave_configuration_contexts");
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS "policy_evaluations" (
@@ -109,6 +110,7 @@ async function main() {
       "leave_request_id" uuid NOT NULL REFERENCES "leave_requests"("id") ON DELETE CASCADE,
       "policy_id" uuid REFERENCES "policies"("id") ON DELETE SET NULL,
       "policy_version_id" uuid REFERENCES "policy_versions"("id") ON DELETE RESTRICT,
+      "config" jsonb,
       "passed" boolean NOT NULL,
       "message" text,
       "evaluated_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -148,7 +150,8 @@ async function main() {
     FROM "workflow_definitions" wd
     LEFT JOIN "workflow_steps" ws ON ws."workflow_definition_id" = wd."id"
     LEFT JOIN "roles" r ON r."id" = ws."approver_role_id"
-    GROUP BY wd."id";
+    GROUP BY wd."id"
+    ON CONFLICT ("workflow_definition_id", "version") DO NOTHING;
   `);
   console.log("  - backfilled workflow_versions v1");
 
@@ -162,7 +165,8 @@ async function main() {
       gen_random_uuid(), p."id", 1, p."name", p."policy_type", p."priority",
       p."leave_type_id", p."hostel_id", p."department_id", p."batch_year",
       p."config", p."is_active", p."starts_at", p."ends_at", NULL, now()
-    FROM "policies" p;
+    FROM "policies" p
+    ON CONFLICT ("policy_id", "version") DO NOTHING;
   `);
   console.log("  - backfilled policy_versions v1");
 
@@ -180,14 +184,15 @@ async function main() {
       lt."notification_config", lt."use_global_notification_rules",
       lt."required_documents", lt."ui_config", lt."workflow_mode",
       lt."allow_extensions", lt."max_extension_count", NULL, now()
-    FROM "leave_types" lt;
+    FROM "leave_types" lt
+    ON CONFLICT ("leave_type_id", "version") DO NOTHING;
   `);
   console.log("  - backfilled leave_type_versions v1");
 
   // Point every existing leave at the v1 versions of its type + workflow,
   // so legacy leaves are explainable too.
   await db.execute(sql`
-    INSERT INTO "leave_execution_contexts" (
+    INSERT INTO "leave_configuration_contexts" (
       "id", "leave_request_id", "leave_type_version_id", "workflow_version_id", "created_at"
     )
     SELECT
@@ -198,29 +203,63 @@ async function main() {
     LEFT JOIN "workflow_versions" wv
       ON wv."workflow_definition_id" = lt."default_workflow_id" AND wv."version" = 1
     WHERE NOT EXISTS (
-      SELECT 1 FROM "leave_execution_contexts" lec WHERE lec."leave_request_id" = lr."id"
+      SELECT 1 FROM "leave_configuration_contexts" lcc WHERE lcc."leave_request_id" = lr."id"
     );
   `);
-  console.log("  - backfilled leave_execution_contexts");
+  console.log("  - backfilled leave_configuration_contexts");
 
-  // Reconstruct per-policy evaluation rows from the stored aggregate result.
+  // Reconstruct per-policy evaluation rows from the stored aggregate result,
+  // ONLY when the check carries an unambiguous policy id that still resolves
+  // to a version. checks[].key is the policy uuid the engine evaluated (see
+  // policy-engine.ts). If the policy was deleted, or the key is not a uuid,
+  // the row is NOT guessed: the aggregate policy_result stays the historical
+  // fact and policy_evaluations stays empty for that leave.
   await db.execute(sql`
     INSERT INTO "policy_evaluations" (
       "id", "leave_request_id", "policy_id", "policy_version_id", "passed", "message", "evaluated_at"
     )
     SELECT
-      gen_random_uuid(), lr."id", (c."key" #>> '{}')::uuid, pv."id",
-      (c."passed" #>> '{}')::boolean, c."message" #>> '{}', lr."created_at"
+      gen_random_uuid(), lr."id", pv."policy_id", pv."id",
+      c."passed", c."message", lr."created_at"
     FROM "leave_requests" lr
-    CROSS JOIN LATERAL jsonb_array_elements(lr."policy_result"->'checks') AS c
-    LEFT JOIN "policy_versions" pv ON pv."policy_id" = (c."key" #>> '{}')::uuid AND pv."version" = 1
+    CROSS JOIN LATERAL (
+      SELECT
+        elem ->> 'key' AS check_key,
+        (elem ->> 'passed')::boolean AS passed,
+        elem ->> 'message' AS message
+      FROM jsonb_array_elements(lr."policy_result"->'checks') AS elem
+    ) AS c
+    INNER JOIN "policy_versions" pv
+      ON pv."policy_id" = (
+        CASE WHEN c."check_key" ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+          THEN c."check_key"::uuid
+        END
+      )
+      AND pv."version" = 1
     WHERE lr."policy_result" IS NOT NULL
-      AND (c."key" #>> '{}') ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$';
+      AND c."check_key" ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      AND NOT EXISTS (
+        SELECT 1 FROM "policy_evaluations" pe WHERE pe."leave_request_id" = lr."id"
+      );
   `);
-  console.log("  - backfilled policy_evaluations from policy_result");
+  console.log("  - backfilled policy_evaluations from unambiguous policy_result checks");
 
   // ============================================================
-  // 3. Dead tables (never written or read by any code path)
+  // 3. Notification log CC canonicalization
+  // ============================================================
+  // notification_logs.cc_recipients is the canonical column; any historical
+  // rows that stored CCs inside metadata are moved over where possible.
+  await db.execute(sql`
+    UPDATE "notification_logs"
+    SET "cc_recipients" = "metadata"->'ccRecipients',
+        "metadata" = "metadata" - 'ccRecipients'
+    WHERE "cc_recipients" IS NULL
+      AND "metadata" ? 'ccRecipients';
+  `);
+  console.log("  - backfilled notification_logs.cc_recipients from metadata");
+
+  // ============================================================
+  // 4. Dead tables (never written or read by any code path)
   // ============================================================
   // inbound_sms_logs / sheet_sync_logs: designed for parent SMS-reply and
   // Google Sheets sync features that were never built (no webhook route,
@@ -243,18 +282,9 @@ async function main() {
   console.log("  - dropped orphaned enums (sms_parsed_action, sms_processing_status, sheet_sync_status)");
 
   // ============================================================
-  // 4. Unused columns
+  // 5. Unused columns
   // ============================================================
-  // users/parents metadata: identity is Clerk-owned; nothing ever wrote these.
-  // last_login_at: no writer existed; reads removed.
-  await db.execute(sql`
-    ALTER TABLE "users" DROP COLUMN IF EXISTS "metadata";
-    ALTER TABLE "users" DROP COLUMN IF EXISTS "last_login_at";
-    ALTER TABLE "parents" DROP COLUMN IF EXISTS "metadata";
-  `);
-  console.log("  - dropped users.metadata, users.last_login_at, parents.metadata");
-
-  // Version/snapshot columns replaced by the version tables + execution
+  // Version/snapshot columns replaced by the version tables + configuration
   // context. request_version had no concurrency mechanism behind it.
   // leave_extensions metadata is KEPT (audit/extension slot, consistent with
   // the rest of the system); only the snapshot copy goes away.
@@ -272,6 +302,17 @@ async function main() {
     ALTER TABLE "leave_approvals" DROP COLUMN IF EXISTS "parent_approval_verified_at";
   `);
   console.log("  - dropped leave_approvals OTP columns");
+
+  // ============================================================
+  // 6. Kept-but-restored columns
+  // ============================================================
+  // users.last_login_at is KEPT and now actively written by get-current-user
+  // (login audit, inactive-user detection). Ensure the column exists in case
+  // an earlier migration draft dropped it.
+  await db.execute(sql`
+    ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "last_login_at" timestamp with time zone;
+  `);
+  console.log("  - ensured users.last_login_at exists (kept + now written)");
 
   console.log("Migration 0024 complete!");
 }

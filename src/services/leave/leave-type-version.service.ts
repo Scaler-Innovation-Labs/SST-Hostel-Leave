@@ -51,20 +51,20 @@ export const leaveTypeVersionService = {
   },
 
   /**
-   * Returns the latest version of a leave type, creating v1 from its current
-   * state when none exists yet (types created before this feature shipped).
+   * Returns the latest version of a leave type. Version creation happens only
+   * on actual configuration mutation (createVersion); the runtime never
+   * repairs missing versions — a missing version is a data error.
    */
-  async getOrCreateLatestVersion(
+  async getLatestVersion(
     leaveTypeId: string,
-    actorUserId: string | null = null,
     dbClient: VersionDbClient = db
   ): Promise<LeaveTypeVersion> {
     const existing = await leaveTypeVersionRepository.findLatestByLeaveTypeId(leaveTypeId, dbClient);
-    if (existing) {
-      return existing;
+    if (!existing) {
+      throw new NotFoundError(`LeaveTypeVersion for leave type ${leaveTypeId}`);
     }
 
-    return this.createVersion(leaveTypeId, actorUserId, dbClient);
+    return existing;
   },
 };
 

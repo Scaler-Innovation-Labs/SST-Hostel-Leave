@@ -66,20 +66,20 @@ export const workflowVersionService = {
   },
 
   /**
-   * Returns the latest version of a workflow, creating v1 from its current
-   * state when none exists yet (workflows created before this feature).
+   * Returns the latest version of a workflow. Version creation happens only
+   * on actual configuration mutation (createVersion); the runtime never
+   * repairs missing versions — a missing version is a data error.
    */
-  async getOrCreateLatestVersion(
+  async getLatestVersion(
     workflowDefinitionId: string,
-    actorUserId: string | null = null,
     dbClient: VersionDbClient = db
   ): Promise<WorkflowVersion> {
     const existing = await workflowVersionRepository.findLatestByWorkflowDefinitionId(workflowDefinitionId, dbClient);
-    if (existing) {
-      return existing;
+    if (!existing) {
+      throw new NotFoundError(`WorkflowVersion for workflow ${workflowDefinitionId}`);
     }
 
-    return this.createVersion(workflowDefinitionId, actorUserId, dbClient);
+    return existing;
   },
 };
 

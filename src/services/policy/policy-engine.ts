@@ -226,6 +226,23 @@ const POLICY_TYPE_LABELS: Record<string, string> = {
   FEATURE_FLAG: "Feature Flag",
 };
 
+// The rule parameters + resolved request inputs an evaluation was computed
+// from. Persisted on policy_evaluations.config so a policy can be debugged
+// years later without guessing; submittedForm stays the source for form facts.
+function buildEvaluationConfig(
+  policy: Policy,
+  context: PolicyEvaluationContext
+): Record<string, unknown> {
+  const inputs: Record<string, unknown> = {};
+  if (context.startAt) inputs.leaveStart = context.startAt.toISOString();
+  if (context.endAt) inputs.leaveEnd = context.endAt.toISOString();
+  if (context.leaveDurationDays != null) inputs.leaveDurationDays = context.leaveDurationDays;
+  if (context.studentBatchYear != null) inputs.studentBatchYear = context.studentBatchYear;
+  if (context.extensionCount != null) inputs.extensionCount = context.extensionCount;
+  if (context.hostelId) inputs.hostelId = context.hostelId;
+  return { rule: policy.config, inputs };
+}
+
 export const policyEngine = {
   async evaluate(
     context: PolicyEvaluationContext,
@@ -243,10 +260,9 @@ export const policyEngine = {
     );
 
     // Resolve the immutable version of each policy evaluated here, so the
-    // leave execution context can point at exactly what was enforced.
-    const versionByPolicyId = await policyVersionService.getOrCreateLatestVersions(
+    // leave configuration context can point at exactly what was enforced.
+    const versionByPolicyId = await policyVersionService.getLatestVersions(
       activePolicies.map((policy) => policy.id),
-      null,
       dbClient
     );
 
@@ -265,6 +281,7 @@ export const policyEngine = {
         policyVersionId: versionByPolicyId.get(policy.id)?.id ?? null,
         passed,
         message,
+        config: buildEvaluationConfig(policy, context),
       });
     };
 

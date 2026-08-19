@@ -57,6 +57,16 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   ]);
   const roles = roleCodes.filter(isRole);
 
+  // Track the last successful sign-in. This is a login audit signal, not a
+  // critical path — a failure must never block the user from the app.
+  try {
+    await userRepository.touchLastLogin(dbUser.id);
+  } catch (err) {
+    logger.error("[getCurrentUser] lastLoginAt update failed", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
   const currentUserValue: CurrentUser = {
     id: dbUser.id,
     clerkId: clerkUser.id,

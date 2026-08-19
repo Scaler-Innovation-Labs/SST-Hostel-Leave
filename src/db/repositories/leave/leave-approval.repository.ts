@@ -11,7 +11,7 @@ import {
   departments,
   hostels,
   leaveApprovals,
-  leaveExecutionContexts,
+  leaveConfigurationContexts,
   leaveExtensions,
   leaveRequests,
   leaveTypes,
@@ -226,9 +226,9 @@ export const leaveApprovalRepository = {
       .leftJoin(roles, eq(leaveApprovals.approverRoleId, roles.id))
       .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
       .leftJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
-      .leftJoin(leaveExecutionContexts, eq(leaveRequests.id, leaveExecutionContexts.leaveRequestId))
-      .leftJoin(leaveTypeVersions, eq(leaveExecutionContexts.leaveTypeVersionId, leaveTypeVersions.id))
-      .leftJoin(workflowVersions, eq(leaveExecutionContexts.workflowVersionId, workflowVersions.id))
+      .leftJoin(leaveConfigurationContexts, eq(leaveRequests.id, leaveConfigurationContexts.leaveRequestId))
+      .leftJoin(leaveTypeVersions, eq(leaveConfigurationContexts.leaveTypeVersionId, leaveTypeVersions.id))
+      .leftJoin(workflowVersions, eq(leaveConfigurationContexts.workflowVersionId, workflowVersions.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .leftJoin(hostels, eq(users.hostelId, hostels.id))
@@ -653,9 +653,9 @@ export const leaveApprovalRepository = {
       .innerJoin(leaveExtensions, eq(leaveApprovals.leaveExtensionId, leaveExtensions.id))
       .leftJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
       .leftJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
-      .leftJoin(leaveExecutionContexts, eq(leaveRequests.id, leaveExecutionContexts.leaveRequestId))
-      .leftJoin(leaveTypeVersions, eq(leaveExecutionContexts.leaveTypeVersionId, leaveTypeVersions.id))
-      .leftJoin(workflowVersions, eq(leaveExecutionContexts.workflowVersionId, workflowVersions.id))
+      .leftJoin(leaveConfigurationContexts, eq(leaveRequests.id, leaveConfigurationContexts.leaveRequestId))
+      .leftJoin(leaveTypeVersions, eq(leaveConfigurationContexts.leaveTypeVersionId, leaveTypeVersions.id))
+      .leftJoin(workflowVersions, eq(leaveConfigurationContexts.workflowVersionId, workflowVersions.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .leftJoin(hostels, eq(users.hostelId, hostels.id))

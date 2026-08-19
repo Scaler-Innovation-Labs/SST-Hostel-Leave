@@ -10,7 +10,7 @@ import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import type { LeaveRequest } from "@/db/repositories/leave/leave.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
-import { leaveExecutionContextRepository } from "@/db/repositories/leave/leave-execution-context.repository";
+import { leaveConfigurationContextRepository } from "@/db/repositories/leave/leave-configuration-context.repository";
 import { leaveRejectionRepository } from "@/db/repositories/leave/leave-rejection.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
@@ -184,11 +184,11 @@ export async function createLeave(
 
     // Freeze the configuration this leave ran under: the latest immutable
     // versions of the leave type and its workflow, plus per-policy
-    // evaluation records, all referenced from one execution context.
-    const leaveTypeVersion = await leaveTypeVersionService.getOrCreateLatestVersion(leaveType.id, currentUser.id, tx);
-    const workflowVersion = await workflowVersionService.getOrCreateLatestVersion(defaultWorkflowId, currentUser.id, tx);
+    // evaluation records, all referenced from one configuration context.
+    const leaveTypeVersion = await leaveTypeVersionService.getLatestVersion(leaveType.id, tx);
+    const workflowVersion = await workflowVersionService.getLatestVersion(defaultWorkflowId, tx);
 
-    await leaveExecutionContextRepository.create(
+    await leaveConfigurationContextRepository.create(
       {
         leaveRequestId: createdLeave.id,
         leaveTypeVersionId: leaveTypeVersion.id,
@@ -204,6 +204,7 @@ export async function createLeave(
         policyVersionId: evaluation.policyVersionId,
         passed: evaluation.passed,
         message: evaluation.message,
+        config: evaluation.config ?? null,
       })),
       tx
     );
