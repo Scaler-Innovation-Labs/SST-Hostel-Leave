@@ -5,6 +5,7 @@ import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.reposito
 import type { CreateLeaveTypeDto } from "@/dto/leave/save-leave-type.dto";
 import { ConflictError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
+import { leaveTypeVersionService } from "@/services/leave/leave-type-version.service";
 
 export async function createLeaveType(dto: CreateLeaveTypeDto, actorUserId: string | null = null) {
   const existing = await leaveTypeRepository.findByCode(dto.code);
@@ -48,6 +49,10 @@ export async function createLeaveType(dto: CreateLeaveTypeDto, actorUserId: stri
       { code: dto.code, name: dto.name },
     );
   }
+
+  // Seed the immutable version chain with v1 so leaves created under this
+  // type get a stable execution context from day one.
+  await leaveTypeVersionService.createVersion(leaveType.id, actorUserId);
 
   return leaveType;
 }

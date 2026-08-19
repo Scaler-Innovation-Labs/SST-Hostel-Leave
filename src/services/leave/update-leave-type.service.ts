@@ -4,6 +4,7 @@ import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.reposito
 import type { SaveLeaveTypeDto } from "@/dto/leave/save-leave-type.dto";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
+import { leaveTypeVersionService } from "@/services/leave/leave-type-version.service";
 
 export async function updateLeaveType(id: string, dto: Partial<SaveLeaveTypeDto>, actorUserId: string | null = null) {
   const existing = await leaveTypeRepository.findById(id);
@@ -51,6 +52,10 @@ export async function updateLeaveType(id: string, dto: Partial<SaveLeaveTypeDto>
       { code, name: dto.name ?? existing.name },
     );
   }
+
+  // Bump the immutable version chain: leaves created from now on reference
+  // the new version; existing leaves keep the version they ran under.
+  await leaveTypeVersionService.createVersion(id, actorUserId);
 
   return leaveType;
 }

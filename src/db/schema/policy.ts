@@ -11,13 +11,15 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 
 import { departments } from "./academics";
+import { users } from "./auth";
 import { policyTypeEnum } from "./enums";
 import { hostels } from "./hostel";
-import { leaveTypes } from "./leave";
+import { leaveRequests, leaveTypes } from "./leave";
 
 // =====================================================
 // POLICIES
@@ -114,6 +116,153 @@ export const policies = pgTable("policies", {
     "policies_priority_idx"
   ).on(table.priority),
 })
+);
+
+// =====================================================
+// POLICY VERSIONS (immutable configuration history)
+// =====================================================
+
+export const policyVersions = pgTable(
+  "policy_versions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    policyId: uuid("policy_id")
+      .notNull()
+      .references(() => policies.id, {
+        onDelete: "restrict",
+      }),
+
+    /** Monotonically increasing per policy. A new row is created only when
+        the policy actually changes; existing rows are never mutated. */
+    version: integer("version").notNull(),
+
+    name: text("name").notNull(),
+
+    policyType: policyTypeEnum("policy_type").notNull(),
+
+    priority: integer("priority")
+      .default(0)
+      .notNull(),
+
+    leaveTypeId: uuid("leave_type_id").references(
+      () => leaveTypes.id,
+      {
+        onDelete: "set null",
+      }
+    ),
+
+    hostelId: uuid("hostel_id").references(
+      () => hostels.id,
+      {
+        onDelete: "set null",
+      }
+    ),
+
+    departmentId: uuid("department_id").references(
+      () => departments.id,
+      {
+        onDelete: "set null",
+      }
+    ),
+
+    batchYear: integer("batch_year"),
+
+    config: jsonb("config").notNull(),
+
+    isActive: boolean("is_active")
+      .default(true)
+      .notNull(),
+
+    startsAt: timestamp("starts_at", {
+      withTimezone: true,
+    }),
+
+    endsAt: timestamp("ends_at", {
+      withTimezone: true,
+    }),
+
+    createdBy: uuid("created_by").references(
+      () => users.id,
+      {
+        onDelete: "set null",
+      }
+    ),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    policyVersionUnq: unique(
+      "policy_version_unq"
+    ).on(
+      table.policyId,
+      table.version
+    ),
+    policyIdIndex: index(
+      "pov_policy_id_idx"
+    ).on(table.policyId),
+    leaveTypeIdIndex: index(
+      "pov_leave_type_id_idx"
+    ).on(table.leaveTypeId),
+    hostelIdIndex: index(
+      "pov_hostel_id_idx"
+    ).on(table.hostelId),
+  })
+);
+
+// =====================================================
+// POLICY EVALUATIONS (what actually happened per leave)
+// =====================================================
+
+export const policyEvaluations = pgTable(
+  "policy_evaluations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    leaveRequestId: uuid("leave_request_id")
+      .notNull()
+      .references(() => leaveRequests.id, {
+        onDelete: "cascade",
+      }),
+
+    policyId: uuid("policy_id").references(
+      () => policies.id,
+      {
+        onDelete: "set null",
+      }
+    ),
+
+    /** The immutable policy version evaluated for this leave. */
+    policyVersionId: uuid("policy_version_id").references(
+      () => policyVersions.id,
+      {
+        onDelete: "restrict",
+      }
+    ),
+
+    passed: boolean("passed").notNull(),
+
+    /** The restriction/requirement message when the policy failed. */
+    message: text("message"),
+
+    evaluatedAt: timestamp("evaluated_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    leaveRequestIdIndex: index(
+      "pe_leave_request_id_idx"
+    ).on(table.leaveRequestId),
+    policyVersionIdIndex: index(
+      "pe_policy_version_id_idx"
+    ).on(table.policyVersionId),
+  })
 );
   
 // =====================================================

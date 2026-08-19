@@ -10,9 +10,11 @@ import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import type { LeaveRequest } from "@/db/repositories/leave/leave.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
+import { leaveExecutionContextRepository } from "@/db/repositories/leave/leave-execution-context.repository";
 import { leaveRejectionRepository } from "@/db/repositories/leave/leave-rejection.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
+import { policyEvaluationRepository } from "@/db/repositories/policy/policy-evaluation.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 import type { CreateLeaveDto } from "@/dto/leave/create-leave.dto";
@@ -21,12 +23,14 @@ import { db } from "@/lib/db";
 import { AuthorizationError, ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { resolveApprovalSource } from "@/lib/workflows/resolve-approval-source";
 import { auditService } from "@/services/audit/audit.service";
+import { leaveTypeVersionService } from "@/services/leave/leave-type-version.service";
 import { assertNoConflictingOverlap } from "@/services/leave/overlap-guard.service";
 import { validateLeaveSubmittedForm } from "@/services/leave/validate-leave-form.service";
 import { notificationService } from "@/services/notification/notification.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 import { policyEngine } from "@/services/policy/policy-engine";
 import { workflowEngine } from "@/services/workflow/workflow-engine";
+import { workflowVersionService } from "@/services/workflow/workflow-version.service";
 
 export async function createLeave(
   dto: CreateLeaveDto,
@@ -177,6 +181,32 @@ export async function createLeave(
     },
     tx
   );
+
+    // Freeze the configuration this leave ran under: the latest immutable
+    // versions of the leave type and its workflow, plus per-policy
+    // evaluation records, all referenced from one execution context.
+    const leaveTypeVersion = await leaveTypeVersionService.getOrCreateLatestVersion(leaveType.id, currentUser.id, tx);
+    const workflowVersion = await workflowVersionService.getOrCreateLatestVersion(defaultWorkflowId, currentUser.id, tx);
+
+    await leaveExecutionContextRepository.create(
+      {
+        leaveRequestId: createdLeave.id,
+        leaveTypeVersionId: leaveTypeVersion.id,
+        workflowVersionId: workflowVersion.id,
+      },
+      tx
+    );
+
+    await policyEvaluationRepository.createMany(
+      policyResult.evaluations.map((evaluation) => ({
+        leaveRequestId: createdLeave.id,
+        policyId: evaluation.policyId,
+        policyVersionId: evaluation.policyVersionId,
+        passed: evaluation.passed,
+        message: evaluation.message,
+      })),
+      tx
+    );
 
     const parentApprovalStep = approvalSteps.find((s) => s.isParentApproval);
     let parentId: string | null = null;

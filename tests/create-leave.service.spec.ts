@@ -7,7 +7,7 @@ const mockFindStudentForUpdate = vi.fn();
 const mockFindLeaveTypeById = vi.fn().mockResolvedValue({
   id: "LT1", code: "HOME_PASS", defaultWorkflowId: "WF1", allowExtensions: true, maxExtensionCount: 2, qrMode: "NONE",
 });
-const mockPolicyEvaluate = vi.fn().mockResolvedValue({ allowed: true, workflowId: "WF1", restrictions: [] });
+const mockPolicyEvaluate = vi.fn().mockResolvedValue({ allowed: true, workflowId: "WF1", restrictions: [], evaluations: [] });
 const mockWorkflowResolve = vi.fn().mockResolvedValue({
   definition: { id: "WF1", isActive: true, version: 1 },
   steps: [{ stepKey: "S1", stepOrder: 1, approverRoleId: "R1" }],
@@ -80,6 +80,35 @@ vi.mock("@/services/policy/policy-engine", () => ({
   },
 }));
 
+const mockLeaveTypeVersionGetOrCreate = vi.fn().mockResolvedValue({ id: "LTV1", version: 1 });
+const mockWorkflowVersionGetOrCreate = vi.fn().mockResolvedValue({ id: "WV1", version: 1 });
+const mockExecutionContextCreate = vi.fn().mockResolvedValue({ id: "LEC1" });
+const mockPolicyEvaluationCreateMany = vi.fn().mockResolvedValue([]);
+
+vi.mock("@/services/leave/leave-type-version.service", () => ({
+  leaveTypeVersionService: {
+    getOrCreateLatestVersion: (...args: any[]) => mockLeaveTypeVersionGetOrCreate(...args),
+  },
+}));
+
+vi.mock("@/services/workflow/workflow-version.service", () => ({
+  workflowVersionService: {
+    getOrCreateLatestVersion: (...args: any[]) => mockWorkflowVersionGetOrCreate(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/leave/leave-execution-context.repository", () => ({
+  leaveExecutionContextRepository: {
+    create: (...args: any[]) => mockExecutionContextCreate(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/policy/policy-evaluation.repository", () => ({
+  policyEvaluationRepository: {
+    createMany: (...args: any[]) => mockPolicyEvaluationCreateMany(...args),
+  },
+}));
+
 vi.mock("@/services/workflow/workflow-engine", () => ({
   workflowEngine: {
     resolve: (...args: any[]) => mockWorkflowResolve(...args),
@@ -115,7 +144,7 @@ describe("createLeave service", () => {
     mockFindLeaveTypeById.mockResolvedValue({
       id: "LT1", code: "HOME_PASS", defaultWorkflowId: "WF1", allowExtensions: true, maxExtensionCount: 2, qrMode: "NONE",
     });
-    mockPolicyEvaluate.mockResolvedValue({ allowed: true, workflowId: "WF1", restrictions: [] });
+    mockPolicyEvaluate.mockResolvedValue({ allowed: true, workflowId: "WF1", restrictions: [], evaluations: [] });
     mockWorkflowResolve.mockResolvedValue({
       definition: { id: "WF1", isActive: true, version: 1 },
       steps: [{ stepKey: "S1", stepOrder: 1, approverRoleId: "R1" }],
@@ -124,6 +153,10 @@ describe("createLeave service", () => {
     mockLeaveCreate.mockResolvedValue({ id: "LR1", requestNumber: "LR-1" });
     mockApprovalCreateMany.mockResolvedValue([]);
     mockAuditRecord.mockResolvedValue({});
+    mockLeaveTypeVersionGetOrCreate.mockResolvedValue({ id: "LTV1", version: 1 });
+    mockWorkflowVersionGetOrCreate.mockResolvedValue({ id: "WV1", version: 1 });
+    mockExecutionContextCreate.mockResolvedValue({ id: "LEC1" });
+    mockPolicyEvaluationCreateMany.mockResolvedValue([]);
   });
 
   it("creates a leave and pending approvals", async () => {
@@ -213,6 +246,7 @@ describe("createLeave service", () => {
       allowed: false,
       workflowId: "WF1",
       restrictions: ["Max 5 days allowed"],
+      evaluations: [],
     });
 
     await expect(

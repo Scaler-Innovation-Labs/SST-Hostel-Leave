@@ -2,7 +2,8 @@ import { operationalPeriodRepository } from "@/db/repositories/policy/operationa
 import type { Policy } from "@/db/repositories/policy/policy.repository";
 import { policyRepository } from "@/db/repositories/policy/policy.repository";
 import { db } from "@/lib/db";
-import type { PolicyCheckEntry, PolicyResult } from "@/types/policy/policy-result";
+import { policyVersionService } from "@/services/policy/policy-version.service";
+import type { PolicyCheckEntry, PolicyEvaluationRecord, PolicyResult } from "@/types/policy/policy-result";
 
 // The curfew window is expressed in IST wall-clock time (e.g. "23:00").
 // Server timezones vary (UTC on Vercel), so extract the local hour/minute in
@@ -39,7 +40,7 @@ type PolicyEvaluationContext = {
   submittedForm?: Record<string, unknown>;
 };
 
-type PolicyDbClient = Pick<typeof db, "select">;
+type PolicyDbClient = Pick<typeof db, "select" | "insert">;
 
 function evaluatePolicy(
   policy: Policy,
@@ -241,9 +242,31 @@ export const policyEngine = {
       }
     );
 
+    // Resolve the immutable version of each policy evaluated here, so the
+    // leave execution context can point at exactly what was enforced.
+    const versionByPolicyId = await policyVersionService.getOrCreateLatestVersions(
+      activePolicies.map((policy) => policy.id),
+      null,
+      dbClient
+    );
+
     const restrictions: string[] = [];
     const requirements: string[] = [];
     const checks: PolicyCheckEntry[] = [];
+    const evaluations: PolicyEvaluationRecord[] = [];
+
+    const recordEvaluation = (
+      policy: Policy,
+      passed: boolean,
+      message: string | null
+    ) => {
+      evaluations.push({
+        policyId: policy.id,
+        policyVersionId: versionByPolicyId.get(policy.id)?.id ?? null,
+        passed,
+        message,
+      });
+    };
 
     for (const policy of activePolicies) {
       if (policy.policyType === "ELIGIBILITY" && (policy.config as Record<string, unknown>).type === "PARENT_APPROVAL_REQUIRED") {
@@ -254,6 +277,7 @@ export const policyEngine = {
           passed: true,
           message: "Parent approval required",
         });
+        recordEvaluation(policy, true, null);
         continue;
       }
 
@@ -275,6 +299,7 @@ export const policyEngine = {
         passed: !restriction,
         message: restriction ?? undefined,
       });
+      recordEvaluation(policy, !restriction, restriction);
 
       if (restriction) {
         restrictions.push(restriction);
@@ -287,6 +312,7 @@ export const policyEngine = {
       restrictions,
       requirements,
       checks,
+      evaluations,
     };
   },
 };

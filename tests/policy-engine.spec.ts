@@ -11,6 +11,9 @@ vi.mock("@/db/repositories/policy/policy.repository", () => ({
 vi.mock("@/db/repositories/policy/operational-period.repository", () => ({
   operationalPeriodRepository: { findOverlapping },
 }));
+vi.mock("@/services/policy/policy-version.service", () => ({
+  policyVersionService: { getOrCreateLatestVersions: vi.fn().mockResolvedValue(new Map()) },
+}));
 vi.mock("@/lib/db", () => ({ db: {} }));
 
 import { policyEngine } from "@/services/policy/policy-engine";

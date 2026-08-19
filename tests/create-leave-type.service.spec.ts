@@ -4,12 +4,19 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const mockFindByCode = vi.fn();
 const mockFindAllIncludingInactive = vi.fn();
 const mockCreate = vi.fn();
+const mockCreateVersion = vi.fn();
 
 vi.mock("@/db/repositories/leave/leave-type.repository", () => ({
   leaveTypeRepository: {
     findByCode: (...args: any[]) => mockFindByCode(...args),
     findAllIncludingInactive: (...args: any[]) => mockFindAllIncludingInactive(...args),
     create: (...args: any[]) => mockCreate(...args),
+  },
+}));
+
+vi.mock("@/services/leave/leave-type-version.service", () => ({
+  leaveTypeVersionService: {
+    createVersion: (...args: any[]) => mockCreateVersion(...args),
   },
 }));
 
@@ -34,6 +41,7 @@ beforeEach(() => {
   mockFindByCode.mockResolvedValue(null);
   mockFindAllIncludingInactive.mockResolvedValue([]);
   mockCreate.mockResolvedValue(MOCK_CREATED);
+  mockCreateVersion.mockResolvedValue({ id: "LTV1", version: 1 });
 });
 
 describe("createLeaveType service", () => {

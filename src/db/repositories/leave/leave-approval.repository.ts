@@ -11,14 +11,17 @@ import {
   departments,
   hostels,
   leaveApprovals,
+  leaveExecutionContexts,
   leaveExtensions,
   leaveRequests,
   leaveTypes,
+  leaveTypeVersions,
   parents,
   roles,
   students,
   users,
   workflowSteps,
+  workflowVersions,
 } from "@/db";
 import { db } from "@/lib/db";
 
@@ -32,6 +35,16 @@ export type LeaveApproval = InferSelectModel<typeof leaveApprovals>;
 export type NewLeaveApproval = InferInsertModel<
   typeof leaveApprovals
 >;
+
+/** Shape of a frozen workflow step inside workflow_versions.steps. */
+type FrozenWorkflowStep = {
+  stepKey: string;
+  stepOrder: number;
+  approverRoleCode: string | null;
+  isParentApproval: boolean;
+  approvalMethod: string | null;
+  isRequired?: boolean;
+};
 
 export const leaveApprovalRepository = {
   async createMany(
@@ -205,11 +218,17 @@ export const leaveApprovalRepository = {
         leaveTypeName: leaveTypes.name,
         leaveTypeUiConfig: leaveTypes.uiConfig,
         leaveTypeDefaultWorkflowId: leaveTypes.defaultWorkflowId,
+        execLeaveTypeName: leaveTypeVersions.name,
+        execUiConfig: leaveTypeVersions.uiConfig,
+        execWorkflowSteps: workflowVersions.steps,
       })
       .from(leaveApprovals)
       .leftJoin(roles, eq(leaveApprovals.approverRoleId, roles.id))
       .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
       .leftJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
+      .leftJoin(leaveExecutionContexts, eq(leaveRequests.id, leaveExecutionContexts.leaveRequestId))
+      .leftJoin(leaveTypeVersions, eq(leaveExecutionContexts.leaveTypeVersionId, leaveTypeVersions.id))
+      .leftJoin(workflowVersions, eq(leaveExecutionContexts.workflowVersionId, workflowVersions.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .leftJoin(hostels, eq(users.hostelId, hostels.id))
@@ -288,7 +307,11 @@ export const leaveApprovalRepository = {
       items: dedupedRows.map((row) => ({
         ...row.approval,
         approverRoleCode: row.roleCode,
+        // Prefer the frozen steps from the leave's execution context (what
+        // the chain actually was at submission time); fall back to the live
+        // workflow for legacy leaves without a context.
         workflowSteps:
+          (row.execWorkflowSteps as FrozenWorkflowStep[] | null) ??
           stepsByWorkflow.get(row.leaveTypeDefaultWorkflowId ?? "") ?? [],
         leaveRequest: row.leaveReqId
           ? {
@@ -309,8 +332,8 @@ export const leaveApprovalRepository = {
         roomNumber: row.roomNumber,
         hostelName: row.hostelName,
         departmentName: row.departmentName,
-        leaveTypeName: row.leaveTypeName,
-        leaveTypeUiConfig: row.leaveTypeUiConfig as Record<string, unknown> | null ?? null,
+        leaveTypeName: row.execLeaveTypeName ?? row.leaveTypeName,
+        leaveTypeUiConfig: (row.execUiConfig ?? row.leaveTypeUiConfig) as Record<string, unknown> | null ?? null,
       })),
       total,
       page: filters.page,
@@ -614,6 +637,9 @@ export const leaveApprovalRepository = {
         leaveTypeName: leaveTypes.name,
         leaveTypeUiConfig: leaveTypes.uiConfig,
         leaveTypeDefaultWorkflowId: leaveTypes.defaultWorkflowId,
+        execLeaveTypeName: leaveTypeVersions.name,
+        execUiConfig: leaveTypeVersions.uiConfig,
+        execWorkflowSteps: workflowVersions.steps,
         studentName: users.fullName,
         studentRollNumber: students.rollNumber,
         roomNumber: students.roomNumber,
@@ -627,6 +653,9 @@ export const leaveApprovalRepository = {
       .innerJoin(leaveExtensions, eq(leaveApprovals.leaveExtensionId, leaveExtensions.id))
       .leftJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
       .leftJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
+      .leftJoin(leaveExecutionContexts, eq(leaveRequests.id, leaveExecutionContexts.leaveRequestId))
+      .leftJoin(leaveTypeVersions, eq(leaveExecutionContexts.leaveTypeVersionId, leaveTypeVersions.id))
+      .leftJoin(workflowVersions, eq(leaveExecutionContexts.workflowVersionId, workflowVersions.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .leftJoin(hostels, eq(users.hostelId, hostels.id))
@@ -708,11 +737,14 @@ export const leaveApprovalRepository = {
       items: dedupedRows.map((row) => ({
         ...row.approval,
         approverRoleCode: row.roleCode,
+        // Frozen steps from the parent leave's execution context; fall back
+        // to the live workflow for legacy leaves without a context.
         workflowSteps:
+          (row.execWorkflowSteps as FrozenWorkflowStep[] | null) ??
           stepsByWorkflow.get(row.leaveTypeDefaultWorkflowId ?? "") ?? [],
-        leaveTypeName: row.leaveTypeName,
+        leaveTypeName: row.execLeaveTypeName ?? row.leaveTypeName,
         leaveTypeUiConfig:
-          (row.leaveTypeUiConfig as Record<string, unknown> | null) ?? null,
+          (row.execUiConfig ?? row.leaveTypeUiConfig) as Record<string, unknown> | null ?? null,
         roomNumber: row.roomNumber,
         hostelName: row.hostelName,
         departmentName: row.departmentName,

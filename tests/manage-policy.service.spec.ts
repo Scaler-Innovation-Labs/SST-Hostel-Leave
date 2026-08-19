@@ -7,6 +7,7 @@ const mockCreate = vi.fn();
 const mockUpdate = vi.fn();
 const mockDeleteById = vi.fn();
 const mockAuditRecord = vi.fn();
+const mockCreateVersion = vi.fn();
 
 vi.mock("@/db/repositories/policy/policy.repository", () => ({
   policyRepository: {
@@ -15,6 +16,12 @@ vi.mock("@/db/repositories/policy/policy.repository", () => ({
     create: (...args: any[]) => mockCreate(...args),
     update: (...args: any[]) => mockUpdate(...args),
     deleteById: (...args: any[]) => mockDeleteById(...args),
+  },
+}));
+
+vi.mock("@/services/policy/policy-version.service", () => ({
+  policyVersionService: {
+    createVersion: (...args: any[]) => mockCreateVersion(...args),
   },
 }));
 
@@ -46,6 +53,7 @@ beforeEach(() => {
   mockUpdate.mockResolvedValue(MOCK_POLICY);
   mockDeleteById.mockResolvedValue(undefined);
   mockAuditRecord.mockResolvedValue({});
+  mockCreateVersion.mockResolvedValue({ id: "PV1", version: 1 });
 });
 
 describe("listPolicies service", () => {

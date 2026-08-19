@@ -25,10 +25,12 @@ import {
 import {
   leaveApprovals,
   leaveDocuments,
+  leaveExecutionContexts,
   leaveExtensions,
   leaveRejections,
   leaveRequests,
   leaveTypes,
+  leaveTypeVersions,
   operationalPeriods,
 } from "./leave";
 import { leaveQuestions } from "./leave-question";
@@ -52,10 +54,13 @@ import {
 } from "./outbox";
 import {
   policies,
+  policyEvaluations,
+  policyVersions,
 } from "./policy";
 import {
   workflowDefinitions,
   workflowSteps,
+  workflowVersions,
 } from "./workflow";
 
 // =====================================================
@@ -66,6 +71,12 @@ export const usersRelations = relations(users, ({ many }) => ({
   userRoles: many(userRoles),
 
   leaveApprovals: many(leaveApprovals),
+
+  leaveTypeVersions: many(leaveTypeVersions),
+
+  workflowVersions: many(workflowVersions),
+
+  policyVersions: many(policyVersions),
 
   leaveQuestions: many(leaveQuestions),
 
@@ -193,6 +204,8 @@ export const leaveTypesRelations = relations(
       references: [workflowDefinitions.id],
     }),
 
+    versions: many(leaveTypeVersions),
+
     leaveRequests: many(leaveRequests),
 
     leaveRejections: many(leaveRejections),
@@ -223,6 +236,41 @@ export const leaveRejectionsRelations = relations(
   })
 );
 
+export const leaveTypeVersionsRelations = relations(
+  leaveTypeVersions,
+  ({ one }) => ({
+    leaveType: one(leaveTypes, {
+      fields: [leaveTypeVersions.leaveTypeId],
+      references: [leaveTypes.id],
+    }),
+
+    createdByUser: one(users, {
+      fields: [leaveTypeVersions.createdBy],
+      references: [users.id],
+    }),
+  })
+);
+
+export const leaveExecutionContextsRelations = relations(
+  leaveExecutionContexts,
+  ({ one }) => ({
+    leaveRequest: one(leaveRequests, {
+      fields: [leaveExecutionContexts.leaveRequestId],
+      references: [leaveRequests.id],
+    }),
+
+    leaveTypeVersion: one(leaveTypeVersions, {
+      fields: [leaveExecutionContexts.leaveTypeVersionId],
+      references: [leaveTypeVersions.id],
+    }),
+
+    workflowVersion: one(workflowVersions, {
+      fields: [leaveExecutionContexts.workflowVersionId],
+      references: [workflowVersions.id],
+    }),
+  })
+);
+
 export const leaveRequestsRelations = relations(
   leaveRequests,
   ({ one, many }) => ({
@@ -234,6 +282,11 @@ export const leaveRequestsRelations = relations(
     leaveType: one(leaveTypes, {
       fields: [leaveRequests.leaveTypeId],
       references: [leaveTypes.id],
+    }),
+
+    executionContext: one(leaveExecutionContexts, {
+      fields: [leaveRequests.id],
+      references: [leaveExecutionContexts.leaveRequestId],
     }),
 
     leaveExtensions: many(leaveExtensions),
@@ -444,7 +497,7 @@ export const movementEventsRelations = relations(
 
 export const policiesRelations = relations(
   policies,
-  ({ one }) => ({
+  ({ many, one }) => ({
     leaveType: one(leaveTypes, {
       fields: [policies.leaveTypeId],
       references: [leaveTypes.id],
@@ -453,6 +506,45 @@ export const policiesRelations = relations(
     hostel: one(hostels, {
       fields: [policies.hostelId],
       references: [hostels.id],
+    }),
+
+    versions: many(policyVersions),
+
+    evaluations: many(policyEvaluations),
+  })
+);
+
+export const policyVersionsRelations = relations(
+  policyVersions,
+  ({ one }) => ({
+    policy: one(policies, {
+      fields: [policyVersions.policyId],
+      references: [policies.id],
+    }),
+
+    createdByUser: one(users, {
+      fields: [policyVersions.createdBy],
+      references: [users.id],
+    }),
+  })
+);
+
+export const policyEvaluationsRelations = relations(
+  policyEvaluations,
+  ({ one }) => ({
+    leaveRequest: one(leaveRequests, {
+      fields: [policyEvaluations.leaveRequestId],
+      references: [leaveRequests.id],
+    }),
+
+    policy: one(policies, {
+      fields: [policyEvaluations.policyId],
+      references: [policies.id],
+    }),
+
+    policyVersion: one(policyVersions, {
+      fields: [policyEvaluations.policyVersionId],
+      references: [policyVersions.id],
     }),
   })
 );
@@ -560,7 +652,24 @@ export const workflowDefinitionsRelations =
     workflowDefinitions,
     ({ many }) => ({
       steps: many(workflowSteps),
+      versions: many(workflowVersions),
       leaveTypes: many(leaveTypes),
+    })
+  );
+
+export const workflowVersionsRelations =
+  relations(
+    workflowVersions,
+    ({ one }) => ({
+      workflowDefinition: one(workflowDefinitions, {
+        fields: [workflowVersions.workflowDefinitionId],
+        references: [workflowDefinitions.id],
+      }),
+
+      createdByUser: one(users, {
+        fields: [workflowVersions.createdBy],
+        references: [users.id],
+      }),
     })
   );
 

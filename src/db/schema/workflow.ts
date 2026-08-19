@@ -10,7 +10,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-import { roles } from "./auth";
+import { roles, users } from "./auth";
 import { approvalMethodEnum } from "./enums";
 
 export const workflowDefinitions = pgTable(
@@ -144,5 +144,74 @@ export const workflowSteps = pgTable(
       table.workflowDefinitionId,
       table.stepKey
     ),
+  })
+);
+
+// =====================================================
+// WORKFLOW VERSIONS (immutable configuration history)
+// =====================================================
+
+export const workflowVersions = pgTable(
+  "workflow_versions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    workflowDefinitionId: uuid(
+      "workflow_definition_id"
+    )
+      .notNull()
+      .references(
+        () => workflowDefinitions.id,
+        {
+          onDelete: "restrict",
+        }
+      ),
+
+    /** Monotonically increasing per workflow. A new row is created only when
+        the workflow actually changes; existing rows are never mutated. */
+    version: integer("version").notNull(),
+
+    code: text("code").notNull(),
+
+    name: text("name").notNull(),
+
+    description: text("description"),
+
+    isActive: boolean("is_active")
+      .default(true)
+      .notNull(),
+
+    /** Frozen steps with role codes resolved:
+        [{ stepKey, stepOrder, approverRoleCode, isParentApproval,
+           approvalMethod, isRequired }]. */
+    steps: jsonb("steps").notNull(),
+
+    createdBy: uuid("created_by").references(
+      () => users.id,
+      {
+        onDelete: "set null",
+      }
+    ),
+
+    createdAt: timestamp(
+      "created_at",
+      { withTimezone: true }
+    )
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    workflowVersionUnq: unique(
+      "workflow_version_unq"
+    ).on(
+      table.workflowDefinitionId,
+      table.version
+    ),
+    workflowIdIndex: index(
+      "wv_workflow_definition_id_idx"
+    ).on(table.workflowDefinitionId),
+    createdAtIndex: index(
+      "wv_created_at_idx"
+    ).on(table.createdAt),
   })
 );

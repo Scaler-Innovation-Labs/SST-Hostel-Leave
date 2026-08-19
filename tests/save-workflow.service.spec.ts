@@ -8,6 +8,7 @@ const mockUpdateDefinition = vi.fn();
 const mockReplaceSteps = vi.fn();
 const mockFindRolesByCodes = vi.fn();
 const mockFindDefinitionWithStepsById = vi.fn();
+const mockCreateVersion = vi.fn();
 
 vi.mock("@/db/repositories/workflow/workflow.repository", () => ({
   workflowRepository: {
@@ -17,6 +18,12 @@ vi.mock("@/db/repositories/workflow/workflow.repository", () => ({
     updateDefinition: (...args: any[]) => mockUpdateDefinition(...args),
     replaceSteps: (...args: any[]) => mockReplaceSteps(...args),
     findDefinitionWithStepsById: (...args: any[]) => mockFindDefinitionWithStepsById(...args),
+  },
+}));
+
+vi.mock("@/services/workflow/workflow-version.service", () => ({
+  workflowVersionService: {
+    createVersion: (...args: any[]) => mockCreateVersion(...args),
   },
 }));
 
@@ -59,6 +66,7 @@ beforeEach(() => {
   mockReplaceSteps.mockResolvedValue(undefined);
   mockFindRolesByCodes.mockResolvedValue([{ id: "R1", code: "WARDEN" }, { id: "R2", code: "ADMIN" }]);
   mockFindDefinitionWithStepsById.mockResolvedValue(MOCK_DEFINITION);
+  mockCreateVersion.mockResolvedValue({ id: "WV1", version: 1 });
 });
 
 describe("createWorkflow service", () => {

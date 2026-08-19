@@ -30,7 +30,7 @@ import {
   workflowModeEnum,
 } from "./enums";
 import { hostels, parents } from "./hostel";
-import { workflowDefinitions } from "./workflow";
+import { workflowDefinitions, workflowVersions } from "./workflow";
 
 // =====================================================
 // LEAVE TYPES
@@ -123,6 +123,133 @@ export const leaveTypes = pgTable("leave_types", {
 );
 
 // =====================================================
+// LEAVE TYPE VERSIONS (immutable configuration history)
+// =====================================================
+
+export const leaveTypeVersions = pgTable(
+  "leave_type_versions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    leaveTypeId: uuid("leave_type_id")
+      .notNull()
+      .references(() => leaveTypes.id, {
+        onDelete: "restrict",
+      }),
+
+    /** Monotonically increasing per leave type. A new row is created only
+        when the type actually changes; existing rows are never mutated. */
+    version: integer("version").notNull(),
+
+    code: text("code").notNull(),
+
+    name: text("name").notNull(),
+
+    category: leaveCategoryEnum("category").notNull(),
+
+    description: text("description"),
+
+    formSchema: jsonb("form_schema").notNull(),
+
+    qrMode: qrModeEnum("qr_mode")
+      .default("BOTH")
+      .notNull(),
+
+    policyConfig: jsonb("policy_config"),
+
+    notificationConfig: jsonb("notification_config"),
+
+    useGlobalNotificationRules: boolean("use_global_notification_rules")
+      .default(true)
+      .notNull(),
+
+    requiredDocuments: jsonb("required_documents"),
+
+    uiConfig: jsonb("ui_config"),
+
+    workflowMode: workflowModeEnum("workflow_mode").notNull(),
+
+    allowExtensions: boolean("allow_extensions")
+      .default(false)
+      .notNull(),
+
+    maxExtensionCount: integer("max_extension_count"),
+
+    createdBy: uuid("created_by").references(
+      () => users.id,
+      {
+        onDelete: "set null",
+      }
+    ),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    leaveTypeVersionUnq: unique(
+      "leave_type_version_unq"
+    ).on(
+      table.leaveTypeId,
+      table.version
+    ),
+    leaveTypeIdIndex: index(
+      "ltv_leave_type_id_idx"
+    ).on(table.leaveTypeId),
+    createdAtIndex: index(
+      "ltv_created_at_idx"
+    ).on(table.createdAt),
+  })
+);
+
+// =====================================================
+// LEAVE EXECUTION CONTEXTS
+// =====================================================
+
+export const leaveExecutionContexts = pgTable(
+  "leave_execution_contexts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    leaveRequestId: uuid("leave_request_id")
+      .notNull()
+      .unique()
+      .references(() => leaveRequests.id, {
+        onDelete: "cascade",
+      }),
+
+    /** Immutable configuration versions the leave was created under. */
+    leaveTypeVersionId: uuid("leave_type_version_id")
+      .notNull()
+      .references(() => leaveTypeVersions.id, {
+        onDelete: "restrict",
+      }),
+
+    workflowVersionId: uuid("workflow_version_id")
+      .notNull()
+      .references(() => workflowVersions.id, {
+        onDelete: "restrict",
+      }),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    leaveTypeVersionIdIndex: index(
+      "lec_leave_type_version_id_idx"
+    ).on(table.leaveTypeVersionId),
+    workflowVersionIdIndex: index(
+      "lec_workflow_version_id_idx"
+    ).on(table.workflowVersionId),
+  })
+);
+
+// =====================================================
 // LEAVE REQUESTS
 // =====================================================
 
@@ -168,6 +295,9 @@ export const leaveRequests = pgTable("leave_requests", {
   }),
 
   submittedForm: jsonb("submitted_form").notNull(),
+
+  /** Extensible structured context about the request (audit/extension slot). */
+  metadata: jsonb("metadata"),
 
   submittedAt: timestamp("submitted_at", {
     withTimezone: true,
@@ -254,6 +384,9 @@ export const leaveExtensions = pgTable("leave_extensions", {
   policyResult: jsonb("policy_result"),
 
   submittedForm: jsonb("submitted_form"),
+
+  /** Extensible structured context about the extension (audit/extension slot). */
+  metadata: jsonb("metadata"),
 
   submittedAt: timestamp("submitted_at", {
     withTimezone: true,
@@ -344,6 +477,9 @@ export const leaveApprovals = pgTable("leave_approvals", {
 
   comments: text("comments"),
 
+  /** Extensible structured context about the decision (audit/extension slot). */
+  metadata: jsonb("metadata"),
+
   /** Structured reason category for rejections (e.g. incomplete, policy_violation). */
   rejectionCategory: text("rejection_category"),
 
@@ -422,6 +558,9 @@ export const leaveRejections = pgTable("leave_rejections", {
   restrictions: jsonb("restrictions"),
 
   submittedForm: jsonb("submitted_form"),
+
+  /** Extensible structured context about the rejection (audit/extension slot). */
+  metadata: jsonb("metadata"),
 
   startAt: timestamp("start_at", {
     withTimezone: true,

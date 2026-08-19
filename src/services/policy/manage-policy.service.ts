@@ -5,6 +5,7 @@ import type { SavePolicyDto } from "@/dto/policy/save-policy.dto";
 import { db } from "@/lib/db";
 import { NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
+import { policyVersionService } from "@/services/policy/policy-version.service";
 
 function toPolicyInput(dto: SavePolicyDto) {
   return {
@@ -32,6 +33,7 @@ export async function createPolicy(dto: SavePolicyDto, actorUserId: string): Pro
   return db.transaction(async (tx) => {
     const policy = await policyRepository.create(toPolicyInput(dto), tx);
     await auditService.record(AUDIT_ACTION.CREATE, AUDIT_ENTITY_TYPE.POLICY, policy.id, actorUserId, { name: policy.name, policyType: policy.policyType }, tx);
+    await policyVersionService.createVersion(policy.id, actorUserId, tx);
     return policy;
   });
 }
@@ -41,6 +43,7 @@ export async function updatePolicy(id: string, dto: SavePolicyDto, actorUserId: 
     if (!await policyRepository.findById(id, tx)) throw new NotFoundError("Policy");
     const policy = await policyRepository.update(id, toPolicyInput(dto), tx);
     await auditService.record(AUDIT_ACTION.UPDATE, AUDIT_ENTITY_TYPE.POLICY, id, actorUserId, { name: dto.name, policyType: dto.policyType }, tx);
+    await policyVersionService.createVersion(id, actorUserId, tx);
     return policy;
   });
 }

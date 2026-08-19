@@ -56,6 +56,16 @@ export const leaveTypeRepository = {
       .orderBy(asc(leaveTypes.name));
   },
 
+  async findByDefaultWorkflowId(
+    workflowDefinitionId: string,
+    dbClient: LeaveTypeDbClient = db
+  ): Promise<LeaveType[]> {
+    return dbClient
+      .select()
+      .from(leaveTypes)
+      .where(eq(leaveTypes.defaultWorkflowId, workflowDefinitionId));
+  },
+
   async create(
     input: InferInsertModel<typeof leaveTypes>,
     dbClient: Pick<typeof db, "insert"> = db

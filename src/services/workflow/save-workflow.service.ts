@@ -6,6 +6,7 @@ import type { SaveWorkflowDto } from "@/dto/workflow/save-workflow.dto";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
+import { workflowVersionService } from "@/services/workflow/workflow-version.service";
 
 async function resolveSteps(dto: SaveWorkflowDto, tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) {
   const stepKeys = new Set<string>();
@@ -63,6 +64,7 @@ export async function createWorkflow(dto: SaveWorkflowDto, actorUserId: string |
       tx,
     );
     await workflowRepository.replaceSteps(definition.id, steps, tx);
+    await workflowVersionService.createVersion(definition.id, actorUserId, tx);
 
     const result = await workflowRepository.findDefinitionWithStepsById(definition.id, tx);
 
@@ -100,6 +102,7 @@ export async function updateWorkflow(id: string, dto: SaveWorkflowDto, actorUser
       version: existing.version + 1,
     }, tx);
     await workflowRepository.replaceSteps(id, steps, tx);
+    await workflowVersionService.createVersion(id, actorUserId, tx);
 
     const result = await workflowRepository.findDefinitionWithStepsById(id, tx);
 
