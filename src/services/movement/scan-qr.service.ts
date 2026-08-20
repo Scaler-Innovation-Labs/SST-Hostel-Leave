@@ -6,10 +6,13 @@ import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { QR_STATUS } from "@/constants/movement/qr-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { hostelRepository } from "@/db/repositories/hostel/hostel.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
-import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
+import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
+import { type QrPass,qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { qrScanLogRepository } from "@/db/repositories/movement/qr-scan-log.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
+import { userRepository } from "@/db/repositories/user/user.repository";
 import { sha256 } from "@/lib/crypto";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError } from "@/lib/errors";
@@ -30,6 +33,90 @@ export type ScanResult = {
 	scanType?: "EXIT_SCAN" | "RETURN_SCAN";
 	movementEventId?: string;
 	failureReason?: string;
+}
+
+/**
+ * Auto-detects the scan type a QR pass is ready for:
+ * - LEAVE_RETURN passes are always RETURN_SCANs
+ * - never-scanned passes are EXIT_SCANs
+ * - first-scanned but unclosed passes are RETURN_SCANs
+ * - fully used passes (scanned and closed) return null
+ *
+ * Shared by scanQrPass (commit) and previewQrScan (guard confirmation) so
+ * the two can never disagree on the scan type.
+ */
+export function detectScanType(
+	pass: QrPass
+): "EXIT_SCAN" | "RETURN_SCAN" | null {
+	if (pass.qrType === "LEAVE_RETURN") return "RETURN_SCAN";
+	if (!pass.firstScanAt) return "EXIT_SCAN";
+	if (!pass.closedAt) return "RETURN_SCAN";
+	return null;
+}
+
+export type QrScanPreview = {
+	valid: boolean;
+	reason?: string;
+	scanType?: "EXIT_SCAN" | "RETURN_SCAN";
+	student?: {
+		name: string;
+		rollNumber: string | null;
+		roomNumber: string | null;
+		hostelName: string | null;
+	};
+	leave?: {
+		typeName: string | null;
+		startAt: Date;
+		endAt: Date;
+		status: string;
+	};
+}
+
+/**
+ * Read-only preview of a QR token for the guard confirmation step. Validates
+ * the pass and returns the student/leave identity WITHOUT creating scan logs
+ * or mutating any state — only scanQrPass commits a scan. This is the guard's
+ * identity-verification step before the physical check-in/exit is recorded.
+ */
+export async function previewQrScan(token: string): Promise<QrScanPreview> {
+	const tokenHash = await sha256(token);
+	const pass = await qrPassRepository.findByTokenHash(tokenHash);
+
+	if (!pass) {
+		return { valid: false, reason: "QR token not found" };
+	}
+
+	if (pass.status !== QR_STATUS.ACTIVE) {
+		return { valid: false, reason: `QR pass status is ${pass.status}` };
+	}
+
+	const scanType = detectScanType(pass);
+	if (!scanType) {
+		return { valid: false, reason: "QR pass has already been fully used" };
+	}
+
+	const student = await studentRepository.findById(pass.studentId);
+	const user = student ? await userRepository.findById(student.userId) : null;
+	const hostel = user?.hostelId ? await hostelRepository.findById(user.hostelId) : null;
+	const leave = await leaveRepository.findById(pass.leaveRequestId);
+	const leaveType = leave ? await leaveTypeRepository.findById(leave.leaveTypeId) : null;
+
+	return {
+		valid: true,
+		scanType,
+		student: {
+			name: user?.fullName ?? "Unknown",
+			rollNumber: student?.rollNumber ?? null,
+			roomNumber: student?.roomNumber ?? null,
+			hostelName: hostel?.name ?? null,
+		},
+		leave: leave ? {
+			typeName: leaveType?.name ?? null,
+			startAt: leave.startAt,
+			endAt: leave.endAt,
+			status: leave.status,
+		} : undefined,
+	};
 }
 
 export async function scanQrPass(
@@ -76,13 +163,9 @@ export async function scanQrPass(
 
 	// Auto-detect scan type from QR pass state if not provided
 	if (!input.scanType) {
-		if (pass.qrType === "LEAVE_RETURN") {
-			input = { ...input, scanType: "RETURN_SCAN" };
-		} else if (!pass.firstScanAt) {
-			input = { ...input, scanType: "EXIT_SCAN" };
-		} else if (!pass.closedAt) {
-			input = { ...input, scanType: "RETURN_SCAN" };
-		} else {
+		const detected = detectScanType(pass);
+
+		if (!detected) {
 			const log = await qrScanLogRepository.create({
 				qrPassId: pass.id,
 				scannedBy: input.scannedBy,
@@ -97,6 +180,8 @@ export async function scanQrPass(
 				failureReason: "QR pass has already been fully used",
 			};
 		}
+
+		input = { ...input, scanType: detected };
 	}
 
 	if (input.scanType === "EXIT_SCAN" && pass.firstScanAt) {

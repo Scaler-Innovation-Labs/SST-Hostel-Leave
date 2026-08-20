@@ -106,6 +106,37 @@ export type ScanQrResult = {
   failureReason?: string | null;
 };
 
+export type QrScanPreviewResult = {
+  valid: boolean;
+  reason?: string | null;
+  scanType?: "EXIT_SCAN" | "RETURN_SCAN" | null;
+  student?: {
+    name: string;
+    rollNumber: string | null;
+    roomNumber: string | null;
+    hostelName: string | null;
+  };
+  leave?: {
+    typeName: string | null;
+    startAt: string;
+    endAt: string;
+    status: string;
+  };
+};
+
+export async function scanQrPreview(
+  token: string,
+): Promise<QrScanPreviewResult> {
+  const res = await fetch(
+    `${BASE}/movements/scan/preview?token=${encodeURIComponent(token)}`,
+  );
+  const json: ApiResponse = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message ?? "Failed to preview QR");
+  }
+  return json.data as QrScanPreviewResult;
+}
+
 export async function scanQr(
   token: string,
 ): Promise<ScanQrResult> {
