@@ -14,6 +14,17 @@ export type PublishEventInput = {
   aggregateType: AggregateType;
   aggregateId: string;
   payload: Record<string, unknown>;
+  /**
+   * Optional idempotency key. If provided, the event will be inserted with
+   * ON CONFLICT DO NOTHING on the unique idempotencyKey index — this prevents
+   * duplicate outbox rows when a DB transaction commits but the external
+   * provider call (SMS, email, Slack) times out and the caller retries.
+   *
+   * Recommended format: `${eventType}:${aggregateType}:${aggregateId}:${suffix}`
+   * where suffix distinguishes logically distinct events with same identifiers
+   * (e.g., different notification channels for the same leave approval).
+   */
+  idempotencyKey?: string;
 };
 
 function validateEvent(
@@ -48,6 +59,7 @@ export const outboxService = {
         payload: input.payload,
         status: OUTBOX_STATUS.PENDING,
         attemptCount: 0,
+        idempotencyKey: input.idempotencyKey,
       },
       dbClient
     );
@@ -69,6 +81,7 @@ export const outboxService = {
         payload: input.payload,
         status: OUTBOX_STATUS.PENDING,
         attemptCount: 0,
+        idempotencyKey: input.idempotencyKey,
       })),
       dbClient
     );

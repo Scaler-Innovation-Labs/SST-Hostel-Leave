@@ -22,7 +22,21 @@ export const outboxRepository = {
   async create(
     input: NewOutboxEvent,
     dbClient: OutboxDbClient = db
-  ): Promise<OutboxEvent> {
+  ): Promise<OutboxEvent | null> {
+    // If idempotencyKey is provided, use ON CONFLICT DO NOTHING to prevent
+    // duplicate rows when the same logical event is retried.
+    if (input.idempotencyKey) {
+      const rows = await dbClient
+        .insert(outboxEvents)
+        .values(input)
+        .onConflictDoNothing({
+          target: outboxEvents.idempotencyKey,
+        })
+        .returning();
+
+      return rows[0] ?? null;
+    }
+
     const rows = await dbClient
       .insert(outboxEvents)
       .values(input)
@@ -37,12 +51,32 @@ export const outboxRepository = {
   ): Promise<OutboxEvent[]> {
     if (inputs.length === 0) return [];
 
-    const rows = await dbClient
-      .insert(outboxEvents)
-      .values(inputs)
-      .returning();
+    // Separate inputs with and without idempotencyKey
+    const withKey = inputs.filter((i) => i.idempotencyKey);
+    const withoutKey = inputs.filter((i) => !i.idempotencyKey);
 
-    return rows;
+    const results: OutboxEvent[] = [];
+
+    if (withKey.length > 0) {
+      const rows = await dbClient
+        .insert(outboxEvents)
+        .values(withKey)
+        .onConflictDoNothing({
+          target: outboxEvents.idempotencyKey,
+        })
+        .returning();
+      results.push(...rows);
+    }
+
+    if (withoutKey.length > 0) {
+      const rows = await dbClient
+        .insert(outboxEvents)
+        .values(withoutKey)
+        .returning();
+      results.push(...rows);
+    }
+
+    return results;
   },
 
   async findFailed(

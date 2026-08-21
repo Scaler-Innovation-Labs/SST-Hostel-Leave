@@ -3,6 +3,9 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const mockSet = vi.fn();
 const mockWhere = vi.fn();
+const mockReturning = vi.fn();
+const mockValues = vi.fn();
+const mockOnConflictDoNothing = vi.fn();
 
 vi.mock("@/lib/db", () => ({
   db: {
@@ -12,7 +15,7 @@ vi.mock("@/lib/db", () => ({
         return {
           where: (...wargs: any[]) => {
             mockWhere(...wargs);
-            return { returning: vi.fn().mockResolvedValue([]) };
+            return { returning: mockReturning.mockResolvedValue([]) };
           },
         };
       },
@@ -27,9 +30,16 @@ vi.mock("@/lib/db", () => ({
       }),
     }),
     insert: vi.fn().mockReturnValue({
-      values: vi.fn().mockReturnValue({
-        returning: vi.fn().mockResolvedValue([]),
-      }),
+      values: (...args: any[]) => {
+        mockValues(...args);
+        return {
+          onConflictDoNothing: (...ocArgs: any[]) => {
+            mockOnConflictDoNothing(...ocArgs);
+            return { returning: mockReturning.mockResolvedValue([]) };
+          },
+          returning: mockReturning.mockResolvedValue([]),
+        };
+      },
     }),
   },
 }));
@@ -38,6 +48,7 @@ import { outboxRepository } from "@/db/repositories/outbox/outbox.repository";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockReturning.mockResolvedValue([]);
 });
 
 describe("outboxRepository", () => {
@@ -90,5 +101,39 @@ describe("outboxRepository", () => {
     expect(setArgs.status).toBe("PENDING");
     expect(setArgs.claimedAt).toBeNull();
     expect(mockWhere).toHaveBeenCalled();
+  });
+
+  it("create uses ON CONFLICT DO NOTHING when idempotencyKey is provided", async () => {
+    await outboxRepository.create({
+      eventType: "TEST_EVENT",
+      aggregateType: "TEST_AGG",
+      aggregateId: "11111111-1111-1111-1111-111111111111",
+      payload: { foo: "bar" },
+      status: "PENDING",
+      attemptCount: 0,
+      idempotencyKey: "test-key-1",
+    });
+
+    expect(mockOnConflictDoNothing).toHaveBeenCalledWith({
+      target: expect.any(Object),
+    });
+    expect(mockValues).toHaveBeenCalledWith(
+      expect.objectContaining({ idempotencyKey: "test-key-1" })
+    );
+  });
+
+  it("create uses normal insert when idempotencyKey is not provided", async () => {
+    await outboxRepository.create({
+      eventType: "TEST_EVENT",
+      aggregateType: "TEST_AGG",
+      aggregateId: "22222222-2222-2222-2222-222222222222",
+      payload: { foo: "baz" },
+      status: "PENDING",
+      attemptCount: 0,
+    });
+
+    expect(mockOnConflictDoNothing).not.toHaveBeenCalled();
+    const calledWith = mockValues.mock.calls[0][0];
+    expect(calledWith).not.toHaveProperty("idempotencyKey");
   });
 });

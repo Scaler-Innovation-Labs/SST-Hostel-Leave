@@ -10,6 +10,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -31,6 +32,11 @@ export const outboxEvents = pgTable(
     aggregateId: uuid("aggregate_id").notNull(),
 
     payload: jsonb("payload").notNull(),
+
+    // Idempotency key: prevents duplicate notifications when a DB transaction
+    // commits but the external provider call is uncertain (timeout, retry).
+    // Format: ${eventType}:${aggregateType}:${aggregateId}:${optionalSuffix}
+    idempotencyKey: text("idempotency_key"),
 
     status: outboxStatusEnum("status")
       .default("PENDING")
@@ -73,6 +79,11 @@ export const outboxEvents = pgTable(
     statusCreatedIdx: index("oe_status_created_idx").on(
       table.status,
       table.createdAt
+    ),
+    // Unique constraint on idempotency key — ensures at-least-once DB insert
+    // never creates duplicate outbox rows for the same logical event.
+    idempotencyKeyUniqueIdx: uniqueIndex("outbox_events_idempotency_key_unique_idx").on(
+      table.idempotencyKey
     ),
   })
 );
