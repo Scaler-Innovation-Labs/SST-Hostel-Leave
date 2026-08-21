@@ -474,4 +474,120 @@ describe("scanQrPass service", () => {
       ).rejects.toBeInstanceOf(ConflictError);
     });
   });
+
+  describe("concurrent scan race condition guards", () => {
+    it("EXIT_SCAN on same pass twice - second call fails with already used error", async () => {
+      mockFindByTokenHash
+        .mockResolvedValueOnce(VALID_PASS) // First call
+        .mockResolvedValueOnce({
+          ...VALID_PASS,
+          firstScanAt: new Date(), // Second call sees pass already used
+        });
+
+      // First EXIT_SCAN
+      const first = await scanQrPass({
+        token: "exit-token",
+        scannedBy: "U1",
+        scanType: "EXIT_SCAN",
+      });
+
+      // Second EXIT_SCAN (simulating double-tap / race)
+      const second = await scanQrPass({
+        token: "exit-token",
+        scannedBy: "U1",
+        scanType: "EXIT_SCAN",
+      });
+
+      expect(first.success).toBe(true);
+      expect(second.success).toBe(false);
+      expect(second.failureReason).toBe("QR pass has already been used for exit");
+      // Both calls create scan logs (one SUCCESS, one FAILED)
+      expect(mockScanLogCreate).toHaveBeenCalledTimes(2);
+    });
+
+    it("RETURN_SCAN on same pass twice - second call fails with already used error", async () => {
+      mockFindByTokenHash
+        .mockResolvedValueOnce(VALID_RETURN_PASS) // First call
+        .mockResolvedValueOnce({
+          ...VALID_RETURN_PASS,
+          closedAt: new Date(), // Second call sees pass already closed
+        });
+
+      const first = await scanQrPass({
+        token: "return-token",
+        scannedBy: "U1",
+        scanType: "RETURN_SCAN",
+      });
+
+      const second = await scanQrPass({
+        token: "return-token",
+        scannedBy: "U1",
+        scanType: "RETURN_SCAN",
+      });
+
+      expect(first.success).toBe(true);
+      expect(second.success).toBe(false);
+      expect(second.failureReason).toBe("QR pass has already been used for return");
+      expect(mockScanLogCreate).toHaveBeenCalledTimes(2);
+    });
+
+    it("EXIT_SCAN then RETURN_SCAN on same pass - both succeed as state transitions", async () => {
+      mockFindByTokenHash
+        .mockResolvedValueOnce(VALID_PASS) // EXIT_SCAN sees unused pass
+        .mockResolvedValueOnce({
+          ...VALID_RETURN_PASS,
+          firstScanAt: new Date(),
+          closedAt: null, // RETURN_SCAN sees exited but not returned
+        });
+
+      const exitResult = await scanQrPass({
+        token: "exit-token",
+        scannedBy: "U1",
+        scanType: "EXIT_SCAN",
+      });
+
+      const returnResult = await scanQrPass({
+        token: "return-token",
+        scannedBy: "U1",
+        scanType: "RETURN_SCAN",
+      });
+
+      expect(exitResult.success).toBe(true);
+      expect(returnResult.success).toBe(true);
+      expect(mockMarkAsFirstScanned).toHaveBeenCalledTimes(1);
+      expect(mockMarkAsClosed).toHaveBeenCalledTimes(1);
+      expect(mockRecordMovement).toHaveBeenCalledTimes(2);
+    });
+
+    it("RETURN_SCAN before EXIT_SCAN on same pass - fails with not exited error", async () => {
+      mockFindByTokenHash.mockResolvedValue(VALID_PASS); // No firstScanAt
+
+      const result = await scanQrPass({
+        token: "exit-token",
+        scannedBy: "U1",
+        scanType: "RETURN_SCAN",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.failureReason).toBe("Student has not exited yet");
+      expect(mockMarkAsClosed).not.toHaveBeenCalled();
+    });
+
+    it("EXIT_SCAN on fully used pass (firstScanAt + closedAt) - fails with exit already used error", async () => {
+      mockFindByTokenHash.mockResolvedValue({
+        ...VALID_PASS,
+        firstScanAt: new Date(),
+        closedAt: new Date(),
+      });
+
+      const result = await scanQrPass({
+        token: "exit-token",
+        scannedBy: "U1",
+        scanType: "EXIT_SCAN",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.failureReason).toBe("QR pass has already been used for exit");
+    });
+  });
 });
