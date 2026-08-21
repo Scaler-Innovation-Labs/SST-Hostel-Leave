@@ -7,19 +7,51 @@ on:
     branches: [main]
 
 jobs:
-  quality:
+  ci:
+    name: CI
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      # Add other required env vars here
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'pnpm'
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - run: pnpm install
-      - run: pnpm typecheck
-      - run: pnpm lint
-      - run: pnpm audit:architecture
-      - run: pnpm test
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        working-directory: ./my-app
+
+      - name: Typecheck
+        run: pnpm typecheck
+        working-directory: ./my-app
+
+      - name: Lint
+        run: pnpm lint
+        working-directory: ./my-app
+
+      - name: Architecture audit
+        run: pnpm audit:architecture
+        working-directory: ./my-app
+
+      - name: Test
+        run: pnpm test
+        working-directory: ./my-app
+
+      - name: Build
+        run: pnpm build
+        working-directory: ./my-app
