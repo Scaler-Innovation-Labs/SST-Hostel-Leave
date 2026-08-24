@@ -25,6 +25,8 @@
     "@radix-ui/react-select": "^2.3.0",
     "@radix-ui/react-tabs": "^1.1.14",
     "@slack/web-api": "^7.16.0",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "@yudiel/react-qr-scanner": "^2.6.0",
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.10.0",
