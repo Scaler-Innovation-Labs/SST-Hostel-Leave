@@ -1,39 +1,39 @@
-name: Outbox Worker
+# name: Outbox Worker
 
-# Vercel Hobby only permits once-daily crons, so the high-frequency outbox
-# processing (notifications, parent approval links) runs from GitHub Actions
-# instead. vercel.json keeps a daily outbox run as a fallback.
-#
-# Required repository secrets:
-#   APP_URL      — deployment base URL (e.g. https://sst-hostel-leave.vercel.app)
-#   CRON_SECRET  — same value as the Vercel CRON_SECRET env var
-on:
-  schedule:
-    - cron: "*/5 * * * *"
-  workflow_dispatch: {}
+# # Vercel Hobby only permits once-daily crons, so the high-frequency outbox
+# # processing (notifications, parent approval links) runs from GitHub Actions
+# # instead. vercel.json keeps a daily outbox run as a fallback.
+# #
+# # Required repository secrets:
+# #   APP_URL      — deployment base URL (e.g. https://sst-hostel-leave.vercel.app)
+# #   CRON_SECRET  — same value as the Vercel CRON_SECRET env var
+# on:
+#   schedule:
+#     - cron: "*/5 * * * *"
+#   workflow_dispatch: {}
 
-jobs:
-  process-outbox:
-    name: Process pending outbox events
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+# jobs:
+#   process-outbox:
+#     name: Process pending outbox events
+#     runs-on: ubuntu-latest
+#     timeout-minutes: 5
 
-    steps:
-      - name: Trigger outbox processing
-        env:
-          APP_URL: ${{ secrets.APP_URL }}
-          CRON_SECRET: ${{ secrets.CRON_SECRET }}
-        run: |
-          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
-            echo "::error::Missing secrets — set APP_URL and CRON_SECRET in repository settings."
-            exit 1
-          fi
+#     steps:
+#       - name: Trigger outbox processing
+#         env:
+#           APP_URL: ${{ secrets.APP_URL }}
+#           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+#         run: |
+#           if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+#             echo "::error::Missing secrets — set APP_URL and CRON_SECRET in repository settings."
+#             exit 1
+#           fi
 
-          http_code=$(curl -sS -o response.json -w "%{http_code}" \
-            --max-time 60 \
-            --fail-with-body \
-            -H "Authorization: Bearer $CRON_SECRET" \
-            "$APP_URL/api/cron/outbox") || exit 1
+#           http_code=$(curl -sS -o response.json -w "%{http_code}" \
+#             --max-time 60 \
+#             --fail-with-body \
+#             -H "Authorization: Bearer $CRON_SECRET" \
+#             "$APP_URL/api/cron/outbox") || exit 1
 
-          echo "HTTP $http_code"
-          cat response.json
+#           echo "HTTP $http_code"
+#           cat response.json
