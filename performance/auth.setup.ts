@@ -76,13 +76,17 @@ async function authenticateWithClerk(
                 create(input: {
                   identifier: string;
                   password: string;
-                }): Promise<{ status: string }>;
+                }): Promise<{
+                  status: string;
+                  supportedSecondFactors?: Array<{ strategy: string }>;
+                }>;
                 attemptFirstFactor(input: {
                   strategy: string;
                   password: string;
                 }): Promise<{
                   status: string;
                   createdSessionId?: string;
+                  supportedSecondFactors?: Array<{ strategy: string }>;
                 }>;
               };
             };
@@ -92,7 +96,7 @@ async function authenticateWithClerk(
       ).Clerk;
 
       const signIn = clerk.client.signIn;
-      await signIn.create({ identifier, password });
+      const created = await signIn.create({ identifier, password });
 
       const attempt = await signIn.attemptFirstFactor({
         strategy: "password",
@@ -100,7 +104,11 @@ async function authenticateWithClerk(
       });
 
       if (attempt.status !== "complete" || !attempt.createdSessionId) {
-        return `sign-in incomplete: ${attempt.status}`;
+        return (
+          `sign-in incomplete: ${attempt.status}. ` +
+          `create-factors: ${JSON.stringify(created.supportedSecondFactors ?? [])}; ` +
+          `attempt-factors: ${JSON.stringify(attempt.supportedSecondFactors ?? [])}`
+        );
       }
 
       await clerk.setActive({ session: attempt.createdSessionId });
