@@ -1,3 +1,4 @@
+import { Reveal } from "@/components/marketing/Reveal";
 import { QrCodeDisplay } from "@/components/qr/QrCodeDisplay";
 
 export function ProductPreviewSection() {
@@ -7,7 +8,8 @@ export function ProductPreviewSection() {
       className="relative py-16 md:py-20"
     >
       <div className="relative mx-auto max-w-7xl px-8">
-        <div className="max-w-3xl">
+        <Reveal>
+          <div className="max-w-3xl">
           <div
             className="
               inline-flex items-center gap-2
@@ -42,7 +44,8 @@ export function ProductPreviewSection() {
             and operational workflows
             from a centralized platform.
           </p>
-        </div>
+          </div>
+        </Reveal>
 
         <div
           className="
@@ -50,13 +53,13 @@ export function ProductPreviewSection() {
             lg:grid-cols-12
           "
         >
+          <Reveal className="lg:col-span-7">
           <div
             className="
-              relative overflow-hidden
+              relative h-full overflow-hidden
               rounded-3xl border border-border
               bg-card/50 p-8
               backdrop-blur-xl
-              lg:col-span-7
             "
           >
             <div className="flex items-center justify-between">
@@ -160,8 +163,10 @@ export function ProductPreviewSection() {
               ))}
             </div>
           </div>
+          </Reveal>
 
-          <div className="space-y-6 lg:col-span-5">
+          <Reveal className="lg:col-span-5" delay={150}>
+            <div className="h-full space-y-6">
             <div
               className="
                 rounded-3xl border border-border
@@ -285,7 +290,8 @@ export function ProductPreviewSection() {
                 ))}
               </div>
             </div>
-          </div>
+            </div>
+          </Reveal>
         </div>
       </div>
     </section>

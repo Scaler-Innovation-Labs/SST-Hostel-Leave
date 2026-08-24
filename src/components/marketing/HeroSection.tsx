@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Reveal } from "@/components/marketing/Reveal";
 import { QrCodeDisplay } from "@/components/qr/QrCodeDisplay";
 
 export function HeroSection() {
@@ -13,44 +14,52 @@ export function HeroSection() {
         "
       >
         <div className="relative z-10 max-w-xl">
-          <div
-            className="
-              inline-flex items-center gap-2 rounded-full
-              border border-border bg-card/40 px-4 py-2
-              text-sm text-muted-foreground backdrop-blur-xl
-            "
-          >
-            <div className="size-2 rounded-full bg-primary" />
-            Student Portal
-          </div>
+          <Reveal>
+            <div
+              className="
+                inline-flex items-center gap-2 rounded-full
+                border border-border bg-card/40 px-4 py-2
+                text-sm text-muted-foreground backdrop-blur-xl
+              "
+            >
+              <div className="size-2 rounded-full bg-primary" />
+              Student Portal
+            </div>
+          </Reveal>
 
-          <h1
-            className="
-              mt-8 text-5xl font-semibold leading-[0.95]
-              tracking-[-0.04em] sm:text-6xl xl:text-[5.5rem]
-            "
-          >
-            Apply.
-            <br />
-            Get Approved.
-            <br />
-            Move Safely.
-            <br />
-            <span className="bg-linear-to-r from-blue-400 via-blue-500 to-indigo-500 bg-clip-text text-transparent">
-              All in One Place.
-            </span>
-          </h1>
+          <Reveal delay={100}>
+            <h1
+              className="
+                mt-8 text-5xl font-semibold leading-[0.95]
+                tracking-[-0.04em] sm:text-6xl xl:text-[5.5rem]
+              "
+            >
+              Apply.
+              <br />
+              Get Approved.
+              <br />
+              Move Safely.
+              <br />
+              <span className="bg-linear-to-r from-blue-400 via-blue-500 to-indigo-500 bg-clip-text text-transparent">
+                All in One Place.
+              </span>
+            </h1>
+          </Reveal>
 
-          <p className="mt-6 max-w-lg text-lg leading-8 text-muted-foreground">
-            Request leaves, get parent approval via a secure link, receive your QR pass, and move in and out of campus safely.
-          </p>
+          <Reveal delay={200}>
+            <p className="mt-6 max-w-lg text-lg leading-8 text-muted-foreground">
+              Request leaves, get parent approval via a secure link, receive your QR pass, and move in and out of campus safely.
+            </p>
+          </Reveal>
 
-          <div className="mt-8">
-            <Link href="/login" className="inline-flex items-center gap-3 rounded-2xl bg-linear-to-r from-blue-500 to-indigo-600 px-7 py-4 text-sm font-medium text-white shadow-[0_0_60px_rgba(59,130,246,0.35)] transition-all duration-300 hover:scale-[1.02]">
-              Login to Dashboard
-              <span>→</span>
-            </Link>
-          </div>
+          <Reveal delay={300}>
+            <div className="mt-8">
+              <Link href="/login" className="inline-flex items-center gap-3 rounded-2xl bg-linear-to-r from-blue-500 to-indigo-600 px-7 py-4 text-sm font-medium text-white shadow-[0_0_60px_rgba(59,130,246,0.35)] transition-all duration-300 hover:scale-[1.02]">
+                Login to Dashboard
+                <span>→</span>
+              </Link>
+            </div>
+          </Reveal>
 
           <div className="mt-10 grid gap-4 sm:grid-cols-2">
             {[
@@ -70,128 +79,131 @@ export function HeroSection() {
                 title: "Realtime Tracking",
                 desc: "Live movement updates across campus",
               },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="rounded-3xl border border-border bg-card/40 p-5 backdrop-blur-xl"
-              >
-                <h3 className="text-sm font-medium">{item.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.desc}</p>
-              </div>
+            ].map((item, index) => (
+              <Reveal key={item.title} delay={400 + index * 80}>
+                <div className="h-full rounded-3xl border border-border bg-card/40 p-5 backdrop-blur-xl transition-colors hover:bg-accent/30">
+                  <h3 className="text-sm font-medium">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.desc}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
         </div>
 
-        <div className="relative">
-          <div className="absolute inset-0 -z-10 rounded-[2.25rem] bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.18),transparent_42%)] blur-3xl" />
+        <Reveal delay={250}>
+          <div className="relative">
+            <div className="absolute inset-0 -z-10 rounded-[2.25rem] bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.18),transparent_42%)] blur-3xl" />
 
-          <div className="relative overflow-hidden rounded-[2rem] border border-border bg-card/70 shadow-[0_30px_80px_-35px_rgba(15,23,42,0.95)] backdrop-blur-xl">
-            <div className="flex items-center justify-between border-b border-border bg-muted/30 px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className="size-3 rounded-full bg-red-500" />
-                <div className="size-3 rounded-full bg-yellow-500" />
-                <div className="size-3 rounded-full bg-green-500" />
-              </div>
-
-              <div className="text-sm font-medium text-muted-foreground">SST Leave Dashboard</div>
-            </div>
-
-            <div className="space-y-5 p-5">
-              <div className="grid grid-cols-3 gap-4">
-                {[
-                  { label: "Pending", value: "12" },
-                  { label: "Approved", value: "84" },
-                  { label: "Inside", value: "1,842" },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="rounded-2xl border border-border bg-muted/20 p-4"
-                  >
-                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{item.label}</p>
-                    <h3 className="mt-2 text-2xl font-semibold">{item.value}</h3>
-                  </div>
-                ))}
-              </div>
-
-              <div className="rounded-2xl border border-border bg-muted/20 p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium">Leave Workflow</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">Awaiting admin approval</p>
-                  </div>
-
-                  <div className="rounded-full border border-amber-400/15 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-300">
-                    Pending
-                  </div>
+            <div className="relative overflow-hidden rounded-[2rem] border border-border bg-card/70 shadow-[0_30px_80px_-35px_rgba(15,23,42,0.95)] backdrop-blur-xl">
+              <div className="flex items-center justify-between border-b border-border bg-muted/30 px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-3 rounded-full bg-red-500" />
+                  <div className="size-3 rounded-full bg-yellow-500" />
+                  <div className="size-3 rounded-full bg-green-500" />
                 </div>
 
-                <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr_auto_1fr] sm:items-center">
+                <div className="text-sm font-medium text-muted-foreground">SST Leave Dashboard</div>
+              </div>
+
+              <div className="space-y-5 p-5">
+                <div className="grid grid-cols-3 gap-4">
                   {[
-                    "Student",
-                    "Parent",
-                    "POC",
-                    "Admin",
-                    "QR",
-                  ].map((step, index) => (
-                    <div key={step} className="flex items-center gap-3">
-                      <div className="rounded-full border border-border bg-muted/30 px-3 py-2 text-xs">
-                        {step}
-                      </div>
-
-                      {index !== 4 && <div className="h-px w-6 bg-border" />}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-muted/20 p-5">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-medium">Recent Movement</h3>
-
-                  <div className="rounded-full border border-emerald-400/15 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
-                    Live
-                  </div>
-                </div>
-
-                <div className="mt-5 space-y-4">
-                  {[
-                    "EXIT Hostel A",
-                    "ENTER Campus",
-                    "ENTER Hostel B",
+                    { label: "Pending", value: "12" },
+                    { label: "Approved", value: "84" },
+                    { label: "Inside", value: "1,842" },
                   ].map((item) => (
                     <div
-                      key={item}
-                      className="flex items-center justify-between rounded-xl border border-border bg-background/40 px-4 py-3"
+                      key={item.label}
+                      className="rounded-2xl border border-border bg-muted/20 p-4"
                     >
-                      <p className="text-sm">{item}</p>
-                      <span className="text-xs text-muted-foreground">2m ago</span>
+                      <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{item.label}</p>
+                      <h3 className="mt-2 text-2xl font-semibold">{item.value}</h3>
                     </div>
                   ))}
                 </div>
-              </div>
 
-              <div className="rounded-2xl border border-border bg-background/80 p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">QR Generated</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Ready for exit scan</p>
+                <div className="rounded-2xl border border-border bg-muted/20 p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium">Leave Workflow</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">Awaiting admin approval</p>
+                    </div>
+
+                    <div className="rounded-full border border-amber-400/15 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-300">
+                      Pending
+                    </div>
                   </div>
 
-                  <div className="rounded-full border border-emerald-400/15 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
-                    Active
+                  <div className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr_auto_1fr] sm:items-center">
+                    {[
+                      "Student",
+                      "Parent",
+                      "POC",
+                      "Admin",
+                      "QR",
+                    ].map((step, index) => (
+                      <div key={step} className="flex items-center gap-3">
+                        <div className="rounded-full border border-border bg-muted/30 px-3 py-2 text-xs">
+                          {step}
+                        </div>
+
+                        {index !== 4 && <div className="h-px w-6 bg-border" />}
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                <div className="mt-5 flex items-center justify-center">
-                  <QrCodeDisplay
-                    token="SST-DEMO-QR-PASS"
-                    size={176}
-                  />
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-border bg-muted/20 p-5">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium">Movement</h3>
+
+                      <div className="rounded-full border border-emerald-400/15 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
+                        Live
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-3">
+                      {[
+                        "EXIT Hostel A",
+                        "ENTER Campus",
+                        "ENTER Hostel B",
+                      ].map((item) => (
+                        <div
+                          key={item}
+                          className="flex items-center justify-between rounded-xl border border-border bg-background/40 px-3 py-2"
+                        >
+                          <p className="text-xs">{item}</p>
+                          <span className="text-[10px] text-muted-foreground">2m ago</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-border bg-background/80 p-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">QR Pass</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Ready for exit scan</p>
+                      </div>
+
+                      <div className="rounded-full border border-emerald-400/15 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
+                        Active
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-center">
+                      <QrCodeDisplay
+                        token="SST-DEMO-QR-PASS"
+                        size={132}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );

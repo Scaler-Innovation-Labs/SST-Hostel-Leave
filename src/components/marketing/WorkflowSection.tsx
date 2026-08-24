@@ -1,9 +1,39 @@
+import {
+  FileText,
+  MailCheck,
+  QrCode,
+  ScanLine,
+  UserCheck,
+} from "lucide-react";
+
+import { Reveal } from "@/components/marketing/Reveal";
+
 const workflowSteps = [
-  "Student raises leave",
-  "Parent approves via secure link",
-  "POC/Admin reviews request",
-  "QR pass generated",
-  "Guard scans during movement",
+  {
+    icon: FileText,
+    title: "Student raises leave",
+    desc: "Dynamic forms capture exactly what each leave type needs.",
+  },
+  {
+    icon: MailCheck,
+    title: "Parent approves via secure link",
+    desc: "Tokenized approval link — no login, expires automatically.",
+  },
+  {
+    icon: UserCheck,
+    title: "POC/Admin reviews request",
+    desc: "Role-scoped dashboards route each step to the right approver.",
+  },
+  {
+    icon: QrCode,
+    title: "QR pass generated",
+    desc: "Hashed, expiring credential scoped to the approved window.",
+  },
+  {
+    icon: ScanLine,
+    title: "Guard scans during movement",
+    desc: "Preview-then-confirm scanning records every state transition.",
+  },
 ];
 
 export function WorkflowSection() {
@@ -13,50 +43,64 @@ export function WorkflowSection() {
       className="py-16 md:py-20"
     >
       <div className="mx-auto max-w-7xl px-8">
-        <div className="max-w-2xl">
-          <h2 className="text-4xl font-bold tracking-tight">
-            Designed around operational
-            workflows.
-          </h2>
+        <Reveal>
+          <div className="max-w-2xl">
+            <h2 className="text-4xl font-bold tracking-tight">
+              One lifecycle, end to end.
+            </h2>
 
-          <p className="mt-4 text-lg text-muted-foreground">
-            Every leave request follows a
-            transparent approval and movement
-            lifecycle.
-          </p>
-        </div>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Every leave follows a transparent path from request to verified
+              movement — nothing happens outside the record.
+            </p>
+          </div>
+        </Reveal>
 
-        <div
-          className="
-            mt-16 grid gap-6
-            lg:grid-cols-5
-          "
-        >
-          {workflowSteps.map((step, index) => (
-            <div
-              key={step}
-              className="
-                relative rounded-2xl
-                border border-border
-                bg-card p-6
-              "
-            >
-              <div
-                className="
-                  mb-6 flex size-10
-                  items-center justify-center
-                  rounded-full bg-primary/10
-                  text-sm font-semibold text-primary
-                "
-              >
-                {index + 1}
-              </div>
+        <div className="relative mt-16">
+          {/* Connector line — desktop only, runs behind the step badges */}
+          <div
+            aria-hidden
+            className="
+              absolute left-0 right-0 top-5 hidden h-px
+              bg-linear-to-r from-transparent via-primary/40 to-transparent
+              lg:block
+            "
+          />
 
-              <h3 className="font-medium">
-                {step}
-              </h3>
-            </div>
-          ))}
+          <div className="grid gap-6 lg:grid-cols-5">
+            {workflowSteps.map((step, index) => (
+              <Reveal key={step.title} delay={index * 120}>
+                <div
+                  className="
+                    relative h-full rounded-2xl border
+                    border-border bg-card p-6 transition-colors hover:bg-accent/30
+                  "
+                >
+                  <div
+                    className="
+                      relative mb-6 flex size-10 items-center
+                      justify-center rounded-full border border-primary/20
+                      bg-background text-primary shadow-[0_0_24px_rgba(59,130,246,0.15)]
+                    "
+                  >
+                    <step.icon className="size-5" />
+                  </div>
+
+                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                    Step {index + 1}
+                  </p>
+
+                  <h3 className="mt-2 font-medium leading-snug">
+                    {step.title}
+                  </h3>
+
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                    {step.desc}
+                  </p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </div>
     </section>
