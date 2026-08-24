@@ -44,6 +44,11 @@ next-env.d.ts
 # clerk configuration (can include secrets)
 /.clerk/
 
+# performance audit artifacts
+/performance/.auth/
+/performance/reports/
+/performance/test-results/
+
 # scratch / notes
 *.md
 !README.md

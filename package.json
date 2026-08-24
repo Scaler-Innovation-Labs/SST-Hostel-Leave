@@ -14,7 +14,11 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
     "typecheck": "tsc --noEmit",
-    "audit:architecture": "bash scripts/audit-architecture.sh"
+    "audit:architecture": "bash scripts/audit-architecture.sh",
+    "perf": "playwright test --config playwright.config.ts",
+    "perf:auth": "npx playwright test performance/auth.setup.ts --project=setup",
+    "perf:audit": "npx playwright test performance/audit.spec.ts",
+    "perf:audit:headed": "npx playwright test performance/audit.spec.ts --headed"
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.1063.0",
@@ -58,6 +62,7 @@
     "@commitlint/cli": "^21.0.1",
     "@commitlint/config-conventional": "^21.0.1",
     "@next/swc-win32-x64-msvc": "16.2.6",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
