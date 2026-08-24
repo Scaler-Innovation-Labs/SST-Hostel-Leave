@@ -31,6 +31,7 @@ import { outboxService } from "@/services/outbox/outbox.service";
 import { policyEngine } from "@/services/policy/policy-engine";
 import { workflowEngine } from "@/services/workflow/workflow-engine";
 import { workflowVersionService } from "@/services/workflow/workflow-version.service";
+import type { PolicyResultSummary } from "@/types/policy/policy-result";
 
 export async function createLeave(
   dto: CreateLeaveDto,
@@ -123,6 +124,13 @@ export async function createLeave(
 
   const requestNumber = `LR-${Date.now()}`;
 
+  const policyResultSummary: PolicyResultSummary = {
+    allowed: policyResult.allowed,
+    restrictions: policyResult.restrictions,
+    requirements: policyResult.requirements,
+    failedCount: policyResult.checks.filter((c) => !c.passed).length,
+  };
+
   const created = await db.transaction(async (tx) => {
     await studentRepository.findByIdForUpdate(student.id, tx);
 
@@ -169,7 +177,7 @@ export async function createLeave(
       submittedForm:
         submittedForm,
 
-      policyResult,
+      policyResult: policyResultSummary,
 
       submittedAt: new Date(),
 
@@ -204,7 +212,7 @@ export async function createLeave(
         policyVersionId: evaluation.policyVersionId,
         passed: evaluation.passed,
         message: evaluation.message,
-        config: evaluation.config ?? null,
+        inputs: evaluation.inputs ?? null,
       })),
       tx
     );

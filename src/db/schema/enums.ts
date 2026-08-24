@@ -264,6 +264,7 @@ export const outboxStatusEnum = pgEnum(
     "PROCESSING",
     "PROCESSED",
     "FAILED",
+    "DEAD_LETTER",
   ]
 );
 

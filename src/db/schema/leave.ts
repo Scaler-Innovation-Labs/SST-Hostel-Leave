@@ -336,9 +336,6 @@ export const leaveRequests = pgTable("leave_requests", {
     .notNull(),
 },
 (table) => ({
-  requestNumberIndex: index(
-    "leave_requests_request_number_idx"
-  ).on(table.requestNumber),
   studentIdIndex: index("leave_requests_student_id_idx").on(table.studentId),
   leaveTypeIdIndex: index("leave_requests_leave_type_id_idx").on(table.leaveTypeId),
   statusIndex: index("leave_requests_status_idx").on(table.status),

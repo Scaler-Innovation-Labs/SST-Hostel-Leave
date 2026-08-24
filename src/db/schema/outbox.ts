@@ -48,6 +48,18 @@ export const outboxEvents = pgTable(
 
     lastError: text("last_error"),
 
+    // Next scheduled attempt time — enables exponential backoff without
+    // polling all PENDING rows. NULL means ready now.
+    nextAttemptAt: timestamp("next_attempt_at", {
+      withTimezone: true,
+    }),
+
+    // Lease expiry for worker claiming — prevents a crashed worker from
+    // holding an event indefinitely. Set when claimed; cleared on release.
+    leaseExpiresAt: timestamp("lease_expires_at", {
+      withTimezone: true,
+    }),
+
     createdAt: timestamp("created_at", {
       withTimezone: true,
     })
@@ -79,6 +91,11 @@ export const outboxEvents = pgTable(
     statusCreatedIdx: index("oe_status_created_idx").on(
       table.status,
       table.createdAt
+    ),
+    // For efficient claim loop: find PENDING events ready for retry
+    statusNextAttemptIdx: index("oe_status_next_attempt_idx").on(
+      table.status,
+      table.nextAttemptAt
     ),
     // Unique constraint on idempotency key — ensures at-least-once DB insert
     // never creates duplicate outbox rows for the same logical event.

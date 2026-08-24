@@ -99,7 +99,6 @@ export async function updateWorkflow(id: string, dto: SaveWorkflowDto, actorUser
       name: dto.name,
       description: dto.description ?? null,
       isActive: dto.isActive,
-      version: existing.version + 1,
     }, tx);
     await workflowRepository.replaceSteps(id, steps, tx);
     await workflowVersionService.createVersion(id, actorUserId, tx);

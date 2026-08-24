@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and,desc, eq } from "drizzle-orm";
+import { and,desc, eq, isNotNull, lt } from "drizzle-orm";
 
 import { auditLogs } from "@/db";
 import { db } from "@/lib/db";
@@ -49,6 +49,24 @@ async findByEntity(
     .orderBy(
       desc(auditLogs.createdAt)
     );
+},
+
+/**
+ * Retention cleanup: delete audit rows past their expiry. CONFIG_MUTATION
+ * rows (expiresAt NULL) are never touched. Returns the deleted row count.
+ */
+async deleteExpired(now: Date): Promise<number> {
+  const rows = await db
+    .delete(auditLogs)
+    .where(
+      and(
+        isNotNull(auditLogs.expiresAt),
+        lt(auditLogs.expiresAt, now)
+      )
+    )
+    .returning({ id: auditLogs.id });
+
+  return rows.length;
 },
 
 };

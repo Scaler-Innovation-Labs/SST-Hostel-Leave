@@ -41,6 +41,15 @@ export const auditLogs = pgTable("audit_logs", {
   action: auditActionEnum("action")
     .notNull(),
 
+  // Retention class determines how long to keep full snapshots:
+  // - "CONFIG_MUTATION" = policy/workflow/leave-type changes (keep full oldData/newData forever)
+  // - "STATE_TRANSITION" = leave submitted/approved/rejected, QR scans (minimal data, expires after 2 years)
+  // - "USER_ACTION" = login/logout (minimal data, expires after 1 year)
+  retentionClass: text("retention_class").notNull().default("STATE_TRANSITION"),
+
+  // For CONFIG_MUTATION: full old/new snapshots.
+  // For STATE_TRANSITION: minimal event facts only (step, actor, timestamp).
+  // For USER_ACTION: minimal event facts only.
   oldData: jsonb("old_data"),
 
   newData: jsonb("new_data"),
@@ -50,6 +59,12 @@ export const auditLogs = pgTable("audit_logs", {
   ipAddress: text("ip_address"),
 
   userAgent: text("user_agent"),
+
+  // When this audit log can be deleted (NULL = keep forever for CONFIG_MUTATION).
+  // Set by audit service based on retentionClass.
+  expiresAt: timestamp("expires_at", {
+    withTimezone: true,
+  }),
 
   createdAt: timestamp("created_at", {
     withTimezone: true,
@@ -77,6 +92,10 @@ export const auditLogs = pgTable("audit_logs", {
   "audit_created_at_idx"
 ).on(table.createdAt),
 
+  // For retention cleanup jobs
+  expiresAtIndex: index(
+    "audit_expires_at_idx"
+  ).on(table.expiresAt),
 })
 );
 

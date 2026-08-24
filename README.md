@@ -211,7 +211,7 @@ cp .env.example .env.local
 # (schema evolution is tracked via numbered scripts)
 npx tsx scripts/migrate-0003.ts
 # ... run each migrate-*.ts script up to the latest, e.g.:
-npx tsx scripts/migrate-0023-rate-limit-entries.ts
+npx tsx scripts/migrate-0026-audit-p1-cleanups.ts
 
 # Seed initial data (roles, workflows, leave types, users, ...)
 npx tsx scripts/clear-and-seed.ts

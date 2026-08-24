@@ -4,6 +4,10 @@ import type {
 import type {
   AuditEntityType,
 } from "@/constants/audit/audit-entity-type";
+import {
+  resolveAuditExpiresAt,
+  resolveAuditRetentionClass,
+} from "@/constants/audit/audit-retention";
 import { auditRepository } from "@/db/repositories/audit/audit.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
@@ -25,6 +29,11 @@ export const auditService = {
     metadata: Record<string, unknown>,
     dbClient: AuditServiceDbClient = db
   ) {
+    // Retention is derived from what happened: configuration mutations keep
+    // full snapshots forever; state transitions and user sessions expire so
+    // the audit table cannot outgrow the core tables it tracks.
+    const retentionClass = resolveAuditRetentionClass(entityType, action);
+
     return auditRepository.create(
       {
         action,
@@ -32,6 +41,8 @@ export const auditService = {
         entityId,
         actorUserId,
         metadata,
+        retentionClass,
+        expiresAt: resolveAuditExpiresAt(retentionClass),
       },
       dbClient
     );

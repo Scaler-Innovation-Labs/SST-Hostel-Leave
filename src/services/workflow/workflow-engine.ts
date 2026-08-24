@@ -9,7 +9,7 @@ export const workflowEngine = {
   async resolve(
     workflowId: string,
     dbClient: WorkflowEngineDbClient
-  ): Promise<{ definition: { id: string; isActive: boolean; version: number }; steps: WorkflowStep[] }> {
+  ): Promise<{ definition: { id: string; isActive: boolean }; steps: WorkflowStep[] }> {
     const definition = await workflowRepository.findDefinitionById(workflowId, dbClient);
 
     if (!definition) {
@@ -29,7 +29,6 @@ export const workflowEngine = {
       definition: {
         id: definition.id,
         isActive: definition.isActive,
-        version: definition.version,
       },
       steps,
     };

@@ -7,7 +7,7 @@ const mockFindStudentForUpdate = vi.fn();
 const mockFindLeaveTypeById = vi.fn().mockResolvedValue({
   id: "LT1", code: "HOME_PASS", defaultWorkflowId: "WF1", allowExtensions: true, maxExtensionCount: 2, qrMode: "NONE",
 });
-const mockPolicyEvaluate = vi.fn().mockResolvedValue({ allowed: true, workflowId: "WF1", restrictions: [], evaluations: [] });
+const mockPolicyEvaluate = vi.fn().mockResolvedValue({ allowed: true, workflowId: "WF1", restrictions: [], requirements: [], checks: [], evaluations: [] });
 const mockWorkflowResolve = vi.fn().mockResolvedValue({
   definition: { id: "WF1", isActive: true, version: 1 },
   steps: [{ stepKey: "S1", stepOrder: 1, approverRoleId: "R1" }],
@@ -144,7 +144,7 @@ describe("createLeave service", () => {
     mockFindLeaveTypeById.mockResolvedValue({
       id: "LT1", code: "HOME_PASS", defaultWorkflowId: "WF1", allowExtensions: true, maxExtensionCount: 2, qrMode: "NONE",
     });
-    mockPolicyEvaluate.mockResolvedValue({ allowed: true, workflowId: "WF1", restrictions: [], evaluations: [] });
+    mockPolicyEvaluate.mockResolvedValue({ allowed: true, workflowId: "WF1", restrictions: [], requirements: [], checks: [], evaluations: [] });
     mockWorkflowResolve.mockResolvedValue({
       definition: { id: "WF1", isActive: true, version: 1 },
       steps: [{ stepKey: "S1", stepOrder: 1, approverRoleId: "R1" }],

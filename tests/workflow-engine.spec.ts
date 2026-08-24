@@ -40,7 +40,6 @@ describe("workflowEngine", () => {
         definition: {
           id: "WF1",
           isActive: true,
-          version: 1,
         },
         steps: MOCK_STEPS,
       });

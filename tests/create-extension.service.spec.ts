@@ -144,7 +144,7 @@ beforeEach(async () => {
     defaultWorkflowId: "WF1",
     qrMode: "NONE",
   });
-  mockPolicyEvaluate.mockResolvedValue({ allowed: true, restrictions: [] });
+  mockPolicyEvaluate.mockResolvedValue({ allowed: true, workflowId: "WF1", restrictions: [], requirements: [], checks: [], evaluations: [] });
   mockApprovalCreateMany.mockResolvedValue([{ id: "AP1" }]);
   mockLeaveFindOverlapping.mockResolvedValue([]);
   mockWorkflowResolve.mockResolvedValue({

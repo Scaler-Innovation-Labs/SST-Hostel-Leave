@@ -157,14 +157,14 @@ describe("updateWorkflow service", () => {
     mockFindDefinitionByCode.mockResolvedValue(null);
   });
 
-  it("updates a workflow with steps and increments version", async () => {
+  it("updates a workflow with steps", async () => {
     const dto = { ...VALID_DTO, name: "Updated Workflow" };
 
     await updateWorkflow("WF1", dto);
 
     expect(mockFindDefinitionById).toHaveBeenCalledWith("WF1", expect.any(Object));
     expect(mockUpdateDefinition).toHaveBeenCalledWith("WF1",
-      expect.objectContaining({ name: "Updated Workflow", version: 2 }),
+      expect.objectContaining({ name: "Updated Workflow" }),
       expect.any(Object)
     );
     expect(mockReplaceSteps).toHaveBeenCalled();

@@ -68,10 +68,6 @@ export const users = pgTable("users", {
   
 },
  (table) => ({
-    clerkIdIndex: index("users_clerk_id_idx").on(table.clerkId),
-
-    emailIndex: index("users_email_idx").on(table.email),
-
     hostelIdIndex: index("users_hostel_id_idx").on(table.hostelId),
   })
 );

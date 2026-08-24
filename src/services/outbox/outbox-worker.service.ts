@@ -63,22 +63,16 @@ export async function processPendingEvents(): Promise<{
   failed: number;
   skipped: number;
 }> {
-  const pendingEvents =
-    await outboxRepository.findPending(50);
+  // Use atomic claim with lease to prevent double-processing
+  // across concurrent Vercel serverless instances.
+  const claimedEvents =
+    await outboxRepository.claimNext(50, 5 * 60_000);
 
   let processed = 0;
   let failed = 0;
-  let skipped = 0;
+  const skipped = 0;
 
-  for (const event of pendingEvents) {
-    const locked =
-      await outboxRepository.markProcessing(event.id);
-
-    if (!locked) {
-      skipped++;
-      continue;
-    }
-
+  for (const event of claimedEvents) {
     const eventRow = toEventRow(event);
 
     const handler = getHandler(eventRow.eventType);

@@ -245,12 +245,11 @@ export const policyEvaluations = pgTable(
     ),
 
     /**
-     * Input values the evaluation was computed from (the rule's own config
-     * plus the resolved request inputs such as dates, batch year, extension
-     * count). Kept small; never the full policy definition — submittedForm
-     * already holds the form facts.
+     * Resolved request inputs the evaluation was computed from (dates, batch
+     * year, extension count, hostelId, leaveDurationDays). The rule config
+     * lives in policy_versions.config; we don't duplicate it here.
      */
-    config: jsonb("config"),
+    inputs: jsonb("inputs"),
 
     passed: boolean("passed").notNull(),
 

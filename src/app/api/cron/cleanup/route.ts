@@ -1,4 +1,6 @@
 import { ApiResponse } from "@/lib/api/response";
+import { runAuditRetentionJob } from "@/services/cron/audit-retention.job";
+import { runDocumentRetentionJob } from "@/services/cron/cleanup-documents.job";
 import { runCleanupQrJob } from "@/services/cron/cleanup-qr.job";
 
 export async function GET(request: Request) {
@@ -11,8 +13,12 @@ export async function GET(request: Request) {
     }
 
     const qrResult = await runCleanupQrJob();
+    const documentResult = await runDocumentRetentionJob();
+    const auditResult = await runAuditRetentionJob();
 
-    return ApiResponse.success({ results: [qrResult] });
+    return ApiResponse.success({
+      results: [qrResult, documentResult, auditResult],
+    });
   } catch (error) {
     return ApiResponse.fromError(error);
   }

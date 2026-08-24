@@ -29,10 +29,6 @@ export const workflowDefinitions = pgTable(
 
     description: text("description"),
 
-    version: integer("version")
-      .default(1)
-      .notNull(),
-
     isActive: boolean("is_active")
       .default(true)
       .notNull(),

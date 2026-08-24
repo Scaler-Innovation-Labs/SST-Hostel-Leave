@@ -28,6 +28,7 @@ import { outboxService } from "@/services/outbox/outbox.service";
 import { policyEngine } from "@/services/policy/policy-engine";
 import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 import { workflowEngine } from "@/services/workflow/workflow-engine";
+import type { PolicyResultSummary } from "@/types/policy/policy-result";
 
 export type CreateExtensionResult = {
   extensionId: string;
@@ -86,6 +87,13 @@ export async function createExtension(
     },
     extensionCount,
   });
+
+  const policyResultSummary: PolicyResultSummary = {
+    allowed: policyResult.allowed,
+    restrictions: policyResult.restrictions,
+    requirements: policyResult.requirements,
+    failedCount: policyResult.checks.filter((c) => !c.passed).length,
+  };
 
   if (!policyResult.allowed) {
     await leaveRejectionRepository.create({
@@ -149,7 +157,7 @@ export async function createExtension(
           reason: dto.reason,
           status: LEAVE_REQUEST_STATUS.PENDING,
           submittedForm: dto.submittedForm ?? null,
-          policyResult,
+          policyResult: policyResultSummary,
           submittedAt: new Date(),
         },
         tx

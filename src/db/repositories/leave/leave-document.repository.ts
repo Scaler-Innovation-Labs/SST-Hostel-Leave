@@ -1,7 +1,8 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, lt, or, sql } from "drizzle-orm";
 
-import { leaveDocuments } from "@/db";
+import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import { leaveDocuments, leaveRequests } from "@/db";
 import { db } from "@/lib/db";
 
 type LeaveDocumentDbClient = Pick<typeof db, "insert" | "select" | "update" | "delete">;
@@ -90,6 +91,45 @@ export const leaveDocumentRepository = {
     await dbClient
       .delete(leaveDocuments)
       .where(eq(leaveDocuments.id, id));
+  },
+
+  /**
+   * Documents eligible for retention cleanup: ACTIVE documents attached to a
+   * leave that reached a terminal state (COMPLETED/REJECTED/CANCELLED/EXPIRED)
+   * more than `cutoff` ago. The retention anchor is the terminal transition
+   * timestamp, falling back to updatedAt for legacy rows.
+   */
+  async findExpiredForRetention(
+    cutoff: Date,
+    limit: number = 100,
+    dbClient: Pick<LeaveDocumentDbClient, "select"> = db,
+  ): Promise<LeaveDocument[]> {
+    const terminalStates = [
+      LEAVE_REQUEST_STATUS.COMPLETED,
+      LEAVE_REQUEST_STATUS.REJECTED,
+      LEAVE_REQUEST_STATUS.CANCELLED,
+      LEAVE_REQUEST_STATUS.EXPIRED,
+    ];
+
+    const rows = await dbClient
+      .select({ document: leaveDocuments })
+      .from(leaveDocuments)
+      .innerJoin(leaveRequests, eq(leaveDocuments.leaveRequestId, leaveRequests.id))
+      .where(
+        and(
+          eq(leaveDocuments.documentStatus, "ACTIVE"),
+          isNotNull(leaveDocuments.leaveRequestId),
+          inArray(leaveRequests.status, terminalStates),
+          lt(
+            sql`COALESCE(${leaveRequests.completedAt}, ${leaveRequests.rejectedAt}, ${leaveRequests.cancelledAt}, ${leaveRequests.expiredAt}, ${leaveRequests.updatedAt})`,
+            cutoff,
+          ),
+        ),
+      )
+      .orderBy(asc(leaveDocuments.createdAt))
+      .limit(limit);
+
+    return rows.map((r) => r.document);
   },
 };
 

@@ -11,9 +11,9 @@ export type PolicyEvaluationRecord = {
   policyVersionId: string | null;
   passed: boolean;
   message: string | null;
-  /** Input values the evaluation was computed from (rule config + resolved
-      request inputs). Optional — never the full policy definition. */
-  config?: Record<string, unknown> | null;
+  /** Resolved request inputs the evaluation was computed from.
+      Optional — never the full policy definition. */
+  inputs?: Record<string, unknown> | null;
 };
 
 export type PolicyResult = {
@@ -29,4 +29,12 @@ export type PolicyResult = {
 
   /** Per-policy evaluation records for the leave execution context. */
   evaluations: PolicyEvaluationRecord[];
+};
+
+/** Summary stored in leave_requests.policy_result — small, fast to read. */
+export type PolicyResultSummary = {
+  allowed: boolean;
+  restrictions: string[];
+  requirements: string[];
+  failedCount: number;
 };

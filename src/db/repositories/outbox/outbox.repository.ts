@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, asc, eq, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 
 import { OUTBOX_STATUS } from "@/constants/outbox/outbox-status";
 import { outboxEvents } from "@/db";
@@ -16,7 +16,9 @@ export type NewOutboxEvent = InferInsertModel<
 type OutboxDbClient = Pick<
   typeof db,
   "insert" | "select" | "update"
->;
+> & {
+  execute?: typeof db.execute;
+};
 
 export const outboxRepository = {
   async create(
@@ -118,6 +120,48 @@ export const outboxRepository = {
     return rows;
   },
 
+  /**
+   * Atomically claim up to `limit` pending events using a single
+   * UPDATE with FOR UPDATE SKIP LOCKED — the standard pattern for
+   * reliable queue consumers in Postgres.
+   *
+   * This prevents two Vercel instances from claiming the same event
+   * by locking candidate rows and skipping any already locked by
+   * another transaction.
+   */
+  async claimNext(
+    limit: number = 50,
+    leaseMs: number = 5 * 60_000, // 5 minutes
+    dbClient: OutboxDbClient = db
+  ): Promise<OutboxEvent[]> {
+    const now = new Date();
+    const leaseExpires = new Date(now.getTime() + leaseMs);
+
+    // Single atomic UPDATE with FOR UPDATE SKIP LOCKED — finds and
+    // claims rows in one statement. Rows already locked by another
+    // transaction are skipped, not waited on.
+    const executor = dbClient.execute ?? db.execute;
+    const rows = await executor(sql`
+      UPDATE ${outboxEvents}
+      SET
+        status = ${OUTBOX_STATUS.PROCESSING},
+        claimed_at = ${now},
+        lease_expires_at = ${leaseExpires}
+      WHERE id IN (
+        SELECT id
+        FROM ${outboxEvents}
+        WHERE status = ${OUTBOX_STATUS.PENDING}
+          AND (next_attempt_at IS NULL OR next_attempt_at < ${now})
+        ORDER BY created_at
+        LIMIT ${limit}
+        FOR UPDATE SKIP LOCKED
+      )
+      RETURNING *
+    `);
+
+    return rows.rows as OutboxEvent[];
+  },
+
   async markProcessing(
     id: string,
     dbClient: Pick<typeof db, "update"> = db
@@ -127,6 +171,7 @@ export const outboxRepository = {
       .set({
         status: OUTBOX_STATUS.PROCESSING,
         claimedAt: new Date(),
+        leaseExpiresAt: new Date(Date.now() + 5 * 60_000),
       })
       .where(
         and(
@@ -208,6 +253,7 @@ export const outboxRepository = {
         status: OUTBOX_STATUS.PENDING,
         attemptCount: sql`COALESCE(${outboxEvents.attemptCount}, 0) + 1`,
         claimedAt: null,
+        leaseExpiresAt: null,
       })
       .where(
         and(
@@ -239,13 +285,24 @@ export const outboxRepository = {
       .set({
         status: OUTBOX_STATUS.PENDING,
         claimedAt: null,
+        leaseExpiresAt: null,
       })
       .where(
         and(
           eq(outboxEvents.status, OUTBOX_STATUS.PROCESSING),
+          // Use leaseExpiresAt if set; fall back to claimedAt grace for legacy rows
           or(
-            isNull(outboxEvents.claimedAt),
-            lt(outboxEvents.claimedAt, cutoff)
+            and(
+              isNotNull(outboxEvents.leaseExpiresAt),
+              lt(outboxEvents.leaseExpiresAt, new Date())
+            ),
+            and(
+              isNull(outboxEvents.leaseExpiresAt),
+              or(
+                isNull(outboxEvents.claimedAt),
+                lt(outboxEvents.claimedAt, cutoff)
+              )
+            )
           )
         )
       )

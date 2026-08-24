@@ -38,12 +38,44 @@ beforeEach(() => {
 });
 
 describe("auditService.record", () => {
-  it("creates an audit log with metadata", async () => {
+  it("creates an audit log with metadata and derived retention", async () => {
     const result = await auditService.record("CREATE", "HOSTEL", "H1", "U1", { extra: 1 });
 
     expect(result).toEqual({ id: "A1" });
     expect(mockCreate).toHaveBeenCalledWith(
-      { action: "CREATE", entityType: "HOSTEL", entityId: "H1", actorUserId: "U1", metadata: { extra: 1 } },
+      {
+        action: "CREATE",
+        entityType: "HOSTEL",
+        entityId: "H1",
+        actorUserId: "U1",
+        metadata: { extra: 1 },
+        retentionClass: "CONFIG_MUTATION",
+        expiresAt: null,
+      },
+      expect.anything(),
+    );
+  });
+
+  it("classifies state transitions with a computed expiry", async () => {
+    await auditService.record("APPROVE", "LEAVE_REQUEST", "LR1", "U1", {});
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        retentionClass: "STATE_TRANSITION",
+        expiresAt: expect.any(Date),
+      }),
+      expect.anything(),
+    );
+  });
+
+  it("classifies user sessions as USER_ACTION with the shortest retention", async () => {
+    await auditService.record("LOGIN", "USER", "U9", "U9", {});
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        retentionClass: "USER_ACTION",
+        expiresAt: expect.any(Date),
+      }),
       expect.anything(),
     );
   });
