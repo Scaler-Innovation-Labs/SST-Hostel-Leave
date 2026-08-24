@@ -350,6 +350,35 @@ export const qrPassRepository = {
     return rows;
   },
 
+  /**
+   * Count of overdue returns — same predicate as findOverdueReturns but
+   * selects only COUNT(*) and skips name/type/hostel joins. Powers the
+   * sidebar badge, which polls far more often than the list page loads.
+   */
+  async countOverdueReturns(
+    opts: { hostelIds?: string[] } = {},
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [
+      isNotNull(qrPasses.firstScanAt),
+      isNull(qrPasses.closedAt),
+      lt(leaveRequests.endAt, new Date()),
+    ];
+    if (opts.hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, opts.hostelIds));
+    }
+
+    const result = await dbClient
+      .select({ count: sql<number>`count(*)` })
+      .from(qrPasses)
+      .leftJoin(leaveRequests, eq(qrPasses.leaveRequestId, leaveRequests.id))
+      .leftJoin(students, eq(qrPasses.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions));
+
+    return Number(result[0]?.count ?? 0);
+  },
+
   async countActive(
     hostelIds?: string[],
     dbClient: Pick<typeof db, "select"> = db

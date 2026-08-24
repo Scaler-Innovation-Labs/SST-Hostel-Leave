@@ -14,12 +14,16 @@ type UseExtensionApprovalsOptions = {
   dateTo?: string;
   page?: number;
   limit?: number;
+  /** Poll interval ms — callers rendering counts-only may poll slower. */
+  refreshInterval?: number;
 };
 
 export function useExtensionApprovals(options?: UseExtensionApprovalsOptions) {
   const url = getExtensionApprovalsUrl(options);
 
-  const { data, error, isLoading, mutate } = useSWR(url, fetcher, { refreshInterval: 30_000 });
+  const { data, error, isLoading, mutate } = useSWR(url, fetcher, {
+    refreshInterval: options?.refreshInterval ?? 30_000,
+  });
 
   return {
     data: data as {

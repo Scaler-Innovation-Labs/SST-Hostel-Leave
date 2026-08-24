@@ -13,7 +13,7 @@ import { getApprovalsUrl } from "@/lib/api/approval-api";
 export function ApprovalCountBadge({ className }: { className?: string }) {
   const { data } = useSWR(
     getApprovalsUrl({ status: LEAVE_APPROVAL_DECISION.PENDING, page: 1, limit: 1 }),
-    { refreshInterval: 15_000 },
+    { refreshInterval: 60_000 },
   );
 
   const count = (data?.data?.total as number | undefined) ?? 0;
