@@ -24,9 +24,18 @@ const INCLUDE_DYNAMIC = process.env.PERF_TEST_DYNAMIC === "1";
 const SAMPLES = Math.max(1, Number(process.env.PERF_SAMPLES ?? "1"));
 
 function median(values: number[]): number {
+  return percentile(values, 50);
+}
+
+/** Nearest-rank percentile. */
+function percentile(values: number[], p: number): number {
+  if (values.length === 0) return 0;
   const s = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(s.length / 2);
-  return s.length % 2 !== 0 ? s[mid]! : (s[mid - 1]! + s[mid]!) / 2;
+  const idx = Math.min(
+    s.length - 1,
+    Math.max(0, Math.ceil((p / 100) * s.length) - 1)
+  );
+  return s[idx]!;
 }
 
 function appendResult(result: RouteResult): void {
@@ -163,15 +172,26 @@ async function auditRoute(page: Page, route: RouteEntry): Promise<RouteResult> {
     evaluate(median(samples.map((s) => s.webVitals.cls)), thresholds.cls),
   ];
 
+  const pick = (key: keyof SampleMetrics["webVitals"]) =>
+    samples.map((s) => s.webVitals[key]);
+
   return {
     route,
     webVitals: {
-      ttfb: median(samples.map((s) => s.webVitals.ttfb)),
-      fcp: median(samples.map((s) => s.webVitals.fcp)),
-      lcp: median(samples.map((s) => s.webVitals.lcp)),
-      cls: median(samples.map((s) => s.webVitals.cls)),
-      domContentLoaded: median(samples.map((s) => s.webVitals.domContentLoaded)),
-      load: median(samples.map((s) => s.webVitals.load)),
+      ttfb: median(pick("ttfb")),
+      fcp: median(pick("fcp")),
+      lcp: median(pick("lcp")),
+      cls: median(pick("cls")),
+      domContentLoaded: median(pick("domContentLoaded")),
+      load: median(pick("load")),
+    },
+    webVitalsP95: {
+      ttfb: percentile(pick("ttfb"), 95),
+      fcp: percentile(pick("fcp"), 95),
+      lcp: percentile(pick("lcp"), 95),
+      cls: percentile(pick("cls"), 95),
+      domContentLoaded: percentile(pick("domContentLoaded"), 95),
+      load: percentile(pick("load"), 95),
     },
     apiRequests: [...worstApis.values()].sort((a, b) => b.duration - a.duration),
     jsBytes: Math.max(...samples.map((s) => s.jsBytes)),
@@ -219,9 +239,12 @@ function createRoleSuite(role: Role, label: string) {
             result.verdict === "pass" ? "PASS" : result.verdict === "warn" ? "WARN" : "FAIL";
           console.log(
             `[${icon}] ${route.path} (${result.samples ?? 1}x) | ` +
-              `TTFB ${Math.round(result.webVitals.ttfb)}ms | ` +
-              `FCP ${Math.round(result.webVitals.fcp)}ms | ` +
-              `LCP ${Math.round(result.webVitals.lcp)}ms | ` +
+              `TTFB ${Math.round(result.webVitals.ttfb)}/${Math.round(
+                result.webVitalsP95?.ttfb ?? 0
+              )}ms | ` +
+              `LCP ${Math.round(result.webVitals.lcp)}/${Math.round(
+                result.webVitalsP95?.lcp ?? 0
+              )}ms | ` +
               `APIs ${result.apiRequests.length}`
           );
           expect(result.webVitals.ttfb).toBeGreaterThan(0);

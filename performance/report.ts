@@ -23,6 +23,15 @@ export type RouteResult = {
     domContentLoaded: number;
     load: number;
   };
+  /** 95th percentile across samples (nearest-rank). */
+  webVitalsP95?: {
+    ttfb: number;
+    fcp: number;
+    lcp: number;
+    cls: number;
+    domContentLoaded: number;
+    load: number;
+  };
   apiRequests: ApiRequest[];
   jsBytes: number;
   cssBytes: number;
@@ -90,50 +99,63 @@ export function generateMarkdown(report: AuditReport): string {
   // ── Page Performance Table ──
   lines.push("## Page Performance");
   lines.push("");
-  lines.push("| Route | Role | TTFB | FCP | LCP | CLS | JS | API # | Status |");
-  lines.push("|-------|:----:|-----:|----:|----:|----:|---:|------:|:------:|");
+  lines.push(
+    `| Route | Role | TTFB p50 | TTFB p95 | FCP p50 | LCP p50 | LCP p95 | CLS | JS | API # | Status |`
+  );
+  lines.push(
+    `|-------|:----:|-----:|-----:|----:|----:|----:|----:|---:|------:|:------:|`
+  );
 
   for (const result of report.results) {
     if (result.error) {
       lines.push(
-        `| ${result.route.path} | ${result.route.role} | — | — | — | — | — | — | ❌ Error |`,
+        `| ${result.route.path} | ${result.route.role} | — | — | — | — | — | — | — | — | ❌ Error |`
       );
       continue;
     }
 
-    const { webVitals, jsBytes, apiRequests, verdict } = result;
+    const { webVitals, webVitalsP95, jsBytes, apiRequests, verdict } = result;
+    const lcpP95 = webVitalsP95?.lcp ?? webVitals.lcp;
+    const ttfbP95 = webVitalsP95?.ttfb ?? webVitals.ttfb;
     lines.push(
       `| ${result.route.path} ` +
         `| ${result.route.role} ` +
         `| ${padLeft(formatMs(webVitals.ttfb), 6)} ` +
+        `| ${padLeft(formatMs(ttfbP95), 6)} ` +
         `| ${padLeft(formatMs(webVitals.fcp), 6)} ` +
         `| ${padLeft(formatMs(webVitals.lcp), 6)} ` +
+        `| ${padLeft(formatMs(lcpP95), 6)} ` +
         `| ${padLeft(webVitals.cls.toFixed(3), 5)} ` +
         `| ${padLeft(formatBytes(jsBytes), 7)} ` +
         `| ${padLeft(String(apiRequests.length), 5)} ` +
-        `| ${verdictEmoji(verdict)} |`,
+        `| ${verdictEmoji(verdict)} |`
     );
   }
   lines.push("");
 
-  // ── Slowest Routes (sorted by LCP) ──
+  // ── Slowest Routes (by LCP p95) ──
   const sorted = [...report.results]
     .filter((r) => !r.error)
-    .sort((a, b) => b.webVitals.lcp - a.webVitals.lcp);
+    .sort(
+      (a, b) =>
+        (b.webVitalsP95?.lcp ?? b.webVitals.lcp) -
+        (a.webVitalsP95?.lcp ?? a.webVitals.lcp)
+    );
 
   if (sorted.length > 0) {
-    lines.push("## Slowest Routes (by LCP)");
+    lines.push("## Slowest Routes (by LCP p95)");
     lines.push("");
-    lines.push("| Rank | Route | LCP | TTFB | Verdict |");
-    lines.push("|-----:|-------|----:|-----:|:-------:|");
+    lines.push("| Rank | Route | LCP p50 | LCP p95 | TTFB p50 | Verdict |");
+    lines.push("|-----:|-------|----:|----:|-----:|:-------:|");
 
     sorted.slice(0, 15).forEach((r, i) => {
       lines.push(
         `| ${i + 1} ` +
           `| ${r.route.path} ` +
           `| ${formatMs(r.webVitals.lcp)} ` +
+          `| ${formatMs(r.webVitalsP95?.lcp ?? r.webVitals.lcp)} ` +
           `| ${formatMs(r.webVitals.ttfb)} ` +
-          `| ${verdictEmoji(r.verdict)} |`,
+          `| ${verdictEmoji(r.verdict)} |`
       );
     });
     lines.push("");
