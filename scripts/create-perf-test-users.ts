@@ -240,7 +240,7 @@ async function main(): Promise<void> {
       const roleId = roleMap[roleCode];
       if (!roleId) continue;
 
-      const values: Record<string, unknown> = { userId, roleId };
+      const values: typeof userRoles.$inferInsert = { userId, roleId };
       if (scopeType && scopeId) {
         values.scopeType = scopeType;
         values.scopeId = scopeId;
