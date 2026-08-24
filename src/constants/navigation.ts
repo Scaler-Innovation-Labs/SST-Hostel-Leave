@@ -33,6 +33,10 @@ export const NAVIGATION = {
       label: "Workflow",
       href: "#workflow",
     },
+    {
+      label: "Preview",
+      href: "#security",
+    },
   ],
 
   student: [

@@ -1,6 +1,6 @@
 const workflowSteps = [
   "Student raises leave",
-  "Parent approves via SMS",
+  "Parent approves via secure link",
   "POC/Admin reviews request",
   "QR pass generated",
   "Guard scans during movement",

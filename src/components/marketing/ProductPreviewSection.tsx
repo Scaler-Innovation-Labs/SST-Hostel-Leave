@@ -1,3 +1,5 @@
+import { QrCodeDisplay } from "@/components/qr/QrCodeDisplay";
+
 export function ProductPreviewSection() {
   return (
     <section
@@ -82,15 +84,15 @@ export function ProductPreviewSection() {
             <div className="mt-10 space-y-4">
               {[
                 {
-                  name: "Rahul Sharma",
+                  name: "23B81A0501",
                   status: "Parent Approved",
                 },
                 {
-                  name: "Ananya Reddy",
+                  name: "23B81A0517",
                   status: "POC Pending",
                 },
                 {
-                  name: "Veda Varshit",
+                  name: "24B81A1102",
                   status: "Admin Approval",
                 },
               ].map((item) => (
@@ -191,20 +193,14 @@ export function ProductPreviewSection() {
 
               <div
                 className="
-                  mt-8 flex items-center justify-center
+                  mt-8 flex items-center
+                  justify-center
                 "
               >
-                <div
-                  className="
-                    flex size-44 items-center
-                    justify-center
-                    rounded-3xl border border-border
-                    bg-background
-                    text-sm text-muted-foreground
-                  "
-                >
-                  QR Preview
-                </div>
+                <QrCodeDisplay
+                  token="SST-DEMO-QR-PASS"
+                  size={176}
+                />
               </div>
 
               <div className="mt-8 space-y-4">
@@ -261,7 +257,7 @@ export function ProductPreviewSection() {
                   "EXIT Hostel A",
                   "ENTER Campus",
                   "ENTER Hostel B",
-                  "FAILED_SCAN",
+                  "Failed scan — Gate B",
                 ].map((item) => (
                   <div
                     key={item}

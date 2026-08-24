@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { QrCodeDisplay } from "@/components/qr/QrCodeDisplay";
+
 export function HeroSection() {
   return (
     <section className="relative overflow-hidden">
@@ -14,18 +16,18 @@ export function HeroSection() {
           <div
             className="
               inline-flex items-center gap-2 rounded-full
-              border border-white/5 bg-white/2 px-4 py-2
-              text-sm text-white/60 backdrop-blur-xl
+              border border-border bg-card/40 px-4 py-2
+              text-sm text-muted-foreground backdrop-blur-xl
             "
           >
-            <div className="size-2 rounded-full bg-blue-500" />
+            <div className="size-2 rounded-full bg-primary" />
             Student Portal
           </div>
 
           <h1
             className="
               mt-8 text-5xl font-semibold leading-[0.95]
-              tracking-[-0.04em] text-white sm:text-6xl xl:text-[5.5rem]
+              tracking-[-0.04em] sm:text-6xl xl:text-[5.5rem]
             "
           >
             Apply.
@@ -39,8 +41,8 @@ export function HeroSection() {
             </span>
           </h1>
 
-          <p className="mt-6 max-w-lg text-lg leading-8 text-white/50">
-            Request leaves, get parent approval, receive your QR pass, and move in and out of campus securely.
+          <p className="mt-6 max-w-lg text-lg leading-8 text-muted-foreground">
+            Request leaves, get parent approval via a secure link, receive your QR pass, and move in and out of campus safely.
           </p>
 
           <div className="mt-8">
@@ -71,27 +73,27 @@ export function HeroSection() {
             ].map((item) => (
               <div
                 key={item.title}
-                className="rounded-3xl border border-white/4 bg-white/2 p-5 backdrop-blur-xl"
+                className="rounded-3xl border border-border bg-card/40 p-5 backdrop-blur-xl"
               >
-                <h3 className="text-sm font-medium text-white">{item.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-white/45">{item.desc}</p>
+                <h3 className="text-sm font-medium">{item.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
 
         <div className="relative">
-          <div className="absolute inset-0 -z-10 rounded-[2.25rem] bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.18),transparent_42%),linear-gradient(180deg,rgba(15,23,42,0.92),rgba(15,23,42,0.68))] blur-3xl" />
+          <div className="absolute inset-0 -z-10 rounded-[2.25rem] bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.18),transparent_42%)] blur-3xl" />
 
-          <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/70 shadow-[0_30px_80px_-35px_rgba(15,23,42,0.95)] backdrop-blur-xl">
-            <div className="flex items-center justify-between border-b border-white/8 bg-white/5 px-6 py-4">
+          <div className="relative overflow-hidden rounded-[2rem] border border-border bg-card/70 shadow-[0_30px_80px_-35px_rgba(15,23,42,0.95)] backdrop-blur-xl">
+            <div className="flex items-center justify-between border-b border-border bg-muted/30 px-6 py-4">
               <div className="flex items-center gap-3">
                 <div className="size-3 rounded-full bg-red-500" />
                 <div className="size-3 rounded-full bg-yellow-500" />
                 <div className="size-3 rounded-full bg-green-500" />
               </div>
 
-              <div className="text-sm font-medium text-white/60">SST Leave Dashboard</div>
+              <div className="text-sm font-medium text-muted-foreground">SST Leave Dashboard</div>
             </div>
 
             <div className="space-y-5 p-5">
@@ -103,19 +105,19 @@ export function HeroSection() {
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-2xl border border-border bg-white/4 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                    className="rounded-2xl border border-border bg-muted/20 p-4"
                   >
-                    <p className="text-xs uppercase tracking-[0.16em] text-white/40">{item.label}</p>
-                    <h3 className="mt-2 text-2xl font-semibold text-white">{item.value}</h3>
+                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{item.label}</p>
+                    <h3 className="mt-2 text-2xl font-semibold">{item.value}</h3>
                   </div>
                 ))}
               </div>
 
-              <div className="rounded-2xl border border-border bg-white/4 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <div className="rounded-2xl border border-border bg-muted/20 p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-medium text-white">Leave Workflow</h3>
-                    <p className="mt-1 text-sm text-white/45">Awaiting admin approval</p>
+                    <h3 className="font-medium">Leave Workflow</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">Awaiting admin approval</p>
                   </div>
 
                   <div className="rounded-full border border-amber-400/15 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-300">
@@ -132,7 +134,7 @@ export function HeroSection() {
                     "QR",
                   ].map((step, index) => (
                     <div key={step} className="flex items-center gap-3">
-                      <div className="rounded-full border border-white/8 bg-white/5 px-3 py-2 text-xs text-white/75">
+                      <div className="rounded-full border border-border bg-muted/30 px-3 py-2 text-xs">
                         {step}
                       </div>
 
@@ -142,9 +144,9 @@ export function HeroSection() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-border bg-white/4 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <div className="rounded-2xl border border-border bg-muted/20 p-5">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-medium text-white">Recent Movement</h3>
+                  <h3 className="font-medium">Recent Movement</h3>
 
                   <div className="rounded-full border border-emerald-400/15 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
                     Live
@@ -159,20 +161,20 @@ export function HeroSection() {
                   ].map((item) => (
                     <div
                       key={item}
-                      className="flex items-center justify-between rounded-xl border border-white/5 bg-white/3 px-4 py-3"
+                      className="flex items-center justify-between rounded-xl border border-border bg-background/40 px-4 py-3"
                     >
-                      <p className="text-sm text-white/80">{item}</p>
-                      <span className="text-xs text-white/40">2m ago</span>
+                      <p className="text-sm">{item}</p>
+                      <span className="text-xs text-muted-foreground">2m ago</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-white/10 bg-slate-950/80 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <div className="rounded-2xl border border-border bg-background/80 p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-white">QR Generated</p>
-                    <p className="mt-1 text-xs text-white/45">Ready for exit scan</p>
+                    <p className="text-sm font-medium">QR Generated</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Ready for exit scan</p>
                   </div>
 
                   <div className="rounded-full border border-emerald-400/15 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
@@ -181,9 +183,10 @@ export function HeroSection() {
                 </div>
 
                 <div className="mt-5 flex items-center justify-center">
-                  <div className="flex h-44 w-44 items-center justify-center rounded-3xl border border-white/8 bg-white/5 text-sm text-white/45">
-                    QR Preview
-                  </div>
+                  <QrCodeDisplay
+                    token="SST-DEMO-QR-PASS"
+                    size={176}
+                  />
                 </div>
               </div>
             </div>

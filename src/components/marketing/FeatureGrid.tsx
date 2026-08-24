@@ -1,8 +1,8 @@
 const features = [
 	{
-		title: "Parent SMS Approval",
+		title: "Parent Link Approval",
 		description:
-			"Parents approve leave requests directly through SMS responses.",
+			"Parents approve leave requests securely through tokenized approval links — no login required.",
 	},
 	{
 		title: "QR Movement Tracking",
