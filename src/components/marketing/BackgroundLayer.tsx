@@ -83,8 +83,11 @@ export function BackgroundLayer() {
           mix-blend-soft-light
         "
         style={{
-          backgroundImage:
-            "url('https://grainy-gradients.vercel.app/noise.svg')",
+          // Inline feTurbulence noise — replaces the former external
+          // grainy-gradients.vercel.app fetch, which sat in the paint path
+          // of every landing visit and stalled first paint when that
+          // third-party host was slow.
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
         }}
       />
     </div>

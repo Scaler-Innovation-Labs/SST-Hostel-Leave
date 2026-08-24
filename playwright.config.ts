@@ -25,6 +25,10 @@ export default defineConfig({
       testMatch: /audit\.spec\.ts$/,
       dependencies: ["setup"],
     },
+    {
+      name: "debug",
+      testMatch: /debug-lcp\.spec\.ts$/,
+    },
   ],
   outputDir: "./performance/test-results",
 });
