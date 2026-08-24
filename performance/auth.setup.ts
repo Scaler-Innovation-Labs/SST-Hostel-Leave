@@ -78,6 +78,8 @@ async function authenticateWithClerk(
                   password: string;
                 }): Promise<{
                   status: string;
+                  createdSessionId?: string;
+                  supportedFirstFactors?: Array<{ strategy: string }>;
                   supportedSecondFactors?: Array<{ strategy: string }>;
                 }>;
                 attemptFirstFactor(input: {
@@ -88,6 +90,16 @@ async function authenticateWithClerk(
                   createdSessionId?: string;
                   supportedSecondFactors?: Array<{ strategy: string }>;
                 }>;
+                prepareSecondFactor?(input: {
+                  strategy: string;
+                }): Promise<{ status: string }>;
+                attemptSecondFactor?(input: {
+                  strategy: string;
+                  code: string;
+                }): Promise<{
+                  status: string;
+                  createdSessionId?: string;
+                }>;
               };
             };
             setActive(input: { session: string | null }): Promise<void>;
@@ -96,23 +108,70 @@ async function authenticateWithClerk(
       ).Clerk;
 
       const signIn = clerk.client.signIn;
-      const created = await signIn.create({ identifier, password });
 
-      const attempt = await signIn.attemptFirstFactor({
-        strategy: "password",
-        password,
-      });
+      let created;
+      try {
+        created = await signIn.create({ identifier, password });
+      } catch (e) {
+        return `create failed: ${(e as Error).message}`;
+      }
 
-      if (attempt.status !== "complete" || !attempt.createdSessionId) {
+      // Password-only flow completes on create when the instance has no
+      // second factor / device-trust step.
+      if (created.status === "complete" && created.createdSessionId) {
+        await clerk.setActive({ session: created.createdSessionId });
+        return "complete";
+      }
+
+      let attempt;
+      try {
+        attempt = await signIn.attemptFirstFactor({
+          strategy: "password",
+          password,
+        });
+      } catch (e) {
         return (
-          `sign-in incomplete: ${attempt.status}. ` +
-          `create-factors: ${JSON.stringify(created.supportedSecondFactors ?? [])}; ` +
-          `attempt-factors: ${JSON.stringify(attempt.supportedSecondFactors ?? [])}`
+          `first-factor failed: ${(e as Error).message} | ` +
+          `create.status=${created.status} ` +
+          `first-factors=${JSON.stringify(created.supportedFirstFactors ?? [])}`
         );
       }
 
-      await clerk.setActive({ session: attempt.createdSessionId });
-      return "complete";
+      if (attempt.status === "complete" && attempt.createdSessionId) {
+        await clerk.setActive({ session: attempt.createdSessionId });
+        return "complete";
+      }
+
+      if (
+        attempt.status === "needs_second_factor" &&
+        typeof signIn.prepareSecondFactor === "function" &&
+        typeof signIn.attemptSecondFactor === "function"
+      ) {
+        try {
+          await signIn.prepareSecondFactor({ strategy: "email_code" });
+        } catch (e) {
+          return `prepare-second failed: ${(e as Error).message}`;
+        }
+        try {
+          const second = await signIn.attemptSecondFactor({
+            strategy: "email_code",
+            code: "424242",
+          });
+          if (second.status === "complete" && second.createdSessionId) {
+            await clerk.setActive({ session: second.createdSessionId });
+            return "complete";
+          }
+          return `second-factor incomplete: ${second.status}`;
+        } catch (e) {
+          return `second-factor failed: ${(e as Error).message}`;
+        }
+      }
+
+      return (
+        `sign-in incomplete: ${attempt.status}. ` +
+        `create-factors=${JSON.stringify(created.supportedSecondFactors ?? [])}; ` +
+        `attempt-factors=${JSON.stringify(attempt.supportedSecondFactors ?? [])}`
+      );
     },
     { identifier, password }
   );

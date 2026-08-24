@@ -29,6 +29,8 @@ export type RouteResult = {
   domNodes: number;
   verdict: Verdict;
   error?: string;
+  /** Number of visits aggregated into this result (median of N samples). */
+  samples?: number;
 }
 
 export type AuditReport = {
