@@ -8,6 +8,7 @@ import { QR_STATUS } from "@/constants/movement/qr-status";
 import { getQrExpiryFromLeaveEnd } from "@/constants/movement/qr-window";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { academicGroupRepository } from "@/db/repositories/academics/academic-group.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
@@ -15,6 +16,7 @@ import { leaveRejectionRepository } from "@/db/repositories/leave/leave-rejectio
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
+import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 import type { CreateExtensionDto } from "@/dto/leave/create-extension.dto";
 import type { CurrentUser } from "@/lib/auth/types";
@@ -77,6 +79,25 @@ export async function createExtension(
   const existingExtensions = await leaveExtensionRepository.findByLeaveRequestId(leaveRequestId);
   const extensionCount = existingExtensions.length;
 
+  // Get student details for full policy context
+  const student = await studentRepository.findById(leave.studentId);
+  const user = student ? await userRepository.findById(student.userId) : null;
+
+  let studentBatchYear: number | undefined;
+  let studentDepartmentId: string | undefined;
+
+  if (student) {
+    const academicGroup = await academicGroupRepository.findById(student.academicGroupId);
+    if (academicGroup) {
+      studentBatchYear = academicGroup.batchYear;
+      studentDepartmentId = academicGroup.departmentId;
+    }
+  }
+
+  const leaveDurationDays = Math.ceil(
+    (new Date(leave.endAt).getTime() - new Date(leave.startAt).getTime()) / (1000 * 60 * 60 * 24)
+  );
+
   const policyResult = await policyEngine.evaluate({
     leaveType: {
       id: leaveType.id,
@@ -85,7 +106,13 @@ export async function createExtension(
       maxExtensionCount: leaveType.maxExtensionCount,
       allowExtensions: leaveType.allowExtensions,
     },
+    leaveDurationDays,
     extensionCount,
+    studentBatchYear,
+    startAt: leave.startAt,
+    endAt: leave.endAt,
+    hostelId: user?.hostelId ?? null,
+    studentDepartmentId,
   });
 
   const policyResultSummary: PolicyResultSummary = {
@@ -93,6 +120,7 @@ export async function createExtension(
     restrictions: policyResult.restrictions,
     requirements: policyResult.requirements,
     failedCount: policyResult.checks.filter((c) => !c.passed).length,
+    checks: policyResult.checks,
   };
 
   if (!policyResult.allowed) {

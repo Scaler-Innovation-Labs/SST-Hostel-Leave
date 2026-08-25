@@ -37,4 +37,5 @@ export type PolicyResultSummary = {
   restrictions: string[];
   requirements: string[];
   failedCount: number;
+  checks: PolicyCheckEntry[];
 };

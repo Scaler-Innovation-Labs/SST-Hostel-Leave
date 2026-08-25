@@ -138,12 +138,10 @@ describe("createWorkflow service", () => {
     expect(mockReplaceSteps).toHaveBeenCalledWith("WF1",
       expect.arrayContaining([
         expect.objectContaining({
-          metadata: expect.objectContaining({
-            condition: "duration > 3",
-            timeoutHours: 48,
-            escalateToStepKey: "ADMIN",
-            notes: "Escalate if pending",
-          }),
+          stepKey: "WARDEN",
+          stepOrder: 1,
+          isParentApproval: false,
+          isRequired: true,
         }),
       ]),
       expect.any(Object)

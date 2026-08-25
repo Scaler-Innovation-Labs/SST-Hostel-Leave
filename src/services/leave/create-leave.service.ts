@@ -129,6 +129,7 @@ export async function createLeave(
     restrictions: policyResult.restrictions,
     requirements: policyResult.requirements,
     failedCount: policyResult.checks.filter((c) => !c.passed).length,
+    checks: policyResult.checks,
   };
 
   const created = await db.transaction(async (tx) => {

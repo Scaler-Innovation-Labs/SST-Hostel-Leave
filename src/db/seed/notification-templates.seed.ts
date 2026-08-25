@@ -584,7 +584,7 @@ export async function seedNotificationTemplates() {
       await db.insert(notificationTemplates).values({
         code: template.code,
         eventKey: template.eventKey,
-        channel: template.channel as "EMAIL" | "SMS" | "PUSH" | "WEBHOOK" | "SLACK",
+        channel: template.channel as "EMAIL" | "SMS" | "SLACK",
         leaveTypeId,
         subject: template.subject,
         templateBody: template.templateBody,
@@ -607,7 +607,7 @@ export async function seedNotificationTemplates() {
     await db.insert(notificationTemplates).values({
       code: template.code,
       eventKey: template.eventKey,
-      channel: template.channel as "EMAIL" | "SMS" | "PUSH" | "WEBHOOK" | "SLACK",
+      channel: template.channel as "EMAIL" | "SMS" | "SLACK",
       leaveTypeId: null,
       subject: template.subject,
       templateBody: template.templateBody,

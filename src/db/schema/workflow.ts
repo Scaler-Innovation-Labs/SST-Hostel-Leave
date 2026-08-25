@@ -33,8 +33,6 @@ export const workflowDefinitions = pgTable(
       .default(true)
       .notNull(),
 
-    metadata: jsonb("metadata"),
-
     createdAt: timestamp(
       "created_at",
       { withTimezone: true }
@@ -108,8 +106,6 @@ export const workflowSteps = pgTable(
     )
       .default(true)
       .notNull(),
-
-    metadata: jsonb("metadata"),
 
     createdAt: timestamp(
       "created_at",

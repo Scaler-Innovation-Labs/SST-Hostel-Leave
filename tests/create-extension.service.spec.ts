@@ -25,10 +25,26 @@ const mockWorkflowResolve = vi.fn();
 const mockWorkflowGetFirstStep = vi.fn();
 const mockWorkflowGetNextStep = vi.fn().mockReturnValue(undefined);
 const mockStudentFindByUserId = vi.fn();
+const mockStudentFindById = vi.fn();
+const mockUserFindById = vi.fn();
+const mockAcademicGroupFindById = vi.fn();
 
 vi.mock("@/db/repositories/student/student.repository", () => ({
   studentRepository: {
     findByUserId: (...args: any[]) => mockStudentFindByUserId(...args),
+    findById: (...args: any[]) => mockStudentFindById(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/user/user.repository", () => ({
+  userRepository: {
+    findById: (...args: any[]) => mockUserFindById(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/academics/academic-group.repository", () => ({
+  academicGroupRepository: {
+    findById: (...args: any[]) => mockAcademicGroupFindById(...args),
   },
 }));
 
@@ -135,6 +151,20 @@ beforeEach(async () => {
   mockExtensionGetNextExtensionNumber.mockResolvedValue(1);
   mockExtensionFindById.mockResolvedValue(null);
   mockExtensionFindByLeaveRequestId.mockResolvedValue([]);
+  mockStudentFindById.mockResolvedValue({
+    id: "S1",
+    userId: "U1",
+    academicGroupId: "AG1",
+  });
+  mockUserFindById.mockResolvedValue({
+    id: "U1",
+    hostelId: "H1",
+  });
+  mockAcademicGroupFindById.mockResolvedValue({
+    id: "AG1",
+    batchYear: 2025,
+    departmentId: "D1",
+  });
   const { leaveTypeRepository } = await import("@/db/repositories/leave/leave-type.repository");
   (leaveTypeRepository.findById as any).mockResolvedValue({
     id: "LT1",
