@@ -27,7 +27,7 @@ export default defineConfig({
     },
     {
       name: "debug",
-      testMatch: /debug-lcp\.spec\.ts$/,
+      testMatch: /debug.*\.spec\.ts$/,
     },
   ],
   outputDir: "./performance/test-results",

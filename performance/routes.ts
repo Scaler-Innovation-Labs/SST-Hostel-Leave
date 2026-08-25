@@ -102,6 +102,7 @@ export const PAGE_ROUTES: RouteEntry[] = [
  */
 export const MONITORED_API_PATTERNS = [
   "/api/v1/auth/",
+  "/api/v1/badges",
   "/api/v1/dashboard/",
   "/api/v1/analytics/",
   "/api/v1/approvals",
