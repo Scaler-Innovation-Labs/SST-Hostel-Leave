@@ -4,11 +4,7 @@ export const POLICY_TYPES = [
   "FORM_VALIDATION",
   "ELIGIBILITY",
   "LIMIT",
-  "WORKFLOW",
-  "DOCUMENT_REQUIREMENT",
-  "QR_RULE",
   "TIME_WINDOW",
-  "FEATURE_FLAG",
 ] as const;
 
 export const savePolicySchema = z.object({

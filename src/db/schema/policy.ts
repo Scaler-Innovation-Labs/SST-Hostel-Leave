@@ -73,8 +73,6 @@ export const policies = pgTable("policies", {
     withTimezone: true,
   }),
 
-  metadata: jsonb("metadata"),
-
   createdAt: timestamp("created_at", {
     withTimezone: true,
   })
@@ -276,9 +274,7 @@ export const policyEvaluations = pgTable(
 // POLICY TYPES
 // =====================================================
 
-// Generic types: FORM_VALIDATION, ELIGIBILITY, LIMIT,
-//   WORKFLOW, DOCUMENT_REQUIREMENT, QR_RULE, TIME_WINDOW,
-//   FEATURE_FLAG
+// Generic types: FORM_VALIDATION, ELIGIBILITY, LIMIT, TIME_WINDOW
 // Each uses config.type to specify the rule variant.
 
 // =====================================================
@@ -340,17 +336,4 @@ export const policyEvaluations = pgTable(
 // {
 //   "type": "CURFEW",
 //   "latestReturnTime": "20:00"
-// }
-
-// TIME_WINDOW | type: LEAVE_EXPIRY
-// ----------------------------------
-// {
-//   "type": "LEAVE_EXPIRY",
-//   "expireAfterHours": 24
-// }
-
-// FEATURE_FLAG
-// --------------
-// {
-//   "type": "some_flag"
 // }

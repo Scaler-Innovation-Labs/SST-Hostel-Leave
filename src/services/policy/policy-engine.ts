@@ -119,10 +119,6 @@ function evaluatePolicy(
         }
         return null;
       }
-
-      if (ruleType === "LEAVE_EXPIRY") {
-        return null;
-      }
       return null;
     }
 
@@ -178,12 +174,6 @@ function evaluatePolicy(
       return null;
     }
 
-    case "FEATURE_FLAG":
-    case "WORKFLOW":
-    case "DOCUMENT_REQUIREMENT":
-    case "QR_RULE":
-      return null;
-
     default:
       return null;
   }
@@ -219,11 +209,7 @@ const POLICY_TYPE_LABELS: Record<string, string> = {
   FORM_VALIDATION: "Form Validation",
   ELIGIBILITY: "Eligibility",
   LIMIT: "Limit",
-  WORKFLOW: "Workflow",
-  DOCUMENT_REQUIREMENT: "Document Requirement",
-  QR_RULE: "QR Rule",
   TIME_WINDOW: "Time Window",
-  FEATURE_FLAG: "Feature Flag",
 };
 
 // The resolved request inputs an evaluation was computed from.

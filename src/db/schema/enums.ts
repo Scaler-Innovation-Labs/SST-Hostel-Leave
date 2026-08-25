@@ -293,11 +293,7 @@ export const policyTypeEnum = pgEnum(
     "FORM_VALIDATION",
     "ELIGIBILITY",
     "LIMIT",
-    "WORKFLOW",
-    "DOCUMENT_REQUIREMENT",
-    "QR_RULE",
     "TIME_WINDOW",
-    "FEATURE_FLAG",
   ]
 );
 
