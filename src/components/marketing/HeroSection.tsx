@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import { Reveal } from "@/components/marketing/Reveal";
-import { QrCodeDisplay } from "@/components/qr/QrCodeDisplay";
 
 export function HeroSection() {
   return (
@@ -193,9 +192,14 @@ export function HeroSection() {
                     </div>
 
                     <div className="mt-4 flex items-center justify-center">
-                      <QrCodeDisplay
-                        token="SST-DEMO-QR-PASS"
-                        size={132}
+                      {/* eslint-disable-next-line @next/next/no-img-element -- static demo asset, no optimization needed */}
+                      <img
+                        src="/demo-qr.png"
+                        alt="Demo QR pass"
+                        width={132}
+                        height={132}
+                        className="rounded-xl bg-white p-3"
+                        style={{ imageRendering: "pixelated" }}
                       />
                     </div>
                   </div>

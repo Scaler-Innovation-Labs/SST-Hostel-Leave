@@ -1,5 +1,4 @@
 import { Reveal } from "@/components/marketing/Reveal";
-import { QrCodeDisplay } from "@/components/qr/QrCodeDisplay";
 
 export function ProductPreviewSection() {
   return (
@@ -202,9 +201,14 @@ export function ProductPreviewSection() {
                   justify-center
                 "
               >
-                <QrCodeDisplay
-                  token="SST-DEMO-QR-PASS"
-                  size={176}
+                {/* eslint-disable-next-line @next/next/no-img-element -- static demo asset, no optimization needed */}
+                <img
+                  src="/demo-qr.png"
+                  alt="Demo QR pass"
+                  width={176}
+                  height={176}
+                  className="rounded-xl bg-white p-3"
+                  style={{ imageRendering: "pixelated" }}
                 />
               </div>
 
