@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, Plus, Save } from "lucide-react";
+import { Eye, Plus, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import useSWR from "swr";
 
@@ -24,6 +24,13 @@ type FormField = {
   maxLength?: number;
 };
 
+type RequiredDocument = {
+  code: string;
+  label: string;
+  required: boolean;
+  acceptedTypes?: string[];
+};
+
 type LeaveType = {
   id: string;
   code: string;
@@ -36,6 +43,7 @@ type LeaveType = {
   maxExtensionCount: number | null;
   isActive: boolean;
   formSchema: { fields: Array<FormField> };
+  requiredDocuments: RequiredDocument[] | { documents: RequiredDocument[] } | null;
   policyConfig: Record<string, unknown> | null;
   version: number;
 };
@@ -54,6 +62,7 @@ type Draft = {
   isSpecial: boolean;
   color: string;
   formSchema: { fields: Array<FormField> };
+  requiredDocuments: Array<RequiredDocument>;
 };
 
 const EMPTY_DRAFT: Draft = {
@@ -74,6 +83,7 @@ const EMPTY_DRAFT: Draft = {
       { key: "reason", label: "Reason", type: "textarea", required: true, minLength: 10, maxLength: 500 },
     ],
   },
+  requiredDocuments: [],
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -124,6 +134,16 @@ export default function LeaveTypesPage() {
       maxLength: f.maxLength as number | undefined,
     }));
 
+    const rawDocuments = Array.isArray(lt.requiredDocuments)
+      ? lt.requiredDocuments
+      : lt.requiredDocuments?.documents ?? [];
+    const normalizedDocuments: RequiredDocument[] = rawDocuments.map((document) => ({
+      code: document.code ?? "",
+      label: document.label ?? "",
+      required: document.required ?? true,
+      acceptedTypes: document.acceptedTypes ?? [],
+    }));
+
     const uiConfig = (lt as Record<string, unknown>).uiConfig as Record<string, unknown> | null ?? {};
 
     setDraft({
@@ -140,6 +160,7 @@ export default function LeaveTypesPage() {
       isSpecial: (uiConfig.isSpecial as boolean) ?? false,
       color: typeof uiConfig.color === "string" ? uiConfig.color : LEAVE_TYPE_COLOR_PALETTE[0],
       formSchema: { fields: normalizedFields },
+      requiredDocuments: normalizedDocuments,
     });
     setMessage(null);
   };
@@ -168,6 +189,7 @@ export default function LeaveTypesPage() {
         ...draft,
         maxExtensionCount: draft.maxExtensionCount ? Number(draft.maxExtensionCount) : null,
         description: draft.description || null,
+        requiredDocuments: draft.requiredDocuments,
         uiConfig: { isSpecial: draft.isSpecial, color: draft.color },
       };
 
@@ -457,6 +479,124 @@ export default function LeaveTypesPage() {
                 schema={draft.formSchema as { fields: Array<{ key: string; label: string; type: string; required?: boolean; placeholder?: string; options?: string[]; minLength?: number; maxLength?: number }> }}
                 onChange={(schema) => setDraft({ ...draft, formSchema: schema as { fields: Array<FormField> } })}
               />
+            </div>
+          </div>
+
+          {/* ── Section 4: Required Documents ── */}
+          <div>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Required Documents
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Ask students to upload supporting documents for this leave type.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setDraft({
+                    ...draft,
+                    requiredDocuments: [
+                      ...draft.requiredDocuments,
+                      { code: "", label: "", required: true, acceptedTypes: [] },
+                    ],
+                  })
+                }
+              >
+                <Plus className="size-4" />
+                Add document
+              </Button>
+            </div>
+            <div className="space-y-3 rounded-lg border bg-muted/10 p-4">
+              {draft.requiredDocuments.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No supporting documents configured.</p>
+              ) : (
+                draft.requiredDocuments.map((document, index) => (
+                  <div key={`${document.code}-${index}`} className="rounded-lg border bg-background p-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <label className="block text-sm">
+                        <span className="mb-1 block font-medium">Document code</span>
+                        <input
+                          value={document.code}
+                          onChange={(event) => {
+                            const requiredDocuments = [...draft.requiredDocuments];
+                            requiredDocuments[index] = {
+                              ...document,
+                              code: event.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "_"),
+                            };
+                            setDraft({ ...draft, requiredDocuments });
+                          }}
+                          placeholder="MEDICAL_CERTIFICATE"
+                          className="h-9 w-full rounded-lg border bg-background px-3 font-mono text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                        />
+                      </label>
+                      <label className="block text-sm">
+                        <span className="mb-1 block font-medium">Display label</span>
+                        <input
+                          value={document.label}
+                          onChange={(event) => {
+                            const requiredDocuments = [...draft.requiredDocuments];
+                            requiredDocuments[index] = { ...document, label: event.target.value };
+                            setDraft({ ...draft, requiredDocuments });
+                          }}
+                          placeholder="Medical certificate"
+                          className="h-9 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                        />
+                      </label>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-end gap-3">
+                      <label className="block min-w-56 flex-1 text-sm">
+                        <span className="mb-1 block font-medium">Accepted file types</span>
+                        <input
+                          value={document.acceptedTypes?.join(", ") ?? ""}
+                          onChange={(event) => {
+                            const acceptedTypes = event.target.value
+                              .split(",")
+                              .map((type) => type.trim().toUpperCase())
+                              .filter(Boolean);
+                            const requiredDocuments = [...draft.requiredDocuments];
+                            requiredDocuments[index] = { ...document, acceptedTypes };
+                            setDraft({ ...draft, requiredDocuments });
+                          }}
+                          placeholder="PDF, JPG, PNG"
+                          className="h-9 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                        />
+                      </label>
+                      <label className="flex h-9 items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={document.required}
+                          onChange={(event) => {
+                            const requiredDocuments = [...draft.requiredDocuments];
+                            requiredDocuments[index] = { ...document, required: event.target.checked };
+                            setDraft({ ...draft, requiredDocuments });
+                          }}
+                          className="rounded"
+                        />
+                        Required
+                      </label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Remove ${document.label || "document"}`}
+                        onClick={() =>
+                          setDraft({
+                            ...draft,
+                            requiredDocuments: draft.requiredDocuments.filter((_, itemIndex) => itemIndex !== index),
+                          })
+                        }
+                      >
+                        <Trash2 className="size-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

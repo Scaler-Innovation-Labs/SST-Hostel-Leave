@@ -30,7 +30,7 @@ export function DocumentUpload({
   onUploadSuccess,
   disabled,
   documentType = "GENERAL",
-  documentLabel = "Document",
+  documentLabel = "file",
 }: DocumentUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);

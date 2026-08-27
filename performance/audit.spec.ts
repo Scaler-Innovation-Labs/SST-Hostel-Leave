@@ -23,6 +23,10 @@ const INCLUDE_DYNAMIC = process.env.PERF_TEST_DYNAMIC === "1";
 /** Visits per route — metrics reported as median, APIs as worst-case. */
 const SAMPLES = Math.max(1, Number(process.env.PERF_SAMPLES ?? "1"));
 
+if (process.env.PERF_RESET_RESULTS !== "0") {
+  fs.rmSync(RESULTS_PATH, { force: true });
+}
+
 function median(values: number[]): number {
   return percentile(values, 50);
 }

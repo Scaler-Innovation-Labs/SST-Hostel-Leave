@@ -61,6 +61,8 @@ export function DocumentList({ leaveId, canDelete = false, requiredDocument }: D
     ? documents.some((document) => document.documentType === requiredDocument.type)
     : true;
 
+  if (documents.length === 0 && !requiredDocument) return null;
+
   return (
     <CollapsibleSection title="Documents" icon={FileText}>
       <div className="space-y-2">
