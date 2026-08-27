@@ -199,3 +199,198 @@
     @apply font-sans;
   }
 }
+
+/* ──────────────────────────────────────────────────────────────
+   Typography System — Geist Sans / Geist Mono
+   ────────────────────────────────────────────────────────────── */
+
+/* ─── CSS Custom Properties ─────────────────────────────────── */
+:root {
+  /* Font Families */
+  --font-ui: var(--font-sans);      /* Geist Sans — UI text */
+  --font-data: var(--font-mono);    /* Geist Mono — data / codes */
+
+  /* Font Weights */
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+
+  /* Typography Scale — Sizes & Line Heights */
+  --text-display: 3rem;           /* 48px */
+  --text-display-line: 3.5rem;    /* 56px */
+  --text-page-title: 2rem;        /* 32px */
+  --text-page-title-line: 2.5rem; /* 40px */
+  --text-section: 1.5rem;         /* 24px */
+  --text-section-line: 2rem;      /* 32px */
+  --text-card-title: 1.125rem;    /* 18px */
+  --text-card-title-line: 1.625rem; /* 26px */
+  --text-body: 0.875rem;          /* 14px */
+  --text-body-line: 1.3125rem;    /* 21px */
+  --text-ui-label: 0.875rem;      /* 14px */
+  --text-ui-label-line: 1.25rem;  /* 20px */
+  --text-small: 0.8125rem;        /* 13px */
+  --text-small-line: 1.125rem;    /* 18px */
+  --text-caption: 0.75rem;        /* 12px */
+  --text-caption-line: 1rem;      /* 16px */
+
+  /* Font Weights */
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+}
+
+/* ─── Utility Classes ─────────────────────────────────────────── */
+.text-display {
+  font-size: var(--text-display);
+  line-height: var(--text-display-line);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-ui);
+}
+
+.text-page-title {
+  font-size: var(--text-page-title);
+  line-height: var(--text-page-title-line);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-ui);
+}
+
+.text-section {
+  font-size: var(--text-section);
+  line-height: var(--text-section-line);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-ui);
+}
+
+.text-card-title {
+  font-size: var(--text-card-title);
+  line-height: var(--text-card-title-line);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-ui);
+}
+
+.text-body {
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+  font-weight: var(--weight-normal);
+  font-family: var(--font-ui);
+}
+
+.text-ui-label {
+  font-size: var(--text-ui-label);
+  line-height: var(--text-ui-label-line);
+  font-weight: var(--weight-medium);
+  font-family: var(--font-ui);
+}
+
+.text-small {
+  font-size: var(--text-small);
+  line-height: var(--text-small-line);
+  font-weight: var(--weight-normal);
+  font-family: var(--font-ui);
+}
+
+.text-caption {
+  font-size: var(--text-caption);
+  line-height: var(--text-caption-line);
+  font-weight: var(--weight-normal);
+  font-family: var(--font-ui);
+}
+
+/* ─── Data / Code — Geist Mono ────────────────────────────────── */
+.font-data,
+code,
+pre,
+kbd,
+samp,
+[data-font="mono"] {
+  font-family: var(--font-data) !important;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* ─── Utility Classes (shorthands) ────────────────────────────── */
+.text-display {
+  font-size: var(--text-display);
+  line-height: var(--text-display-line);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-ui);
+}
+
+.text-page-title {
+  font-size: var(--text-page-title);
+  line-height: var(--text-page-title-line);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-ui);
+}
+
+.text-section {
+  font-size: var(--text-section);
+  line-height: var(--text-section-line);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-ui);
+}
+
+.text-card-title {
+  font-size: var(--text-card-title);
+  line-height: var(--text-card-title-line);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-ui);
+}
+
+.text-body {
+  font-size: var(--text-body);
+  line-height: var(--text-body-line);
+  font-weight: var(--weight-normal);
+  font-family: var(--font-ui);
+}
+
+.text-ui-label {
+  font-size: var(--text-ui-label);
+  line-height: var(--text-ui-label-line);
+  font-weight: var(--weight-medium);
+  font-family: var(--font-ui);
+}
+
+.text-small {
+  font-size: var(--text-small);
+  line-height: var(--text-small-line);
+  font-weight: var(--weight-normal);
+  font-family: var(--font-ui);
+}
+
+.text-caption {
+  font-size: var(--text-caption);
+  line-height: var(--text-caption-line);
+  font-weight: var(--weight-normal);
+  font-family: var(--font-ui);
+}
+
+/* Data / Code elements */
+.font-data {
+  font-family: var(--font-data);
+}
+.font-ui {
+  font-family: var(--font-ui);
+}
+
+/* Ensure monospace for code elements */
+code,
+pre,
+kbd,
+samp,
+[data-font="mono"] {
+  font-family: var(--font-data) !important;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* ─── Base Styles ─────────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}

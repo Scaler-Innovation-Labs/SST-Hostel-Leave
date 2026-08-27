@@ -828,7 +828,14 @@ export default function StudentLeaveDetailPage() {
       <AskAQuestionSection leaveId={id} canAnswer />
 
       {/* 6. Documents */}
-      <DocumentList leaveId={id} />
+      <DocumentList
+        leaveId={id}
+        requiredDocument={
+          leave.leaveTypeName?.toUpperCase().includes("MEDICAL")
+            ? { type: "MEDICAL_CERTIFICATE", label: "Medical certificate" }
+            : undefined
+        }
+      />
 
       {/* 7. Extensions */}
       <ExtensionsSection leaveId={id} />

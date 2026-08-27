@@ -418,7 +418,7 @@ export function ExtensionApprovalsPage() {
             <ApprovalCommandCard
               key={item.id}
               item={item}
-              disableNavigation
+              hrefPrefix="/super-admin/extension-approvals"
               onActionComplete={() => mutate()}
             />
           ))

@@ -10,6 +10,8 @@ type DocumentUploadProps = {
   leaveId: string;
   onUploadSuccess: () => void;
   disabled?: boolean;
+  documentType?: string;
+  documentLabel?: string;
 };
 
 const ALLOWED_TYPES = [
@@ -23,7 +25,13 @@ const ALLOWED_TYPES = [
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
-export function DocumentUpload({ leaveId, onUploadSuccess, disabled }: DocumentUploadProps) {
+export function DocumentUpload({
+  leaveId,
+  onUploadSuccess,
+  disabled,
+  documentType = "GENERAL",
+  documentLabel = "Document",
+}: DocumentUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,8 +52,8 @@ export function DocumentUpload({ leaveId, onUploadSuccess, disabled }: DocumentU
 
     setUploading(true);
     try {
-      await uploadLeaveDocument(leaveId, file, "GENERAL");
-      toast.success("Document uploaded");
+      await uploadLeaveDocument(leaveId, file, documentType);
+      toast.success(`${documentLabel} uploaded`);
       onUploadSuccess();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Upload failed";
@@ -54,7 +62,7 @@ export function DocumentUpload({ leaveId, onUploadSuccess, disabled }: DocumentU
     } finally {
       setUploading(false);
     }
-  }, [leaveId, onUploadSuccess]);
+  }, [documentLabel, documentType, leaveId, onUploadSuccess]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -102,7 +110,7 @@ export function DocumentUpload({ leaveId, onUploadSuccess, disabled }: DocumentU
       >
         <Upload className="mb-3 h-8 w-8 text-muted-foreground" />
         <p className="text-sm font-medium">
-          {uploading ? "Uploading..." : "Drop file here or click to upload"}
+          {uploading ? "Uploading..." : `Drop ${documentLabel.toLowerCase()} here or click to upload`}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
           JPG, PNG, GIF, PDF, DOC, DOCX up to 10MB

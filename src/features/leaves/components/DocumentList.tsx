@@ -9,6 +9,7 @@ import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { Button } from "@/components/ui/button";
+import { DocumentUpload } from "@/features/leaves/components/DocumentUpload";
 import { type DocumentItem,useDocuments } from "@/hooks/use-documents";
 import { deleteLeaveDocument } from "@/lib/api/leave-api";
 
@@ -28,9 +29,13 @@ function formatFileSize(bytes: number | null): string {
 type DocumentListProps = {
   leaveId: string;
   canDelete?: boolean;
+  requiredDocument?: {
+    type: string;
+    label: string;
+  };
 };
 
-export function DocumentList({ leaveId, canDelete = false }: DocumentListProps) {
+export function DocumentList({ leaveId, canDelete = false, requiredDocument }: DocumentListProps) {
   const { documents, isLoading, isError, error, mutate } = useDocuments(leaveId);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -52,11 +57,30 @@ export function DocumentList({ leaveId, canDelete = false }: DocumentListProps) 
 
   if (isLoading) return <CollapsibleSection title="Documents" icon={FileText}><LoadingState count={2} /></CollapsibleSection>;
   if (isError) return <CollapsibleSection title="Documents" icon={FileText}><ErrorState message={error?.message ?? "Failed to load documents"} onRetry={() => mutate()} /></CollapsibleSection>;
-  if (documents.length === 0) return null;
+  const hasRequiredDocument = requiredDocument
+    ? documents.some((document) => document.documentType === requiredDocument.type)
+    : true;
 
   return (
     <CollapsibleSection title="Documents" icon={FileText}>
       <div className="space-y-2">
+        {requiredDocument && !hasRequiredDocument && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+            <p className="text-sm font-medium">{requiredDocument.label} required</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Upload this document so it can be reviewed with your leave request.
+            </p>
+            <div className="mt-4">
+              <DocumentUpload
+                leaveId={leaveId}
+                documentType={requiredDocument.type}
+                documentLabel={requiredDocument.label}
+                onUploadSuccess={() => mutate()}
+              />
+            </div>
+          </div>
+        )}
+
         {documents.map((doc: DocumentItem) => (
           <div
             key={doc.id}
