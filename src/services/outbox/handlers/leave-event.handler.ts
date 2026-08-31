@@ -16,7 +16,7 @@ import { studentRepository } from "@/db/repositories/student/student.repository"
 import { userRepository } from "@/db/repositories/user/user.repository";
 import { getPublicBaseUrl } from "@/lib/base-url";
 import { formatShortDate } from "@/lib/date-utils";
-import { NotFoundError, ValidationError } from "@/lib/errors";
+import { DeliveryError, NotFoundError, ValidationError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { recordMovement } from "@/services/movement/record-movement.service";
 import {
@@ -255,7 +255,7 @@ export async function handleLeaveEvent(
     // A notification that never delivered must not be marked PROCESSED —
     // rethrow so the outbox worker requeues/retries the event.
     if (!result.success) {
-      throw new Error(
+      throw new DeliveryError(
         `Notification delivery failed for ${eventType} (${notificationType}): ${result.failures.join("; ")}`
       );
     }

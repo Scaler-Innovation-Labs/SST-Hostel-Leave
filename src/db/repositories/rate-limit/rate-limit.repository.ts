@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
+import { PersistenceError } from "@/lib/errors";
 
 export type RateLimitEntry = {
   key: string;
@@ -43,7 +44,7 @@ export const rateLimitRepository = {
     const row = result.rows[0] as Record<string, unknown> | undefined;
 
     if (!row) {
-      throw new Error("Rate limit increment returned no row");
+      throw new PersistenceError("Rate limit increment returned no row");
     }
 
     return {

@@ -6,6 +6,7 @@ import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 import { formatShortDate } from "@/lib/date-utils";
+import { DeliveryError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import {
   notificationService,
@@ -150,7 +151,7 @@ export async function handleMovementEvent(
     // A notification that never delivered must not be marked PROCESSED —
     // rethrow so the outbox worker requeues/retries the event.
     if (!result.success) {
-      throw new Error(
+      throw new DeliveryError(
         `Notification delivery failed for ${eventType} (${notificationType}): ${result.failures.join("; ")}`
       );
     }

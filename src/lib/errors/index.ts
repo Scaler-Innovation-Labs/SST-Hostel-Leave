@@ -5,6 +5,8 @@ export {
 } from "./auth-error";
 export { ConfigurationError } from "./configuration-error";
 export { ConflictError } from "./conflict-error";
+export { DeliveryError } from "./delivery-error";
 export { NotFoundError } from "./not-found-error";
 export { PermissionError } from "./permission-error";
+export { PersistenceError } from "./persistence-error";
 export { ValidationError } from "./validation-error";

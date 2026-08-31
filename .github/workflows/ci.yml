@@ -23,7 +23,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
           run_install: false
 
       - name: Setup Node.js
@@ -37,24 +37,18 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-        working-directory: ./my-app
 
       - name: Typecheck
         run: pnpm typecheck
-        working-directory: ./my-app
 
       - name: Lint
         run: pnpm lint
-        working-directory: ./my-app
 
       - name: Architecture audit
         run: pnpm audit:architecture
-        working-directory: ./my-app
 
       - name: Test
         run: pnpm test
-        working-directory: ./my-app
 
       - name: Build
         run: pnpm build
-        working-directory: ./my-app

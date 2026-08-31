@@ -16,6 +16,7 @@ import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 import { ROLES } from "@/lib/auth/roles";
+import { DeliveryError } from "@/lib/errors";
 
 import { createEmailProvider } from "./providers/email.provider";
 import { createInAppProvider } from "./providers/in-app.provider";
@@ -390,7 +391,7 @@ async function deliverToRecipient(
 	// Throwing here lets the per-channel try/catch in notify() collect it
 	// into the failures list so the event is retried.
 	if (!result.success) {
-		throw new Error(
+		throw new DeliveryError(
 			`Provider reported delivery failure: ${result.error ?? "unknown error"}`
 		);
 	}
