@@ -1,10 +1,10 @@
 export default function WorkflowsLoading() {
   return (
     <div className="space-y-6">
-      <div className="h-8 w-48 animate-pulse rounded-lg bg-muted" />
+      <div className="h-8 w-48 animate-pulse rounded-lg bg-surface-sunken" />
       <div className="space-y-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-20 animate-pulse rounded-lg bg-muted" />
+          <div key={i} className="h-20 animate-pulse rounded-lg bg-surface-sunken" />
         ))}
       </div>
     </div>

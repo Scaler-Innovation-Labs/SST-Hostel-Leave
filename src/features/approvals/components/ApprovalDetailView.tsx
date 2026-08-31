@@ -303,12 +303,12 @@ function StatBadge({ label, value, variant }: { label: string; value: number; va
     success: "text-emerald-600 bg-emerald-500/10",
     danger: "text-red-600 bg-red-500/10",
     warning: "text-amber-600 bg-amber-500/10",
-    default: "text-muted-foreground bg-muted",
+    default: "text-muted bg-surface-sunken",
   };
   return (
     <div className="text-center">
       <p className={cn("text-lg font-semibold tabular-nums", styles[variant].split(" ")[0])}>{value}</p>
-      <p className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
     </div>
   );
 }
@@ -330,7 +330,7 @@ function SectionCard({
     <div className={cn("rounded-xl border border-border bg-card shadow-sm", className)}>
       <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
         <h3 className="flex items-center gap-2 text-sm font-semibold">
-          <Icon className="h-4 w-4 text-muted-foreground" />
+          <Icon className="h-4 w-4 text-muted" />
           {title}
         </h3>
         {action}
@@ -343,7 +343,7 @@ function SectionCard({
 function DetailRow({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={cn("flex items-start justify-between gap-4", className)}>
-      <dt className="shrink-0 text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</dt>
+      <dt className="shrink-0 text-xs font-medium uppercase tracking-wider text-muted">{label}</dt>
       <dd className="text-right text-sm font-medium">{children}</dd>
     </div>
   );
@@ -620,13 +620,13 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
               <h1 className="font-mono text-xl font-semibold tracking-tight">{requestNumber}</h1>
               <StatusBadge status={status as "approved" | "pending" | "rejected" | "active"} />
               {createdAt && (
-                <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1 text-sm text-muted">
                   <Clock className="h-3.5 w-3.5" />
                   {getTimeWaiting(createdAt)}
                 </span>
               )}
             </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
               <LeaveTypeBadge
                 name={leaveTypeName ?? "—"}
                 color={(leaveTypeUiConfig.color as string | undefined) ?? null}
@@ -635,7 +635,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 <Calendar className="h-3.5 w-3.5" />
                 {formatDate(startAt)} → {formatDate(endAt)}
               </span>
-              <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium">
+              <span className="rounded-md bg-surface-sunken px-2 py-0.5 text-xs font-medium">
                 {getDurationLabel(startAt, endAt)}
               </span>
             </div>
@@ -714,7 +714,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
         <div className="min-w-0 space-y-5">
           {/* Navigation Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full justify-start overflow-x-auto rounded-lg bg-muted/50 p-1">
+            <TabsList className="w-full justify-start overflow-x-auto rounded-lg bg-surface-sunken/50 p-1">
               {TAB_CONFIG.map((tab) => (
                 <TabsTrigger
                   key={tab.id}
@@ -743,36 +743,36 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     </div>
                     <div className="sm:text-center">
                       <p className="font-semibold">{studentName}</p>
-                      <p className="text-xs text-muted-foreground">{rollNumber}</p>
+                      <p className="text-xs text-muted">{rollNumber}</p>
                     </div>
                   </div>
 
                   <div className="grid flex-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
                     {email && (
                       <div className="flex items-center gap-2">
-                        <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                        <a href={`mailto:${email}`} className="truncate text-muted-foreground hover:text-foreground hover:underline">
+                        <Mail className="h-3.5 w-3.5 shrink-0 text-muted" />
+                        <a href={`mailto:${email}`} className="truncate text-muted hover:text-foreground hover:underline">
                           {email}
                         </a>
                       </div>
                     )}
                     {phone && (
                       <div className="flex items-center gap-2">
-                        <Phone className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                        <a href={`tel:${phone}`} className="text-muted-foreground hover:text-foreground hover:underline">
+                        <Phone className="h-3.5 w-3.5 shrink-0 text-muted" />
+                        <a href={`tel:${phone}`} className="text-muted hover:text-foreground hover:underline">
                           {phone}
                         </a>
                       </div>
                     )}
                     {destination && (
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                        <span className="text-muted-foreground">{destination}</span>
+                        <MapPin className="h-3.5 w-3.5 shrink-0 text-muted" />
+                        <span className="text-muted">{destination}</span>
                       </div>
                     )}
                     <div className="flex items-center gap-2">
-                      <Shield className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      <span className={cn("capitalize", status === "active" ? "text-emerald-600" : "text-muted-foreground")}>
+                      <Shield className="h-3.5 w-3.5 shrink-0 text-muted" />
+                      <span className={cn("capitalize", status === "active" ? "text-emerald-600" : "text-muted")}>
                         {status.replace(/_/g, " ")}
                       </span>
                     </div>
@@ -780,7 +780,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 </div>
 
                 {/* Quick Stats */}
-                <div className="mt-4 grid grid-cols-4 gap-3 rounded-lg border border-border bg-muted/30 p-3">
+                <div className="mt-4 grid grid-cols-4 gap-3 rounded-lg border border-border bg-surface-sunken/30 p-3">
                   <StatBadge label="Approved" value={studentStatApproved} variant="success" />
                   <StatBadge label="Pending" value={studentStatPending} variant="warning" />
                   <StatBadge label="Rejected" value={studentStatRejected} variant="danger" />
@@ -793,7 +793,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 <dl className="space-y-3">
                   <DetailRow label="Leave Type">
                     <span className="flex items-center gap-2">
-                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[leaveTypeCategory ?? ""] ?? "bg-muted text-muted-foreground"}`}>
+                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[leaveTypeCategory ?? ""] ?? "bg-surface-sunken text-muted"}`}>
                         {leaveTypeCategory ?? "—"}
                       </span>
                       {leaveType}
@@ -806,13 +806,13 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   </DetailRow>
                   <DetailRow label="Applied">{createdAt ? formatRelative(createdAt) : "—"}</DetailRow>
                   <DetailRow label="Request #">
-                    <span className="font-mono text-xs text-muted-foreground">{requestNumber}</span>
+                    <span className="font-mono text-xs text-muted">{requestNumber}</span>
                   </DetailRow>
                 </dl>
 
                 {reason && reason !== "—" && (
-                  <div className="mt-4 rounded-lg bg-muted/50 p-3">
-                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Reason</p>
+                  <div className="mt-4 rounded-lg bg-surface-sunken/50 p-3">
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted">Reason</p>
                     <p className="text-sm leading-relaxed">{reason}</p>
                   </div>
                 )}
@@ -822,7 +822,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
               <SectionCard title="Policy Evaluation" icon={Shield}>
                 <div className="space-y-2">
                   {policyResult?.checks?.map((policy) => (
-                    <div key={policy.key} className="flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted/50">
+                    <div key={policy.key} className="flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-surface-sunken/50">
                       <span className="flex items-center gap-2.5">
                         <div className={cn("flex h-5 w-5 items-center justify-center rounded-full", policy.passed ? "bg-emerald-500/10" : "bg-red-500/10")}>
                           {policy.passed ? (
@@ -833,7 +833,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                         </div>
                         <span>{policy.label}</span>
                         {policy.message && (
-                          <span className="text-xs text-muted-foreground">— {policy.message}</span>
+                          <span className="text-xs text-muted">— {policy.message}</span>
                         )}
                       </span>
                       <span className={cn("text-xs font-medium", policy.passed ? "text-emerald-600" : "text-red-600")}>
@@ -842,11 +842,11 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     </div>
                   ))}
                   {(!policyResult?.checks || policyResult.checks.length === 0) && (
-                    <p className="text-sm text-muted-foreground">No policy checks configured for this leave type.</p>
+                    <p className="text-sm text-muted">No policy checks configured for this leave type.</p>
                   )}
                   {hasParentApproval && (
                     <div className={cn(
-                      "flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-muted/50",
+                      "flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-surface-sunken/50",
                       parentApproved ? "" : "bg-amber-500/5",
                     )}>
                       <span className="flex items-center gap-2.5">
@@ -867,7 +867,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     </div>
                   )}
                 </div>
-                <p className="mt-3 text-xs text-muted-foreground">
+                <p className="mt-3 text-xs text-muted">
                   {parentPending
                     ? "Parent approval is still pending — waiting for parent response."
                     : !policyResult
@@ -883,8 +883,8 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 <div className="relative">
                   {sortedApprovals.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-6 text-center">
-                      <Clock className="mb-2 h-6 w-6 text-muted-foreground/50" />
-                      <p className="text-sm text-muted-foreground">No approval steps defined.</p>
+                      <Clock className="mb-2 h-6 w-6 text-muted/50" />
+                      <p className="text-sm text-muted">No approval steps defined.</p>
                     </div>
                   ) : (
                     <div className="space-y-0">
@@ -907,7 +907,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                                     ? "border-emerald-500 bg-emerald-500/10"
                                     : decision === "rejected" || decision === "cancelled"
                                     ? "border-red-500 bg-red-500/10"
-                                    : "border-border bg-muted",
+                                    : "border-border bg-surface-sunken",
                                 )}
                               >
                                 <Icon className={cn("h-3.5 w-3.5", config.color)} />
@@ -935,13 +935,13 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                                   {config.label}
                                 </span>
                               </div>
-                              <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                              <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted">
                                 {app.approverRoleCode && <span>{app.approverRoleCode}</span>}
                                 {app.approverName && <span>· {app.approverName}</span>}
                                 {app.createdAt && <span>· {formatRelative(app.createdAt)}</span>}
                               </div>
                               {app.comments && (
-                                <div className="mt-1.5 rounded-lg bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground">
+                                <div className="mt-1.5 rounded-lg bg-surface-sunken/50 px-3 py-1.5 text-xs text-muted">
                                   &ldquo;{app.comments}&rdquo;
                                 </div>
                               )}
@@ -972,8 +972,8 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
               <SectionCard title="Approval Workflow" icon={Users}>
                 {sortedApprovals.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <Clock className="mb-3 h-10 w-10 text-muted-foreground/50" />
-                    <p className="text-sm text-muted-foreground">No approval steps defined for this leave type.</p>
+                    <Clock className="mb-3 h-10 w-10 text-muted/50" />
+                    <p className="text-sm text-muted">No approval steps defined for this leave type.</p>
                   </div>
                 ) : (
                   <div className="relative">
@@ -987,7 +987,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold">Student Submitted</p>
-                        {createdAt && <p className="text-xs text-muted-foreground">{formatDateTime(createdAt)}</p>}
+                        {createdAt && <p className="text-xs text-muted">{formatDateTime(createdAt)}</p>}
                       </div>
                     </div>
 
@@ -1010,7 +1010,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                                   ? "border-emerald-500 bg-emerald-500/10"
                                   : decision === "rejected" || decision === "cancelled"
                                   ? "border-red-500 bg-red-500/10"
-                                  : "border-border bg-muted",
+                                  : "border-border bg-surface-sunken",
                               )}
                             >
                               <Icon className={cn("h-4 w-4", config.color)} />
@@ -1033,15 +1033,15 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                               </span>
                             </div>
 
-                            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
                               <span className="font-medium">{app.approverRoleCode ?? "—"}</span>
                               {app.approverName && <span>· {app.approverName}</span>}
                               {app.createdAt && <span>· {formatDateTime(app.createdAt)}</span>}
                             </div>
 
                             {app.comments && (
-                              <div className="mt-2 rounded-lg bg-muted/50 px-3 py-2 text-sm">
-                                <span className="text-xs font-medium text-muted-foreground">Comment:</span> {app.comments}
+                              <div className="mt-2 rounded-lg bg-surface-sunken/50 px-3 py-2 text-sm">
+                                <span className="text-xs font-medium text-muted">Comment:</span> {app.comments}
                               </div>
                             )}
                           </div>
@@ -1117,8 +1117,8 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   if (events.length === 0) {
                     return (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
-                        <Clock className="mb-3 h-10 w-10 text-muted-foreground/50" />
-                        <p className="text-sm text-muted-foreground">No activity recorded yet.</p>
+                        <Clock className="mb-3 h-10 w-10 text-muted/50" />
+                        <p className="text-sm text-muted">No activity recorded yet.</p>
                       </div>
                     );
                   }
@@ -1148,7 +1148,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                             </div>
                             <div className={cn("min-w-0 flex-1 pb-4", _isLast && "pb-0")}>
                               <p className="text-sm font-medium">{event.label}</p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-muted">
                                 {formatDateTime(event.timestamp)}
                                 {event.actor && <span> · by {event.actor}</span>}
                               </p>
@@ -1167,12 +1167,12 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
               <SectionCard title="Audit Trail" icon={History}>
                 {auditLoading ? (
                   <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    <Loader2 className="h-5 w-5 animate-spin text-muted" />
                   </div>
                 ) : !auditData?.data || auditData.data.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <History className="mb-3 h-10 w-10 text-muted-foreground/50" />
-                    <p className="text-sm text-muted-foreground">No audit records yet.</p>
+                    <History className="mb-3 h-10 w-10 text-muted/50" />
+                    <p className="text-sm text-muted">No audit records yet.</p>
                   </div>
                 ) : (
                   <div className="relative">
@@ -1183,8 +1183,8 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                         return (
                           <div key={entry.id} className="relative flex gap-3">
                             <div className="flex flex-col items-center">
-                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted">
-                                <History className="h-3 w-3 text-muted-foreground" />
+                              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-sunken">
+                                <History className="h-3 w-3 text-muted" />
                               </div>
                               {!_isLast && <div className="h-full w-0.5 bg-border" />}
                             </div>
@@ -1192,7 +1192,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                               <p className="text-sm font-medium capitalize">
                                 {entry.action.replace(/_/g, " ").toLowerCase()}
                               </p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-muted">
                                 {formatDateTime(entry.createdAt)}
                                 {entry.actorUserId && <span> · by user {entry.actorUserId.slice(0, 8)}</span>}
                               </p>
@@ -1215,8 +1215,8 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
               <SectionCard title="Attachments" icon={FileText}>
                 {documents.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <FileText className="mb-3 h-10 w-10 text-muted-foreground/50" />
-                    <p className="text-sm text-muted-foreground">No documents attached.</p>
+                    <FileText className="mb-3 h-10 w-10 text-muted/50" />
+                    <p className="text-sm text-muted">No documents attached.</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -1228,19 +1228,19 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                           href={doc.fileUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="group flex items-center gap-3 rounded-lg border border-border bg-card p-3 transition-all hover:border-muted-foreground/30 hover:shadow-sm"
+                          className="group flex items-center gap-3 rounded-lg border border-border bg-card p-3 transition-all hover:border-muted/30 hover:shadow-sm"
                         >
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                            <DocIcon className="h-5 w-5 text-muted-foreground" />
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-sunken">
+                            <DocIcon className="h-5 w-5 text-muted" />
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium group-hover:text-foreground">{doc.fileName}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted">
                               {doc.mimeType ?? "Unknown type"}
                               {doc.fileSize && ` · ${(doc.fileSize / 1024).toFixed(1)} KB`}
                             </p>
                           </div>
-                          <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                          <ExternalLink className="h-4 w-4 shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100" />
                         </a>
                       );
                     })}
@@ -1256,26 +1256,26 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
           {/* Status Card */}
           <div className="rounded-xl border border-border bg-card shadow-sm">
             <div className="border-b border-border px-4 py-3">
-              <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
                 <Info className="h-3.5 w-3.5" />
                 Status Info
               </h3>
             </div>
             <div className="space-y-3 p-4 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Status</span>
+                <span className="text-muted">Status</span>
                 <StatusBadge status={status as "approved" | "pending" | "rejected" | "active"} />
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Current Step</span>
+                <span className="text-muted">Current Step</span>
                 <span className="font-medium">{currentStepKey?.replace(/_/g, " ") ?? "—"}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Current Approver</span>
+                <span className="text-muted">Current Approver</span>
                 <span className="font-medium">{currentApproval?.approverRoleCode ?? "—"}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">SLA</span>
+                <span className="text-muted">SLA</span>
                 <span className="flex items-center gap-1 font-medium text-amber-600">
                   <Clock className="h-3 w-3" />
                   {hoursSinceCreation !== null ? `${hoursSinceCreation}h` : "—"}
@@ -1283,7 +1283,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
               </div>
               {hasParentApproval && (
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Parent</span>
+                  <span className="text-muted">Parent</span>
                   <span className={cn(
                     "flex items-center gap-1 font-medium",
                     parentApproved ? "text-emerald-600" : parentRejected ? "text-red-600" : "text-amber-600",
@@ -1294,17 +1294,17 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 </div>
               )}
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">QR Status</span>
+                <span className="text-muted">QR Status</span>
                 <span className={cn(
                   "flex items-center gap-1 font-medium",
-                  isActive ? "text-emerald-600" : "text-muted-foreground",
+                  isActive ? "text-emerald-600" : "text-muted",
                 )}>
                   <QrCode className="h-3 w-3" />
                   {isActive ? "Active" : "—"}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Policy</span>
+                <span className="text-muted">Policy</span>
                 <span className="font-medium text-emerald-600">Passed</span>
               </div>
             </div>
@@ -1314,7 +1314,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
           {isPending && currentApproval && viewerCanAct && (
             <div className="rounded-xl border border-border bg-card shadow-sm">
               <div className="border-b border-border px-4 py-3">
-                <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
                   <Send className="h-3.5 w-3.5" />
                   Actions
                 </h3>
@@ -1364,13 +1364,13 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
           {isPending && currentApproval && !viewerCanAct && (
             <div className="rounded-xl border border-border bg-card shadow-sm">
               <div className="border-b border-border px-4 py-3">
-                <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
                   <Clock className="h-3.5 w-3.5" />
                   Waiting
                 </h3>
               </div>
               <div className="space-y-2.5 p-4 text-sm">
-                <p className="text-muted-foreground">
+                <p className="text-muted">
                   This request is waiting on{" "}
                   <span className="font-medium text-foreground">
                     {(currentApproval.approverRoleCode ?? "next approver").replace(/_/g, " ")}
@@ -1401,29 +1401,29 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
           {/* Leave Summary Mini Card */}
           <div className="rounded-xl border border-border bg-card shadow-sm">
             <div className="border-b border-border px-4 py-3">
-              <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
                 <Calendar className="h-3.5 w-3.5" />
                 Summary
               </h3>
             </div>
             <div className="space-y-2.5 p-4 text-sm">
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Type</span>
+                <span className="text-muted">Type</span>
                 <span className="font-medium">{leaveType}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Duration</span>
+                <span className="text-muted">Duration</span>
                 <span className="font-medium">{getDurationLabel(startAt, endAt)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Student</span>
+                <span className="text-muted">Student</span>
                 <span className="max-w-[140px] truncate font-medium" title={studentName}>
                   {studentName}
                 </span>
               </div>
               {attendance !== null && (
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Attendance</span>
+                  <span className="text-muted">Attendance</span>
                   <span className={cn("font-medium tabular-nums", attendance < 75 ? "text-red-600" : "text-emerald-600")}>
                     {attendance}%
                   </span>
@@ -1453,37 +1453,37 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
           <div className="space-y-4 py-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
-                Comment <span className="text-muted-foreground/50">(optional)</span>
+              <label className="mb-1.5 block text-sm font-medium text-muted">
+                Comment <span className="text-muted/50">(optional)</span>
               </label>
               <textarea
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
                 placeholder="Add a note about your approval..."
                 rows={3}
-                className="w-full rounded-lg border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
               />
             </div>
 
             {!isPocViewer && (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
-                  CC recipients <span className="text-muted-foreground/50">(optional)</span>
+                <label className="mb-1.5 block text-sm font-medium text-muted">
+                  CC recipients <span className="text-muted/50">(optional)</span>
                 </label>
                 <input
                   type="text"
                   value={ccEmailsInput}
                   onChange={(e) => setCcEmailsInput(e.target.value)}
                   placeholder="name@example.com, another@example.com"
-                  className="w-full rounded-lg border border-input bg-background p-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="w-full rounded-lg border border-input bg-background p-2.5 text-sm outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
                 />
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-muted">
                   These addresses will be CC&apos;d on the approval email sent to the student.
                 </p>
               </div>
             )}
 
-            <div className="space-y-2.5 rounded-lg border border-border bg-muted/30 p-3">
+            <div className="space-y-2.5 rounded-lg border border-border bg-surface-sunken/30 p-3">
               {!isPocViewer && (
                 <>
                   <label className="flex items-center gap-3">
@@ -1516,7 +1516,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   />
                   <span className="text-sm">
                     <strong>I confirm that the documents have been verified</strong>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    <p className="mt-0.5 text-xs text-muted">
                       This leave type requires document verification before approval.
                     </p>
                   </span>
@@ -1616,7 +1616,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
           <div className="space-y-4 py-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
+              <label className="mb-1.5 block text-sm font-medium text-muted">
                 Category <span className="text-destructive">*</span>
               </label>
               <Select value={rejectionCategory} onValueChange={setRejectionCategory}>
@@ -1634,7 +1634,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
+              <label className="mb-1.5 block text-sm font-medium text-muted">
                 Reason <span className="text-destructive">*</span>
               </label>
               <textarea
@@ -1642,11 +1642,11 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 onChange={(e) => setComments(e.target.value)}
                 placeholder="Explain why this leave is being rejected..."
                 rows={3}
-                className="w-full rounded-lg border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
               />
             </div>
 
-            <div className="space-y-2.5 rounded-lg border border-border bg-muted/30 p-3">
+            <div className="space-y-2.5 rounded-lg border border-border bg-surface-sunken/30 p-3">
               <label className="flex items-center gap-3">
                 <input
                   type="checkbox"
@@ -1656,7 +1656,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 />
                 <div>
                   <span className="text-sm font-medium">Needs resubmission</span>
-                  <p className="text-xs text-muted-foreground">Allow student to reapply with corrections</p>
+                  <p className="text-xs text-muted">Allow student to reapply with corrections</p>
                 </div>
               </label>
               {!isPocViewer && (
@@ -1733,7 +1733,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
           <div className="space-y-4 py-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
+              <label className="mb-1.5 block text-sm font-medium text-muted">
                 Override Mode
               </label>
               <Select value={overrideMode} onValueChange={(v) => setOverrideMode(v as "ONE_STEP" | "ALL")}>
@@ -1745,7 +1745,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   <SelectItem value="ALL">Approve All (Finalize)</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="mt-1.5 text-xs text-muted-foreground">
+              <p className="mt-1.5 text-xs text-muted">
                 {overrideMode === "ONE_STEP"
                   ? "Advances the leave to the next approval step. Workflow continues normally."
                   : "Approves all pending steps and finalizes the leave. This is irreversible."}
@@ -1753,15 +1753,15 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
-                Comment <span className="text-muted-foreground/50">(optional)</span>
+              <label className="mb-1.5 block text-sm font-medium text-muted">
+                Comment <span className="text-muted/50">(optional)</span>
               </label>
               <textarea
                 value={overrideComments}
                 onChange={(e) => setOverrideComments(e.target.value)}
                 placeholder="Reason for override..."
                 rows={2}
-                className="w-full rounded-lg border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
               />
             </div>
 

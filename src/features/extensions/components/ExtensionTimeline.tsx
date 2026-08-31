@@ -35,13 +35,13 @@ export function ExtensionTimeline({ extensions }: ExtensionTimelineProps) {
                 status={ext.status as "pending" | "approved" | "rejected" | "cancelled"}
               />
             </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="mt-0.5 text-xs text-muted">
               Requested end: {new Date(ext.requestedEndAt).toLocaleDateString()}
             </p>
             {ext.reason && (
-              <p className="mt-1 text-sm text-muted-foreground">{ext.reason}</p>
+              <p className="mt-1 text-sm text-muted">{ext.reason}</p>
             )}
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="mt-0.5 text-xs text-muted">
               {new Date(ext.createdAt).toLocaleDateString()}
             </p>
           </div>

@@ -108,7 +108,7 @@ export default function SuperAdminUsersPage() {
       {/* Search & Filters */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative flex-1 sm:max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <Input
             placeholder="Search by name or email..."
             value={search}
@@ -117,7 +117,7 @@ export default function SuperAdminUsersPage() {
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+          <SlidersHorizontal className="h-4 w-4 text-muted" />
           <select
             aria-label="Filter by role"
             value={role}
@@ -143,7 +143,7 @@ export default function SuperAdminUsersPage() {
 
       {/* Summary bar */}
       {!isLoading && users.length > 0 && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm text-muted">
           <span className="font-medium text-foreground">{total}</span>
           <span>user{total !== 1 ? "s" : ""} found</span>
         </div>
@@ -171,7 +171,7 @@ export default function SuperAdminUsersPage() {
               <Link
                 key={user.id}
                 href={`/super-admin/users/${user.id}`}
-                className="group flex items-center gap-4 px-6 py-4 transition-all hover:bg-muted/50"
+                className="group flex items-center gap-4 px-6 py-4 transition-all hover:bg-surface-sunken/50"
               >
                 {/* Avatar */}
                 <div
@@ -190,7 +190,7 @@ export default function SuperAdminUsersPage() {
                       </span>
                     )}
                   </div>
-                  <div className="mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="mt-0.5 flex items-center gap-3 text-xs text-muted">
                     <span className="flex items-center gap-1">
                       <Mail className="h-3 w-3" />
                       {user.email}
@@ -203,14 +203,14 @@ export default function SuperAdminUsersPage() {
                   {user.userRoles.map((r) => (
                     <span
                       key={r.roleCode}
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ROLE_STYLES[r.roleCode] ?? "bg-muted text-muted-foreground"}`}
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ROLE_STYLES[r.roleCode] ?? "bg-surface-sunken text-muted"}`}
                     >
                       <Shield className="mr-1 h-3 w-3" />
                       {ROLE_LABELS[r.roleCode] ?? r.roleName}
                     </span>
                   ))}
                   {user.userRoles.length === 0 && (
-                    <span className="text-xs text-muted-foreground">No roles</span>
+                    <span className="text-xs text-muted">No roles</span>
                   )}
                 </div>
 
@@ -224,7 +224,7 @@ export default function SuperAdminUsersPage() {
                 </div>
 
                 {/* Chevron */}
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-all group-hover:opacity-100" />
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted opacity-0 transition-all group-hover:opacity-100" />
               </Link>
             ))}
           </div>

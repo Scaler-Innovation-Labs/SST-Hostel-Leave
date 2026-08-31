@@ -57,6 +57,10 @@ export default defineConfig([
           pattern: "src/components/**/*",
         },
         {
+          type: "design-system",
+          pattern: "src/design-system/**/*",
+        },
+        {
           type: "constant",
           pattern: "src/constants/**/*",
         },
@@ -196,6 +200,16 @@ export default defineConfig([
             },
 
             {
+              from: "design-system",
+              allow: [
+                "lib",
+                "constant",
+                "type",
+                "design-system",
+              ],
+            },
+
+            {
               from: "schema",
               allow: [],
             },
@@ -212,6 +226,7 @@ export default defineConfig([
   {
     files: [
       "src/components/**/*.tsx",
+      "src/design-system/**/*.tsx",
       "src/features/**/components/**/*.tsx",
       "src/providers/**/*.tsx",
       "src/app/**/*.tsx",

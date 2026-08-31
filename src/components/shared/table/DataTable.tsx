@@ -35,12 +35,12 @@ export function DataTable<T extends Record<string, unknown>>({
     >
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="border-b border-border bg-muted/50">
+          <thead className="border-b border-border bg-surface-sunken/50">
             <tr>
               {columns.map((column, i) => (
                 <th
                   key={`${String(column.key)}-${i}`}
-                  className="px-4 py-3 text-left font-medium text-muted-foreground"
+                  className="px-4 py-3 text-left font-medium text-muted"
                 >
                   {column.header}
                 </th>
@@ -53,7 +53,7 @@ export function DataTable<T extends Record<string, unknown>>({
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="px-4 py-12 text-center text-sm text-muted-foreground"
+                  className="px-4 py-12 text-center text-sm text-muted"
                 >
                   No data found
                 </td>
@@ -63,8 +63,8 @@ export function DataTable<T extends Record<string, unknown>>({
                 <tr
                   key={index}
                   className={cn(
-                    "border-b border-border transition-colors hover:bg-muted/40",
-                    index % 2 === 1 && "bg-muted/20",
+                    "border-b border-border transition-colors hover:bg-surface-sunken/40",
+                    index % 2 === 1 && "bg-surface-sunken/20",
                   )}
                 >
                   {columns.map((column, i) => (

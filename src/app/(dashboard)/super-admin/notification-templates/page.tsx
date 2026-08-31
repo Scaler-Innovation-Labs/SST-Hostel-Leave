@@ -141,14 +141,14 @@ export default function NotificationTemplatesPage() {
           </div>
 
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <p className="text-sm text-muted">Loading...</p>
           ) : isError ? (
             <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-card p-12">
-              <p className="text-sm text-muted-foreground">Failed to load templates.</p>
+              <p className="text-sm text-muted">Failed to load templates.</p>
               <Button variant="outline" onClick={() => mutate()}>Retry</Button>
             </div>
           ) : templates.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted">
               No notification templates configured.
             </p>
           ) : (
@@ -165,12 +165,12 @@ export default function NotificationTemplatesPage() {
                     <span className="text-sm font-medium">{tpl.code}</span>
                     <div className="mt-1 flex flex-wrap gap-1">
                       <span
-                        className="rounded-full bg-muted px-2 py-0.5 text-xs"
+                        className="rounded-full bg-surface-sunken px-2 py-0.5 text-xs"
                       >
                         {EVENT_LABELS[tpl.eventKey] ?? tpl.eventKey}
                       </span>
                       <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${CHANNEL_COLORS[tpl.channel] ?? "bg-muted text-muted-foreground"}`}
+                        className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${CHANNEL_COLORS[tpl.channel] ?? "bg-surface-sunken text-muted"}`}
                       >
                         {CHANNEL_LABELS[tpl.channel] ?? tpl.channel}
                       </span>
@@ -180,7 +180,7 @@ export default function NotificationTemplatesPage() {
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
                       tpl.isActive
                         ? "bg-emerald-500/10 text-emerald-600"
-                        : "bg-muted text-muted-foreground"
+                        : "bg-surface-sunken text-muted"
                     }`}
                   >
                     {tpl.isActive ? "Active" : "Inactive"}

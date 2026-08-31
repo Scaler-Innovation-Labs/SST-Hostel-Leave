@@ -11,7 +11,7 @@ type ExtensionHistoryProps = {
 export function ExtensionHistory({ leaveId }: ExtensionHistoryProps) {
   const { data, isLoading, isError } = useLeaveExtensions(leaveId);
 
-  if (isLoading) return <p className="text-sm text-muted-foreground">Loading extensions...</p>;
+  if (isLoading) return <p className="text-sm text-muted">Loading extensions...</p>;
   if (isError) return <p className="text-sm text-destructive">Failed to load extension history</p>;
   if (!data?.items || data.items.length === 0) return null;
 

@@ -49,7 +49,7 @@ export function WorkflowSection() {
               One lifecycle, end to end.
             </h2>
 
-            <p className="mt-4 text-lg text-muted-foreground">
+            <p className="mt-4 text-lg text-muted">
               Every leave follows a transparent path from request to verified
               movement — nothing happens outside the record.
             </p>
@@ -73,7 +73,7 @@ export function WorkflowSection() {
                 <div
                   className="
                     relative h-full rounded-2xl border
-                    border-border bg-card p-6 transition-colors hover:bg-accent/30
+                    border-border bg-card p-6 transition-colors hover:bg-surface-hover
                   "
                 >
                   <div
@@ -86,7 +86,7 @@ export function WorkflowSection() {
                     <step.icon className="size-5" />
                   </div>
 
-                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
                     Step {index + 1}
                   </p>
 
@@ -94,7 +94,7 @@ export function WorkflowSection() {
                     {step.title}
                   </h3>
 
-                  <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                  <p className="mt-3 text-sm leading-6 text-muted">
                     {step.desc}
                   </p>
                 </div>

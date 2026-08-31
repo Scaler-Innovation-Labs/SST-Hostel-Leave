@@ -75,17 +75,17 @@ export function MovementQrTab({ period }: MovementQrTabProps) {
         <LeaveTypePieChart title="QR Passes by Status" data={d.qrByStatus} />
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <h3 className="mb-1 text-base font-semibold">Top Scan Failure Reasons</h3>
-          <p className="mb-4 text-sm text-muted-foreground">Most common reasons QR scans are rejected.</p>
+          <p className="mb-4 text-sm text-muted">Most common reasons QR scans are rejected.</p>
           {d.topFailureReasons.length === 0 ? (
             <div className="flex h-[220px] items-center justify-center">
-              <p className="text-sm text-muted-foreground">No failure reasons recorded.</p>
+              <p className="text-sm text-muted">No failure reasons recorded.</p>
             </div>
           ) : (
             <ul className="space-y-3">
               {d.topFailureReasons.map((item) => (
                 <li key={item.reason} className="flex items-center justify-between gap-4">
-                  <span className="truncate text-sm text-muted-foreground">{item.reason}</span>
-                  <span className="shrink-0 rounded-md bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums">
+                  <span className="truncate text-sm text-muted">{item.reason}</span>
+                  <span className="shrink-0 rounded-md bg-surface-sunken px-2 py-0.5 text-xs font-semibold tabular-nums">
                     {item.count}
                   </span>
                 </li>

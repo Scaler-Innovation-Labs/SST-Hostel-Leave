@@ -257,7 +257,7 @@ export default function SuperAdminParentsPage() {
         <section className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
               <input
                 type="text"
                 placeholder="Search parents..."
@@ -289,7 +289,7 @@ export default function SuperAdminParentsPage() {
                   Download CSV Template
                 </a>
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted">
                 Upload a CSV (.csv) or Excel (.xlsx/.xls) file. Required fields:{" "}
                 <code>studentEmail</code>, <code>name</code>, <code>phone</code>, <code>relationship</code>.
               </p>
@@ -301,7 +301,7 @@ export default function SuperAdminParentsPage() {
                   onChange={handleFileUpload}
                   className="text-sm"
                 />
-                <span className="text-xs text-muted-foreground">or</span>
+                <span className="text-xs text-muted">or</span>
               </div>
               <textarea
                 value={bulkJson}
@@ -331,14 +331,14 @@ export default function SuperAdminParentsPage() {
           )}
 
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <p className="text-sm text-muted">Loading...</p>
           ) : error ? (
             <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-card p-12">
-              <p className="text-sm text-muted-foreground">Failed to load parents.</p>
+              <p className="text-sm text-muted">Failed to load parents.</p>
               <Button variant="outline" onClick={() => mutate()}>Retry</Button>
             </div>
           ) : !parents || parents.items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No parents found.</p>
+            <p className="text-sm text-muted">No parents found.</p>
           ) : (
             <div className="space-y-2">
               {parents.items.map((parent) => (
@@ -352,13 +352,13 @@ export default function SuperAdminParentsPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <span className="text-sm font-medium">{parent.name}</span>
-                      <div className="mt-0.5 text-xs text-muted-foreground">
+                      <div className="mt-0.5 text-xs text-muted">
                         {parent.relationship}
                         {parent.studentName && (
                           <> &middot; {parent.studentName} ({parent.studentRollNumber ?? "—"})</>
                         )}
                       </div>
-                      <div className="mt-0.5 text-xs text-muted-foreground">
+                      <div className="mt-0.5 text-xs text-muted">
                         {parent.phone}
                         {parent.email && <> &middot; {parent.email}</>}
                       </div>
@@ -399,7 +399,7 @@ export default function SuperAdminParentsPage() {
                 <label className="block text-sm">
                   <span className="mb-1 block font-medium">Student</span>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
                     <input
                       type="text"
                       placeholder="Search students..."
@@ -419,7 +419,7 @@ export default function SuperAdminParentsPage() {
                           setDraft({ ...draft, studentId: s.id });
                           setStudentSearch(s.fullName);
                         }}
-                        className={`w-full rounded-md px-2 py-1.5 text-left text-xs hover:bg-muted ${
+                        className={`w-full rounded-md px-2 py-1.5 text-left text-xs hover:bg-surface-sunken ${
                           draft.studentId === s.id ? "bg-primary/10" : ""
                         }`}
                       >
@@ -446,7 +446,7 @@ export default function SuperAdminParentsPage() {
             )}
 
             {draft.id && (
-              <div className="rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+              <div className="rounded-lg bg-surface-sunken/30 px-3 py-2 text-xs text-muted">
                 Student ID: {draft.studentId}
               </div>
             )}

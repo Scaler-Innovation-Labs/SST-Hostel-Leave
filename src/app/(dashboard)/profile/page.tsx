@@ -33,7 +33,7 @@ export default async function ProfilePage() {
               {user?.fullName}
             </h2>
 
-            <p className="mt-1 text-muted-foreground">
+            <p className="mt-1 text-muted">
               {
                 user?.primaryEmailAddress
                   ?.emailAddress

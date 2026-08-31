@@ -244,12 +244,12 @@ export default function LeaveTypesPage() {
                       )}
                       {lt.name}
                     </span>
-                    <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+                    <p className="mt-0.5 font-mono text-xs text-muted">
                       {lt.code} · v{lt.version}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[lt.category] ?? "bg-muted text-muted-foreground"}`}>
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[lt.category] ?? "bg-surface-sunken text-muted"}`}>
                       {CATEGORY_LABELS[lt.category] ?? lt.category}
                     </span>
                     {isSpecial && (
@@ -261,14 +261,14 @@ export default function LeaveTypesPage() {
                       className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                         lt.isActive
                           ? "bg-green-100 text-green-800"
-                          : "bg-muted text-muted-foreground"
+                          : "bg-surface-sunken text-muted"
                       }`}
                     >
                       {lt.isActive ? "Active" : "Inactive"}
                     </span>
                   </div>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-muted">
                   {lt.formSchema.fields.length} form fields
                   {lt.allowExtensions ? ` · ${lt.maxExtensionCount ?? "?"} max extensions` : " · No extensions"}
                 </p>
@@ -284,7 +284,7 @@ export default function LeaveTypesPage() {
 
           {/* ── Section 1: Basic Information ── */}
           <div>
-            <p className="mb-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <p className="mb-3 text-xs font-medium text-muted uppercase tracking-wider">
               Leave Type Information
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -347,7 +347,7 @@ export default function LeaveTypesPage() {
               />
             </label>
 
-            <div className="mt-4 space-y-3 rounded-lg border bg-muted/10 p-4">
+            <div className="mt-4 space-y-3 rounded-lg border bg-surface-sunken/10 p-4">
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -372,7 +372,7 @@ export default function LeaveTypesPage() {
               )}
             </div>
 
-            <div className="mt-4 space-y-3 rounded-lg border bg-muted/10 p-4">
+            <div className="mt-4 space-y-3 rounded-lg border bg-surface-sunken/10 p-4">
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
@@ -385,13 +385,13 @@ export default function LeaveTypesPage() {
                 </span>
               </label>
               {draft.isSpecial && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted">
                   Admin will be required to confirm document verification before approving this leave type.
                 </p>
               )}
             </div>
 
-            <div className="mt-4 space-y-3 rounded-lg border bg-muted/10 p-4">
+            <div className="mt-4 space-y-3 rounded-lg border bg-surface-sunken/10 p-4">
               <label className="block text-sm">
                 <span className="mb-2 block font-medium">Color</span>
                 <span className="flex flex-wrap items-center gap-2">
@@ -414,7 +414,7 @@ export default function LeaveTypesPage() {
 
           {/* ── Section 2: Workflow Configuration ── */}
           <div>
-            <p className="mb-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <p className="mb-3 text-xs font-medium text-muted uppercase tracking-wider">
               Workflow Configuration
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -449,10 +449,10 @@ export default function LeaveTypesPage() {
 
           {/* ── Section 3: Dynamic Form Builder ── */}
           <div>
-            <p className="mb-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <p className="mb-3 text-xs font-medium text-muted uppercase tracking-wider">
               Form Builder
             </p>
-            <div className="rounded-lg border bg-muted/10 p-4">
+            <div className="rounded-lg border bg-surface-sunken/10 p-4">
               <DynamicFormBuilder
                 schema={draft.formSchema as { fields: Array<{ key: string; label: string; type: string; required?: boolean; placeholder?: string; options?: string[]; minLength?: number; maxLength?: number }> }}
                 onChange={(schema) => setDraft({ ...draft, formSchema: schema as { fields: Array<FormField> } })}
@@ -462,13 +462,13 @@ export default function LeaveTypesPage() {
 
           {/* ── Section 5: Preview ── */}
           <div>
-            <p className="mb-3 flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <p className="mb-3 flex items-center gap-1.5 text-xs font-medium text-muted uppercase tracking-wider">
               <Eye className="size-3" />
               Student Preview
             </p>
             <div className="rounded-lg border bg-background p-4">
               {draft.formSchema.fields.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No form fields configured.</p>
+                <p className="text-xs text-muted">No form fields configured.</p>
               ) : (
                 <div className="space-y-3">
                   {draft.formSchema.fields.map((field) => (
@@ -481,13 +481,13 @@ export default function LeaveTypesPage() {
                         <textarea
                           readOnly
                           placeholder={field.placeholder ?? `Enter ${(field.label ?? '').toLowerCase()}...`}
-                          className="w-full rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground outline-none"
+                          className="w-full rounded-md border bg-surface-sunken/30 px-3 py-2 text-xs text-muted outline-none"
                           rows={3}
                         />
                       ) : field.type === "select" ? (
                         <select
                           disabled
-                          className="h-8 w-full rounded-md border bg-muted/30 px-3 text-xs text-muted-foreground outline-none"
+                          className="h-8 w-full rounded-md border bg-surface-sunken/30 px-3 text-xs text-muted outline-none"
                         >
                           <option>{field.placeholder ?? `Select ${(field.label ?? '').toLowerCase()}...`}</option>
                           {field.options?.map((opt) => (
@@ -498,11 +498,11 @@ export default function LeaveTypesPage() {
                         <input
                           readOnly
                           placeholder={field.placeholder ?? `Enter ${(field.label ?? '').toLowerCase()}...`}
-                          className="h-8 w-full rounded-md border bg-muted/30 px-3 text-xs text-muted-foreground outline-none"
+                          className="h-8 w-full rounded-md border bg-surface-sunken/30 px-3 text-xs text-muted outline-none"
                         />
                       )}
                       {field.minLength != null && field.maxLength != null && (
-                        <p className="mt-0.5 text-[10px] text-muted-foreground">
+                        <p className="mt-0.5 text-[10px] text-muted">
                           {field.minLength}–{field.maxLength} characters
                         </p>
                       )}
@@ -517,7 +517,7 @@ export default function LeaveTypesPage() {
           {message && (
             <p
               className={`text-sm ${
-                message === "Leave type saved." ? "text-green-600" : "text-muted-foreground"
+                message === "Leave type saved." ? "text-green-600" : "text-muted"
               }`}
             >
               {message}

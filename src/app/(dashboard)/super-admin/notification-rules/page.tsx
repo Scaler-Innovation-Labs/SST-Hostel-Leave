@@ -176,9 +176,9 @@ export default function NotificationRulesPage() {
           </div>
 
           {loading ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <p className="text-sm text-muted">Loading...</p>
           ) : rules.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted">
               No global notification rules configured.
             </p>
           ) : (
@@ -197,7 +197,7 @@ export default function NotificationRulesPage() {
                       {rule.recipientTypes.map((rt) => (
                         <span
                           key={rt}
-                          className="rounded-full bg-muted px-2 py-0.5 text-xs"
+                          className="rounded-full bg-surface-sunken px-2 py-0.5 text-xs"
                         >
                           {RECIPIENT_LABELS[rt] ?? rt}
                         </span>
@@ -214,7 +214,7 @@ export default function NotificationRulesPage() {
                       ))}
                     </div>
                   </div>
-                  <span className="shrink-0 text-xs text-muted-foreground">
+                  <span className="shrink-0 text-xs text-muted">
                     {rule.templateCode}
                   </span>
                 </div>

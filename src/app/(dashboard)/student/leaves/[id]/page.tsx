@@ -96,7 +96,7 @@ function getLeaveTypeColor(leaveTypeName: string): string {
   if (name.includes("NIGHT") || name.includes("STAY") || name.includes("OVERNIGHT")) return "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20";
   if (name.includes("CASUAL") || name.includes("LOCAL") || name.includes("OUTING")) return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
   if (name.includes("GENERAL")) return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
-  return "bg-muted text-muted-foreground border-border";
+  return "bg-surface-sunken text-muted border-border";
 }
 
 // ─── Shared Sub-Components ──────────────────────────────────
@@ -106,7 +106,7 @@ function StatusChip({ variant, children }: { variant: "success" | "warning" | "e
     success: "border-emerald-500/30 bg-emerald-500/5 text-emerald-600",
     warning: "border-amber-500/30 bg-amber-500/5 text-amber-600",
     error: "border-red-500/30 bg-red-500/5 text-red-600",
-    muted: "border-muted-foreground/30 bg-muted/30 text-muted-foreground",
+    muted: "border-muted/30 bg-surface-sunken/30 text-muted",
   };
   return (
     <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium", styles[variant])}>
@@ -144,20 +144,20 @@ function SummaryHero({ leave }: { leave: Record<string, unknown> }) {
             </div>
             <div className="mt-3 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
               <div>
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Start</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-muted">Start</span>
                 <p className="mt-0.5 font-medium">{formatDateTime(leave.startAt as string)}</p>
               </div>
               <div>
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">End</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-muted">End</span>
                 <p className="mt-0.5 font-medium">{formatDateTime(leave.endAt as string)}</p>
               </div>
               <div>
-                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Duration</span>
+                <span className="text-xs font-medium uppercase tracking-wider text-muted">Duration</span>
                 <p className="mt-0.5 font-medium">{getDurationLabel(leave.startAt as string, leave.endAt as string)}</p>
               </div>
               {destination && (
                 <div>
-                  <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Destination</span>
+                  <span className="text-xs font-medium uppercase tracking-wider text-muted">Destination</span>
                   <p className="mt-0.5 font-medium">{destination}</p>
                 </div>
               )}
@@ -188,14 +188,14 @@ function SummaryHero({ leave }: { leave: Record<string, unknown> }) {
         </div>
 
         <div className="flex shrink-0 flex-col gap-1.5 text-right text-sm">
-          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Request</span>
+          <span className="text-xs font-medium uppercase tracking-wider text-muted">Request</span>
           <span className="font-mono text-sm">{(leave.requestNumber as string) ?? (leave.id as string)?.slice(0, 8) ?? "—"}</span>
         </div>
       </div>
 
       {(leave.reason as string) && (
-        <div className="border-t border-border bg-muted/30 px-6 py-3">
-          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Reason</span>
+        <div className="border-t border-border bg-surface-sunken/30 px-6 py-3">
+          <span className="text-xs font-medium uppercase tracking-wider text-muted">Reason</span>
           <p className="mt-0.5 text-sm leading-relaxed">{leave.reason as string}</p>
         </div>
       )}
@@ -394,12 +394,12 @@ function UnifiedTimeline({ leaveId, leave }: { leaveId: string; leave?: Record<s
     return items;
   }, [approvals, movements, qrPasses, qData, extData, leave]);
 
-  if (loadingApprovals || loadingMovements || loadingExts || loadingQ || loadingQr) return <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+  if (loadingApprovals || loadingMovements || loadingExts || loadingQ || loadingQr) return <div className="flex items-center justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted" /></div>;
 
   return (
     <CollapsibleSection title="Timeline" icon={History}>
       {events.length <= 1 ? (
-        <p className="py-4 text-center text-sm text-muted-foreground">No timeline events yet</p>
+        <p className="py-4 text-center text-sm text-muted">No timeline events yet</p>
       ) : (
         <div className="relative">
           {events.map((item, i) => {
@@ -437,7 +437,7 @@ function UnifiedTimeline({ leaveId, leave }: { leaveId: string; leave?: Record<s
                        item.status === "pending" ? "Waiting" : "Info"}
                     </StatusChip>
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted">
                     {item.actor && <span className="font-medium">{item.actor}</span>}
                     {item.actor && item.time && <span>·</span>}
                     {item.time && <span>{formatRelative(item.time)}</span>}
@@ -520,11 +520,11 @@ function QRPassSection({ leaveId }: { leaveId: string }) {
               <div className="min-w-0 flex-1 self-center sm:self-auto">
                 <p className="text-center text-sm font-medium text-emerald-600 sm:text-left">QR Ready</p>
                 <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
-                  <span className="text-muted-foreground">Status</span>
+                  <span className="text-muted">Status</span>
                   <span className="font-medium text-emerald-600">Active</span>
-                  <span className="text-muted-foreground">Expires</span>
+                  <span className="text-muted">Expires</span>
                   <span className="font-medium">{activePass.expiresAt ? formatDateTime(activePass.expiresAt) : "—"}</span>
-                  <span className="text-muted-foreground">Exit Scan</span>
+                  <span className="text-muted">Exit Scan</span>
                   <span className="inline-flex items-center gap-1 font-medium text-amber-500">
                     {activePass.firstScanAt ? (
                       <>
@@ -537,7 +537,7 @@ function QRPassSection({ leaveId }: { leaveId: string }) {
                       </>
                     )}
                   </span>
-                  <span className="text-muted-foreground">Return Scan</span>
+                  <span className="text-muted">Return Scan</span>
                   <span className="inline-flex items-center gap-1 font-medium text-amber-500">
                     {activePass.closedAt ? (
                       <>
@@ -551,7 +551,7 @@ function QRPassSection({ leaveId }: { leaveId: string }) {
                     )}
                   </span>
                 </div>
-                <p className="mt-2 text-center text-[10px] text-muted-foreground sm:text-left">
+                <p className="mt-2 text-center text-[10px] text-muted sm:text-left">
                   Tap QR code for fullscreen
                 </p>
               </div>
@@ -565,7 +565,7 @@ function QRPassSection({ leaveId }: { leaveId: string }) {
               </div>
               <div>
                 <p className="text-sm font-semibold text-amber-600">QR pass created before this upgrade</p>
-                <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
+                <p className="mx-auto mt-1 max-w-sm text-xs text-muted">
                   Your pass was created before QR codes were stored on the server. Tap below once to retrieve it —
                   the same QR stays valid for this leave.
                 </p>
@@ -592,17 +592,17 @@ function QRPassSection({ leaveId }: { leaveId: string }) {
           <div className="flex items-center gap-3">
             <div className={cn(
               "flex h-9 w-9 items-center justify-center rounded-lg",
-              latestPass.status === QR_STATUS.USED ? "bg-emerald-500/10" : "bg-muted",
+              latestPass.status === QR_STATUS.USED ? "bg-emerald-500/10" : "bg-surface-sunken",
             )}>
               {latestPass.status === QR_STATUS.USED ? (
                 <CheckCircle2 className="h-4 w-4 text-emerald-500" />
               ) : (
-                <Clock className="h-4 w-4 text-muted-foreground" />
+                <Clock className="h-4 w-4 text-muted" />
               )}
             </div>
             <div>
               <p className="text-sm font-medium">{latestPassConfig.label}</p>
-              <p className="text-xs text-muted-foreground">{latestPassConfig.detail}</p>
+              <p className="text-xs text-muted">{latestPassConfig.detail}</p>
             </div>
           </div>
         </div>
@@ -610,14 +610,14 @@ function QRPassSection({ leaveId }: { leaveId: string }) {
         <div className="space-y-4">
           <div className="rounded-xl border border-dashed border-border p-4">
             <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
-              <span className="text-muted-foreground">Status</span>
-              <span className="font-medium text-muted-foreground">Not Generated</span>
-              <span className="text-muted-foreground">Expires</span>
-              <span className="text-muted-foreground">—</span>
-              <span className="text-muted-foreground">Exit Scan</span>
-              <span className="text-muted-foreground">Pending</span>
-              <span className="text-muted-foreground">Return Scan</span>
-              <span className="text-muted-foreground">Pending</span>
+              <span className="text-muted">Status</span>
+              <span className="font-medium text-muted">Not Generated</span>
+              <span className="text-muted">Expires</span>
+              <span className="text-muted">—</span>
+              <span className="text-muted">Exit Scan</span>
+              <span className="text-muted">Pending</span>
+              <span className="text-muted">Return Scan</span>
+              <span className="text-muted">Pending</span>
             </div>
           </div>
 
@@ -652,7 +652,7 @@ function ExtensionsSection({ leaveId }: { leaveId: string }) {
 
   const items = data?.items ?? [];
 
-  if (isLoading) return <CollapsibleSection title="Extensions" icon={RotateCcw}><div className="flex items-center justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div></CollapsibleSection>;
+  if (isLoading) return <CollapsibleSection title="Extensions" icon={RotateCcw}><div className="flex items-center justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted" /></div></CollapsibleSection>;
   if (isError) return <CollapsibleSection title="Extensions" icon={RotateCcw}><p className="py-4 text-center text-sm text-destructive">Failed to load extensions</p></CollapsibleSection>;
   if (items.length === 0) return null;
 
@@ -682,8 +682,8 @@ function ExtensionsSection({ leaveId }: { leaveId: string }) {
                     {extStatus === "approved" ? "Approved" : extStatus === "rejected" ? "Rejected" : "Pending"}
                   </StatusChip>
                 </div>
-                {ext.createdAt && <p className="mt-0.5 text-xs text-muted-foreground">{formatRelative(ext.createdAt)}</p>}
-                {ext.reason && <p className="mt-1 text-xs text-muted-foreground">{ext.reason}</p>}
+                {ext.createdAt && <p className="mt-0.5 text-xs text-muted">{formatRelative(ext.createdAt)}</p>}
+                {ext.reason && <p className="mt-1 text-xs text-muted">{ext.reason}</p>}
               </div>
             </div>
           );
@@ -764,9 +764,9 @@ export default function StudentLeaveDetailPage() {
           </div>
         }
         description={
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-4 text-sm text-muted">
             <span>{leave.leaveTypeName as string} Leave</span>
-            {studentName && <><span className="text-muted-foreground/50">·</span><span>{studentName}</span></>}
+            {studentName && <><span className="text-muted/50">·</span><span>{studentName}</span></>}
           </div>
         }
         action={
@@ -809,7 +809,7 @@ export default function StudentLeaveDetailPage() {
       {extending && (
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
-            <RotateCcw className="h-4 w-4 text-muted-foreground" />
+            <RotateCcw className="h-4 w-4 text-muted" />
             Request Extension
           </h3>
           <ExtensionForm

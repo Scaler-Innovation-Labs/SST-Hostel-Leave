@@ -196,7 +196,7 @@ export default function SuperAdminWorkflowsPage() {
           {/* Search & filter */}
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
               <input
                 type="text"
                 placeholder="Search workflows..."
@@ -206,7 +206,7 @@ export default function SuperAdminWorkflowsPage() {
                 className="h-9 w-full rounded-lg border bg-background pl-9 pr-8 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
               />
               {searchInput && (
-                <button onClick={clearSearch} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <button onClick={clearSearch} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-foreground">
                   <X className="size-4" />
                 </button>
               )}
@@ -226,8 +226,8 @@ export default function SuperAdminWorkflowsPage() {
           {isLoading ? <LoadingState count={4} /> : data?.items.map((workflow) => (
             <div key={workflow.id} className="group flex rounded-xl border bg-card hover:border-primary">
               <button onClick={() => edit(workflow)} className="flex-1 p-4 text-left">
-                <div className="flex justify-between gap-3"><span className="font-medium">{workflow.name}</span><span className="text-xs text-muted-foreground">v{workflow.version}</span></div>
-                <div className="mt-1 font-mono text-xs text-muted-foreground">{workflow.code} · {workflow.steps.length} steps · {workflow.isActive ? "Active" : "Inactive"}</div>
+                <div className="flex justify-between gap-3"><span className="font-medium">{workflow.name}</span><span className="text-xs text-muted">v{workflow.version}</span></div>
+                <div className="mt-1 font-mono text-xs text-muted">{workflow.code} · {workflow.steps.length} steps · {workflow.isActive ? "Active" : "Inactive"}</div>
               </button>
               <Button
                 variant="ghost"
@@ -243,7 +243,7 @@ export default function SuperAdminWorkflowsPage() {
 
           {/* Pagination */}
           {data && data.totalPages > 1 && (
-            <div className="flex items-center justify-between pt-2 text-sm text-muted-foreground">
+            <div className="flex items-center justify-between pt-2 text-sm text-muted">
               <span>{data.total} workflow{data.total !== 1 ? "s" : ""}</span>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="icon" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
@@ -271,11 +271,11 @@ export default function SuperAdminWorkflowsPage() {
 
           {/* Pipeline preview */}
           {draft.steps.length > 0 && (
-            <div className="rounded-xl border bg-muted/20 p-4">
-              <p className="mb-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">Pipeline Preview</p>
+            <div className="rounded-xl border bg-surface-sunken/20 p-4">
+              <p className="mb-3 text-xs font-medium text-muted uppercase tracking-wider">Pipeline Preview</p>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">Start</span>
-                <span className="text-muted-foreground">→</span>
+                <span className="text-muted">→</span>
                 {draft.steps.map((step, i) => (
                   <span key={i} className="flex items-center gap-1">
                     <span className={`rounded-lg px-3 py-1.5 text-xs font-medium ${step.isParentApproval ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"}`}>
@@ -283,10 +283,10 @@ export default function SuperAdminWorkflowsPage() {
                       {step.condition ? "*" : ""}
                       {step.timeoutHours ? <Timer className="ml-1 inline size-3" /> : null}
                     </span>
-                    {i < draft.steps.length - 1 && <span className="text-muted-foreground">→</span>}
+                    {i < draft.steps.length - 1 && <span className="text-muted">→</span>}
                   </span>
                 ))}
-                <span className="text-muted-foreground">→</span>
+                <span className="text-muted">→</span>
                 <span className="rounded-lg bg-emerald-100 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Done</span>
               </div>
             </div>
@@ -309,7 +309,7 @@ export default function SuperAdminWorkflowsPage() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <GripVertical className="size-4 cursor-grab text-muted-foreground" />
+                    <GripVertical className="size-4 cursor-grab text-muted" />
                     <span className="text-sm font-medium">Step {index + 1}</span>
                   </div>
                   <div className="flex gap-1">
@@ -326,7 +326,7 @@ export default function SuperAdminWorkflowsPage() {
 
                 {/* Collapsible advanced fields */}
                 <details className="group">
-                  <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">Advanced settings</summary>
+                  <summary className="cursor-pointer text-xs font-medium text-muted hover:text-foreground">Advanced settings</summary>
                   <div className="mt-3 space-y-3">
                     <Field label="Condition (leave property)" value={step.condition} onChange={(condition) => updateStep(index, { condition })} placeholder="e.g. days > 3" />
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -346,7 +346,7 @@ export default function SuperAdminWorkflowsPage() {
             ))}
           </div>
 
-          {message && <p className="text-sm text-muted-foreground">{message}</p>}
+          {message && <p className="text-sm text-muted">{message}</p>}
           <div className="flex justify-end"><Button onClick={submit} disabled={saving || draft.steps.length === 0}><Save className="size-4" /> {saving ? "Saving..." : "Save workflow"}</Button></div>
         </section>
       </div>

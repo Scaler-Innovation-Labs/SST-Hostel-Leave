@@ -84,7 +84,7 @@ function defaultActions(basePath: string): StaffQuickAction[] {
 function SectionHeader({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">
         {title}
       </h2>
       {children}
@@ -198,7 +198,7 @@ export function StaffDashboard({ basePath, title, description, actions, extraAct
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-medium text-foreground">{action.label}</span>
-                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                  <span className="mt-0.5 block truncate text-xs text-muted">
                     {action.description}
                   </span>
                 </span>
@@ -207,7 +207,7 @@ export function StaffDashboard({ basePath, title, description, actions, extraAct
                     {action.count}
                   </span>
                 )}
-                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-foreground" />
+                <ArrowRight className="h-4 w-4 shrink-0 text-muted transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-foreground" />
               </Link>
             );
           })}

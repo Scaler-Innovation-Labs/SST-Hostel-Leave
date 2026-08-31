@@ -34,7 +34,7 @@ export function ExtensionQueue({
     return (
       <div className={cn("space-y-3", className)}>
         {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="h-28 animate-pulse rounded-xl bg-muted" />
+          <div key={i} className="h-28 animate-pulse rounded-xl bg-surface-sunken" />
         ))}
       </div>
     );
@@ -48,9 +48,9 @@ export function ExtensionQueue({
           className,
         )}
       >
-        <Inbox className="mb-3 h-12 w-12 text-muted-foreground/50" />
+        <Inbox className="mb-3 h-12 w-12 text-muted/50" />
         <h3 className="text-base font-medium">No extensions found</h3>
-        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+        <p className="mt-1 max-w-sm text-sm text-muted">
           No extension approvals to review.
         </p>
       </div>
@@ -60,10 +60,10 @@ export function ExtensionQueue({
   return (
     <div className={cn("space-y-3", className)}>
       <div className="flex items-center justify-between px-1">
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted">
           <span className="font-medium text-foreground">{total}</span> extension{total !== 1 ? "s" : ""}
         </p>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted">
           Page {page} of {totalPages}
         </p>
       </div>

@@ -93,7 +93,7 @@ export default function DepartmentsPage() {
           </div>
           {isLoading ? <LoadingState count={5} /> : typedDepartments.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-12">
-              <p className="text-sm text-muted-foreground">No departments yet.</p>
+              <p className="text-sm text-muted">No departments yet.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -101,9 +101,9 @@ export default function DepartmentsPage() {
                 <div key={dept.id} className="group flex rounded-xl border bg-card hover:border-primary">
                   <button onClick={() => edit(dept)} className="flex-1 p-4 text-left">
                     <div className="flex items-center gap-3">
-                      <Building2 className="size-4 shrink-0 text-muted-foreground" />
+                      <Building2 className="size-4 shrink-0 text-muted" />
                       <span className="font-medium">{dept.name}</span>
-                      <span className="font-mono text-xs text-muted-foreground">({dept.code})</span>
+                      <span className="font-mono text-xs text-muted">({dept.code})</span>
                     </div>
                   </button>
                   <Button
@@ -136,7 +136,7 @@ export default function DepartmentsPage() {
             </label>
           </div>
 
-          {message && <p className="text-sm text-muted-foreground">{message}</p>}
+          {message && <p className="text-sm text-muted">{message}</p>}
           <div className="flex justify-end border-t border-border pt-4">
             <Button onClick={submit} disabled={saving || !draft.name.trim() || !draft.code.trim()}>
               <Save className="size-4" /> {saving ? "Saving..." : isEditing ? "Update" : "Create"}

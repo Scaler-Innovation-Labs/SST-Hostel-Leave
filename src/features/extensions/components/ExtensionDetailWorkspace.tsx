@@ -107,7 +107,7 @@ export function ExtensionDetailWorkspace({
       <button
         type="button"
         onClick={onBack}
-        className="mb-2 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground xl:hidden"
+        className="mb-2 flex items-center gap-1.5 text-sm text-muted hover:text-foreground xl:hidden"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to queue
@@ -116,7 +116,7 @@ export function ExtensionDetailWorkspace({
       {/* Student Info Card */}
       <div className="rounded-xl border border-border bg-card p-5">
         <h4 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-          <User className="h-4 w-4 text-muted-foreground" />
+          <User className="h-4 w-4 text-muted" />
           Student
         </h4>
         <div className="flex items-center gap-4">
@@ -130,7 +130,7 @@ export function ExtensionDetailWorkspace({
           </div>
           <div className="min-w-0 flex-1">
             <h3 className="text-lg font-semibold">{item.studentName ?? "—"}</h3>
-            <p className="font-mono text-sm text-muted-foreground">
+            <p className="font-mono text-sm text-muted">
               {item.studentRollNumber ?? "—"}
             </p>
           </div>
@@ -141,12 +141,12 @@ export function ExtensionDetailWorkspace({
 
         {leave && (
           <div className="mt-4 border-t border-border pt-4">
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-sm text-muted">
               <Mail className="h-3.5 w-3.5" />
               {leave.userEmail ?? "—"}
             </div>
             {leave.userPhone && (
-              <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+              <div className="mt-1 flex items-center gap-1.5 text-sm text-muted">
                 <Phone className="h-3.5 w-3.5" />
                 {leave.userPhone}
               </div>
@@ -158,20 +158,20 @@ export function ExtensionDetailWorkspace({
       {/* Extension Details Card */}
       <div className="rounded-xl border border-border bg-card p-5">
         <h4 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-          <FileText className="h-4 w-4 text-muted-foreground" />
+          <FileText className="h-4 w-4 text-muted" />
           Extension Details
         </h4>
 
         {ext ? (
           <div className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <dt className="text-xs font-medium uppercase tracking-wider text-muted">
                 Extension #
               </dt>
               <dd className="mt-0.5 text-sm font-medium">#{ext.extensionNumber}</dd>
             </div>
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <dt className="text-xs font-medium uppercase tracking-wider text-muted">
                 Status
               </dt>
               <dd className="mt-0.5">
@@ -181,16 +181,16 @@ export function ExtensionDetailWorkspace({
               </dd>
             </div>
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <dt className="text-xs font-medium uppercase tracking-wider text-muted">
                 Current End Date
               </dt>
               <dd className="mt-0.5 flex items-center gap-1.5 text-sm">
-                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                <Calendar className="h-3.5 w-3.5 text-muted" />
                 {formatDate(ext.currentEndAt)}
               </dd>
             </div>
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <dt className="text-xs font-medium uppercase tracking-wider text-muted">
                 Requested New End
               </dt>
               <dd className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-foreground">
@@ -199,23 +199,23 @@ export function ExtensionDetailWorkspace({
               </dd>
             </div>
             <div className="sm:col-span-2">
-              <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <dt className="text-xs font-medium uppercase tracking-wider text-muted">
                 Reason
               </dt>
-              <dd className="mt-0.5 rounded-lg bg-muted/50 p-3 text-sm leading-relaxed">
+              <dd className="mt-0.5 rounded-lg bg-surface-sunken/50 p-3 text-sm leading-relaxed">
                 {ext.reason ?? "—"}
               </dd>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Extension details not available.</p>
+          <p className="text-sm text-muted">Extension details not available.</p>
         )}
       </div>
 
       {/* Parent Leave Card */}
       <div className="rounded-xl border border-border bg-card p-5">
         <h4 className="mb-4 flex items-center gap-2 text-sm font-semibold">
-          <Globe className="h-4 w-4 text-muted-foreground" />
+          <Globe className="h-4 w-4 text-muted" />
           Parent Leave
         </h4>
         {leaveLoading ? (
@@ -223,28 +223,28 @@ export function ExtensionDetailWorkspace({
         ) : leave ? (
           <div className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <dt className="text-xs font-medium uppercase tracking-wider text-muted">
                 Leave Type
               </dt>
               <dd className="mt-0.5 text-sm font-medium">{leave.leaveTypeName ?? "—"}</dd>
             </div>
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <dt className="text-xs font-medium uppercase tracking-wider text-muted">
                 Duration
               </dt>
-              <dd className="mt-0.5 text-sm text-muted-foreground">
+              <dd className="mt-0.5 text-sm text-muted">
                 {formatDate(leave.startAt)} — {formatDate(leave.endAt)}
               </dd>
             </div>
             <div className="sm:col-span-2">
-              <dt className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <dt className="text-xs font-medium uppercase tracking-wider text-muted">
                 Reason
               </dt>
-              <dd className="mt-0.5 text-sm text-muted-foreground">{leave.reason ?? "—"}</dd>
+              <dd className="mt-0.5 text-sm text-muted">{leave.reason ?? "—"}</dd>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">Leave details not available.</p>
+          <p className="text-sm text-muted">Leave details not available.</p>
         )}
       </div>
 
@@ -253,7 +253,7 @@ export function ExtensionDetailWorkspace({
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-center justify-between">
             <h4 className="flex items-center gap-2 text-sm font-semibold">
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              <MessageSquare className="h-4 w-4 text-muted" />
               Decision
             </h4>
             {!showComments && (
@@ -261,7 +261,7 @@ export function ExtensionDetailWorkspace({
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowComments(true)}
-                className="gap-1 text-xs text-muted-foreground"
+                className="gap-1 text-xs text-muted"
               >
                 <ChevronDown className="h-3 w-3" />
                 Add comment

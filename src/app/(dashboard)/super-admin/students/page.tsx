@@ -385,7 +385,7 @@ export default function SuperAdminStudentsPage() {
 
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
           <input
             type="text"
             placeholder="Search by name or roll number..."
@@ -422,7 +422,7 @@ export default function SuperAdminStudentsPage() {
               </a>
             )}
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted">
             {bulkSection === "parents"
               ? "Upload a CSV (.csv) or Excel (.xlsx/.xls) file. Required fields: <code>studentId</code>, <code>name</code>, <code>phone</code>, <code>relationship</code>."
               : "Upload a CSV (.csv) or Excel (.xlsx/.xls) file. Required fields: <code>rollNumber</code>, <code>fullName</code>, <code>academicGroupId</code>, <code>parentName</code>, <code>parentPhone</code>, <code>parentRelationship</code>."}
@@ -435,7 +435,7 @@ export default function SuperAdminStudentsPage() {
               onChange={handleFileUpload}
               className="text-sm"
             />
-            <span className="text-xs text-muted-foreground">or</span>
+            <span className="text-xs text-muted">or</span>
           </div>
           <textarea
             value={bulkJson}
@@ -473,14 +473,14 @@ export default function SuperAdminStudentsPage() {
           <h2 className="font-semibold">Students</h2>
 
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading...</p>
+            <p className="text-sm text-muted">Loading...</p>
           ) : error ? (
             <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-card p-12">
-              <p className="text-sm text-muted-foreground">Failed to load students.</p>
+              <p className="text-sm text-muted">Failed to load students.</p>
               <Button variant="outline" onClick={() => mutate()}>Retry</Button>
             </div>
           ) : !students || students.items.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No students found.</p>
+            <p className="text-sm text-muted">No students found.</p>
           ) : (
             <div className="space-y-2">
               {students.items.map((item) => (
@@ -502,13 +502,13 @@ export default function SuperAdminStudentsPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <span className="text-sm font-medium">{item.user?.fullName ?? "—"}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">{item.student.rollNumber}</span>
-                      <div className="mt-0.5 text-xs text-muted-foreground">
+                      <span className="ml-2 text-xs text-muted">{item.student.rollNumber}</span>
+                      <div className="mt-0.5 text-xs text-muted">
                         {item.user?.email ?? "—"}
                         {item.user?.phone && <> &middot; {item.user.phone}</>}
                       </div>
                       {item.student.roomNumber && (
-                        <div className="mt-0.5 text-xs text-muted-foreground">Room: {item.student.roomNumber}</div>
+                        <div className="mt-0.5 text-xs text-muted">Room: {item.student.roomNumber}</div>
                       )}
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
@@ -516,18 +516,18 @@ export default function SuperAdminStudentsPage() {
                         className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                           item.user?.isActive ?? true
                             ? "bg-emerald-500/10 text-emerald-600"
-                            : "bg-muted text-muted-foreground"
+                            : "bg-surface-sunken text-muted"
                         }`}
                       >
                         {item.user?.isActive ?? true ? "Active" : "Inactive"}
                       </span>
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                      <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-[10px] text-muted">
                         {item.locationState?.name ?? item.student.currentLocationState}
                       </span>
                       <Link
                         href={`/super-admin/students/${item.student.id}`}
                         onClick={(e) => e.stopPropagation()}
-                        className="rounded-md border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
+                        className="rounded-md border border-border px-2 py-0.5 text-[10px] font-medium text-muted transition-colors hover:border-primary hover:text-foreground"
                       >
                         View Profile
                       </Link>
@@ -674,7 +674,7 @@ export default function SuperAdminStudentsPage() {
             {!draft.id && (
               <div className="rounded-xl border border-dashed p-4">
                 <div className="mb-3 flex items-center gap-2">
-                  <Users className="size-4 text-muted-foreground" />
+                  <Users className="size-4 text-muted" />
                   <h3 className="text-sm font-semibold">Parent / Guardian</h3>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -748,27 +748,27 @@ export default function SuperAdminStudentsPage() {
           {draft.id && (
             <div className="border-t border-border pt-5">
               <div className="flex items-center gap-2 mb-4">
-                <Users className="size-4 text-muted-foreground" />
+                <Users className="size-4 text-muted" />
                 <h3 className="font-semibold text-sm">Parents</h3>
               </div>
 
               {parents.length === 0 ? (
-                <p className="text-xs text-muted-foreground mb-3">No parents linked to this student.</p>
+                <p className="text-xs text-muted mb-3">No parents linked to this student.</p>
               ) : (
                 <div className="space-y-2 mb-4">
                   {parents.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between rounded-lg border bg-muted/20 px-3 py-2">
+                    <div key={p.id} className="flex items-center justify-between rounded-lg border bg-surface-sunken/20 px-3 py-2">
                       <div className="min-w-0 text-xs">
                         <span className="font-medium">{p.name}</span>
                         {p.isPrimary && (
                           <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">Primary</span>
                         )}
-                        <div className="text-muted-foreground">{p.relationship} &middot; {p.phone}</div>
-                        {p.email && <div className="text-muted-foreground">{p.email}</div>}
+                        <div className="text-muted">{p.relationship} &middot; {p.phone}</div>
+                        {p.email && <div className="text-muted">{p.email}</div>}
                       </div>
                       <button
                         onClick={() => handleDeleteParent(p.id)}
-                        className="shrink-0 rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        className="shrink-0 rounded p-1 text-muted hover:bg-destructive/10 hover:text-destructive"
                         title="Remove parent"
                       >
                         <Trash2 className="size-3.5" />
@@ -779,7 +779,7 @@ export default function SuperAdminStudentsPage() {
               )}
 
               <div className="rounded-lg border border-dashed p-3 space-y-2">
-                <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+                <div className="flex items-center gap-1 text-xs font-medium text-muted">
                   <UserPlus className="size-3.5" />
                   Add Parent
                 </div>

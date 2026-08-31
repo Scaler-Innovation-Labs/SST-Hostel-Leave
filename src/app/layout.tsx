@@ -4,12 +4,19 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
 import { SWRProvider } from "@/providers/SWRProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 
+
+/** Inter carries all UI text; Geist is reserved for display and metadata. */
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
+});
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -62,7 +69,9 @@ export default function RootLayout({
 
     <html
       lang="en" suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      /* Student density at the root; the admin and field shells override it. */
+      data-density="student"
     >
       <head>
         {clerkOrigin && (

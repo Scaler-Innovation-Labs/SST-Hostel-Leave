@@ -16,7 +16,7 @@ export function StatCard({
         bg-card p-6
       "
     >
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-muted">
         {label}
       </p>
 
@@ -25,7 +25,7 @@ export function StatCard({
       </h3>
 
       {helperText && (
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-2 text-sm text-muted">
           {helperText}
         </p>
       )}

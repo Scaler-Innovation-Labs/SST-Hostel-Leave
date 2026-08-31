@@ -21,7 +21,7 @@ export function PolicyConfigBuilder({
     case "MAX_DAYS":
       return (
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted">
             Maximum consecutive days allowed for this leave type.
           </p>
           <label className="block text-sm">
@@ -33,7 +33,7 @@ export function PolicyConfigBuilder({
                 max={90}
                 value={(config.maxDays as number) ?? 7}
                 onChange={(e) => update("maxDays", Number(e.target.value))}
-                className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary"
+                className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-surface-sunken accent-primary"
               />
               <span className="min-w-[3ch] text-right font-mono text-lg font-semibold tabular-nums">
                 {String(config.maxDays ?? 7)}
@@ -63,7 +63,7 @@ export function PolicyConfigBuilder({
 
       return (
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted">
             Select periods during which this leave type is blocked.
           </p>
           <label className="block text-sm">
@@ -79,7 +79,7 @@ export function PolicyConfigBuilder({
                     className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                       active
                         ? "border-destructive/50 bg-destructive/10 text-destructive"
-                        : "border-border text-muted-foreground hover:border-muted-foreground/30"
+                        : "border-border text-muted hover:border-muted/30"
                     }`}
                   >
                     {active ? `✕ ${p.label}` : p.label}
@@ -89,7 +89,7 @@ export function PolicyConfigBuilder({
             </div>
           </label>
           {selected.length > 0 && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted">
               {selected.length} period{selected.length > 1 ? "s" : ""} blocked
             </p>
           )}
@@ -115,13 +115,13 @@ export function PolicyConfigBuilder({
 
       return (
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted">
             Restrict specific batch years from taking this leave type.
           </p>
           <label className="block text-sm">
             <span className="mb-1.5 block font-medium">Blocked Batch Years</span>
             {batchYears.length === 0 ? (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted">
                 No batch years blocked yet.
               </p>
             ) : (
@@ -135,7 +135,7 @@ export function PolicyConfigBuilder({
                     <button
                       type="button"
                       onClick={() => removeBatch(year)}
-                      className="text-muted-foreground hover:text-destructive"
+                      className="text-muted hover:text-destructive"
                     >
                       ✕
                     </button>
@@ -147,7 +147,7 @@ export function PolicyConfigBuilder({
           <button
             type="button"
             onClick={addBatch}
-            className="rounded-lg border border-dashed border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+            className="rounded-lg border border-dashed border-border px-3 py-1.5 text-xs text-muted hover:border-primary hover:text-primary transition-colors"
           >
             + Add batch year
           </button>
@@ -158,10 +158,10 @@ export function PolicyConfigBuilder({
     case "REQUIRE_PARENT_APPROVAL":
       return (
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted">
             Require parent approval before this leave type can be processed.
           </p>
-          <div className="flex items-center gap-3 rounded-lg border bg-muted/20 p-3">
+          <div className="flex items-center gap-3 rounded-lg border bg-surface-sunken/20 p-3">
             <label className="relative inline-flex cursor-pointer items-center">
               <input
                 type="checkbox"
@@ -173,7 +173,7 @@ export function PolicyConfigBuilder({
             </label>
             <div>
               <p className="text-sm font-medium">Parent Approval Required</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted">
                 This policy type requires no additional configuration.
               </p>
             </div>
@@ -184,7 +184,7 @@ export function PolicyConfigBuilder({
     case "CURFEW_RESTRICTION":
       return (
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted">
             Set the latest return time for this leave type. Students must return before this time.
           </p>
           <label className="block text-sm">
@@ -201,7 +201,7 @@ export function PolicyConfigBuilder({
     case "MAX_EXTENSION_COUNT":
       return (
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted">
             Maximum number of times a leave can be extended.
           </p>
           <label className="block text-sm">
@@ -213,14 +213,14 @@ export function PolicyConfigBuilder({
                 max={20}
                 value={(config.maxExtensionCount as number) ?? 3}
                 onChange={(e) => update("maxExtensionCount", Number(e.target.value))}
-                className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary"
+                className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-surface-sunken accent-primary"
               />
               <span className="min-w-[2ch] text-right font-mono text-lg font-semibold tabular-nums">
                 {String(config.maxExtensionCount ?? 3)}
               </span>
             </div>
           </label>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted">
             Set to 0 to disallow extensions entirely.
           </p>
         </div>
@@ -229,7 +229,7 @@ export function PolicyConfigBuilder({
     default:
       return (
         <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted">
             No visual editor available for this policy type. Edit the raw configuration below.
           </p>
           <label className="block text-sm">

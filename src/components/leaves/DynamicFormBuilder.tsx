@@ -105,20 +105,20 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-muted-foreground">
+        <p className="text-xs font-medium text-muted">
           {fields.length} field{fields.length !== 1 ? "s" : ""} configured
         </p>
         <button
           type="button"
           onClick={addField}
-          className="flex items-center gap-1 rounded-lg border border-dashed border-border px-2.5 py-1 text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+          className="flex items-center gap-1 rounded-lg border border-dashed border-border px-2.5 py-1 text-xs text-muted hover:border-primary hover:text-primary transition-colors"
         >
           <Plus className="size-3" /> Add field
         </button>
       </div>
 
       {fields.length === 0 && (
-        <p className="py-6 text-center text-xs text-muted-foreground">
+        <p className="py-6 text-center text-xs text-muted">
           No form fields configured. Add at least one field.
         </p>
       )}
@@ -132,8 +132,8 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
             {/* Field header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <GripVertical className="size-4 text-muted-foreground/50" />
-                <span className="text-xs font-medium text-muted-foreground">
+                <GripVertical className="size-4 text-muted/50" />
+                <span className="text-xs font-medium text-muted">
                   Field {index + 1}
                 </span>
                 {field.required && (
@@ -147,7 +147,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
                   type="button"
                   onClick={() => moveField(index, -1)}
                   disabled={index === 0}
-                  className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-30"
+                  className="rounded p-1 text-muted hover:bg-surface-sunken disabled:opacity-30"
                 >
                   <ArrowUp className="size-3.5" />
                 </button>
@@ -155,14 +155,14 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
                   type="button"
                   onClick={() => moveField(index, 1)}
                   disabled={index === fields.length - 1}
-                  className="rounded p-1 text-muted-foreground hover:bg-muted disabled:opacity-30"
+                  className="rounded p-1 text-muted hover:bg-surface-sunken disabled:opacity-30"
                 >
                   <ArrowDown className="size-3.5" />
                 </button>
                 <button
                   type="button"
                   onClick={() => removeField(index)}
-                  className="rounded p-1 text-muted-foreground hover:text-destructive"
+                  className="rounded p-1 text-muted hover:text-destructive"
                 >
                   <Trash2 className="size-3.5" />
                 </button>
@@ -262,7 +262,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
             {field.type === "select" && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-muted-foreground">Options</span>
+                  <span className="text-[11px] font-medium text-muted">Options</span>
                   <button
                     type="button"
                     onClick={() => addOption(index)}
@@ -273,7 +273,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {(field.options ?? []).map((option, optIndex) => (
-                    <span key={optIndex} className="inline-flex items-center gap-1 rounded-md border bg-muted/30 px-2 py-0.5">
+                    <span key={optIndex} className="inline-flex items-center gap-1 rounded-md border bg-surface-sunken/30 px-2 py-0.5">
                       <input
                         value={option}
                         onChange={(e) => updateOption(index, optIndex, e.target.value)}
@@ -282,7 +282,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
                       <button
                         type="button"
                         onClick={() => removeOption(index, optIndex)}
-                        className="text-muted-foreground hover:text-destructive"
+                        className="text-muted hover:text-destructive"
                       >
                         ✕
                       </button>

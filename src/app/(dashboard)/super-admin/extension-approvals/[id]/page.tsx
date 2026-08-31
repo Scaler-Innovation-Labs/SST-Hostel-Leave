@@ -1,12 +1,13 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-
-import { ExtensionDetailWorkspace } from "@/features/extensions/components/ExtensionDetailWorkspace";
-import { LoadingState } from "@/components/shared/LoadingState";
-import { fetcher } from "@/lib/api/fetcher";
 import useSWR from "swr";
+
+import { ROUTES } from "@/constants/routes";
+import { ErrorState, RowSkeleton } from "@/design-system/sst";
 import type { ApprovalQueueItem } from "@/features/approvals/hooks/use-approvals";
+import { ExtensionDetailWorkspace } from "@/features/extensions/components/ExtensionDetailWorkspace";
+import { fetcher } from "@/lib/api/fetcher";
 
 function transformToExtensionCardItem(item: ApprovalQueueItem) {
   return {
@@ -20,7 +21,7 @@ function transformToExtensionCardItem(item: ApprovalQueueItem) {
       ? {
           id: item.leaveExtensionId,
           extensionNumber: 1,
-          reason: item.leaveRequest?.submittedForm?.reason as string ?? "—",
+          reason: (item.leaveRequest?.submittedForm?.reason as string) ?? "—",
           status: item.decision.toLowerCase(),
           requestedEndAt: item.leaveRequest?.endAt ?? "",
           currentEndAt: item.leaveRequest?.startAt ?? "",
@@ -41,40 +42,48 @@ export default function SuperAdminExtensionApprovalDetailPage() {
   const router = useRouter();
   const id = params.id as string;
 
-  const { data, isLoading, error } = useSWR<{ items: any[] }>(
+  const { data, isLoading, error } = useSWR<{ items: ApprovalQueueItem[] }>(
     `/api/v1/extensions/approvals?search=${id}`,
     fetcher
   );
 
-  const item = data?.items?.find((item: any) => item.id === id || item.leaveRequest?.id === id);
+  const item = data?.items?.find(
+    (candidate) => candidate.id === id || candidate.leaveRequest?.id === id
+  );
   const transformedItem = item ? transformToExtensionCardItem(item) : null;
 
+  const backToQueue = () =>
+    router.push(ROUTES.SUPER_ADMIN_EXTENSION_APPROVALS);
+
   if (isLoading) {
-    return <LoadingState count={3} />;
+    return <RowSkeleton rows={3} />;
   }
 
-  if (error || !transformedItem) {
+  if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh]">
-        <p className="text-base font-medium">Extension approval not found</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          The extension approval may have been removed or you don't have access to it.
-        </p>
-        <button
-          type="button"
-          onClick={() => router.push("/super-admin/extension-approvals")}
-          className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-        >
-          Back to Queue
-        </button>
-      </div>
+      <ErrorState
+        title="Couldn't load this extension request"
+        description="The request didn't come back from the server. Try again, or go back to the queue."
+        onRetry={() => router.refresh()}
+      />
+    );
+  }
+
+  if (!transformedItem) {
+    return (
+      <ErrorState
+        title="This extension request no longer exists"
+        description="It was withdrawn or already decided. The queue shows what is still waiting on you."
+        onRetry={backToQueue}
+        retryLabel="Back to the queue"
+      />
     );
   }
 
   return (
     <ExtensionDetailWorkspace
       item={transformedItem}
-      onBack={() => router.push("/super-admin/extension-approvals")}
+      onBack={backToQueue}
       onActionComplete={() => {}}
     />
   );

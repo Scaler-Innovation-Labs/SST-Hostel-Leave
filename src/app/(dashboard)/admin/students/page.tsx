@@ -78,7 +78,7 @@ function getLocationColor(code: string): string {
   if (code === MOVEMENT_STATE.APPROVED_LEAVE) return "bg-blue-500/10 text-blue-600 dark:text-blue-400";
   if (code === MOVEMENT_STATE.CHECKED_OUT) return "bg-amber-500/10 text-amber-600 dark:text-amber-400";
   if (code === MOVEMENT_STATE.OVERDUE) return "bg-red-500/10 text-red-600 dark:text-red-400";
-  return "bg-muted text-muted-foreground";
+  return "bg-surface-sunken text-muted";
 }
 
 export default function AdminStudentsPage() {
@@ -195,7 +195,7 @@ export default function AdminStudentsPage() {
                 <Link
                   key={row.student.id}
                   href={`/admin/students/${row.student.id}`}
-                  className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/50"
+                  className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface-sunken/50"
                 >
                   {/* Avatar */}
                   <div
@@ -214,7 +214,7 @@ export default function AdminStudentsPage() {
                         {row.user?.fullName ?? "—"}
                       </span>
                     </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                       <span className="font-mono">{row.student.rollNumber ?? "—"}</span>
                       <span className="inline-flex items-center gap-1">
                         <Mail className="h-3 w-3" />
@@ -233,7 +233,7 @@ export default function AdminStudentsPage() {
                     >
                       {locationCode.replace(/_/g, " ").toLowerCase()}
                     </span>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5" />
+                    <ArrowRight className="h-4 w-4 text-muted opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5" />
                   </div>
                 </Link>
               );

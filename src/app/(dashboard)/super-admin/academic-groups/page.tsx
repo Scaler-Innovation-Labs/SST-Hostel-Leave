@@ -130,7 +130,7 @@ export default function AcademicGroupsPage() {
           </div>
           {isLoading ? <LoadingState count={5} /> : typedGroups.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-12">
-              <p className="text-sm text-muted-foreground">No academic groups yet.</p>
+              <p className="text-sm text-muted">No academic groups yet.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -138,13 +138,13 @@ export default function AcademicGroupsPage() {
                 <div key={group.id} className="group flex rounded-xl border bg-card hover:border-primary">
                   <button onClick={() => edit(group)} className="flex-1 p-4 text-left">
                     <div className="flex items-center gap-3">
-                      <GraduationCap className="size-4 shrink-0 text-muted-foreground" />
+                      <GraduationCap className="size-4 shrink-0 text-muted" />
                       <span className="font-medium">{group.name}</span>
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-xs text-muted">
                       Batch {group.batchYear} · {deptNameById[group.departmentId] ?? "Unknown dept"}
                       {group.groupCode ? ` · ${group.groupCode}` : ""}
-                      <span className={`ml-2 ${group.isActive ? "text-emerald-500" : "text-muted-foreground"}`}>
+                      <span className={`ml-2 ${group.isActive ? "text-emerald-500" : "text-muted"}`}>
                         {group.isActive ? "Active" : "Inactive"}
                       </span>
                     </p>
@@ -205,7 +205,7 @@ export default function AcademicGroupsPage() {
             Active
           </label>
 
-          {message && <p className="text-sm text-muted-foreground">{message}</p>}
+          {message && <p className="text-sm text-muted">{message}</p>}
           <div className="flex justify-end border-t border-border pt-4">
             <Button onClick={submit} disabled={saving || !draft.name.trim() || !draft.departmentId}>
               <Save className="size-4" /> {saving ? "Saving..." : isEditing ? "Update" : "Create"}

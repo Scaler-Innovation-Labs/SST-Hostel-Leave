@@ -1,39 +1,33 @@
 import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { NAVIGATION } from "@/constants/navigation";
 import { ROUTES } from "@/constants/routes";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { ROLES } from "@/lib/auth/roles";
 
-type POCLayoutProps = {
-	children: React.ReactNode;
+type PocLayoutProps = {
+  children: React.ReactNode;
 };
 
-export default async function POCLayout({
-	children,
-}: POCLayoutProps) {
-	const user = await getCurrentUser();
+export default async function PocLayout({ children }: PocLayoutProps) {
+  const user = await getCurrentUser();
 
-	if (!user) {
-		redirect("/unauthorized");
-	}
+  if (!user) {
+    redirect("/unauthorized");
+  }
 
-	if (!user.roles.some((r) => r === ROLES.POC)) {
-		redirect("/unauthorized");
-	}
+  if (!user.roles.some((r) => r === ROLES.POC)) {
+    redirect("/unauthorized");
+  }
 
-	const shellItems = NAVIGATION.poc.map(({ label, href }) => ({
-    label,
-    href,
-  }));
-
-	return (
-		<AppShell
-			items={shellItems}
-			logoHref={ROUTES.POC_DASHBOARD}
-		>
-			{children}
-		</AppShell>
-	);
+  return (
+    <AppShell
+      nav="poc"
+      logoHref={ROUTES.POC_DASHBOARD}
+      roleLabel="POC"
+      density="admin"
+    >
+      {children}
+    </AppShell>
+  );
 }

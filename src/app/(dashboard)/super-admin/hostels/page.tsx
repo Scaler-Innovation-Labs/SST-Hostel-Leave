@@ -134,7 +134,7 @@ export default function HostelsPage() {
           </div>
           {isLoading ? <LoadingState count={5} /> : typedHostels.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-12">
-              <p className="text-sm text-muted-foreground">No hostels yet.</p>
+              <p className="text-sm text-muted">No hostels yet.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -142,10 +142,10 @@ export default function HostelsPage() {
                 <div key={hostel.id} className="group flex rounded-xl border bg-card hover:border-primary">
                   <button onClick={() => edit(hostel)} className="flex-1 p-4 text-left">
                     <div className="flex items-center gap-3">
-                      <Building2 className="size-4 shrink-0 text-muted-foreground" />
+                      <Building2 className="size-4 shrink-0 text-muted" />
                       <span className="font-medium">{hostel.name}</span>
                     </div>
-                    <p className="mt-1 font-mono text-xs text-muted-foreground">
+                    <p className="mt-1 font-mono text-xs text-muted">
                       {hostel.code} · {hostel.capacity ?? "?"} capacity
                     </p>
                   </button>
@@ -193,7 +193,7 @@ export default function HostelsPage() {
               placeholder="Channel id or #name (e.g. #leave-hostel-neeladri)"
             />
           </div>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted">
             Slack alerts for this hostel&apos;s admins post here; falls back to SLACK_CHANNEL_ID when blank. The admin tag is CC&apos;d on each post. Leave both blank to disable.
           </p>
 
@@ -202,7 +202,7 @@ export default function HostelsPage() {
             Active
           </label>
 
-          {message && <p className="text-sm text-muted-foreground">{message}</p>}
+          {message && <p className="text-sm text-muted">{message}</p>}
           <div className="flex justify-end border-t border-border pt-4">
             <Button onClick={submit} disabled={saving || !draft.name.trim() || !draft.code.trim()}>
               <Save className="size-4" /> {saving ? "Saving..." : isEditing ? "Update" : "Create"}

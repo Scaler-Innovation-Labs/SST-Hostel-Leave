@@ -90,7 +90,7 @@ export default function SuperAdminUserDetailPage() {
       {/* Back navigation */}
       <button
         onClick={() => router.push("/super-admin/users")}
-        className="group inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+        className="group inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
         Back to Users
@@ -108,14 +108,14 @@ export default function SuperAdminUserDetailPage() {
             <h1 className="text-2xl font-semibold tracking-tight">
               {user.fullName}
             </h1>
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
               <span className="flex items-center gap-1">
                 <Mail className="h-3.5 w-3.5" />
                 {user.email}
               </span>
               {user.phone && (
                 <>
-                  <span className="text-muted-foreground/50">·</span>
+                  <span className="text-muted/50">·</span>
                   <span className="flex items-center gap-1">
                     <Phone className="h-3.5 w-3.5" />
                     {user.phone}
@@ -124,7 +124,7 @@ export default function SuperAdminUserDetailPage() {
               )}
               {user.slackId && (
                 <>
-                  <span className="text-muted-foreground/50">·</span>
+                  <span className="text-muted/50">·</span>
                   <span className="flex items-center gap-1 font-mono text-xs">
                     <Hash className="h-3.5 w-3.5" />
                     {user.slackId}
@@ -175,45 +175,45 @@ export default function SuperAdminUserDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
             <h3 className="mb-5 flex items-center gap-2 text-base font-semibold">
-              <UserCog className="h-4 w-4 text-muted-foreground" />
+              <UserCog className="h-4 w-4 text-muted" />
               Account Information
             </h3>
             <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
               <div className="space-y-1">
-                <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <dt className="text-xs font-medium text-muted uppercase tracking-wider">
                   Full Name
                 </dt>
                 <dd className="text-sm font-medium">{user.fullName}</dd>
               </div>
               <div className="space-y-1">
-                <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <dt className="text-xs font-medium text-muted uppercase tracking-wider">
                   Email
                 </dt>
                 <dd className="flex items-center gap-1.5 text-sm">
-                  <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Mail className="h-3.5 w-3.5 text-muted" />
                   {user.email ?? "—"}
                 </dd>
               </div>
               <div className="space-y-1">
-                <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <dt className="text-xs font-medium text-muted uppercase tracking-wider">
                   Phone
                 </dt>
                 <dd className="flex items-center gap-1.5 text-sm">
-                  <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Phone className="h-3.5 w-3.5 text-muted" />
                   {user.phone ?? "—"}
                 </dd>
               </div>
               <div className="space-y-1">
-                <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <dt className="text-xs font-medium text-muted uppercase tracking-wider">
                   Slack ID
                 </dt>
                 <dd className="flex items-center gap-1.5 font-mono text-sm">
-                  <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Hash className="h-3.5 w-3.5 text-muted" />
                   {user.slackId ?? "—"}
                 </dd>
               </div>
               <div className="space-y-1">
-                <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <dt className="text-xs font-medium text-muted uppercase tracking-wider">
                   Status
                 </dt>
                 <dd>
@@ -235,18 +235,18 @@ export default function SuperAdminUserDetailPage() {
               </div>
               {user.gender && (
                 <div className="space-y-1">
-                  <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <dt className="text-xs font-medium text-muted uppercase tracking-wider">
                     Gender
                   </dt>
                   <dd className="text-sm capitalize">{user.gender}</dd>
                 </div>
               )}
               <div className="space-y-1">
-                <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <dt className="text-xs font-medium text-muted uppercase tracking-wider">
                   Created
                 </dt>
                 <dd className="flex items-center gap-1.5 text-sm">
-                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Calendar className="h-3.5 w-3.5 text-muted" />
                   {createdAtDate}
                 </dd>
               </div>
@@ -258,19 +258,19 @@ export default function SuperAdminUserDetailPage() {
         <div className="space-y-6">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
             <h3 className="mb-5 flex items-center gap-2 text-base font-semibold">
-              <Shield className="h-4 w-4 text-muted-foreground" />
+              <Shield className="h-4 w-4 text-muted" />
               Roles
             </h3>
             <div className="space-y-3">
               {user.userRoles.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted">
                   No roles assigned
                 </p>
               ) : (
                 user.userRoles.map((r, index) => (
                   <div
                     key={`${r.roleId}-${r.scopeType ?? "ALL"}-${r.scopeId ?? "ALL"}-${index}`}
-                    className={`rounded-xl border px-4 py-3 ${ROLE_STYLES[r.roleCode] ?? "bg-muted text-muted-foreground border-border"}`}
+                    className={`rounded-xl border px-4 py-3 ${ROLE_STYLES[r.roleCode] ?? "bg-surface-sunken text-muted border-border"}`}
                   >
                     <div className="flex items-center gap-2">
                       <Shield className="h-4 w-4 shrink-0" />

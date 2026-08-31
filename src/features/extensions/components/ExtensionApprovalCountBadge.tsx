@@ -16,7 +16,7 @@ export function ExtensionApprovalCountBadge({ className }: { className?: string 
   return (
     <CountBadge
       count={extensionApprovalsCount}
-      tone="blue"
+      tone="accent"
       className={className}
     />
   );

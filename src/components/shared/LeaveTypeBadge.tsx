@@ -18,7 +18,7 @@ export function LeaveTypeBadge({ name, color, className }: LeaveTypeBadgeProps) 
     <span
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
-        hex ? "" : "bg-muted text-muted-foreground",
+        hex ? "" : "bg-surface-sunken text-muted",
         className,
       )}
       style={hex ? { color: color ?? undefined, backgroundColor: bg, borderColor: border, borderWidth: "1px" } : undefined}

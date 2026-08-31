@@ -86,7 +86,7 @@ export function InfoCard({ icon, label, value, tone, className, compact, onClick
             className={cn(
               "flex shrink-0 items-center justify-center rounded-lg",
               compact ? "size-6" : "size-8",
-              toneStyles ? toneStyles.chip : "bg-muted text-muted-foreground",
+              toneStyles ? toneStyles.chip : "bg-surface-sunken text-muted",
             )}
           >
             {icon}
@@ -94,7 +94,7 @@ export function InfoCard({ icon, label, value, tone, className, compact, onClick
         )}
         <span
           className={cn(
-            "font-medium uppercase tracking-wider text-muted-foreground",
+            "font-medium uppercase tracking-wider text-muted",
             compact ? "text-[11px]" : "text-xs",
           )}
         >

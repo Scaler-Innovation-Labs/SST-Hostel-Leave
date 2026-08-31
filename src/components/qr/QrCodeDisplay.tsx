@@ -48,7 +48,7 @@ export function QrCodeDisplay({ token, size = 200, className }: QrCodeDisplayPro
   if (!dataUrl) {
     return (
       <div className="flex items-center justify-center" style={{ width: size, height: size }}>
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 className="h-6 w-6 animate-spin text-muted" />
       </div>
     );
   }

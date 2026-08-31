@@ -52,7 +52,7 @@ export function SearchBar({
       onChange={handleChange}
       placeholder={placeholder}
       className={cn(
-        "h-8 w-full rounded-lg border border-input bg-background px-3 text-sm placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring",
+        "h-8 w-full rounded-lg border border-input bg-background px-3 text-sm placeholder:text-muted focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring",
         className,
       )}
     />

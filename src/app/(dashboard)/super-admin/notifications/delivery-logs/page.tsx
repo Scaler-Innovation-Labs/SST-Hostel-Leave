@@ -31,7 +31,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  PENDING: "bg-muted text-muted-foreground",
+  PENDING: "bg-surface-sunken text-muted",
   SENT: "bg-blue-500/10 text-blue-600",
   FAILED: "bg-destructive/10 text-destructive",
   DELIVERED: "bg-emerald-500/10 text-emerald-600",
@@ -114,8 +114,8 @@ export default function DeliveryLogsPage() {
         <ErrorState message="Failed to load delivery logs" onRetry={() => mutate()} />
       ) : !data || data.items.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-card p-12">
-          <p className="text-sm text-muted-foreground">No delivery logs found.</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted">No delivery logs found.</p>
+          <p className="text-xs text-muted">
             Notifications will appear here once they are sent.
           </p>
         </div>
@@ -124,7 +124,7 @@ export default function DeliveryLogsPage() {
           <div className="overflow-x-auto rounded-2xl border bg-card">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                <tr className="border-b border-border text-left text-xs text-muted">
                   <th className="px-4 py-3 font-medium">Date</th>
                   <th className="px-4 py-3 font-medium">Recipient</th>
                   <th className="px-4 py-3 font-medium">Event</th>
@@ -136,8 +136,8 @@ export default function DeliveryLogsPage() {
               </thead>
               <tbody className="divide-y divide-border/50">
                 {data.items.map((log) => (
-                  <tr key={log.id} className="hover:bg-muted/30">
-                    <td className="whitespace-nowrap px-4 py-3 text-xs text-muted-foreground">
+                  <tr key={log.id} className="hover:bg-surface-sunken/30">
+                    <td className="whitespace-nowrap px-4 py-3 text-xs text-muted">
                       {new Date(log.createdAt).toLocaleString("en-US", {
                         month: "short",
                         day: "numeric",
@@ -161,10 +161,10 @@ export default function DeliveryLogsPage() {
                         {STATUS_LABELS[log.deliveryStatus] ?? log.deliveryStatus}
                       </span>
                     </td>
-                    <td className="max-w-[120px] truncate px-4 py-3 font-mono text-[10px] text-muted-foreground">
+                    <td className="max-w-[120px] truncate px-4 py-3 font-mono text-[10px] text-muted">
                       {log.providerMessageId ?? "—"}
                     </td>
-                    <td className="max-w-[200px] truncate px-4 py-3 text-[10px] text-muted-foreground">
+                    <td className="max-w-[200px] truncate px-4 py-3 text-[10px] text-muted">
                       {log.providerResponse ?? "—"}
                     </td>
                   </tr>
@@ -176,7 +176,7 @@ export default function DeliveryLogsPage() {
           {/* Pagination */}
           {data.totalPages > 1 && (
             <div className="flex items-center justify-between text-sm">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted">
                 {data.total} total log{data.total !== 1 ? "s" : ""}
               </p>
               <div className="flex gap-2">
@@ -188,7 +188,7 @@ export default function DeliveryLogsPage() {
                 >
                   Previous
                 </Button>
-                <span className="flex items-center text-xs text-muted-foreground">
+                <span className="flex items-center text-xs text-muted">
                   Page {data.page} of {data.totalPages}
                 </span>
                 <Button

@@ -11,9 +11,15 @@ export function ThemeProvider({
   children,
 }: Props) {
   return (
+    /**
+     * Class strategy, not media: the `.dark` class is applied by an explicit
+     * user choice so it always beats the OS setting. next-themes injects a
+     * script that applies the stored theme before first paint — without it,
+     * every load flashes the wrong theme.
+     */
     <NextThemesProvider
       attribute="class"
-      defaultTheme="system"
+      defaultTheme="light"
       enableSystem
       disableTransitionOnChange
     >

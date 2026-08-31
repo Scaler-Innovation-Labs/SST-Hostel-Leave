@@ -134,14 +134,14 @@ export default function NewLeavePage() {
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">New Leave Request</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        <p className="mt-1 text-sm text-muted">{description}</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <div className="mb-5">
             <h2 className="text-base font-semibold">Leave Details</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Choose the type of leave and describe your reason.</p>
+            <p className="mt-1 text-xs text-muted">Choose the type of leave and describe your reason.</p>
           </div>
 
           <div className="space-y-5">
@@ -159,7 +159,7 @@ export default function NewLeavePage() {
                 ))}
               </select>
               {selectedLeaveType?.description && (
-                <p className="mt-1.5 text-xs text-muted-foreground">{selectedLeaveType.description}</p>
+                <p className="mt-1.5 text-xs text-muted">{selectedLeaveType.description}</p>
               )}
               {errors.leaveTypeId && (
                 <p className="mt-1 text-xs text-destructive">{errors.leaveTypeId.message}</p>
@@ -178,7 +178,7 @@ export default function NewLeavePage() {
                 {errors.reason ? (
                   <p className="text-xs text-destructive">{errors.reason.message}</p>
                 ) : <span />}
-                <span className="text-xs text-muted-foreground">{(reason ?? "").length}/1000</span>
+                <span className="text-xs text-muted">{(reason ?? "").length}/1000</span>
               </div>
             </div>
 
@@ -210,8 +210,8 @@ export default function NewLeavePage() {
             </div>
 
             {canShowDatePreview && (
-              <div className="rounded-lg bg-muted px-3 py-2">
-                <p className="text-xs text-muted-foreground">
+              <div className="rounded-lg bg-surface-sunken px-3 py-2">
+                <p className="text-xs text-muted">
                   Leave period: <span className="font-medium text-foreground">{formatDateRange(startAt, endAt)}</span>
                 </p>
               </div>
@@ -223,7 +223,7 @@ export default function NewLeavePage() {
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
             <div className="mb-5">
               <h2 className="text-base font-semibold">Additional Information</h2>
-              <p className="mt-1 text-xs text-muted-foreground">Extra details required for this leave type.</p>
+              <p className="mt-1 text-xs text-muted">Extra details required for this leave type.</p>
             </div>
             <DynamicLeaveFields schema={dynamicSchema} register={register} />
           </div>
@@ -233,7 +233,7 @@ export default function NewLeavePage() {
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
             <div className="mb-5">
               <h2 className="text-base font-semibold">Point of Contact <span className="text-destructive">*</span></h2>
-              <p className="mt-1 text-xs text-muted-foreground">Select the POC who will be notified about your leave.</p>
+              <p className="mt-1 text-xs text-muted">Select the POC who will be notified about your leave.</p>
             </div>
             <div>
               <select
@@ -251,7 +251,7 @@ export default function NewLeavePage() {
                 ))}
               </select>
               {pocLoading && (
-                <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   Loading available POCs...
                 </p>

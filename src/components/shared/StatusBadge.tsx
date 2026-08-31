@@ -1,43 +1,51 @@
-import { cn } from "@/lib/utils";
+import {
+  AlertTriangle,
+  Ban,
+  CalendarX,
+  Check,
+  Clock,
+  PackageCheck,
+  ScanLine,
+  UserCheck,
+  X,
+  Zap,
+} from "lucide-react";
 
-type Status =
-  | "approved"
-  | "pending"
-  | "rejected"
-  | "active"
-  | "cancelled"
-  | "expired"
-  | "overdue"
-  | "completed"
-  | "auto_approved"
-  | "parent_approval";
+import type { StatusPresentation } from "@/design-system/sst";
+import { StatusBadge as SstStatusBadge } from "@/design-system/sst";
+
+/**
+ * The lowercase status vocabulary the screens speak, mapped onto the closed
+ * taxonomy. Each entry carries an icon and a written label, so a status is
+ * never colour alone — greyscale the screen and the meaning survives.
+ */
+const PRESENTATION = {
+  approved: { tone: "success", label: "Approved", Icon: Check },
+  pending: { tone: "warning", label: "Awaiting approval", Icon: Clock },
+  rejected: { tone: "danger", label: "Rejected", Icon: X },
+  active: { tone: "accent", label: "Active", Icon: ScanLine },
+  cancelled: { tone: "neutral", label: "Cancelled", Icon: X },
+  expired: { tone: "neutral", label: "Expired", Icon: CalendarX },
+  overdue: { tone: "danger", label: "Overdue", Icon: AlertTriangle },
+  completed: { tone: "neutral", label: "Completed", Icon: PackageCheck },
+  auto_approved: { tone: "success", label: "Auto-approved", Icon: Zap },
+  parent_approval: {
+    tone: "accent",
+    label: "With parent",
+    Icon: UserCheck,
+  },
+  no_show: { tone: "danger", label: "No-show", Icon: Ban },
+} as const satisfies Record<string, StatusPresentation>;
+
+export type Status = keyof typeof PRESENTATION;
 
 type StatusBadgeProps = {
   status: Status;
+  className?: string;
 };
 
-const styles: Record<Status, string> = {
-  approved: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  pending: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  rejected: "bg-red-500/10 text-red-600 dark:text-red-400",
-  active: "bg-primary/10 text-primary",
-  cancelled: "bg-muted text-muted-foreground",
-  expired: "bg-muted text-muted-foreground",
-  overdue: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
-  completed: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  auto_approved: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  parent_approval: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
-};
-
-export function StatusBadge({ status }: StatusBadgeProps) {
+export function StatusBadge({ status, className }: StatusBadgeProps) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium capitalize",
-        styles[status],
-      )}
-    >
-      {status.replace("_", " ")}
-    </span>
+    <SstStatusBadge status={PRESENTATION[status]} className={className} />
   );
 }

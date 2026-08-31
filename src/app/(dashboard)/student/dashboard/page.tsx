@@ -1,96 +1,93 @@
 "use client";
 
-import { Loader2, Maximize2, X } from "lucide-react";
+import {
+  CalendarPlus,
+  Check,
+  Clock,
+  FileText,
+  History,
+  Maximize2,
+  QrCode,
+  ScanLine,
+} from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { QrCodeDisplay } from "@/components/qr/QrCodeDisplay";
-import { ErrorState } from "@/components/shared/ErrorState";
-import { LoadingState } from "@/components/shared/LoadingState";
-import { PageHeader } from "@/components/shared/PageHeader";
-import { Button } from "@/components/ui/button";
+import type { MovementState } from "@/constants/movement/movement-state";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { ROUTES } from "@/constants/routes";
+import {
+  Button,
+  EditorialRow,
+  EmptyState,
+  ErrorState,
+  Masthead,
+  MetricSkeleton,
+  MetricTile,
+  MOVEMENT_STATE_PRESENTATION,
+  Refusal,
+  RowSkeleton,
+  SectionCard,
+  Skeleton,
+  StatusBadge,
+  TECH_LABEL,
+} from "@/design-system/sst";
 import type { StudentDashboardStats } from "@/dto/dashboard/dashboard-stats.dto";
-import { DashboardCard } from "@/features/dashboard/components/DashboardCard";
+import { ApprovalTrail } from "@/features/dashboard/components/ApprovalTrail";
+import { QrPassDialog } from "@/features/dashboard/components/QrPassDialog";
 import { useDashboardStats } from "@/features/dashboard/hooks/use-dashboard-stats";
 import { useLeaves } from "@/features/leaves/hooks/use-leaves";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useQrToken } from "@/hooks/use-qr-token";
 import { generateQr } from "@/lib/api/movement-api";
-import { formatDate, formatDateRange, formatDateTime, formatRelative, formatTimeRemaining } from "@/lib/date-utils";
+import {
+  formatDate,
+  formatDateRange,
+  formatRelative,
+  formatTimeRemaining,
+} from "@/lib/date-utils";
+import { cn } from "@/lib/utils";
 
-function LocationBadge({ location }: { location: string }) {
-  if (location === MOVEMENT_STATE.IN_HOSTEL) {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="size-2.5 rounded-full bg-emerald-500" />
-        <span className="font-medium">Inside Hostel</span>
-      </div>
-    );
-  }
+/** Activity is a log, so its marker is a tone, not a second status vocabulary. */
+const POSITIVE_ACTIVITY = [
+  "LEAVE_APPROVED",
+  "ENTER_HOSTEL",
+  "QR_GENERATED",
+  "LEAVE_COMPLETED",
+];
+const NEGATIVE_ACTIVITY = [
+  "LEAVE_REJECTED",
+  "AUTO_OVERDUE",
+  "QR_INVALIDATED",
+];
 
-  if (location === MOVEMENT_STATE.OUTSIDE_HOSTEL) {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="size-2.5 rounded-full bg-amber-500" />
-        <span className="font-medium">Outside Hostel</span>
-      </div>
-    );
-  }
+function activityTone(type: string): string {
+  if (POSITIVE_ACTIVITY.includes(type)) return "bg-success";
+  if (NEGATIVE_ACTIVITY.includes(type)) return "bg-danger";
+  return "bg-border-strong";
+}
 
-  if (location === MOVEMENT_STATE.OVERDUE) {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="size-2.5 rounded-full bg-red-500" />
-        <span className="font-medium">Overdue — Please return</span>
-      </div>
-    );
-  }
-
-  if (location === MOVEMENT_STATE.CHECKED_OUT) {
-    return (
-      <div className="flex items-center gap-2">
-        <span className="size-2.5 rounded-full bg-amber-500" />
-        <span className="font-medium">Checked Out</span>
-      </div>
-    );
-  }
-
+function movementPresentation(location: string) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="size-2.5 rounded-full bg-emerald-500" />
-      <span className="font-medium">Inside Hostel</span>
-    </div>
+    MOVEMENT_STATE_PRESENTATION[location as MovementState] ??
+    MOVEMENT_STATE_PRESENTATION.IN_HOSTEL
   );
-}
-
-function ApprovalStepIcon({ decision }: { decision: string }) {
-  if (decision === "APPROVED" || decision === "AUTO_APPROVED") {
-    return <span className="text-emerald-500 font-bold">✔</span>;
-  }
-  if (decision === "REJECTED" || decision === "CANCELLED") {
-    return <span className="text-red-500 font-bold">✘</span>;
-  }
-  return <span className="text-muted-foreground">○</span>;
-}
-
-function ActivityDot({ type }: { type: string }) {
-  const positive = ["LEAVE_APPROVED", "ENTER_HOSTEL", "QR_GENERATED", "LEAVE_COMPLETED"];
-  const negative = ["LEAVE_REJECTED", "AUTO_OVERDUE", "QR_INVALIDATED"];
-  if (positive.includes(type)) return <span className="text-emerald-500">✔</span>;
-  if (negative.includes(type)) return <span className="text-red-500">✘</span>;
-  return <span className="text-muted-foreground">●</span>;
 }
 
 export default function StudentDashboardPage() {
   const { userId } = useCurrentUser();
-  const { stats, isLoading: statsLoading, isError: statsError, mutate: retryStats } = useDashboardStats();
+  const {
+    stats,
+    isLoading: statsLoading,
+    isError: statsError,
+    mutate: retryStats,
+  } = useDashboardStats();
   const { leaves, isLoading: leavesLoading } = useLeaves({ page: 1, limit: 5 });
   const { getTokenByLeaveId, storeToken } = useQrToken();
   const [qrTokenReady, setQrTokenReady] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
-  const [fullscreenQr, setFullscreenQr] = useState(false);
+  const [passOpen, setPassOpen] = useState(false);
 
   const s = stats as StudentDashboardStats | null;
   const activeLeave = s?.activeLeave ?? null;
@@ -106,7 +103,8 @@ export default function StudentDashboardPage() {
   const needsToken = !!(activeQr && activeLeave?.id && !qrToken);
 
   useEffect(() => {
-    if (!needsToken || !activeLeave?.id || !userId || qrTokenReady || qrError) return;
+    if (!needsToken || !activeLeave?.id || !userId || qrTokenReady || qrError)
+      return;
     let cancelled = false;
 
     (async () => {
@@ -126,293 +124,325 @@ export default function StudentDashboardPage() {
         if (!cancelled) await retryStats();
       } catch (err) {
         if (!cancelled) {
-          setQrError(err instanceof Error ? err.message : "Failed to load QR");
+          setQrError(
+            err instanceof Error ? err.message : "The pass didn't load"
+          );
         }
       }
     })();
 
-    return () => { cancelled = true; };
-  }, [needsToken, activeLeave?.id, userId, qrTokenReady, qrError, retryStats, storeToken]);
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    needsToken,
+    activeLeave?.id,
+    userId,
+    qrTokenReady,
+    qrError,
+    retryStats,
+    storeToken,
+  ]);
 
   const hasQr = !!(activeQr && (qrToken || qrTokenReady));
   const loadingQr = needsToken && !qrError;
-
-  const nextPendingStep = approvalProgress?.find((s) => s.decision === "PENDING");
-
-  const dynamicActions: Array<{ label: string; href?: string; onClick?: () => void; variant: "default" | "outline" | "ghost" }> = [];
-  if (hasQr) {
-    dynamicActions.push({ label: "Fullscreen QR", onClick: () => setFullscreenQr(true), variant: "default" });
-  }
-  if (nextPendingStep) {
-    dynamicActions.push({ label: "View Approval Progress", href: `/student/leaves`, variant: "outline" });
-  }
-  if (!activeLeave && pendingCount === 0) {
-    dynamicActions.push({ label: "Raise New Leave", href: ROUTES.STUDENT_LEAVE_NEW, variant: "default" });
-  }
-  dynamicActions.push({ label: "Leave History", href: "/student/leaves", variant: "ghost" });
+  const nextPendingStep = approvalProgress?.find(
+    (step) => step.decision === "PENDING"
+  );
+  const isOverdue = currentLocation === MOVEMENT_STATE.OVERDUE;
+  const location = movementPresentation(currentLocation);
 
   if (statsLoading || leavesLoading) {
-    return <LoadingState count={4} />;
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-40 rounded-2xl" />
+        <MetricSkeleton count={3} />
+        <RowSkeleton rows={3} />
+      </div>
+    );
   }
 
   if (statsError) {
-    return <ErrorState message="Failed to load dashboard" onRetry={() => { retryStats(); }} />;
+    return (
+      <ErrorState
+        title="We couldn't load your dashboard"
+        description="The request didn't come back from the server. Your leaves and passes are unaffected."
+        onRetry={() => {
+          retryStats();
+        }}
+      />
+    );
   }
 
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Dashboard"
-        description="Your hostel leave, movement, and QR status at a glance."
+    <div className="space-y-6">
+      <Masthead
+        eyebrow="Student"
+        title="Your leave"
+        description="Where you are, what's approved, and the pass that gets you through the gate."
+        status={{ label: location.label, tone: location.tone }}
+        actions={
+          <Button asChild variant="onDark" size="sm">
+            <Link href={ROUTES.STUDENT_LEAVE_NEW}>
+              <CalendarPlus className="h-4 w-4" aria-hidden />
+              Request leave
+            </Link>
+          </Button>
+        }
       />
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <DashboardCard title="Current Status">
-          <LocationBadge location={currentLocation} />
-          {activeLeave && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              On leave: {activeLeave.leaveType}
-            </p>
-          )}
-          {nextPendingStep && (
-            <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-              Waiting for {nextPendingStep.label}
-            </p>
-          )}
-        </DashboardCard>
-
-        <DashboardCard title="Active Leave">
-          {activeLeave ? (
-            <div className="space-y-1">
-              <p className="font-medium">{activeLeave.leaveType}</p>
-              <p className="text-xs text-muted-foreground">
-                {formatDateRange(activeLeave.startAt, activeLeave.endAt)}
-              </p>
-              <span className="inline-block mt-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary capitalize">
-                {activeLeave.status.toLowerCase()}
-              </span>
-              {upcomingLeave && (
-                <p className="text-xs text-muted-foreground">
-                  Next: {upcomingLeave.leaveType} from {formatDate(upcomingLeave.startAt)}
-                </p>
-              )}
-            </div>
-          ) : upcomingLeave ? (
-            <div className="space-y-1">
-              <p className="font-medium">{upcomingLeave.leaveType}</p>
-              <p className="text-xs text-muted-foreground">
-                {formatDateRange(upcomingLeave.startAt, upcomingLeave.endAt)}
-              </p>
-              <span className="inline-block mt-1 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground capitalize">
-                Upcoming
-              </span>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No active leave</p>
-          )}
-        </DashboardCard>
-
-        <DashboardCard title={nextPendingStep ? `Waiting for ${nextPendingStep.label}` : "Pending Requests"}>
-          {pendingCount > 0 ? (
-            <div className="space-y-1">
-              <p className="text-2xl font-bold">{pendingCount}</p>
-              {nextPendingStep && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                  {nextPendingStep.label}
-                </p>
-              )}
-              <Link href="/student/leaves" className="text-xs text-primary hover:underline">
-                View details →
+      {isOverdue && activeLeave && (
+        <Refusal
+          what="You're past your return time"
+          why={`Your ${activeLeave.leaveType} was due back at ${formatDateRange(activeLeave.startAt, activeLeave.endAt)}.`}
+          whatNow="Return to the hostel and scan in at the gate. If you need longer, request an extension from the leave itself."
+          action={
+            <Button asChild variant="outline" size="sm">
+              <Link href={`${ROUTES.STUDENT_LEAVES}/${activeLeave.id}`}>
+                Open this leave
               </Link>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              <p className="text-2xl font-bold text-muted-foreground">0</p>
-              {approvedCount > 0 && (
-                <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                  {approvedCount} approved recently
-                </p>
-              )}
-            </div>
-          )}
-        </DashboardCard>
+            </Button>
+          }
+        />
+      )}
 
-        <DashboardCard title="QR Pass">
-          {activeQr ? (
-            <div className="space-y-1">
-              <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">Ready</p>
-              {activeQr.expiresAt && (
-                <p className="text-xs text-muted-foreground">{formatTimeRemaining(activeQr.expiresAt)}</p>
-              )}
-            </div>
-          ) : upcomingLeave ? (
-            <p className="text-sm text-muted-foreground">
-              QR available from {formatDate(upcomingLeave.startAt)}
-            </p>
-          ) : (
-            <p className="text-sm text-muted-foreground">No QR pass</p>
-          )}
-        </DashboardCard>
-      </section>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <MetricTile
+          label="Awaiting approval"
+          value={pendingCount}
+          Icon={Clock}
+          tone={pendingCount > 0 ? "warning" : undefined}
+        />
+        <MetricTile
+          label="Approved"
+          value={approvedCount}
+          Icon={Check}
+          tone={approvedCount > 0 ? "success" : undefined}
+        />
+        <MetricTile
+          label="Gate pass"
+          value={activeQr ? "Ready" : "None"}
+          unit={
+            activeQr?.expiresAt
+              ? formatTimeRemaining(activeQr.expiresAt)
+              : undefined
+          }
+          Icon={QrCode}
+          tone={activeQr ? "accent" : undefined}
+        />
+      </div>
 
-      <section className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <DashboardCard title={activeLeave ? activeLeave.leaveType : "Current Leave"} description={activeLeave ? `${activeLeave.status.toLowerCase()} — ${formatDateRange(activeLeave.startAt, activeLeave.endAt)}` : "No active leave request"}>
+          <SectionCard
+            Icon={FileText}
+            title={activeLeave ? activeLeave.leaveType : "Current leave"}
+            meta={
+              activeLeave
+                ? formatDateRange(activeLeave.startAt, activeLeave.endAt)
+                : undefined
+            }
+            action={
+              activeLeave ? (
+                <StatusBadge
+                  status={{
+                    tone: "accent",
+                    label: activeLeave.status.toLowerCase(),
+                    Icon: ScanLine,
+                  }}
+                />
+              ) : undefined
+            }
+          >
             {activeLeave ? (
               <div className="space-y-4">
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>Started {formatDateTime(activeLeave.startAt)}</span>
-                  <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary capitalize">
-                    {activeLeave.status.toLowerCase()}
-                  </span>
-                </div>
-
                 {activeQr && (
-                  <div className="flex items-center gap-4 rounded-xl bg-muted p-4">
-                    <div className="relative shrink-0">
+                  <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-surface-sunken p-4">
+                    <div className="shrink-0">
                       {loadingQr ? (
-                        <div className="flex size-[140px] items-center justify-center">
-                          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                        </div>
+                        <Skeleton className="h-[140px] w-[140px] rounded-xl" />
                       ) : qrError ? (
-                        <p className="text-sm text-destructive">{qrError}</p>
+                        <div className="flex h-[140px] w-[140px] items-center justify-center rounded-xl border border-danger/30 bg-danger-light p-3 text-center">
+                          <p className="text-caption text-danger">{qrError}</p>
+                        </div>
                       ) : hasQr ? (
-                        <button type="button" onClick={() => setFullscreenQr(true)} className="cursor-pointer">
+                        <button
+                          type="button"
+                          onClick={() => setPassOpen(true)}
+                          aria-label="Show the gate pass full screen"
+                          className={cn(
+                            "group relative rounded-xl bg-white p-2",
+                            "transition-transform duration-fast ease-standard active:translate-y-px",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                          )}
+                        >
                           <QrCodeDisplay token={qrToken ?? ""} size={140} />
-                          <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/0 transition-colors hover:bg-black/5">
-                            <Maximize2 className="size-5 text-white/0 transition-colors group-hover:text-white/70" />
-                          </div>
+                          <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl bg-surface-ink/0 transition-colors duration-fast ease-standard group-hover:bg-surface-ink/40">
+                            <Maximize2
+                              className="h-5 w-5 text-white opacity-0 transition-opacity duration-fast ease-standard group-hover:opacity-100"
+                              aria-hidden
+                            />
+                          </span>
                         </button>
                       ) : null}
                     </div>
-                    <div className="space-y-1.5">
-                      <p className="text-sm font-medium">QR Pass</p>
+
+                    <div className="min-w-0 space-y-1">
+                      <p className={TECH_LABEL}>Gate pass</p>
                       {activeQr.expiresAt && (
-                        <p className="text-xs text-muted-foreground">{formatTimeRemaining(activeQr.expiresAt)}</p>
+                        <p className="text-body font-semibold text-ink">
+                          {formatTimeRemaining(activeQr.expiresAt)}
+                        </p>
                       )}
-                      <p className="text-xs text-muted-foreground">Tap QR for fullscreen</p>
+                      <p className="text-caption text-muted">
+                        Tap the code to show it full screen at the gate.
+                      </p>
                     </div>
                   </div>
                 )}
 
                 {approvalProgress && approvalProgress.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Approval Progress</p>
-                    <div className="flex items-center gap-1.5">
-                      {approvalProgress.map((step, idx) => (
-                        <div key={step.stepKey} className="flex items-center gap-1.5">
-                          <div className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${
-                            step.decision === "APPROVED" || step.decision === "AUTO_APPROVED"
-                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                              : step.decision === "REJECTED"
-                                ? "bg-red-500/10 text-red-600 dark:text-red-400"
-                                : "bg-muted text-muted-foreground"
-                          }`}>
-                            <ApprovalStepIcon decision={step.decision} />
-                            {step.label}
-                          </div>
-                          {idx < approvalProgress.length - 1 && (
-                            <span className="text-muted-foreground/40">→</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                    <p className={TECH_LABEL}>Approval chain</p>
+                    <ApprovalTrail steps={approvalProgress} />
+                    {nextPendingStep && (
+                      <p className="text-caption text-muted">
+                        Waiting on {nextPendingStep.label}.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="flex flex-col items-center gap-3 py-6 text-center">
-                <p className="text-sm text-muted-foreground">No active leave request</p>
-                <Link href={ROUTES.STUDENT_LEAVE_NEW}>
-                  <Button size="sm">Raise a Leave</Button>
-                </Link>
-              </div>
-            )}
-          </DashboardCard>
-
-          <DashboardCard title="Recent Leaves" description="Your most recent leave requests.">
-            {leaves.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No leave requests yet.</p>
-            ) : (
+            ) : upcomingLeave ? (
               <div className="space-y-3">
-                {leaves.map((leave: { id: string; leaveTypeName?: string; startAt: string; endAt: string; status: string }) => (
-                  <Link
-                    key={leave.id}
-                    href={`/student/leaves/${leave.id}`}
-                    className="flex items-center justify-between rounded-xl bg-muted p-4 transition-colors hover:bg-muted/70"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">{leave.leaveTypeName}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {formatDateRange(leave.startAt, leave.endAt)}
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary capitalize shrink-0 ml-4">
-                      {leave.status.toLowerCase()}
-                    </span>
+                <p className="text-body text-muted">
+                  Your next leave is {upcomingLeave.leaveType}, starting{" "}
+                  {formatDate(upcomingLeave.startAt)}. Your gate pass appears
+                  here when it begins.
+                </p>
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`${ROUTES.STUDENT_LEAVES}/${upcomingLeave.id}`}>
+                    Open this leave
                   </Link>
-                ))}
+                </Button>
               </div>
-            )}
-          </DashboardCard>
-        </div>
-
-        <div className="space-y-6">
-          <DashboardCard title="Quick Actions">
-            <div className="flex flex-col gap-3">
-              {dynamicActions.length === 0 && (
-                <p className="text-sm text-muted-foreground">No actions available</p>
-              )}
-              {dynamicActions.map((action, idx) => (
-                action.href ? (
-                  <Link key={idx} href={action.href}>
-                    <Button variant={action.variant} className="w-full">{action.label}</Button>
-                  </Link>
-                ) : (
-                  <Button key={idx} variant={action.variant} className="w-full" onClick={action.onClick}>
-                    {action.label}
+            ) : (
+              <EmptyState
+                Icon={CalendarPlus}
+                title="No leave in progress"
+                description="Request one and it'll show up here with its approval chain and gate pass."
+                action={
+                  <Button asChild size="sm" trailingArrow>
+                    <Link href={ROUTES.STUDENT_LEAVE_NEW}>Request leave</Link>
                   </Button>
-                )
-              ))}
-            </div>
-          </DashboardCard>
+                }
+              />
+            )}
+          </SectionCard>
 
-          <DashboardCard title="Recent Activity">
-            {recentActivity.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No recent activity</p>
+          <SectionCard
+            Icon={History}
+            title="Recent leaves"
+            meta={leaves.length > 0 ? `${leaves.length} shown` : undefined}
+            action={
+              leaves.length > 0 ? (
+                <Button asChild variant="ghost" size="sm">
+                  <Link href={ROUTES.STUDENT_LEAVES}>See all</Link>
+                </Button>
+              ) : undefined
+            }
+          >
+            {leaves.length === 0 ? (
+              <EmptyState
+                Icon={FileText}
+                title="No leave requests yet"
+                description="Your requests and their outcomes will be listed here."
+                action={
+                  <Button asChild size="sm" trailingArrow>
+                    <Link href={ROUTES.STUDENT_LEAVE_NEW}>Request leave</Link>
+                  </Button>
+                }
+              />
             ) : (
-              <div className="space-y-3">
-                {recentActivity.slice(0, 5).map((act, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <ActivityDot type={act.type} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm">{act.description}</p>
-                      <p className="text-xs text-muted-foreground">{formatRelative(act.timestamp)}</p>
-                    </div>
-                  </div>
-                ))}
+              <div className="grid gap-3">
+                {leaves.map(
+                  (leave: {
+                    id: string;
+                    leaveTypeName?: string;
+                    startAt: string;
+                    endAt: string;
+                    status: string;
+                  }) => (
+                    <EditorialRow
+                      key={leave.id}
+                      Icon={FileText}
+                      title={leave.leaveTypeName ?? "Leave request"}
+                      meta={formatDateRange(leave.startAt, leave.endAt)}
+                      href={`${ROUTES.STUDENT_LEAVES}/${leave.id}`}
+                      tone="accent"
+                    />
+                  )
+                )}
               </div>
             )}
-          </DashboardCard>
+          </SectionCard>
         </div>
-      </section>
 
-      {fullscreenQr && hasQr && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
-          onClick={() => setFullscreenQr(false)}
+        <SectionCard
+          Icon={History}
+          title="Recent activity"
+          meta={
+            recentActivity.length > 0
+              ? `${recentActivity.length} events`
+              : undefined
+          }
         >
-          <button
-            type="button"
-            className="absolute right-4 top-4 rounded-full bg-white/10 p-2 text-white/70 hover:bg-white/20 hover:text-white"
-            onClick={() => setFullscreenQr(false)}
-          >
-            <X className="size-6" />
-          </button>
-          <div className="rounded-2xl bg-white p-8" onClick={(e) => e.stopPropagation()}>
-            <QrCodeDisplay token={qrToken ?? ""} size={320} />
-          </div>
-        </div>
+          {recentActivity.length === 0 ? (
+            <EmptyState
+              Icon={History}
+              title="Nothing has happened yet"
+              description="Approvals, gate scans and pass changes appear here as they happen."
+            />
+          ) : (
+            <ul className="divide-y divide-border">
+              {recentActivity.slice(0, 6).map((activity, index) => (
+                <li
+                  key={`${activity.type}-${index}`}
+                  className="flex items-start gap-3 py-3 first:pt-0 last:pb-0"
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
+                      activityTone(activity.type)
+                    )}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-small text-ink">
+                      {activity.description}
+                    </p>
+                    <p className="text-caption text-muted">
+                      {formatRelative(activity.timestamp)}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </SectionCard>
+      </div>
+
+      {hasQr && (
+        <QrPassDialog
+          open={passOpen}
+          onOpenChange={setPassOpen}
+          token={qrToken ?? ""}
+          validFor={
+            activeQr?.expiresAt
+              ? `Valid for ${formatTimeRemaining(activeQr.expiresAt)}.`
+              : undefined
+          }
+        />
       )}
     </div>
   );

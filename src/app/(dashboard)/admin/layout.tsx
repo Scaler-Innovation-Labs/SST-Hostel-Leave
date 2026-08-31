@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { NAVIGATION } from "@/constants/navigation";
 import { ROUTES } from "@/constants/routes";
 import { ApprovalCountBadge } from "@/features/approvals/components/ApprovalCountBadge";
 import { ExtensionApprovalCountBadge } from "@/features/extensions/components/ExtensionApprovalCountBadge";
@@ -13,9 +12,7 @@ type AdminLayoutProps = {
   children: React.ReactNode;
 };
 
-export default async function AdminLayout({
-  children,
-}: AdminLayoutProps) {
+export default async function AdminLayout({ children }: AdminLayoutProps) {
   const user = await getCurrentUser();
 
   if (!user) {
@@ -26,26 +23,20 @@ export default async function AdminLayout({
     redirect("/unauthorized");
   }
 
-  const shellItems =
-    NAVIGATION.admin.map(
-      ({ label, href }) => ({
-        label,
-        href,
-        badge:
-          href === ROUTES.ADMIN_APPROVALS
-            ? <ApprovalCountBadge />
-            : href === ROUTES.ADMIN_EXTENSION_APPROVALS
-              ? <ExtensionApprovalCountBadge />
-              : href === ROUTES.ADMIN_OVERDUE
-                ? <OverdueCountBadge />
-                : undefined,
-      })
-    );
+  /** What is waiting on you, keyed by the row it rides on. */
+  const badges = {
+    [ROUTES.ADMIN_APPROVALS]: <ApprovalCountBadge />,
+    [ROUTES.ADMIN_EXTENSION_APPROVALS]: <ExtensionApprovalCountBadge />,
+    [ROUTES.ADMIN_OVERDUE]: <OverdueCountBadge />,
+  };
 
   return (
     <AppShell
-      items={shellItems}
+      nav="admin"
       logoHref={ROUTES.ADMIN_DASHBOARD}
+      roleLabel="Admin"
+      density="admin"
+      badges={badges}
     >
       {children}
     </AppShell>

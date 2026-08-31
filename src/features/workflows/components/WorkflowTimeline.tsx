@@ -11,7 +11,7 @@ type WorkflowTimelineProps = {
 const statusClasses: Record<WorkflowStep["status"], string> = {
   completed: "border-emerald-500/20 bg-emerald-500/10 text-emerald-500",
   current: "border-primary/20 bg-primary/10 text-primary",
-  upcoming: "border-border bg-muted text-muted-foreground",
+  upcoming: "border-border bg-surface-sunken text-muted",
 };
 
 export function WorkflowTimeline({
@@ -43,7 +43,7 @@ export function WorkflowTimeline({
               {step.title}
             </h4>
 
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-muted">
               {step.description}
             </p>
           </div>

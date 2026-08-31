@@ -90,7 +90,7 @@ export function AutoPreviewModal({
                 />
                 <div>
                   <p className="font-medium">{effect.label}</p>
-                  <p className="text-xs text-muted-foreground">{effect.description}</p>
+                  <p className="text-xs text-muted">{effect.description}</p>
                 </div>
               </div>
             );

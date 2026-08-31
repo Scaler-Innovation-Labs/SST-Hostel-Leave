@@ -77,7 +77,7 @@ export function Navbar({ items, logo }: NavbarProps) {
                   "relative inline-flex items-center gap-1.5 rounded-xl px-2.5 lg:px-3 py-2 text-sm font-medium transition-all duration-200",
                   active
                     ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                    : "text-muted hover:bg-surface-hover hover:text-foreground",
                 )}
               >
                 {Icon && <Icon className="h-4 w-4 shrink-0" />}
@@ -119,7 +119,7 @@ export function Navbar({ items, logo }: NavbarProps) {
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <button
-                className="inline-flex items-center justify-center rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:hidden"
+                className="inline-flex items-center justify-center rounded-lg border border-border p-2 text-muted transition-colors hover:bg-surface-hover hover:text-foreground md:hidden"
                 aria-label="Toggle menu"
               >
                 <Menu className="size-5" />
@@ -150,13 +150,13 @@ export function Navbar({ items, logo }: NavbarProps) {
                           "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                           active
                             ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                            : "text-muted hover:bg-surface-hover hover:text-foreground",
                         )}
                       >
                         <div
                           className={cn(
                             "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-                            Icon ? (active ? "bg-primary/15" : "bg-muted") : "bg-transparent",
+                            Icon ? (active ? "bg-primary/15" : "bg-surface-sunken") : "bg-transparent",
                           )}
                         >
                           {Icon ? <Icon className="h-4 w-4" /> : null}
@@ -188,7 +188,7 @@ export function Navbar({ items, logo }: NavbarProps) {
                       <p className="truncate text-sm font-medium text-foreground">
                         {user?.fullName ?? "User"}
                       </p>
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p className="truncate text-xs text-muted">
                         {user?.primaryEmailAddress?.emailAddress ?? ""}
                       </p>
                     </div>

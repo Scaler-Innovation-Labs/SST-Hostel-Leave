@@ -38,9 +38,9 @@ export function AnalyticsBarChart({
     return (
       <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <h3 className="mb-1 text-base font-semibold">{title}</h3>
-        {description && <p className="mb-4 text-sm text-muted-foreground">{description}</p>}
+        {description && <p className="mb-4 text-sm text-muted">{description}</p>}
         <div className="flex h-[250px] items-center justify-center">
-          <p className="text-sm text-muted-foreground">No data available.</p>
+          <p className="text-sm text-muted">No data available.</p>
         </div>
       </div>
     );
@@ -56,7 +56,7 @@ export function AnalyticsBarChart({
   return (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
       <h3 className="mb-1 text-base font-semibold">{title}</h3>
-      {description && <p className="mb-4 text-sm text-muted-foreground">{description}</p>}
+      {description && <p className="mb-4 text-sm text-muted">{description}</p>}
       <ResponsiveContainer width="100%" height={height}>
         <RechartsBarChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border, hsl(240 5% 84%))" opacity={0.4} vertical={false} />
@@ -66,12 +66,12 @@ export function AnalyticsBarChart({
             interval={0}
             angle={-25}
             textAnchor="end"
-            tick={{ fontSize: 10, fill: "var(--color-muted-foreground, hsl(240 4% 46%))" }}
+            tick={{ fontSize: 10, fill: "var(--color-muted, hsl(240 4% 46%))" }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fontSize: 11, fill: "var(--color-muted-foreground, hsl(240 4% 46%))" }}
+            tick={{ fontSize: 11, fill: "var(--color-muted, hsl(240 4% 46%))" }}
             axisLine={false}
             tickLine={false}
             allowDecimals={false}

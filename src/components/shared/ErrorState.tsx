@@ -1,30 +1,31 @@
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { ErrorState as SstErrorState } from "@/design-system/sst";
 
 type ErrorStateProps = {
+  /** What failed, named. Never "Something went wrong". */
   message?: string;
+  /** The next step, where there is one beyond retrying. */
+  description?: string;
   onRetry?: () => void;
   className?: string;
 };
 
-export function ErrorState({ message = "Something went wrong", onRetry, className }: ErrorStateProps) {
+/**
+ * An error state says what failed and offers a way forward. The default names
+ * the layer that broke rather than blaming the user or apologising — a message
+ * the reader can act on beats a shrug.
+ */
+export function ErrorState({
+  message = "We couldn't load this",
+  description = "The request didn't come back from the server. Try again in a moment.",
+  onRetry,
+  className,
+}: ErrorStateProps) {
   return (
-    <div
-      className={cn(
-        "relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-destructive/20 bg-destructive/[0.02] px-6 py-12 text-center",
-        "before:absolute before:inset-x-0 before:top-0 before:h-[1px] before:bg-linear-to-r before:from-transparent before:via-destructive/30 before:to-transparent",
-        className,
-      )}
-    >
-      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-xl font-bold text-destructive">
-        !
-      </div>
-      <p className="text-sm text-muted-foreground">{message}</p>
-      {onRetry && (
-        <Button variant="outline" size="sm" className="mt-4" onClick={onRetry}>
-          Try again
-        </Button>
-      )}
-    </div>
+    <SstErrorState
+      title={message}
+      description={description}
+      onRetry={onRetry}
+      className={className}
+    />
   );
 }

@@ -7,7 +7,7 @@ import { ProductPreviewSection } from "@/components/marketing/ProductPreviewSect
 import { WorkflowSection } from "@/components/marketing/WorkflowSection";
 import { ForceDarkMode } from "@/components/shared/ForceDarkMode";
 import { Logo } from "@/components/shared/Logo";
-import { NAVIGATION } from "@/constants/navigation";
+import { LANDING_NAV } from "@/constants/navigation";
 import { ROUTES } from "@/constants/routes";
 
 const FOOTER_COLUMNS = [
@@ -37,7 +37,7 @@ export default async function HomePage() {
       <BackgroundLayer />
 
       <Navbar
-        items={NAVIGATION.landing}
+        items={[...LANDING_NAV]}
         logo={<Logo />}
       />
 
@@ -67,7 +67,7 @@ export default async function HomePage() {
         >
           <div>
             <Logo />
-            <p className="mt-4 max-w-xs text-sm leading-6 text-muted-foreground">
+            <p className="mt-4 max-w-xs text-sm leading-6 text-muted">
               Campus leave and movement management — approvals, QR passes,
               and audit trails in one platform.
             </p>
@@ -75,7 +75,7 @@ export default async function HomePage() {
 
           {FOOTER_COLUMNS.map((column) => (
             <div key={column.heading}>
-              <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted">
                 {column.heading}
               </h3>
 
@@ -84,7 +84,7 @@ export default async function HomePage() {
                   <li key={link.label}>
                     <a
                       href={link.href}
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      className="text-sm text-muted transition-colors hover:text-foreground"
                     >
                       {link.label}
                     </a>
@@ -101,11 +101,11 @@ export default async function HomePage() {
             justify-between border-t border-border px-6 pt-6
           "
         >
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted">
             SST Hostel Leave System
           </p>
 
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted">
             Operational workflow platform
           </p>
         </div>

@@ -67,7 +67,7 @@ export function DocumentList({ leaveId, canDelete = false, requiredDocument }: D
         {requiredDocument && !hasRequiredDocument && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
             <p className="text-sm font-medium">{requiredDocument.label} required</p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-muted">
               Upload this document so it can be reviewed with your leave request.
             </p>
             <div className="mt-4">
@@ -84,7 +84,7 @@ export function DocumentList({ leaveId, canDelete = false, requiredDocument }: D
         {documents.map((doc: DocumentItem) => (
           <div
             key={doc.id}
-            className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/50"
+            className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-surface-sunken/50"
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               {getFileIcon(doc.mimeType)}
@@ -99,7 +99,7 @@ export function DocumentList({ leaveId, canDelete = false, requiredDocument }: D
               >
                 {doc.fileName}
               </a>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted">
                 {formatFileSize(doc.fileSize)}
                 {doc.mimeType && ` · ${doc.mimeType.split("/")[1]?.toUpperCase() ?? ""}`}
               </p>
@@ -109,7 +109,7 @@ export function DocumentList({ leaveId, canDelete = false, requiredDocument }: D
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                className="h-8 w-8 shrink-0 text-muted hover:text-destructive"
                 onClick={() => setConfirmDeleteId(doc.id)}
                 disabled={deletingId === doc.id}
               >

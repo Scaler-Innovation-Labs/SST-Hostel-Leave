@@ -1,29 +1,65 @@
 import { differenceInCalendarDays, format, parseISO } from "date-fns";
 
+/**
+ * One format per data type, everywhere — inconsistency here reads as a bug.
+ *
+ * Times are 24-hour with the timezone named on first use in a view, dates are
+ * "3 March" (with the year only when it is not this one), and relative times
+ * appear only under 24 hours. A raw UTC value or an ISO string is never shown.
+ */
+
+/** The product's operating timezone. Every timestamp renders here. */
+export const OPERATING_TIMEZONE = "IST";
+
+/** 24-hour clock. `18:00`, never `6:00 PM`. */
+const TIME = "HH:mm";
+/** `3 March`. */
+const DAY_MONTH = "d MMMM";
+/** `3 March 2025` — only when the date is not in the current year. */
+const DAY_MONTH_YEAR = "d MMMM yyyy";
+
+function isThisYear(date: Date): boolean {
+  return date.getFullYear() === new Date().getFullYear();
+}
+
+function dayPattern(date: Date): string {
+  return isThisYear(date) ? DAY_MONTH : DAY_MONTH_YEAR;
+}
+
+/**
+ * Relative only under 24 hours; past that a reader wants the date, not a
+ * count of days to translate.
+ */
 export function formatRelative(dateStr: string): string {
   try {
     const date = parseISO(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+    const diffMs = Date.now() - date.getTime();
+    const future = diffMs < 0;
+    const mins = Math.floor(Math.abs(diffMs) / 60000);
+    const hours = Math.floor(mins / 60);
 
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return format(date, "MMM d");
+    if (mins < 1) return "just now";
+    if (mins < 60) {
+      const unit = mins === 1 ? "minute" : "minutes";
+      return future ? `in ${mins} ${unit}` : `${mins} ${unit} ago`;
+    }
+    if (hours < 24) {
+      const unit = hours === 1 ? "hour" : "hours";
+      return future ? `in ${hours} ${unit}` : `${hours} ${unit} ago`;
+    }
+    return format(date, dayPattern(date));
   } catch {
-    return "—";
+    return "\u2014";
   }
 }
 
+/** `3 March`, or `3 March 2025` outside the current year. */
 export function formatDate(dateStr: string): string {
   try {
-    return format(parseISO(dateStr), "MMM d, yyyy");
+    const date = parseISO(dateStr);
+    return format(date, dayPattern(date));
   } catch {
-    return dateStr.split("T")[0] ?? "—";
+    return dateStr.split("T")[0] ?? "\u2014";
   }
 }
 
@@ -36,54 +72,59 @@ export function formatShortDate(date: Date): string {
   });
 }
 
+/** `3 March, 18:00 IST`. Within this week, the weekday leads instead. */
 export function formatDateTime(dateStr: string): string {
   try {
-    return format(parseISO(dateStr), "MMM d, yyyy h:mm a");
+    const date = parseISO(dateStr);
+    const time = format(date, TIME);
+    if (isWithinWeek(date)) {
+      return `${format(date, "EEEE")}, ${time} ${OPERATING_TIMEZONE}`;
+    }
+    return `${format(date, dayPattern(date))}, ${time} ${OPERATING_TIMEZONE}`;
   } catch {
-    return dateStr ?? "—";
+    return "\u2014";
   }
 }
 
+/** Compact duration: `1h 30m`, never `90 minutes`. */
 export function formatTimeRemaining(dateStr: string): string {
   try {
     const target = parseISO(dateStr);
-    const now = new Date();
-    const diffMs = target.getTime() - now.getTime();
+    const diffMs = target.getTime() - Date.now();
     if (diffMs <= 0) return "Expired";
 
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+    const mins = Math.floor(diffMs / 60000);
+    const hours = Math.floor(mins / 60);
+    const days = Math.floor(hours / 24);
 
-    if (diffDays > 0) return `${diffDays}d ${diffHours % 24}h remaining`;
-    if (diffHours > 0) return `${diffHours}h ${diffMins % 60}m remaining`;
-    return `${diffMins}m remaining`;
+    if (days > 0) return `${days}d ${hours % 24}h left`;
+    if (hours > 0) return `${hours}h ${mins % 60}m left`;
+    return `${mins}m left`;
   } catch {
-    return "—";
+    return "\u2014";
   }
 }
 
+/**
+ * `3 March, 18:00\u201319:00 IST` for a single day; `3 March \u2192 5 March` across
+ * days. The timezone is named once, on the times it applies to.
+ */
 export function formatDateRange(startStr: string, endStr: string): string {
   try {
     const start = parseISO(startStr);
     const end = parseISO(endStr);
-    const now = new Date();
-    const isSameDay = start.toDateString() === end.toDateString();
-    const isThisYear = start.getFullYear() === now.getFullYear();
 
-    if (isSameDay) {
-      return `${format(start, isThisYear ? "MMM d" : "MMM d, yyyy")}, ${format(start, "h:mm a")} – ${format(end, "h:mm a")}`;
+    if (start.toDateString() === end.toDateString()) {
+      return `${format(start, dayPattern(start))}, ${format(start, TIME)}\u2013${format(end, TIME)} ${OPERATING_TIMEZONE}`;
     }
 
-    const startFmt = format(start, isThisYear ? "MMM d" : "MMM d, yyyy");
-    const endFmt = format(end, isThisYear ? "MMM d" : "MMM d, yyyy");
+    const startFmt = `${format(start, dayPattern(start))}, ${format(start, TIME)}`;
+    if (isToday(end)) return `${startFmt} \u2192 today, ${format(end, TIME)} ${OPERATING_TIMEZONE}`;
+    if (isTomorrow(end)) return `${startFmt} \u2192 tomorrow, ${format(end, TIME)} ${OPERATING_TIMEZONE}`;
 
-    if (isToday(end)) return `${startFmt} → Today`;
-    if (isTomorrow(end)) return `${startFmt} → Tomorrow`;
-
-    return `${startFmt} → ${endFmt}`;
+    return `${startFmt} \u2192 ${format(end, dayPattern(end))}, ${format(end, TIME)} ${OPERATING_TIMEZONE}`;
   } catch {
-    return "—";
+    return "\u2014";
   }
 }
 
@@ -96,6 +137,12 @@ function isTomorrow(date: Date): boolean {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   return date.toDateString() === tomorrow.toDateString();
+}
+
+/** Inside the next or previous six days, where a weekday name still orients. */
+function isWithinWeek(date: Date): boolean {
+  const days = Math.abs(differenceInCalendarDays(date, new Date()));
+  return days < 7;
 }
 
 /**

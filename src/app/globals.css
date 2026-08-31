@@ -1,149 +1,254 @@
+/**
+ * The token layer must load first: it defines every `--sst-*` custom property
+ * the theme mapping below reads. See `src/design-system/theme.css`.
+ */
+@import "../design-system/theme.css";
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
+/**
+ * Tailwind theme mapping.
+ *
+ * `inline` is required: it inlines `var(--sst-*)` into each utility so the
+ * value resolves at the element, which is what lets `.dark` and
+ * `[data-density]` redefine a token and have every call site follow. A
+ * non-inline mapping would resolve against `:root` once and freeze the light,
+ * student-density values into the stylesheet.
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
+  /* ── Colour ──────────────────────────────────────────────────────────── */
+  --color-bg: rgb(var(--sst-bg));
+  --color-surface: rgb(var(--sst-surface));
+  --color-surface-sunken: rgb(var(--sst-surface-sunken));
+  --color-surface-hover: rgb(var(--sst-surface-hover));
+  --color-surface-ink: rgb(var(--sst-surface-ink));
+  --color-surface-navy: rgb(var(--sst-surface-navy));
+  --color-on-dark: rgb(var(--sst-text-on-dark));
 
-:root {
-  --radius: 0.9rem;
+  /**
+   * The label colour for a filled status control. White in light mode, ink in
+   * dark — the dark palette lightens every status hue past the point where a
+   * white label clears 4.5:1. Encoding the inversion as a token means a filled
+   * control is written `bg-success text-on-fill`, which cannot lose its colour
+   * to a `cn()` merge the way `text-white dark:text-surface-ink` can.
+   */
+  --color-on-fill: rgb(var(--sst-on-fill));
 
-  --background: oklch(0.985 0.003 260);
-  --foreground: oklch(0.18 0.01 260);
+  --color-ink: rgb(var(--sst-text));
+  --color-muted: rgb(var(--sst-text-muted));
+  --color-border: rgb(var(--sst-border));
+  --color-border-strong: rgb(var(--sst-border-strong));
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.01 260);
+  --color-accent: rgb(var(--sst-accent));
+  --color-accent-light: rgb(var(--sst-accent-light));
+  --color-accent-dark: rgb(var(--sst-accent-dark));
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.01 260);
+  --color-success: rgb(var(--sst-success));
+  --color-success-light: rgb(var(--sst-success-light));
+  --color-warning: rgb(var(--sst-warning));
+  --color-warning-light: rgb(var(--sst-warning-light));
+  --color-danger: rgb(var(--sst-danger));
+  --color-danger-light: rgb(var(--sst-danger-light));
+  --color-info: rgb(var(--sst-info));
+  --color-info-light: rgb(var(--sst-info-light));
 
-  --primary: oklch(0.58 0.22 264);
-  --primary-foreground: oklch(0.98 0 0);
+  /**
+   * shadcn / Radix aliases, resolved onto the same tokens so existing markup
+   * adopts the palette without a markup change. These are a migration layer:
+   * new code uses the names above.
+   */
+  --color-background: rgb(var(--sst-bg));
+  --color-foreground: rgb(var(--sst-text));
+  --color-card: rgb(var(--sst-surface));
+  --color-card-foreground: rgb(var(--sst-text));
+  --color-popover: rgb(var(--sst-surface));
+  --color-popover-foreground: rgb(var(--sst-text));
+  --color-primary: rgb(var(--sst-accent));
+  --color-primary-foreground: rgb(var(--sst-on-fill));
+  --color-secondary: rgb(var(--sst-surface-sunken));
+  --color-secondary-foreground: rgb(var(--sst-text));
+  --color-muted-foreground: rgb(var(--sst-text-muted));
+  --color-accent-foreground: rgb(var(--sst-text));
+  --color-destructive: rgb(var(--sst-danger));
+  --color-destructive-foreground: rgb(var(--sst-on-fill));
+  --color-input: rgb(var(--sst-border));
+  --color-ring: rgb(var(--sst-accent));
 
-  --secondary: oklch(0.95 0.01 255);
-  --secondary-foreground: oklch(0.22 0.01 260);
+  --color-sidebar: rgb(var(--sst-surface));
+  --color-sidebar-foreground: rgb(var(--sst-text));
+  --color-sidebar-primary: rgb(var(--sst-accent));
+  --color-sidebar-primary-foreground: rgb(var(--sst-on-fill));
+  --color-sidebar-accent: rgb(var(--sst-surface-hover));
+  --color-sidebar-accent-foreground: rgb(var(--sst-text));
+  --color-sidebar-border: rgb(var(--sst-border));
+  --color-sidebar-ring: rgb(var(--sst-accent));
 
-  --muted: oklch(0.95 0.01 255);
-  --muted-foreground: oklch(0.5 0.02 260);
+  /**
+   * Charts. One or two colours per chart, never a rainbow — these are ordered
+   * so the first two carry almost every series and the rest exist only for the
+   * rare categorical breakdown. Series must stay distinguishable without
+   * colour (direct labels or dash patterns), so this is never a legend.
+   */
+  --color-chart-1: rgb(var(--sst-accent));
+  --color-chart-2: rgb(var(--sst-info));
+  --color-chart-3: rgb(var(--sst-success));
+  --color-chart-4: rgb(var(--sst-warning));
+  --color-chart-5: rgb(var(--sst-danger));
 
-  --accent: oklch(0.94 0.02 255);
-  --accent-foreground: oklch(0.22 0.01 260);
+  /* ── Type ────────────────────────────────────────────────────────────── */
+  /**
+   * Named steps, never t-shirt sizes: `text-body` always means 14/21 and
+   * cannot drift. Both spellings are registered; the unprefixed names are
+   * canonical (§14.1 — registering only the prefixed spelling silently
+   * compiled 148 call sites to nothing).
+   */
+  --text-display: var(--sst-text-display);
+  --text-display--line-height: var(--sst-leading-display);
+  --text-display--font-weight: 600;
+  --text-h1: var(--sst-text-h1);
+  --text-h1--line-height: var(--sst-leading-h1);
+  --text-h1--font-weight: 600;
+  --text-h2: var(--sst-text-h2);
+  --text-h2--line-height: var(--sst-leading-h2);
+  --text-h2--font-weight: 600;
+  --text-h3: var(--sst-text-h3);
+  --text-h3--line-height: var(--sst-leading-h3);
+  --text-h3--font-weight: 600;
+  --text-body-lg: var(--sst-text-body-lg);
+  --text-body-lg--line-height: var(--sst-leading-body-lg);
+  --text-body: var(--sst-text-body);
+  --text-body--line-height: var(--sst-leading-body);
+  --text-small: var(--sst-text-small);
+  --text-small--line-height: var(--sst-leading-small);
+  --text-caption: var(--sst-text-caption);
+  --text-caption--line-height: var(--sst-leading-caption);
+  --text-micro: var(--sst-text-micro);
+  --text-micro--line-height: var(--sst-leading-micro);
 
-  --destructive: oklch(0.65 0.22 25);
+  --text-sst-display: var(--sst-text-display);
+  --text-sst-display--line-height: var(--sst-leading-display);
+  --text-sst-display--font-weight: 600;
+  --text-sst-h1: var(--sst-text-h1);
+  --text-sst-h1--line-height: var(--sst-leading-h1);
+  --text-sst-h1--font-weight: 600;
+  --text-sst-h2: var(--sst-text-h2);
+  --text-sst-h2--line-height: var(--sst-leading-h2);
+  --text-sst-h2--font-weight: 600;
+  --text-sst-h3: var(--sst-text-h3);
+  --text-sst-h3--line-height: var(--sst-leading-h3);
+  --text-sst-h3--font-weight: 600;
+  --text-sst-body-lg: var(--sst-text-body-lg);
+  --text-sst-body-lg--line-height: var(--sst-leading-body-lg);
+  --text-sst-body: var(--sst-text-body);
+  --text-sst-body--line-height: var(--sst-leading-body);
+  --text-sst-small: var(--sst-text-small);
+  --text-sst-small--line-height: var(--sst-leading-small);
+  --text-sst-caption: var(--sst-text-caption);
+  --text-sst-caption--line-height: var(--sst-leading-caption);
+  --text-sst-micro: var(--sst-text-micro);
+  --text-sst-micro--line-height: var(--sst-leading-micro);
 
-  --border: oklch(0.9 0.01 255);
-  --input: oklch(0.92 0.01 255);
-  --ring: oklch(0.58 0.22 264);
+  --font-sans: var(--sst-font-ui);
+  --font-ui: var(--sst-font-ui);
+  --font-display: var(--sst-font-display);
+  --font-mono: var(--sst-font-mono);
+  --font-sst-ui: var(--sst-font-ui);
+  --font-sst-display: var(--sst-font-display);
+  --font-sst-mono: var(--sst-font-mono);
 
-  --chart-1: oklch(0.7 0.18 155);
-  --chart-2: oklch(0.78 0.16 85);
-  --chart-3: oklch(0.65 0.22 264);
-  --chart-4: oklch(0.62 0.2 230);
-  --chart-5: oklch(0.72 0.16 320);
+  --tracking-tighter: var(--sst-tracking-tighter);
+  --tracking-tight: var(--sst-tracking-tight);
+  --tracking-snug: var(--sst-tracking-snug);
+  --tracking-normal: var(--sst-tracking-normal);
+  --tracking-wide: var(--sst-tracking-wide);
+  --tracking-wider: var(--sst-tracking-caps);
+  --tracking-widest: var(--sst-tracking-widest);
 
-  --sidebar: oklch(0.975 0.004 260);
-  --sidebar-foreground: oklch(0.18 0.01 260);
+  /* ── Space ───────────────────────────────────────────────────────────── */
+  /* Density-driven. `p-card`, `h-row` and `min-h-tap` follow [data-density]. */
+  --spacing-card: var(--sst-card-padding, 16px);
+  --spacing-row: var(--sst-row-height, 44px);
+  --spacing-tap: var(--sst-tap-target, 44px);
+  --spacing-sst-card: var(--sst-card-padding, 16px);
+  --spacing-sst-row: var(--sst-row-height, 44px);
+  --spacing-sst-tap: var(--sst-tap-target, 44px);
 
-  --sidebar-primary: oklch(0.58 0.22 264);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --container-content: 1400px;
 
-  --sidebar-accent: oklch(0.94 0.02 255);
-  --sidebar-accent-foreground: oklch(0.22 0.01 260);
+  /* ── Radius ──────────────────────────────────────────────────────────── */
+  --radius-none: var(--sst-radius-none);
+  --radius-xs: var(--sst-radius-xs);
+  --radius-sm: var(--sst-radius-sm);
+  --radius-md: var(--sst-radius-md);
+  --radius-lg: var(--sst-radius-lg);
+  --radius-xl: var(--sst-radius-xl);
+  --radius-2xl: var(--sst-radius-2xl);
+  --radius-3xl: 28px;
+  --radius-4xl: 36px;
+  --radius-full: var(--sst-radius-full);
 
-  --sidebar-border: oklch(0.9 0.01 255);
-  --sidebar-ring: oklch(0.58 0.22 264);
-}
+  /* ── Elevation ───────────────────────────────────────────────────────── */
+  /**
+   * Named for what they do, not for the object they sit on: a boxShadow key
+   * colliding with a colour key makes Tailwind emit the class twice and the
+   * colour rule, sorted later, blanks the shadow (§14.2).
+   */
+  --shadow-xs: var(--sst-shadow-xs);
+  --shadow-sm: var(--sst-shadow-sm);
+  --shadow-md: var(--sst-shadow-md);
+  --shadow-lg: var(--sst-shadow-lg);
+  --shadow-xl: var(--sst-shadow-xl);
+  --shadow-2xl: var(--sst-shadow-xl);
+  --shadow-sheen: var(--sst-sheen);
+  --shadow-raised: var(--sst-sheen), var(--sst-shadow-sm);
+  --shadow-raised-hover: var(--sst-sheen), var(--sst-shadow-md);
+  --shadow-raised-lift: var(--sst-sheen), var(--sst-shadow-lg);
+  --shadow-glow: var(--sst-shadow-accent);
 
-.dark {
-  --background: oklch(0.145 0.01 260);
-  --foreground: oklch(0.96 0 0);
+  /* ── Gradients ───────────────────────────────────────────────────────── */
+  /* The only two sanctioned gradients: Scaler Blue into depth. */
+  --background-image-scaler-depth: linear-gradient(160deg, #0e4eb7 0%, #0b1f42 100%);
+  --background-image-scaler-ink: linear-gradient(160deg, #0b1f42 0%, #0a0a0b 100%);
+  --background-image-technical-grid: linear-gradient(
+      rgba(10, 10, 11, 0.04) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(10, 10, 11, 0.04) 1px, transparent 1px);
 
-  --card: oklch(0.18 0.01 260);
-  --card-foreground: oklch(0.96 0 0);
+  /* ── Motion ──────────────────────────────────────────────────────────── */
+  --ease-standard: var(--sst-ease-standard);
+  --ease-decelerate: var(--sst-ease-decelerate);
+  --ease-accelerate: var(--sst-ease-accelerate);
 
-  --popover: oklch(0.18 0.01 260);
-  --popover-foreground: oklch(0.96 0 0);
+  /**
+   * Entrance animations carry `backwards`, not `both`: a delayed element holds
+   * its from-state through the delay without pinning its end state and beating
+   * hover once finished.
+   */
+  --animate-fade-in: fadeIn 0.5s var(--sst-ease-decelerate) backwards;
+  --animate-fade-in-up: fadeInUp 0.5s var(--sst-ease-decelerate) backwards;
+  --animate-fade-in-down: fadeInDown 0.5s var(--sst-ease-decelerate) backwards;
+  --animate-scale-in: scaleIn 0.4s var(--sst-ease-decelerate) backwards;
 
-  --primary: oklch(0.68 0.22 264);
-  --primary-foreground: oklch(0.12 0.01 260);
-
-  --secondary: oklch(0.22 0.01 260);
-  --secondary-foreground: oklch(0.96 0 0);
-
-  --muted: oklch(0.22 0.01 260);
-  --muted-foreground: oklch(0.72 0.02 260);
-
-  --accent: oklch(0.26 0.02 260);
-  --accent-foreground: oklch(0.96 0 0);
-
-  --destructive: oklch(0.7 0.22 25);
-
-  --border: oklch(0.28 0.01 260);
-  --input: oklch(0.28 0.01 260);
-  --ring: oklch(0.68 0.22 264);
-
-  --chart-1: oklch(0.72 0.18 155);
-  --chart-2: oklch(0.8 0.16 85);
-  --chart-3: oklch(0.72 0.22 264);
-  --chart-4: oklch(0.68 0.2 230);
-  --chart-5: oklch(0.74 0.16 320);
-
-  --sidebar: oklch(0.18 0.01 260);
-  --sidebar-foreground: oklch(0.96 0 0);
-
-  --sidebar-primary: oklch(0.68 0.22 264);
-  --sidebar-primary-foreground: oklch(0.12 0.01 260);
-
-  --sidebar-accent: oklch(0.26 0.02 260);
-  --sidebar-accent-foreground: oklch(0.96 0 0);
-
-  --sidebar-border: oklch(0.28 0.01 260);
-  --sidebar-ring: oklch(0.68 0.22 264);
-}
-
-@theme inline {
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+  }
   @keyframes accordion-down {
     from { height: 0; }
     to { height: var(--radix-accordion-content-height, var(--accordion-panel-height, auto)); }
@@ -151,6 +256,37 @@
   @keyframes accordion-up {
     from { height: var(--radix-accordion-content-height, var(--accordion-panel-height, auto)); }
     to { height: 0; }
+  }
+}
+
+/**
+ * Duration utilities. Tailwind v4 has no `--duration-*` theme namespace, so
+ * the three motion steps are declared as static utilities rather than left to
+ * arbitrary values at every call site.
+ */
+@utility duration-instant {
+  transition-duration: var(--sst-duration-instant);
+}
+@utility duration-fast {
+  transition-duration: var(--sst-duration-fast);
+}
+@utility duration-base {
+  transition-duration: var(--sst-duration-base);
+}
+@utility duration-slow {
+  transition-duration: var(--sst-duration-slow);
+}
+
+/* The blueprint grid is texture, never decoration. */
+@utility bg-grid-24 {
+  background-size: 24px 24px;
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -182,215 +318,39 @@
   &:where([data-orientation="vertical"]) { @slot; }
 }
 
-@utility no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-  &::-webkit-scrollbar { display: none; }
-}
-
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+  *,
+  ::after,
+  ::before {
+    border-color: var(--color-border);
   }
-  body {
-    @apply bg-background text-foreground;
-  }
+
   html {
-    @apply font-sans;
+    font-family: var(--font-ui);
   }
-}
 
-/* ──────────────────────────────────────────────────────────────
-   Typography System — Geist Sans / Geist Mono
-   ────────────────────────────────────────────────────────────── */
-
-/* ─── CSS Custom Properties ─────────────────────────────────── */
-:root {
-  /* Font Families */
-  --font-ui: var(--font-sans);      /* Geist Sans — UI text */
-  --font-data: var(--font-mono);    /* Geist Mono — data / codes */
-
-  /* Font Weights */
-  --weight-normal: 400;
-  --weight-medium: 500;
-  --weight-semibold: 600;
-
-  /* Typography Scale — Sizes & Line Heights */
-  --text-display: 3rem;           /* 48px */
-  --text-display-line: 3.5rem;    /* 56px */
-  --text-page-title: 2rem;        /* 32px */
-  --text-page-title-line: 2.5rem; /* 40px */
-  --text-section: 1.5rem;         /* 24px */
-  --text-section-line: 2rem;      /* 32px */
-  --text-card-title: 1.125rem;    /* 18px */
-  --text-card-title-line: 1.625rem; /* 26px */
-  --text-body: 0.875rem;          /* 14px */
-  --text-body-line: 1.3125rem;    /* 21px */
-  --text-ui-label: 0.875rem;      /* 14px */
-  --text-ui-label-line: 1.25rem;  /* 20px */
-  --text-small: 0.8125rem;        /* 13px */
-  --text-small-line: 1.125rem;    /* 18px */
-  --text-caption: 0.75rem;        /* 12px */
-  --text-caption-line: 1rem;      /* 16px */
-
-  /* Font Weights */
-  --weight-normal: 400;
-  --weight-medium: 500;
-  --weight-semibold: 600;
-}
-
-/* ─── Utility Classes ─────────────────────────────────────────── */
-.text-display {
-  font-size: var(--text-display);
-  line-height: var(--text-display-line);
-  font-weight: var(--weight-semibold);
-  font-family: var(--font-ui);
-}
-
-.text-page-title {
-  font-size: var(--text-page-title);
-  line-height: var(--text-page-title-line);
-  font-weight: var(--weight-semibold);
-  font-family: var(--font-ui);
-}
-
-.text-section {
-  font-size: var(--text-section);
-  line-height: var(--text-section-line);
-  font-weight: var(--weight-semibold);
-  font-family: var(--font-ui);
-}
-
-.text-card-title {
-  font-size: var(--text-card-title);
-  line-height: var(--text-card-title-line);
-  font-weight: var(--weight-semibold);
-  font-family: var(--font-ui);
-}
-
-.text-body {
-  font-size: var(--text-body);
-  line-height: var(--text-body-line);
-  font-weight: var(--weight-normal);
-  font-family: var(--font-ui);
-}
-
-.text-ui-label {
-  font-size: var(--text-ui-label);
-  line-height: var(--text-ui-label-line);
-  font-weight: var(--weight-medium);
-  font-family: var(--font-ui);
-}
-
-.text-small {
-  font-size: var(--text-small);
-  line-height: var(--text-small-line);
-  font-weight: var(--weight-normal);
-  font-family: var(--font-ui);
-}
-
-.text-caption {
-  font-size: var(--text-caption);
-  line-height: var(--text-caption-line);
-  font-weight: var(--weight-normal);
-  font-family: var(--font-ui);
-}
-
-/* ─── Data / Code — Geist Mono ────────────────────────────────── */
-.font-data,
-code,
-pre,
-kbd,
-samp,
-[data-font="mono"] {
-  font-family: var(--font-data) !important;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-}
-
-/* ─── Utility Classes (shorthands) ────────────────────────────── */
-.text-display {
-  font-size: var(--text-display);
-  line-height: var(--text-display-line);
-  font-weight: var(--weight-semibold);
-  font-family: var(--font-ui);
-}
-
-.text-page-title {
-  font-size: var(--text-page-title);
-  line-height: var(--text-page-title-line);
-  font-weight: var(--weight-semibold);
-  font-family: var(--font-ui);
-}
-
-.text-section {
-  font-size: var(--text-section);
-  line-height: var(--text-section-line);
-  font-weight: var(--weight-semibold);
-  font-family: var(--font-ui);
-}
-
-.text-card-title {
-  font-size: var(--text-card-title);
-  line-height: var(--text-card-title-line);
-  font-weight: var(--weight-semibold);
-  font-family: var(--font-ui);
-}
-
-.text-body {
-  font-size: var(--text-body);
-  line-height: var(--text-body-line);
-  font-weight: var(--weight-normal);
-  font-family: var(--font-ui);
-}
-
-.text-ui-label {
-  font-size: var(--text-ui-label);
-  line-height: var(--text-ui-label-line);
-  font-weight: var(--weight-medium);
-  font-family: var(--font-ui);
-}
-
-.text-small {
-  font-size: var(--text-small);
-  line-height: var(--text-small-line);
-  font-weight: var(--weight-normal);
-  font-family: var(--font-ui);
-}
-
-.text-caption {
-  font-size: var(--text-caption);
-  line-height: var(--text-caption-line);
-  font-weight: var(--weight-normal);
-  font-family: var(--font-ui);
-}
-
-/* Data / Code elements */
-.font-data {
-  font-family: var(--font-data);
-}
-.font-ui {
-  font-family: var(--font-ui);
-}
-
-/* Ensure monospace for code elements */
-code,
-pre,
-kbd,
-samp,
-[data-font="mono"] {
-  font-family: var(--font-data) !important;
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-}
-
-/* ─── Base Styles ─────────────────────────────────────────────── */
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--color-bg);
+    color: var(--color-ink);
   }
-  html {
-    @apply font-sans;
+
+  /**
+   * Every number that sits in a column, a counter or a metric aligns down the
+   * page. Applied at the root so a figure never has to opt in and jitter when
+   * someone forgets.
+   */
+  table,
+  time,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Technical metadata is monospaced wherever it appears. */
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: var(--font-mono);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }

@@ -13,8 +13,8 @@ export function ProductPreviewSection() {
             className="
               inline-flex items-center gap-2
               rounded-full border border-border
-              bg-muted/40 px-4 py-1.5
-              text-sm text-muted-foreground
+              bg-surface-sunken/40 px-4 py-1.5
+              text-sm text-muted
             "
           >
             Operational Visibility
@@ -35,7 +35,7 @@ export function ProductPreviewSection() {
             className="
               mt-6 max-w-2xl
               text-lg leading-8
-              text-muted-foreground
+              text-muted
             "
           >
             Monitor approvals, movement,
@@ -63,7 +63,7 @@ export function ProductPreviewSection() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted">
                   Live Approval Queue
                 </p>
 
@@ -111,7 +111,7 @@ export function ProductPreviewSection() {
                       {item.name}
                     </p>
 
-                    <p className="mt-1 text-sm text-muted-foreground">
+                    <p className="mt-1 text-sm text-muted">
                       Long Leave
                     </p>
                   </div>
@@ -120,7 +120,7 @@ export function ProductPreviewSection() {
                     className="
                       rounded-full border border-border
                       bg-card px-3 py-1
-                      text-xs text-muted-foreground
+                      text-xs text-muted
                     "
                   >
                     {item.status}
@@ -151,7 +151,7 @@ export function ProductPreviewSection() {
                     bg-background/40 p-4
                   "
                 >
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted">
                     {item.label}
                   </p>
 
@@ -175,7 +175,7 @@ export function ProductPreviewSection() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted">
                     QR Verification
                   </p>
 
@@ -223,7 +223,7 @@ export function ProductPreviewSection() {
                     className="
                       rounded-xl border border-border
                       bg-background/40 px-4 py-3
-                      text-sm text-muted-foreground
+                      text-sm text-muted
                     "
                   >
                     {item}
@@ -241,7 +241,7 @@ export function ProductPreviewSection() {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted">
                     Movement Activity
                   </p>
 
@@ -287,7 +287,7 @@ export function ProductPreviewSection() {
                       </p>
                     </div>
 
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted">
                       2m ago
                     </span>
                   </div>

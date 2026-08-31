@@ -1,0 +1,189 @@
+/**
+ * SST Internal Tools — token layer.
+ *
+ * The single source of truth for colour, type, space, radius, elevation and
+ * motion. Every value here is consumed through a Tailwind theme mapping in
+ * `src/app/globals.css`; nothing in application code may bypass it.
+ *
+ * Colours are stored as space-separated RGB channels so an alpha modifier
+ * (`bg-accent/30`) can be applied to any of them.
+ */
+
+:root {
+  /* colour — RGB channels, consumed as rgb(var(--sst-x)) */
+  --sst-bg: 245 247 251;              /* #F5F7FB */
+  --sst-surface: 255 255 255;         /* #FFFFFF */
+  --sst-surface-sunken: 237 241 247;  /* #EDF1F7 */
+  --sst-surface-hover: 241 244 249;   /* #F1F4F9 */
+  --sst-surface-ink: 10 10 11;        /* #0A0A0B */
+  --sst-surface-navy: 11 31 66;       /* #0B1F42 */
+  --sst-text: 11 18 32;               /* #0B1220 */
+  --sst-text-muted: 89 99 122;        /* #59637A */
+  --sst-text-on-dark: 255 255 255;    /* #FFFFFF */
+  --sst-border: 226 231 240;          /* #E2E7F0 */
+  --sst-border-strong: 138 147 163;   /* #8A93A3 */
+  --sst-accent: 14 78 183;            /* #0E4EB7 */
+  --sst-accent-light: 232 238 249;    /* #E8EEF9 */
+  --sst-accent-dark: 8 47 110;        /* #082F6E */
+  --sst-success: 15 122 61;           /* #0F7A3D */
+  --sst-success-light: 228 245 235;   /* #E4F5EB */
+  --sst-warning: 138 82 0;            /* #8A5200 */
+  --sst-warning-light: 251 240 222;   /* #FBF0DE */
+  --sst-danger: 195 34 28;            /* #C3221C */
+  --sst-danger-light: 251 231 230;    /* #FBE7E6 */
+  --sst-info: 14 78 183;              /* #0E4EB7 */
+  --sst-info-light: 232 238 249;      /* #E8EEF9 */
+
+  /**
+   * The label a filled status control carries. Light mode fills are dark
+   * enough for white; the dark palette lightens every hue so its fills need
+   * ink instead — the one inversion in the system.
+   */
+  --sst-on-fill: 255 255 255;         /* #FFFFFF */
+
+  /* typography */
+  /**
+   * next/font generates a hashed family name and exposes it as a variable, so
+   * the variable comes first and the literal name is the fallback for anywhere
+   * the font is not loaded.
+   */
+  --sst-font-ui: var(--font-inter), Inter, system-ui, sans-serif;
+  --sst-font-display: var(--font-geist-sans), Geist, Inter, sans-serif;
+  --sst-font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace, monospace;
+  --sst-text-display: 48px;  --sst-leading-display: 56px;
+  --sst-text-h1: 32px;       --sst-leading-h1: 40px;
+  --sst-text-h2: 24px;       --sst-leading-h2: 32px;
+  --sst-text-h3: 20px;       --sst-leading-h3: 28px;
+  --sst-text-body-lg: 16px;  --sst-leading-body-lg: 24px;
+  --sst-text-body: 14px;     --sst-leading-body: 21px;
+  --sst-text-small: 13px;    --sst-leading-small: 18px;
+  --sst-text-caption: 12px;  --sst-leading-caption: 16px;
+  --sst-text-micro: 11px;    --sst-leading-micro: 14px;
+
+  /* spacing — an 8px grid */
+  --sst-space-1: 4px;   --sst-space-2: 8px;   --sst-space-3: 12px;
+  --sst-space-4: 16px;  --sst-space-6: 24px;  --sst-space-8: 32px;
+  --sst-space-10: 40px; --sst-space-12: 48px; --sst-space-16: 64px;
+
+  /* radius — the corner grows with the object */
+  --sst-radius-none: 0px;  --sst-radius-xs: 4px;   --sst-radius-sm: 6px;
+  --sst-radius-md: 8px;    --sst-radius-lg: 12px;  --sst-radius-xl: 16px;
+  --sst-radius-2xl: 20px;  --sst-radius-full: 9999px;
+
+  /* elevation — light mode tints toward navy so shadows never go muddy grey */
+  --sst-shadow-none: none;
+  --sst-shadow-xs: 0 1px 2px rgba(11, 31, 66, 0.04);
+  --sst-shadow-sm: 0 1px 2px rgba(11, 31, 66, 0.06), 0 1px 3px rgba(11, 31, 66, 0.05);
+  --sst-shadow-md: 0 4px 12px -2px rgba(11, 31, 66, 0.08), 0 2px 6px -2px rgba(11, 31, 66, 0.06);
+  --sst-shadow-lg: 0 16px 40px -12px rgba(11, 31, 66, 0.18), 0 4px 12px -4px rgba(11, 31, 66, 0.08);
+  --sst-shadow-xl: 0 32px 64px -16px rgba(11, 31, 66, 0.24), 0 8px 20px -8px rgba(11, 31, 66, 0.1);
+  --sst-shadow-accent: 0 10px 28px -10px rgba(14, 78, 183, 0.45);
+  --sst-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+
+  /* tracking */
+  --sst-tracking-tighter: -0.03em;
+  --sst-tracking-tight: -0.02em;
+  --sst-tracking-snug: -0.01em;
+  --sst-tracking-normal: 0em;
+  --sst-tracking-wide: 0.08em;
+  --sst-tracking-caps: 0.14em;
+  --sst-tracking-widest: 0.2em;
+
+  /* motion */
+  --sst-duration-instant: 0ms;
+  --sst-duration-fast: 150ms;
+  --sst-duration-base: 200ms;
+  --sst-duration-slow: 300ms;
+  --sst-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --sst-ease-decelerate: cubic-bezier(0, 0, 0, 1);
+  --sst-ease-accelerate: cubic-bezier(0.3, 0, 1, 1);
+}
+
+/**
+ * Dark theme. Applied by an explicit `.dark` class so the user's choice always
+ * beats the OS setting. Every token above has a light definition on bare
+ * `:root`; this block only ever redefines.
+ */
+.dark {
+  --sst-bg: 8 9 13;                   /* #08090D */
+  --sst-surface: 16 19 25;            /* #101319 */
+  --sst-surface-sunken: 11 13 18;     /* #0B0D12 */
+  --sst-surface-hover: 25 29 38;      /* #191D26 — hover always moves toward the light */
+  --sst-surface-ink: 0 0 0;           /* #000000 */
+  --sst-surface-navy: 11 31 66;       /* #0B1F42 — unchanged across themes */
+  --sst-text: 244 246 250;            /* #F4F6FA */
+  --sst-text-muted: 153 162 179;      /* #99A2B3 */
+  --sst-text-on-dark: 255 255 255;    /* #FFFFFF */
+  --sst-border: 31 36 46;             /* #1F242E */
+  --sst-border-strong: 110 118 134;   /* #6E7686 */
+  --sst-accent: 91 155 255;           /* #5B9BFF */
+  --sst-accent-light: 16 30 54;       /* #101E36 — a dark wash; `-light` means tint of the hue */
+  --sst-accent-dark: 14 78 183;       /* #0E4EB7 */
+  --sst-success: 62 207 142;          /* #3ECF8E */
+  --sst-success-light: 11 36 25;      /* #0B2419 */
+  --sst-warning: 229 163 57;          /* #E5A339 */
+  --sst-warning-light: 42 31 10;      /* #2A1F0A */
+  --sst-danger: 244 100 94;           /* #F4645E */
+  --sst-danger-light: 46 18 16;       /* #2E1210 */
+  --sst-info: 91 155 255;             /* #5B9BFF */
+  --sst-info-light: 16 30 54;         /* #101E36 */
+
+  /* The inversion: these fills are too light to carry a white label. */
+  --sst-on-fill: 10 10 11;            /* #0A0A0B */
+
+  /* pure black, since a navy shadow is invisible here */
+  --sst-shadow-none: none;
+  --sst-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --sst-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --sst-shadow-md: 0 4px 14px -2px rgba(0, 0, 0, 0.55), 0 2px 6px -2px rgba(0, 0, 0, 0.4);
+  --sst-shadow-lg: 0 18px 44px -12px rgba(0, 0, 0, 0.7), 0 6px 14px -6px rgba(0, 0, 0, 0.5);
+  --sst-shadow-xl: 0 36px 72px -16px rgba(0, 0, 0, 0.8), 0 10px 24px -8px rgba(0, 0, 0, 0.6);
+  --sst-shadow-accent: 0 10px 30px -10px rgba(91, 155, 255, 0.4);
+  --sst-sheen: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/**
+ * Density modes. Set `data-density` on <html> or any subtree and the tokens
+ * cascade: one component serves the student, the admin and the guard.
+ */
+[data-density="student"] {
+  --sst-card-padding: 16px;
+  --sst-row-height: 44px;
+  --sst-tap-target: 44px;
+  --sst-text-body: 14px;     --sst-leading-body: 21px;
+  --sst-text-body-lg: 16px;  --sst-leading-body-lg: 24px;
+}
+
+[data-density="admin"] {
+  --sst-card-padding: 12px;
+  --sst-row-height: 36px;
+  --sst-tap-target: 32px;
+  --sst-text-body: 13px;     --sst-leading-body: 20px;
+  --sst-text-body-lg: 15px;  --sst-leading-body-lg: 22px;
+}
+
+[data-density="guard"] {
+  --sst-card-padding: 24px;
+  --sst-row-height: 64px;
+  --sst-tap-target: 64px;
+  --sst-text-body: 18px;     --sst-leading-body: 27px;
+  --sst-text-body-lg: 20px;  --sst-leading-body-lg: 30px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --sst-duration-instant: 0ms;
+    --sst-duration-fast: 0ms;
+    --sst-duration-base: 0ms;
+    --sst-duration-slow: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

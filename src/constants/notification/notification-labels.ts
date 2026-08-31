@@ -18,7 +18,7 @@ export const EVENT_COLORS: Record<string, string> = {
   LEAVE_SUBMITTED: "bg-blue-500/10 text-blue-600",
   LEAVE_APPROVED: "bg-emerald-500/10 text-emerald-600",
   LEAVE_REJECTED: "bg-destructive/10 text-destructive",
-  LEAVE_CANCELLED: "bg-muted text-muted-foreground",
+  LEAVE_CANCELLED: "bg-surface-sunken text-muted",
   LEAVE_COMPLETED: "bg-emerald-500/10 text-emerald-600",
   LEAVE_EXPIRED: "bg-amber-500/10 text-amber-600",
   LEAVE_OVERDUE: "bg-destructive/10 text-destructive",
@@ -35,5 +35,5 @@ export function getEventLabel(eventType: string): string {
 }
 
 export function getEventColor(eventType: string): string {
-  return EVENT_COLORS[eventType] ?? "bg-muted text-muted-foreground";
+  return EVENT_COLORS[eventType] ?? "bg-surface-sunken text-muted";
 }

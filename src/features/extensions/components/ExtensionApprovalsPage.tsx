@@ -88,7 +88,7 @@ function getStepDisplay(stepKey: string | null): StepDisplay {
     icon: <Clock className="h-4 w-4" />,
     label: fallbackLabel || "Unknown",
     color: "text-gray-600 dark:text-gray-400",
-    bgClass: "bg-muted hover:bg-accent border-border",
+    bgClass: "bg-surface-sunken hover:bg-surface-hover border-border",
   };
 }
 
@@ -278,7 +278,7 @@ export function ExtensionApprovalsPage() {
       {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
         <div className="relative flex-1 sm:max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <Input
             placeholder="Search by name, roll, or request ID..."
             value={filters.search}
@@ -289,7 +289,7 @@ export function ExtensionApprovalsPage() {
             <button
               type="button"
               onClick={() => updateFilter("search", "")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>
@@ -373,7 +373,7 @@ export function ExtensionApprovalsPage() {
             variant="ghost"
             size="sm"
             onClick={clearFilters}
-            className="text-muted-foreground"
+            className="text-muted"
           >
             Reset
           </Button>
@@ -381,7 +381,7 @@ export function ExtensionApprovalsPage() {
       </div>
 
       {/* Results count */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="flex items-center justify-between text-xs text-muted">
         <span>
           <span className="font-medium text-foreground">
             {items.length}
@@ -401,13 +401,13 @@ export function ExtensionApprovalsPage() {
         {isLoading ? (
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-64 animate-pulse rounded-xl bg-muted" />
+              <div key={i} className="h-64 animate-pulse rounded-xl bg-surface-sunken" />
             ))}
           </div>
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center">
             <h3 className="text-base font-medium">No extension requests found</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-muted">
               {total === 0
                 ? "All caught up! No extension requests match your filters."
                 : "Try adjusting your filters."}

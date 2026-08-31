@@ -27,10 +27,10 @@ export function CollapsibleSection({ title, icon: Icon, defaultOpen = true, chil
           className="flex items-center gap-2 text-left"
         >
           <h3 className="flex items-center gap-2 text-base font-semibold">
-            <Icon className="h-4 w-4 text-muted-foreground" />
+            <Icon className="h-4 w-4 text-muted" />
             {title}
           </h3>
-          <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", open && "rotate-180")} />
+          <ChevronDown className={cn("h-4 w-4 text-muted transition-transform", open && "rotate-180")} />
         </button>
         {action && <div onClick={(e) => e.stopPropagation()}>{action}</div>}
       </div>

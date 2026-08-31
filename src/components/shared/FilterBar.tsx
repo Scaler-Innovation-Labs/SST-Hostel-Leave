@@ -19,7 +19,7 @@ export function FilterBar({ label, options, value, onChange, className }: Filter
   return (
     <div className={cn("flex items-center gap-2", className)}>
       {label && (
-        <label className="text-xs font-medium text-muted-foreground">{label}</label>
+        <label className="text-xs font-medium text-muted">{label}</label>
       )}
       <select
         value={value ?? ""}

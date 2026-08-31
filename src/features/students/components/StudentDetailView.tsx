@@ -136,7 +136,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push(`${basePath}`)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border transition-colors hover:bg-muted"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border transition-colors hover:bg-surface-sunken"
           >
             <ArrowLeft className="h-4 w-4" />
           </button>
@@ -147,7 +147,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
               </div>
               <div>
                 <h1 className="text-xl font-semibold">{userData?.fullName ?? "Student"}</h1>
-                <p className="text-sm text-muted-foreground">Roll: {studentData.rollNumber ?? "—"}</p>
+                <p className="text-sm text-muted">Roll: {studentData.rollNumber ?? "—"}</p>
               </div>
             </div>
           </div>
@@ -181,32 +181,32 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
         {/* Profile Section */}
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <User className="h-4 w-4 text-muted-foreground" />
+            <User className="h-4 w-4 text-muted" />
             <h3 className="text-base font-semibold">Profile</h3>
           </div>
           <dl className="space-y-4 text-sm">
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Full Name</dt>
+              <dt className="text-muted">Full Name</dt>
               <dd className="font-medium">{userData?.fullName ?? "—"}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Roll Number</dt>
+              <dt className="text-muted">Roll Number</dt>
               <dd className="font-mono text-xs font-medium">{studentData.rollNumber ?? "—"}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Gender</dt>
+              <dt className="text-muted">Gender</dt>
               <dd className="font-medium capitalize">{userData?.gender ?? "—"}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Email</dt>
+              <dt className="text-muted">Email</dt>
               <dd className="font-medium">{userData?.email ?? "—"}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Phone</dt>
+              <dt className="text-muted">Phone</dt>
               <dd className="font-medium">{userData?.phone ?? "—"}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted-foreground">Active</dt>
+              <dt className="text-muted">Active</dt>
               <dd>
                 {userData?.isActive ? (
                   <span className="text-emerald-600 dark:text-emerald-400">Active</span>
@@ -221,7 +221,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
         {/* Location Details */}
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <MapPin className="h-4 w-4 text-muted" />
             <h3 className="text-base font-semibold">Current Location</h3>
           </div>
           <div className="flex items-center gap-3">
@@ -242,7 +242,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
               <p className="text-sm font-semibold">
                 {locationState?.name ?? locationCode.replace(/_/g, " ").toLowerCase()}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted">
                 {isInHostel ? "Currently in hostel" : isOnLeave ? "On approved leave" : isOverdue ? "Overdue return" : "Outside hostel"}
               </p>
             </div>
@@ -259,7 +259,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
                     onClick={() => setLocationAction("checkout")}
                     disabled={actionBusy}
                   >
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <MapPin className="h-4 w-4 text-muted" />
                     Mark Checked Out
                   </Button>
                 )}
@@ -270,7 +270,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
                     onClick={() => setLocationAction("return")}
                     disabled={actionBusy}
                   >
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <MapPin className="h-4 w-4 text-muted" />
                     Mark Returned (In Hostel)
                   </Button>
                 )}
@@ -289,19 +289,19 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
             )}
             <Link
               href={`${movementsPath}?studentId=${studentId}`}
-              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:bg-muted"
+              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:bg-surface-sunken"
             >
-              <History className="h-4 w-4 text-muted-foreground" />
+              <History className="h-4 w-4 text-muted" />
               View Movement History
-              <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground" />
+              <ArrowRight className="ml-auto h-4 w-4 text-muted" />
             </Link>
             <Link
               href={`${basePath}`}
-              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:bg-muted"
+              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:bg-surface-sunken"
             >
-              <FileText className="h-4 w-4 text-muted-foreground" />
+              <FileText className="h-4 w-4 text-muted" />
               Back to Students
-              <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground" />
+              <ArrowRight className="ml-auto h-4 w-4 text-muted" />
             </Link>
           </div>
         </div>
@@ -309,17 +309,17 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
         {/* Quick Stats */}
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <FileText className="h-4 w-4 text-muted" />
             <h3 className="text-base font-semibold">Quick Stats</h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-lg bg-muted/50 p-3 text-center">
+            <div className="rounded-lg bg-surface-sunken/50 p-3 text-center">
               <p className="text-2xl font-semibold tabular-nums">{leaves.length}</p>
-              <p className="text-xs text-muted-foreground">Recent Leaves</p>
+              <p className="text-xs text-muted">Recent Leaves</p>
             </div>
-            <div className="rounded-lg bg-muted/50 p-3 text-center">
+            <div className="rounded-lg bg-surface-sunken/50 p-3 text-center">
               <p className="text-2xl font-semibold tabular-nums">{movements.length}</p>
-              <p className="text-xs text-muted-foreground">Movements</p>
+              <p className="text-xs text-muted">Movements</p>
             </div>
           </div>
         </div>
@@ -329,25 +329,25 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
       <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <FileText className="h-4 w-4 text-muted" />
             <h3 className="text-base font-semibold">Recent Leaves</h3>
           </div>
         </div>
         {leaves.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">No leave records found.</p>
+          <p className="py-6 text-center text-sm text-muted">No leave records found.</p>
         ) : (
           <div className="divide-y divide-border">              {leaves.map((l: { id: string; status: string; startAt: string; endAt: string; leaveTypeName?: string; leaveTypeUiConfig?: Record<string, unknown> | null }) => (
               <Link
                 key={l.id}
                 href={`${approvalsPath}/${l.id}`}
-                className="flex items-center gap-4 px-1 py-3 transition-colors hover:bg-muted/30"
+                className="flex items-center gap-4 px-1 py-3 transition-colors hover:bg-surface-sunken/30"
               >
                 <div className="min-w-0 flex-1">
                   <LeaveTypeBadge
                     name={l.leaveTypeName ?? "Leave"}
                     color={(l.leaveTypeUiConfig?.color as string | undefined) ?? null}
                   />
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-xs text-muted">
                     {formatDate(l.startAt)} — {formatDate(l.endAt)}
                   </p>
                 </div>
@@ -362,7 +362,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
       <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <History className="h-4 w-4 text-muted-foreground" />
+            <History className="h-4 w-4 text-muted" />
             <h3 className="text-base font-semibold">Movement Timeline</h3>
           </div>
           <Link
@@ -373,7 +373,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
           </Link>
         </div>
         {movements.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">No movement events recorded.</p>
+          <p className="py-6 text-center text-sm text-muted">No movement events recorded.</p>
         ) : (
           <div className="relative">
             {movements.map((mov: { id: string; eventType: string; fromState: string; toState: string; occurredAt: string }, i: number) => (
@@ -386,7 +386,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">{getEventLabel(mov.eventType)}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted">
                     {mov.fromState} → {mov.toState}
                     {mov.occurredAt && ` · ${formatDateTime(mov.occurredAt)}`}
                   </p>

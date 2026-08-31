@@ -29,7 +29,7 @@ function dotColor(status: WorkflowStep["status"]) {
     case "completed": return "text-emerald-500";
     case "current": return "text-amber-500";
     case "failed": return "text-red-500";
-    default: return "text-muted-foreground";
+    default: return "text-muted";
   }
 }
 
@@ -70,7 +70,7 @@ export function WorkflowProgress({ steps, className, compact }: WorkflowProgress
                       ? "bg-amber-500 text-white ring-2 ring-amber-500/30"
                       : step.status === "failed"
                       ? "bg-red-500 text-white"
-                      : "bg-muted text-muted-foreground",
+                      : "bg-surface-sunken text-muted",
                   )}
                 >
                   {step.status === "completed" ? (
@@ -90,13 +90,13 @@ export function WorkflowProgress({ steps, className, compact }: WorkflowProgress
                       ? "text-amber-600 dark:text-amber-400"
                       : step.status === "failed"
                       ? "text-red-600 dark:text-red-400"
-                      : "text-muted-foreground",
+                      : "text-muted",
                   )}
                 >
                   {step.label}
                 </span>
                 {step.timestamp && (
-                  <span className="text-[9px] text-muted-foreground">
+                  <span className="text-[9px] text-muted">
                     {step.timestamp}
                   </span>
                 )}

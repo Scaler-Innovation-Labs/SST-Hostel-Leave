@@ -150,7 +150,7 @@ export function OverdueReturnsPage({ detailBasePath }: OverdueReturnsPageProps) 
       {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
         <div className="relative flex-1 sm:max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <Input
             placeholder="Search by name, roll, or request ID..."
             value={search}
@@ -161,7 +161,7 @@ export function OverdueReturnsPage({ detailBasePath }: OverdueReturnsPageProps) 
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>
@@ -174,7 +174,7 @@ export function OverdueReturnsPage({ detailBasePath }: OverdueReturnsPageProps) 
           <Button
             variant="ghost"
             size="sm"
-            className="text-muted-foreground"
+            className="text-muted"
             onClick={() => {
               setSearch("");
               setHostelId("");
@@ -186,7 +186,7 @@ export function OverdueReturnsPage({ detailBasePath }: OverdueReturnsPageProps) 
       </div>
 
       {/* Result count */}
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="flex items-center gap-2 text-xs text-muted">
         <Clock className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
         <span>
           <span className="font-medium text-foreground">{overdue.length}</span> overdue return
@@ -214,7 +214,7 @@ export function OverdueReturnsPage({ detailBasePath }: OverdueReturnsPageProps) 
               <Link
                 key={row.id}
                 href={`${detailBasePath}/${row.studentId}`}
-                className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/50"
+                className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface-sunken/50"
               >
                 {/* Avatar */}
                 <div
@@ -236,7 +236,7 @@ export function OverdueReturnsPage({ detailBasePath }: OverdueReturnsPageProps) 
                       {days} day{days !== 1 ? "s" : ""} overdue
                     </span>
                   </div>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                     <span className="font-mono">{row.studentRollNumber ?? "—"}</span>
                     {row.roomNumber && <span>Room {row.roomNumber}</span>}
                     {row.hostelName && (
@@ -253,7 +253,7 @@ export function OverdueReturnsPage({ detailBasePath }: OverdueReturnsPageProps) 
                     )}
                     <span className="font-mono">{row.requestNumber ?? "—"}</span>
                   </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted">
                     <span>
                       Leave: {row.leaveStartAt ? formatDateTime(row.leaveStartAt) : "—"} →{" "}
                       {row.leaveEndAt ? formatDateTime(row.leaveEndAt) : "—"}
@@ -267,7 +267,7 @@ export function OverdueReturnsPage({ detailBasePath }: OverdueReturnsPageProps) 
                   </div>
                 </div>
 
-                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" />
+                <ArrowRight className="h-4 w-4 shrink-0 text-muted opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" />
               </Link>
             );
           })}

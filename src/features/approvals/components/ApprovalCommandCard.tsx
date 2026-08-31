@@ -193,7 +193,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
         })()
       : null;
 
-  const avatarColor = AVATAR_COLORS[Math.abs((item.studentName ?? "").charCodeAt(0) || 0) % 5] ?? "bg-muted text-muted-foreground";
+  const avatarColor = AVATAR_COLORS[Math.abs((item.studentName ?? "").charCodeAt(0) || 0) % 5] ?? "bg-surface-sunken text-muted";
 
   function getStepDisplay(stepKey: string | null): { label: string } {
     const key = stepKey ?? "";
@@ -408,7 +408,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
             <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-600">Extension</span>
           )}
         </div>
-        <span className="font-mono text-xs text-muted-foreground">{lr?.requestNumber ?? "—"}</span>
+        <span className="font-mono text-xs text-muted">{lr?.requestNumber ?? "—"}</span>
       </div>
 
       {/* ── Card body ── */}
@@ -422,7 +422,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="text-sm font-semibold leading-tight">{item.studentName ?? "—"}</h3>
-              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
                 <span className="font-mono">{item.studentRollNumber}</span>
                 {item.departmentName && <span>{item.departmentName}</span>}
                 {item.roomNumber && <span>Room {item.roomNumber}</span>}
@@ -434,13 +434,13 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                 )}
               </div>
             </div>
-            <span className="shrink-0 text-[11px] text-muted-foreground">
+            <span className="shrink-0 text-[11px] text-muted">
               {getWaitingTime(item.createdAt)}
             </span>
           </div>
 
           {/* Leave summary — compact horizontal */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
             <LeaveTypeBadge
               name={item.leaveTypeName ?? "Leave"}
               color={(item.leaveTypeUiConfig?.color as string | undefined) ?? null}
@@ -448,7 +448,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
             <span className="inline-flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
               {lr ? `${formatDate(lr.startAt)}→${formatDate(lr.endAt)}` : "—"}
-              <span className="ml-0.5 rounded bg-muted px-1 py-0.5 text-[10px] font-medium">
+              <span className="ml-0.5 rounded bg-surface-sunken px-1 py-0.5 text-[10px] font-medium">
                 {lr ? getDurationLabel(lr.startAt, lr.endAt, { short: true }) : ""}
               </span>
             </span>
@@ -461,7 +461,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
           </div>
 
           {/* Reason */}
-          <div className="line-clamp-1 text-xs text-muted-foreground">
+          <div className="line-clamp-1 text-xs text-muted">
             {lr?.reason ?? "—"}
           </div>
 
@@ -477,9 +477,9 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
           {isLeavePending && isPending ? (
             <div className="flex w-full flex-col gap-2">
               {showWaitingPanel ? (
-                <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-border bg-muted/40 px-3 py-3 text-center">
+                <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-border bg-surface-sunken/40 px-3 py-3 text-center">
                   <Clock className="h-4 w-4 text-amber-500" />
-                  <span className="text-[11px] font-medium leading-tight text-muted-foreground">
+                  <span className="text-[11px] font-medium leading-tight text-muted">
                     Waiting for <span className="text-foreground">{getStepDisplay(waitingOn).label}</span>
                   </span>
                 </div>
@@ -597,37 +597,37 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
 
           <div className="space-y-4 py-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
-                Comment <span className="text-muted-foreground/50">(optional)</span>
+              <label className="mb-1.5 block text-sm font-medium text-muted">
+                Comment <span className="text-muted/50">(optional)</span>
               </label>
               <textarea
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
                 placeholder="Add a note about your approval..."
                 rows={3}
-                className="w-full rounded-lg border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
               />
             </div>
 
             {!isPocViewer && (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-muted-foreground">
-                  CC recipients <span className="text-muted-foreground/50">(optional)</span>
+                <label className="mb-1.5 block text-sm font-medium text-muted">
+                  CC recipients <span className="text-muted/50">(optional)</span>
                 </label>
                 <input
                   type="text"
                   value={ccEmailsInput}
                   onChange={(e) => setCcEmailsInput(e.target.value)}
                   placeholder="name@example.com, another@example.com"
-                  className="w-full rounded-lg border border-input bg-background p-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="w-full rounded-lg border border-input bg-background p-2.5 text-sm outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
                 />
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-muted">
                   These addresses will be CC&apos;d on the approval email sent to the student.
                 </p>
               </div>
             )}
 
-            <div className="space-y-2.5 rounded-lg border border-border bg-muted/30 p-3">
+            <div className="space-y-2.5 rounded-lg border border-border bg-surface-sunken/30 p-3">
               {!isPocViewer && (
                 <>
                   <label className="flex items-center gap-3">
@@ -660,7 +660,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                   />
                   <span className="text-sm">
                     <strong>I confirm that the documents have been verified</strong>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    <p className="mt-0.5 text-xs text-muted">
                       This leave type requires document verification before approval.
                     </p>
                   </span>

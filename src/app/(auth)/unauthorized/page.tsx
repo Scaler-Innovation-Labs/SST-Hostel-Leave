@@ -10,7 +10,7 @@ export default function UnauthorizedPage() {
 					<span className="text-destructive text-xl">!</span>
 				</div>
 				<h1 className="text-2xl font-semibold">Unauthorized Access</h1>
-				<p className="text-muted-foreground text-center max-w-md">
+				<p className="text-muted text-center max-w-md">
 					Your account is not provisioned in the system.
 					Please contact your administrator to get access.
 				</p>

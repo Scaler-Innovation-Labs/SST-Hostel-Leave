@@ -176,7 +176,7 @@ export function ScannerPage() {
         {/* ── SCAN STATS ── */}
         {recentScans.length > 0 && (
           <div className="flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-3">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs text-muted">
               <QrCode className="h-3.5 w-3.5" />
               <span>Today</span>
             </div>
@@ -197,7 +197,7 @@ export function ScannerPage() {
             onScan={handleScanToken}
             className="aspect-square w-full rounded-2xl"
           />
-          <p className="text-center text-xs text-muted-foreground">
+          <p className="text-center text-xs text-muted">
             Point the camera at the student&apos;s QR code
           </p>
         </div>
@@ -210,7 +210,7 @@ export function ScannerPage() {
               <p className="text-sm font-medium">
                 {previewLoading ? "Verifying QR..." : "Processing scan..."}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted">
                 {previewLoading
                   ? "Fetching student details for confirmation"
                   : "Recording movement"}
@@ -270,11 +270,11 @@ export function ScannerPage() {
                   )}
                 </div>
 
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="mt-1 text-sm text-muted">
                   {currentResult.message}
                 </p>
 
-                <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="mt-3 flex items-center gap-3 text-xs text-muted">
                   <span className="inline-flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {format(currentResult.timestamp, "h:mm:ss a")}
@@ -303,10 +303,10 @@ export function ScannerPage() {
           <div className="rounded-xl border border-border bg-card shadow-sm">
             <div className="flex items-center justify-between border-b border-border px-5 py-3">
               <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <History className="h-4 w-4 text-muted-foreground" />
+                <History className="h-4 w-4 text-muted" />
                 Recent Scans
               </h3>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted">
                 Last {recentScans.length}
               </span>
             </div>
@@ -314,7 +314,7 @@ export function ScannerPage() {
               {recentScans.map((scan, i) => (
                 <div
                   key={`${scan.timestamp.getTime()}-${i}`}
-                  className="flex items-center gap-3 px-5 py-3 text-sm transition-colors hover:bg-muted/30"
+                  className="flex items-center gap-3 px-5 py-3 text-sm transition-colors hover:bg-surface-sunken/30"
                 >
                   <div
                     className={cn(
@@ -348,11 +348,11 @@ export function ScannerPage() {
                         </span>
                       )}
                     </div>
-                    <p className="truncate text-xs text-muted-foreground">
+                    <p className="truncate text-xs text-muted">
                       {scan.message}
                     </p>
                   </div>
-                  <span className="shrink-0 text-xs text-muted-foreground">
+                  <span className="shrink-0 text-xs text-muted">
                     {format(scan.timestamp, "h:mm a")}
                   </span>
                 </div>
@@ -380,14 +380,14 @@ export function ScannerPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
+          <div className="space-y-3 rounded-xl border border-border bg-surface-sunken/30 p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
                 <User className="h-5 w-5 text-primary" />
               </div>
               <div className="min-w-0">
                 <p className="truncate font-semibold">{preview?.student?.name ?? "Unknown"}</p>
-                <p className="truncate text-xs text-muted-foreground">
+                <p className="truncate text-xs text-muted">
                   {preview?.student?.rollNumber ?? "No roll number"}
                   {preview?.student?.roomNumber
                     ? ` · Room ${preview.student.roomNumber}`
@@ -403,7 +403,7 @@ export function ScannerPage() {
                 <p className="truncate font-semibold">
                   {preview?.student?.hostelName ?? "No hostel"}
                 </p>
-                <p className="truncate text-xs text-muted-foreground">
+                <p className="truncate text-xs text-muted">
                   {formatLeaveWindow(preview?.leave)}
                 </p>
               </div>

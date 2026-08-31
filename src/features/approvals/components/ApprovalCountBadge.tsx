@@ -13,5 +13,5 @@ import { useNavBadges } from "@/hooks/use-badges";
 export function ApprovalCountBadge({ className }: { className?: string }) {
   const { approvalsCount } = useNavBadges();
 
-  return <CountBadge count={approvalsCount} tone="amber" className={className} />;
+  return <CountBadge count={approvalsCount} tone="warning" className={className} />;
 }

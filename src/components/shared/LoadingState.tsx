@@ -1,3 +1,4 @@
+import { Skeleton } from "@/design-system/sst";
 import { cn } from "@/lib/utils";
 
 type LoadingStateProps = {
@@ -5,14 +6,16 @@ type LoadingStateProps = {
   count?: number;
 };
 
+/**
+ * A skeleton mirrors the real layout: same block sizes, same rhythm. These
+ * stand in for a list of rows — a surface with a different shape should use
+ * `RowSkeleton` or `MetricSkeleton` from the design system instead.
+ */
 export function LoadingState({ className, count = 3 }: LoadingStateProps) {
   return (
-    <div className={cn("grid gap-4", className)}>
+    <div className={cn("grid gap-4", className)} aria-hidden>
       {Array.from({ length: count }).map((_, i) => (
-        <div
-          key={i}
-          className="h-16 animate-pulse rounded-xl bg-linear-to-r from-muted via-muted/80 to-muted"
-        />
+        <Skeleton key={i} className="h-16 rounded-xl" />
       ))}
     </div>
   );

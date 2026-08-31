@@ -14,5 +14,5 @@ import { useNavBadges } from "@/hooks/use-badges";
 export function OverdueCountBadge({ className }: { className?: string }) {
   const { overdueCount } = useNavBadges();
 
-  return <CountBadge count={overdueCount} tone="red" className={className} />;
+  return <CountBadge count={overdueCount} tone="danger" className={className} />;
 }

@@ -23,7 +23,7 @@ export function LeaveTypePieChart({ data, title }: LeaveTypePieChartProps) {
       <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <h3 className="mb-4 text-base font-semibold">{title}</h3>
         <div className="flex h-[250px] items-center justify-center">
-          <p className="text-sm text-muted-foreground">No data available.</p>
+          <p className="text-sm text-muted">No data available.</p>
         </div>
       </div>
     );
@@ -81,11 +81,11 @@ export function LeaveTypePieChart({ data, title }: LeaveTypePieChartProps) {
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
                   style={{ backgroundColor: colorFor(item, index) }}
                 />
-                <span className="text-muted-foreground">{item.name}</span>
+                <span className="text-muted">{item.name}</span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="font-medium tabular-nums">{item.count}</span>
-                <span className="w-10 text-right text-xs text-muted-foreground">
+                <span className="w-10 text-right text-xs text-muted">
                   {total > 0 ? Math.round((item.count / total) * 100) : 0}%
                 </span>
               </div>

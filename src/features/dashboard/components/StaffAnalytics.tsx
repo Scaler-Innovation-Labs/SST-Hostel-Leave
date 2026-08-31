@@ -112,13 +112,13 @@ export function StaffAnalytics({ description, extraCards = [], hidePageHeader = 
       {/* Active filter indicator */}
       {statusFilter && (
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-muted-foreground">
+          <span className="text-muted">
             Filtering leaves by{" "}
             <span className="font-semibold text-foreground">{activeLabel}</span>
           </span>
           <button
             onClick={() => setStatusFilter("")}
-            className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-muted transition-colors hover:border-primary/40 hover:text-foreground"
           >
             <X className="h-3 w-3" />
             Clear filter

@@ -59,10 +59,10 @@ export default async function ParentApprovePage({
             <Icon className="size-9" />
           </div>
           <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
-          <p className="mt-2 text-muted-foreground">
+          <p className="mt-2 text-muted">
             {errorMessage ?? "Invalid or expired link"}
           </p>
-          <p className="mt-6 text-sm text-muted-foreground/70">
+          <p className="mt-6 text-sm text-muted/70">
             If you believe this is a mistake, please contact the school.
           </p>
         </div>

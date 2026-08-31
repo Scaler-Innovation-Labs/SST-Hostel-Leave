@@ -12,13 +12,13 @@ export default function RootError({
       <div className="max-w-md text-center">
         <div className="mb-4 text-5xl">!</div>
         <h1 className="mb-2 text-2xl font-semibold">Something went wrong</h1>
-        <p className="mb-6 text-sm text-muted-foreground">
+        <p className="mb-6 text-sm text-muted">
           {error.message ?? "An unexpected error occurred."}
         </p>
         <div className="flex justify-center gap-3">
           <button
             onClick={reset}
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium hover:bg-accent"
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium hover:bg-surface-hover"
           >
             Try again
           </button>

@@ -61,7 +61,7 @@ export function FeatureGrid() {
 							Built for operational clarity.
 						</h2>
 
-						<p className="mt-4 text-lg text-muted-foreground">
+						<p className="mt-4 text-lg text-muted">
 							Streamline approvals, movement,
 							and communication workflows across
 							institutions.
@@ -83,7 +83,7 @@ export function FeatureGrid() {
 									group h-full rounded-2xl border border-border
 									bg-card p-6 transition-all duration-300
 									hover:-translate-y-1 hover:border-primary/40
-									hover:bg-accent/40 hover:shadow-[0_12px_40px_-12px_rgba(59,130,246,0.25)]
+									hover:bg-surface-hover hover:shadow-[0_12px_40px_-12px_rgba(59,130,246,0.25)]
 								"
 							>
 								<div
@@ -100,7 +100,7 @@ export function FeatureGrid() {
 									{feature.title}
 								</h3>
 
-								<p className="mt-3 text-sm leading-7 text-muted-foreground">
+								<p className="mt-3 text-sm leading-7 text-muted">
 									{feature.description}
 								</p>
 							</div>

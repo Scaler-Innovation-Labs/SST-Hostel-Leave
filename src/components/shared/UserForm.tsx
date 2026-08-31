@@ -189,7 +189,7 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
             placeholder="U0123AB456"
             className="font-mono"
           />
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-xs text-muted">
             Used for Slack mentions/DMs. Find it in the Slack member profile menu.
           </p>
         </div>
@@ -238,7 +238,7 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
                 className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
                   roleCodes.includes(role.value)
                     ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-background text-muted-foreground hover:bg-muted"
+                    : "border-border bg-background text-muted hover:bg-surface-sunken"
                 }`}
               >
                 {roleCodes.includes(role.value) && (
@@ -252,9 +252,9 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
       )}
 
       {scopableSelectedRoles.length > 0 && (
-        <div className="rounded-xl border border-border bg-muted/40 p-4">
+        <div className="rounded-xl border border-border bg-surface-sunken/40 p-4">
           <Label className="mb-1 block">Hostel Scope</Label>
-          <p className="mb-3 text-xs text-muted-foreground">
+          <p className="mb-3 text-xs text-muted">
             Restrict each {scopableSelectedRoles.join(" / ")} role to specific hostels. Unchecked
             = access to all hostels.
           </p>
@@ -276,7 +276,7 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
                           className={`inline-flex items-center rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
                             checked
                               ? "border-primary bg-primary/10 text-primary"
-                              : "border-border bg-background text-muted-foreground hover:bg-muted"
+                              : "border-border bg-background text-muted hover:bg-surface-sunken"
                           }`}
                         >
                           {checked && <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-primary" />}
@@ -286,7 +286,7 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
                     })}
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-muted">
                     Unrestricted (all hostels)
                   </p>
                 )}

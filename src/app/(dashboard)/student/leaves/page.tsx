@@ -67,7 +67,7 @@ function getLeaveTypeColor(leaveTypeName: string): string {
   if (name.includes("NIGHT") || name.includes("STAY") || name.includes("OVERNIGHT")) return "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20";
   if (name.includes("CASUAL") || name.includes("LOCAL") || name.includes("OUTING")) return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20";
   if (name.includes("GENERAL")) return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20";
-  return "bg-muted text-muted-foreground border-border";
+  return "bg-surface-sunken text-muted border-border";
 }
 
 function getLeaveTypeIcon(leaveTypeName: string): React.ElementType {
@@ -189,7 +189,7 @@ export default function StudentLeavesPage() {
                 <button
                   key={item.id}
                   onClick={() => router.push(`/student/leaves/${item.id}`)}
-                  className="group flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-muted/50"
+                  className="group flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-surface-sunken/50"
                 >
                   {/* Leave type icon */}
                   <div
@@ -213,20 +213,20 @@ export default function StudentLeavesPage() {
                         </span>
                       )}
                     </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                       <span className="inline-flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         {format(startDate, "MMM d")}
                         <ArrowRight className="h-3 w-3" />
                         {format(endDate, "MMM d, yyyy")}
                       </span>
-                      <span className="text-muted-foreground/50">·</span>
+                      <span className="text-muted/50">·</span>
                       <span className="inline-flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {getDurationLabel(item.startAt, item.endAt)}
                       </span>
                     </div>
-                    <div className="mt-1 text-xs text-muted-foreground">
+                    <div className="mt-1 text-xs text-muted">
                       {context.label}
                       {context.detail && (
                         <span className="text-emerald-500"> · {context.detail}</span>
@@ -237,7 +237,7 @@ export default function StudentLeavesPage() {
                   {/* Status + chevron */}
                   <div className="flex shrink-0 items-center gap-3">
                     <StatusBadge status={getStatusVariant(item.status)} />
-                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5" />
+                    <ArrowRight className="h-4 w-4 text-muted opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5" />
                   </div>
                 </button>
               );

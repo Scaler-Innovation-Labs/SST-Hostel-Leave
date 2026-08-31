@@ -31,7 +31,7 @@ export function DashboardCard({
         </h3>
 
         {description && (
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-muted">
             {description}
           </p>
         )}

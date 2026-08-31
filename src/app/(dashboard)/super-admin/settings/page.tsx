@@ -28,7 +28,7 @@ function ConfigCard({ title, description, fields, onTest, testLabel, testLoading
       <div className="mb-4 flex items-start justify-between">
         <div>
           <h3 className="text-base font-semibold">{title}</h3>
-          <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+          <p className="mt-0.5 text-sm text-muted">{description}</p>
         </div>
         <span
           className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -45,9 +45,9 @@ function ConfigCard({ title, description, fields, onTest, testLabel, testLoading
         {fields.map((field) => (
           <div key={field.label} className="flex items-center justify-between gap-4 text-sm">
             <span>
-              <span className="text-muted-foreground">{field.label}</span>
+              <span className="text-muted">{field.label}</span>
               {field.desc && (
-                <span className="mt-0.5 block text-xs text-muted-foreground/70">{field.desc}</span>
+                <span className="mt-0.5 block text-xs text-muted/70">{field.desc}</span>
               )}
             </span>
             <span className={`flex items-center gap-1.5 font-medium ${
@@ -215,7 +215,7 @@ export default function SuperAdminSettingsPage() {
                   <span className={`font-mono text-sm ${item.configured ? "text-foreground" : "text-destructive"}`}>
                     {item.label}
                   </span>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{item.desc}</p>
+                  <p className="mt-0.5 text-xs text-muted">{item.desc}</p>
                 </div>
                 <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
                   item.configured
@@ -238,9 +238,9 @@ export default function SuperAdminSettingsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className="pb-2 font-medium text-muted-foreground">Variable</th>
-                  <th className="pb-2 font-medium text-muted-foreground">Required For</th>
-                  <th className="pb-2 font-medium text-muted-foreground">Purpose</th>
+                  <th className="pb-2 font-medium text-muted">Variable</th>
+                  <th className="pb-2 font-medium text-muted">Required For</th>
+                  <th className="pb-2 font-medium text-muted">Purpose</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
@@ -262,8 +262,8 @@ export default function SuperAdminSettingsPage() {
                 ].map(([variable, requiredFor, purpose]) => (
                   <tr key={variable}>
                     <td className="py-2 font-mono text-xs">{variable}</td>
-                    <td className="py-2 text-muted-foreground">{requiredFor}</td>
-                    <td className="py-2 text-muted-foreground">{purpose}</td>
+                    <td className="py-2 text-muted">{requiredFor}</td>
+                    <td className="py-2 text-muted">{purpose}</td>
                   </tr>
                 ))}
               </tbody>

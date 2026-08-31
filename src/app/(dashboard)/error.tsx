@@ -12,13 +12,13 @@ export default function DashboardError({
       <div className="max-w-md text-center">
         <div className="mb-3 text-4xl">!</div>
         <h2 className="mb-2 text-lg font-semibold">Dashboard error</h2>
-        <p className="mb-4 text-sm text-muted-foreground">
+        <p className="mb-4 text-sm text-muted">
           {error.message ?? "Something went wrong loading this page."}
         </p>
         <div className="flex justify-center gap-3">
           <button
             onClick={reset}
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium hover:bg-accent"
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-input bg-background px-4 text-sm font-medium hover:bg-surface-hover"
           >
             Try again
           </button>

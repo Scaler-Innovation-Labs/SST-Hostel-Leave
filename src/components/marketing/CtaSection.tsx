@@ -29,7 +29,7 @@ export function CtaSection() {
               </span>
             </h2>
 
-            <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-muted-foreground">
+            <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-muted">
               Students request, parents approve, staff review, guards scan —
               one platform for the entire campus movement lifecycle.
             </p>

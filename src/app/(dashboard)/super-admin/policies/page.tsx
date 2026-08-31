@@ -243,7 +243,7 @@ export default function PoliciesPage() {
             <h2 className="text-sm font-semibold">
               Policies
               {typedPolicies.length > 0 && (
-                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                <span className="ml-2 text-xs font-normal text-muted">
                   ({typedPolicies.length})
                 </span>
               )}
@@ -258,8 +258,8 @@ export default function PoliciesPage() {
             <LoadingState count={5} />
           ) : typedPolicies.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-12">
-              <p className="text-sm text-muted-foreground">No policies yet.</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted">No policies yet.</p>
+              <p className="text-xs text-muted">
                 Create your first policy to start configuring rules.
               </p>
             </div>
@@ -272,7 +272,7 @@ export default function PoliciesPage() {
                   className={cn(
                     "w-full rounded-xl border bg-card p-4 text-left transition-all hover:border-primary hover:shadow-sm",
                     "border-l-4",
-                    POLICY_TYPE_COLORS[policy.policyType] ?? "border-l-muted",
+                    POLICY_TYPE_COLORS[policy.policyType] ?? "border-l-border",
                     draft.id === policy.id
                       ? "border-primary ring-1 ring-primary"
                       : "",
@@ -281,7 +281,7 @@ export default function PoliciesPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <span className="font-medium">{policy.name}</span>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
+                      <p className="mt-0.5 text-xs text-muted">
                         {POLICY_TYPE_LABELS[policy.policyType] ?? policy.policyType}
                         <span className="mx-1.5">·</span>
                         priority {policy.priority}
@@ -320,7 +320,7 @@ export default function PoliciesPage() {
                         "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
                         policy.isActive
                           ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                          : "bg-muted text-muted-foreground",
+                          : "bg-surface-sunken text-muted",
                       )}
                     >
                       {policy.isActive ? "Active" : "Inactive"}
@@ -339,7 +339,7 @@ export default function PoliciesPage() {
               <h3 className="font-semibold">
                 {isEditing ? "Edit Policy" : "New Policy"}
               </h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">
+              <p className="mt-0.5 text-xs text-muted">
                 {isEditing
                   ? "Update the policy configuration below."
                   : "Fill in the details to create a new policy."}
@@ -355,7 +355,7 @@ export default function PoliciesPage() {
           {/* Name */}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted">
                 Name
               </span>
               <input
@@ -367,7 +367,7 @@ export default function PoliciesPage() {
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted">
                 Policy Type
               </span>
               <select
@@ -381,7 +381,7 @@ export default function PoliciesPage() {
                   </option>
                 ))}
               </select>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[10px] text-muted">
                 {POLICY_TYPE_DESCRIPTIONS[draft.policyType] ?? ""}
               </p>
             </label>
@@ -390,7 +390,7 @@ export default function PoliciesPage() {
           {/* Priority + Leave Type + Hostel + Department + Batch Year */}
           <div className="grid gap-4 sm:grid-cols-3">
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted">
                 Priority
               </span>
               <input
@@ -406,7 +406,7 @@ export default function PoliciesPage() {
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted">
                 Leave Type
               </span>
               <select
@@ -426,7 +426,7 @@ export default function PoliciesPage() {
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted">
                 Hostel
               </span>
               <select
@@ -443,13 +443,13 @@ export default function PoliciesPage() {
                   </option>
                 ))}
               </select>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[10px] text-muted">
                 Leave empty to apply to all hostels
               </p>
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted">
                 Department
               </span>
               <select
@@ -466,13 +466,13 @@ export default function PoliciesPage() {
                   </option>
                 ))}
               </select>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[10px] text-muted">
                 Leave empty to apply to all departments
               </p>
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted">
                 Batch Year
               </span>
               <input
@@ -486,15 +486,15 @@ export default function PoliciesPage() {
                 placeholder="e.g. 2028"
                 className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
               />
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[10px] text-muted">
                 Leave empty to apply to all batches
               </p>
             </label>
           </div>
 
           {/* Visual config builder */}
-          <div className="rounded-xl border border-border bg-muted/30 p-4">
-            <p className="mb-3 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          <div className="rounded-xl border border-border bg-surface-sunken/30 p-4">
+            <p className="mb-3 text-xs font-medium text-muted uppercase tracking-wider">
               Policy Configuration
             </p>
             <PolicyConfigBuilder
@@ -507,7 +507,7 @@ export default function PoliciesPage() {
           {/* Date range */}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted">
                 Starts at
               </span>
               <input
@@ -520,7 +520,7 @@ export default function PoliciesPage() {
               />
             </label>
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted">
                 Ends at
               </span>
               <input
