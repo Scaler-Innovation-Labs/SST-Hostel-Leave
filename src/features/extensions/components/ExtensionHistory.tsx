@@ -12,7 +12,7 @@ export function ExtensionHistory({ leaveId }: ExtensionHistoryProps) {
   const { data, isLoading, isError } = useLeaveExtensions(leaveId);
 
   if (isLoading) return <p className="text-body text-muted">Loading extensions...</p>;
-  if (isError) return <p className="text-body text-destructive">Failed to load extension history</p>;
+  if (isError) return <p className="text-body text-danger">Failed to load extension history</p>;
   if (!data?.items || data.items.length === 0) return null;
 
   return (

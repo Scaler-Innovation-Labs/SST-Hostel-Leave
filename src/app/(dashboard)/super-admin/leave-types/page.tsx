@@ -254,8 +254,8 @@ export default function LeaveTypesPage() {
               <button
                 key={lt.id}
                 onClick={() => edit(lt)}
-                className={`w-full rounded-xl border bg-card p-4 text-left transition-all hover:border-primary ${
-                  draft.id === lt.id ? "border-primary ring-1 ring-primary" : ""
+                className={`w-full rounded-xl border bg-surface p-4 text-left transition-all hover:border-accent ${
+                  draft.id === lt.id ? "border-accent ring-1 ring-accent" : ""
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -301,7 +301,7 @@ export default function LeaveTypesPage() {
         </section>
 
         {/* Editor */}
-        <section className="space-y-6 rounded-2xl border bg-card p-5">
+        <section className="space-y-6 rounded-2xl border bg-surface p-5">
           <h3 className="font-semibold">{draft.id ? "Edit Leave Type" : "New Leave Type"}</h3>
 
           {/* ── Section 1: Basic Information ── */}
@@ -316,7 +316,7 @@ export default function LeaveTypesPage() {
                   value={draft.name}
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                   placeholder="e.g. Home Pass"
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 />
               </label>
               <label className="block text-body">
@@ -327,7 +327,7 @@ export default function LeaveTypesPage() {
                     setDraft({ ...draft, code: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "_") })
                   }
                   placeholder="HOME_PASS"
-                  className="h-9 w-full rounded-lg border bg-background px-3 font-mono text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border bg-bg px-3 font-mono text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 />
               </label>
             </div>
@@ -338,7 +338,7 @@ export default function LeaveTypesPage() {
                 <select
                   value={draft.category}
                   onChange={(e) => setDraft({ ...draft, category: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 >
                   {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
@@ -350,7 +350,7 @@ export default function LeaveTypesPage() {
                 <select
                   value={draft.isActive ? "active" : "inactive"}
                   onChange={(e) => setDraft({ ...draft, isActive: e.target.value === "active" })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
@@ -365,7 +365,7 @@ export default function LeaveTypesPage() {
                 value={draft.description}
                 onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                 rows={2}
-                className="w-full rounded-lg border bg-background p-2 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border bg-bg p-2 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
               />
             </label>
 
@@ -388,7 +388,7 @@ export default function LeaveTypesPage() {
                     max={100}
                     value={draft.maxExtensionCount}
                     onChange={(e) => setDraft({ ...draft, maxExtensionCount: e.target.value })}
-                    className="h-9 w-32 rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                    className="h-9 w-32 rounded-lg border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                   />
                 </label>
               )}
@@ -423,8 +423,8 @@ export default function LeaveTypesPage() {
                       type="button"
                       aria-label={`Select color ${swatch}`}
                       onClick={() => setDraft({ ...draft, color: swatch })}
-                      className={`h-6 w-6 rounded-full border-2 transition-transform hover:scale-110 ${
-                        draft.color === swatch ? "border-ring ring-2 ring-ring/30" : "border-transparent"
+                      className={`h-6 w-6 rounded-full border-2 transition-colors duration-fast ease-standard ${
+                        draft.color === swatch ? "border-accent ring-2 ring-accent/30" : "border-transparent"
                       }`}
                       style={{ backgroundColor: swatch }}
                     />
@@ -445,7 +445,7 @@ export default function LeaveTypesPage() {
                 <select
                   value={draft.workflowMode}
                   onChange={(e) => setDraft({ ...draft, workflowMode: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 >
                   <option value={LEAVE_WORKFLOW_MODE.HOSTEL}>Hostel Default</option>
                   <option value={LEAVE_WORKFLOW_MODE.ACADEMIC}>Leave-Type Specific</option>
@@ -456,7 +456,7 @@ export default function LeaveTypesPage() {
                 <select
                   value={draft.defaultWorkflowId ?? ""}
                   onChange={(e) => setDraft({ ...draft, defaultWorkflowId: e.target.value || null })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 >
                   <option value="">No default</option>
                   {workflows?.map((wf) => (
@@ -518,7 +518,7 @@ export default function LeaveTypesPage() {
                 </p>
               ) : (
                 draft.requiredDocuments.map((document, index) => (
-                  <div key={`${document.code}-${index}`} className="rounded-lg border bg-background p-3">
+                  <div key={`${document.code}-${index}`} className="rounded-lg border bg-bg p-3">
                     <div className="grid gap-3 sm:grid-cols-2">
                       <label className="block text-body">
                         <span className="mb-1 block font-medium">Document code</span>
@@ -533,7 +533,7 @@ export default function LeaveTypesPage() {
                             setDraft({ ...draft, requiredDocuments });
                           }}
                           placeholder="MEDICAL_CERTIFICATE"
-                          className="h-9 w-full rounded-lg border bg-background px-3 font-mono text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                          className="h-9 w-full rounded-lg border bg-bg px-3 font-mono text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                         />
                       </label>
                       <label className="block text-body">
@@ -546,7 +546,7 @@ export default function LeaveTypesPage() {
                             setDraft({ ...draft, requiredDocuments });
                           }}
                           placeholder="Medical certificate"
-                          className="h-9 w-full rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                          className="h-9 w-full rounded-lg border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                         />
                       </label>
                     </div>
@@ -565,7 +565,7 @@ export default function LeaveTypesPage() {
                             setDraft({ ...draft, requiredDocuments });
                           }}
                           placeholder="PDF, JPG, PNG"
-                          className="h-9 w-full rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                          className="h-9 w-full rounded-lg border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                         />
                       </label>
                       <label className="flex h-9 items-center gap-2 text-body">
@@ -593,7 +593,7 @@ export default function LeaveTypesPage() {
                           })
                         }
                       >
-                        <Trash2 className="size-4 text-destructive" />
+                        <Trash2 className="size-4 text-danger" />
                       </Button>
                     </div>
                   </div>
@@ -608,16 +608,16 @@ export default function LeaveTypesPage() {
               <Eye className="size-3" />
               Student Preview
             </p>
-            <div className="rounded-lg border bg-background p-4">
+            <div className="rounded-lg border bg-bg p-4">
               {draft.formSchema.fields.length === 0 ? (
                 <p className="text-caption text-muted">No form fields configured.</p>
               ) : (
                 <div className="space-y-3">
                   {draft.formSchema.fields.map((field) => (
                     <div key={field.key}>
-                      <label className="mb-1 block text-caption font-medium text-foreground">
+                      <label className="mb-1 block text-caption font-medium text-ink">
                         {field.label}
-                        {field.required && <span className="ml-0.5 text-destructive">*</span>}
+                        {field.required && <span className="ml-0.5 text-danger">*</span>}
                       </label>
                       {field.type === "textarea" ? (
                         <textarea

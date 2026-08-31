@@ -266,7 +266,7 @@ export default function SuperAdminParentsPage() {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border border-border bg-bg py-2 pl-9 pr-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
               />
             </div>
             <Button variant="outline" onClick={startNew}>
@@ -278,13 +278,13 @@ export default function SuperAdminParentsPage() {
           </div>
 
           {showBulk && (
-            <div className="space-y-4 rounded-2xl border bg-card p-5">
+            <div className="space-y-4 rounded-2xl border bg-surface p-5">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">Bulk Import Parents</h3>
                 <a
                   href="/api/v1/parents/template?format=csv"
                   download
-                  className="text-caption text-primary underline underline-offset-2 hover:text-primary/80"
+                  className="text-caption text-accent underline underline-offset-2 hover:text-accent/80"
                 >
                   Download CSV Template
                 </a>
@@ -306,7 +306,7 @@ export default function SuperAdminParentsPage() {
               <textarea
                 value={bulkJson}
                 onChange={(e) => setBulkJson(e.target.value)}
-                className="min-h-[100px] w-full rounded-lg border bg-background px-3 py-2 font-mono text-caption outline-none focus:border-ring"
+                className="min-h-[100px] w-full rounded-lg border bg-bg px-3 py-2 font-mono text-caption outline-none focus:border-accent"
                 placeholder='[{ "studentEmail": "student@example.com", "name": "John Doe Sr.", "phone": "9876543210", "relationship": "father" }]'
                 rows={4}
               />
@@ -316,7 +316,7 @@ export default function SuperAdminParentsPage() {
                 </Button>
               </div>
               {bulkResults && (
-                <div className="max-h-[200px] space-y-1 overflow-y-auto rounded-lg border bg-background p-3 text-caption">
+                <div className="max-h-[200px] space-y-1 overflow-y-auto rounded-lg border bg-bg p-3 text-caption">
                   <p className="font-medium">
                     {bulkResults.filter((r) => r.success).length} succeeded, {bulkResults.filter((r) => !r.success).length} failed
                   </p>
@@ -333,7 +333,7 @@ export default function SuperAdminParentsPage() {
           {isLoading ? (
             <p className="text-body text-muted">Loading...</p>
           ) : error ? (
-            <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-card p-12">
+            <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-surface p-12">
               <p className="text-body text-muted">Failed to load parents.</p>
               <Button variant="outline" onClick={() => mutate()}>Retry</Button>
             </div>
@@ -345,8 +345,8 @@ export default function SuperAdminParentsPage() {
                 <button
                   key={parent.id}
                   onClick={() => editParent(parent)}
-                  className={`w-full rounded-xl border bg-card p-4 text-left hover:border-primary ${
-                    draft.id === parent.id ? "border-primary" : ""
+                  className={`w-full rounded-xl border bg-surface p-4 text-left hover:border-accent ${
+                    draft.id === parent.id ? "border-accent" : ""
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -384,7 +384,7 @@ export default function SuperAdminParentsPage() {
           )}
         </section>
 
-        <section className="space-y-5 rounded-2xl border bg-card p-5">
+        <section className="space-y-5 rounded-2xl border bg-surface p-5">
           <h2 className="font-semibold">
             {draft.id ? "Edit Parent" : "New Parent"}
           </h2>
@@ -401,12 +401,12 @@ export default function SuperAdminParentsPage() {
                       placeholder="Search students..."
                       value={studentSearch}
                       onChange={(e) => setStudentSearch(e.target.value)}
-                      className="h-9 w-full rounded-lg border bg-background pl-9 pr-3 text-caption outline-none focus:border-ring"
+                      className="h-9 w-full rounded-lg border bg-bg pl-9 pr-3 text-caption outline-none focus:border-accent"
                     />
                   </div>
                 </label>
                 {students.length > 0 && (
-                  <div className="max-h-[120px] space-y-1 overflow-y-auto rounded-lg border bg-background p-1">
+                  <div className="max-h-[120px] space-y-1 overflow-y-auto rounded-lg border bg-bg p-1">
                     {students.map((s) => (
                       <button
                         key={s.id}
@@ -416,7 +416,7 @@ export default function SuperAdminParentsPage() {
                           setStudentSearch(s.fullName);
                         }}
                         className={`w-full rounded-md px-2 py-1.5 text-left text-caption hover:bg-surface-sunken ${
-                          draft.studentId === s.id ? "bg-primary/10" : ""
+                          draft.studentId === s.id ? "bg-accent/10" : ""
                         }`}
                       >
                         {s.fullName} ({s.rollNumber})
@@ -425,7 +425,7 @@ export default function SuperAdminParentsPage() {
                   </div>
                 )}
                 {draft.studentId && (
-                  <div className="flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-caption text-primary">
+                  <div className="flex items-center gap-1 rounded-md bg-accent/10 px-2 py-1 text-caption text-accent">
                     Student selected
                     <button
                       type="button"
@@ -452,7 +452,7 @@ export default function SuperAdminParentsPage() {
               <input
                 value={draft.name}
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
+                className="h-9 w-full rounded-lg border bg-bg px-3 text-caption outline-none focus:border-accent"
                 placeholder="Parent name"
               />
             </label>
@@ -463,7 +463,7 @@ export default function SuperAdminParentsPage() {
                 <input
                   value={draft.phone}
                   onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
+                  className="h-9 w-full rounded-lg border bg-bg px-3 text-caption outline-none focus:border-accent"
                   placeholder="Phone number"
                 />
               </label>
@@ -473,7 +473,7 @@ export default function SuperAdminParentsPage() {
                 <input
                   value={draft.email}
                   onChange={(e) => setDraft({ ...draft, email: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
+                  className="h-9 w-full rounded-lg border bg-bg px-3 text-caption outline-none focus:border-accent"
                   placeholder="email@example.com"
                 />
               </label>
@@ -484,7 +484,7 @@ export default function SuperAdminParentsPage() {
               <input
                 value={draft.relationship}
                 onChange={(e) => setDraft({ ...draft, relationship: e.target.value })}
-                className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
+                className="h-9 w-full rounded-lg border bg-bg px-3 text-caption outline-none focus:border-accent"
                 placeholder="e.g. father, mother, guardian"
               />
             </label>

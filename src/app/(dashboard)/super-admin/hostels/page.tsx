@@ -139,7 +139,7 @@ export default function HostelsPage() {
           ) : (
             <div className="space-y-2">
               {typedHostels.map((hostel) => (
-                <div key={hostel.id} className="group flex rounded-xl border bg-card hover:border-primary">
+                <div key={hostel.id} className="group flex rounded-xl border bg-surface hover:border-accent">
                   <button onClick={() => edit(hostel)} className="flex-1 p-4 text-left">
                     <div className="flex items-center gap-3">
                       <Building2 className="size-4 shrink-0 text-muted" />
@@ -155,7 +155,7 @@ export default function HostelsPage() {
                     disabled={deletingId === hostel.id}
                     onClick={() => handleDelete(hostel.id, hostel.name)}
                   >
-                    <Trash2 className="size-4 text-destructive" />
+                    <Trash2 className="size-4 text-danger" />
                   </Button>
                 </div>
               ))}
@@ -163,7 +163,7 @@ export default function HostelsPage() {
           )}
         </section>
 
-        <section className="space-y-5 rounded-2xl border bg-card p-5">
+        <section className="space-y-5 rounded-2xl border bg-surface p-5">
           <h3 className="font-semibold">{isEditing ? "Edit Hostel" : "New Hostel"}</h3>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -219,7 +219,7 @@ function Field({ label, value, onChange, mono = false, type = "text", placeholde
     <label className="block text-body">
       <span className="mb-1 block font-medium">{label}</span>
       <input type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
-        className={`h-9 w-full rounded-lg border bg-background px-3 outline-none focus:border-ring focus:ring-1 focus:ring-ring ${mono ? "font-mono" : ""}`} />
+        className={`h-9 w-full rounded-lg border bg-bg px-3 outline-none focus:border-accent focus:ring-1 focus:ring-accent ${mono ? "font-mono" : ""}`} />
     </label>
   );
 }

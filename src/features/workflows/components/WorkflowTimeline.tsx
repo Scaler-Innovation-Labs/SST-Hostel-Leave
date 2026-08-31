@@ -10,7 +10,7 @@ type WorkflowTimelineProps = {
 
 const statusClasses: Record<WorkflowStep["status"], string> = {
   completed: "border-success/20 bg-success-light text-success",
-  current: "border-primary/20 bg-primary/10 text-primary",
+  current: "border-accent/20 bg-accent/10 text-accent",
   upcoming: "border-border bg-surface-sunken text-muted",
 };
 

@@ -61,7 +61,7 @@ export function ExtensionQueue({
     <div className={cn("space-y-3", className)}>
       <div className="flex items-center justify-between px-1">
         <p className="text-caption text-muted">
-          <span className="font-medium text-foreground">{total}</span> extension{total !== 1 ? "s" : ""}
+          <span className="font-medium text-ink">{total}</span> extension{total !== 1 ? "s" : ""}
         </p>
         <p className="text-caption text-muted">
           Page {page} of {totalPages}

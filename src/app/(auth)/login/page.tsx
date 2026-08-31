@@ -1,13 +1,18 @@
 "use client";
 
 import { useAuth, useSignIn } from "@clerk/nextjs";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
+import { Button, Refusal, TECH_LABEL } from "@/design-system/sst";
 
 export default function LoginPage() {
   const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
   const { signIn, isLoaded: isSignInLoaded } = useSignIn();
+  const [failure, setFailure] = useState<string | null>(null);
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
     if (isLoaded && isSignedIn) {
@@ -15,134 +20,78 @@ export default function LoginPage() {
     }
   }, [isLoaded, isSignedIn, router]);
 
+  async function signInWithGoogle() {
+    if (!isSignInLoaded) return;
+    setFailure(null);
+    setRedirecting(true);
+    try {
+      await signIn.authenticateWithRedirect({
+        strategy: "oauth_google",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/redirect",
+      });
+    } catch (error) {
+      setRedirecting(false);
+      setFailure(
+        error instanceof Error
+          ? error.message
+          : "The sign-in service didn't respond."
+      );
+    }
+  }
+
   return (
-    <main
-      className="
-        relative flex min-h-screen
-        items-center justify-center
-        overflow-hidden
-        bg-background px-6
-      "
-    >
-      {/* GRID */}
-      <div
-        className="
-          absolute inset-0
-          opacity-[0.03]
-        "
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px)
-          `,
-          backgroundSize: "72px 72px",
-        }}
-      />
-
-      {/* GLOW */}
-      <div
-        className="
-          absolute left-1/2 top-1/2
-          h-[700px] w-[700px]
-          -translate-x-1/2 -translate-y-1/2
-          rounded-full
-          bg-accent-light
-          blur-[140px]
-        "
-      />
-
-      {/* LOGIN SURFACE */}
-      <div
-        className="
-          relative w-full max-w-md
-          rounded-[32px]
-          border border-white/[0.04]
-          bg-white/[0.02]
-          p-10
-          backdrop-blur-2xl
-        "
-      >
-        {/* LOGO */}
-        <div
-          className="
-            flex items-center justify-center
-          "
-        >
-          <div
-            className="
-              flex size-16 items-center
-              justify-center
-              rounded-2xl
-              bg-accent-light
-              text-h2 font-semibold
-              text-accent
-            "
-          >
-            S
+    <main className="flex min-h-screen items-center justify-center bg-bg px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="rounded-2xl border border-border bg-surface p-8 shadow-raised">
+          <div className="flex flex-col items-center text-center">
+            <Image
+              src="/logosst.png"
+              alt=""
+              width={48}
+              height={48}
+              className="h-12 w-12 rounded-lg"
+              priority
+            />
+            <p className={`mt-5 ${TECH_LABEL}`}>SST Hostel Leave</p>
+            <h1 className="mt-2 text-h2 tracking-tight text-ink">
+              Sign in to continue
+            </h1>
+            <p className="mt-2 text-body text-muted">
+              Use your institutional Google account. Your role decides which
+              console you land in.
+            </p>
           </div>
-        </div>
 
-        {/* TITLE */}
-        <div className="mt-8 text-center">
-          <h1 className="text-h1 font-semibold text-white">
-            Welcome Back
-          </h1>
+          <div className="mt-8">
+            <Button
+              block
+              size="lg"
+              onClick={signInWithGoogle}
+              disabled={!isSignInLoaded}
+              loading={redirecting}
+              loadingText="Taking you to Google…"
+            >
+              Continue with Google
+            </Button>
+          </div>
 
-          <p
-            className="
-              mt-3 text-body
-              leading-7
-              text-white/45
-            "
-          >
-            Login to access hostel leave
-            approvals, QR passes, and
-            operational workflows.
+          {failure && (
+            <Refusal
+              className="mt-6"
+              what="We couldn't start sign-in"
+              why={failure}
+              whatNow="Try again in a moment. If it keeps failing, contact the hostel office."
+            />
+          )}
+
+          <p className="mt-8 text-center text-caption text-muted">
+            Only authorised institutional accounts can access this platform.
           </p>
         </div>
 
-        {/* BUTTON */}
-        <div className="mt-10">
-          <button
-            type="button"
-            onClick={async () => {
-              if (!isSignInLoaded) return;
-
-              await signIn.authenticateWithRedirect({
-                strategy: "oauth_google",
-                redirectUrl: "/sso-callback",
-                redirectUrlComplete: "/redirect",
-              });
-            }}
-            disabled={!isSignInLoaded}
-            className="
-              flex w-full items-center
-              justify-center gap-3
-              rounded-2xl
-              bg-white
-              px-5 py-4
-              text-body font-medium
-              text-black
-              transition-transform
-              hover:scale-[1.01]
-              disabled:cursor-not-allowed
-              disabled:opacity-70
-            "
-          >
-            Continue with Google
-          </button>
-        </div>
-
-        {/* FOOTER */}
-        <p
-          className="
-            mt-8 text-center
-            text-caption leading-6
-            text-white/35
-          "
-        >
-          Only authorized institutional
-          accounts can access the platform.
+        <p className="mt-6 text-center text-caption text-muted">
+          Parents don&apos;t sign in — approval links are sent to you directly.
         </p>
       </div>
     </main>

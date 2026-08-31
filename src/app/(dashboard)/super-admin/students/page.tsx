@@ -394,7 +394,7 @@ export default function SuperAdminStudentsPage() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+            className="w-full rounded-lg border border-border bg-bg py-2 pl-9 pr-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
           />
         </div>
         <Button variant="outline" onClick={() => { startNew(); setBulkSection(null); }}>
@@ -409,14 +409,14 @@ export default function SuperAdminStudentsPage() {
       </div>
 
       {bulkSection && (
-        <div className="space-y-4 rounded-2xl border bg-card p-5">
+        <div className="space-y-4 rounded-2xl border bg-surface p-5">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">Bulk Import {bulkSection === "parents" ? "Parents" : "Students"}</h3>
             {bulkSection === "students" && (
               <a
                 href="/api/v1/students/template?format=csv"
                 download
-                className="text-caption text-primary underline underline-offset-2 hover:text-primary/80"
+                className="text-caption text-accent underline underline-offset-2 hover:text-accent/80"
               >
                 Download CSV Template
               </a>
@@ -440,7 +440,7 @@ export default function SuperAdminStudentsPage() {
           <textarea
             value={bulkJson}
             onChange={(e) => setBulkJson(e.target.value)}
-            className="min-h-[100px] w-full rounded-lg border bg-background px-3 py-2 font-mono text-caption outline-none focus:border-ring"
+            className="min-h-[100px] w-full rounded-lg border bg-bg px-3 py-2 font-mono text-caption outline-none focus:border-accent"
             placeholder={
               bulkSection === "parents"
                 ? '[{ "studentId": "uuid", "name": "Father Name", "phone": "9876543210", "relationship": "Father" }]'
@@ -454,7 +454,7 @@ export default function SuperAdminStudentsPage() {
             </Button>
           </div>
           {bulkResults && (
-            <div className="max-h-[200px] space-y-1 overflow-y-auto rounded-lg border bg-background p-3 text-caption">
+            <div className="max-h-[200px] space-y-1 overflow-y-auto rounded-lg border bg-bg p-3 text-caption">
               <p className="font-medium">
                 {bulkResults.filter((r) => r.success).length} succeeded, {bulkResults.filter((r) => !r.success).length} failed
               </p>
@@ -475,7 +475,7 @@ export default function SuperAdminStudentsPage() {
           {isLoading ? (
             <p className="text-body text-muted">Loading...</p>
           ) : error ? (
-            <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-card p-12">
+            <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-surface p-12">
               <p className="text-body text-muted">Failed to load students.</p>
               <Button variant="outline" onClick={() => mutate()}>Retry</Button>
             </div>
@@ -495,8 +495,8 @@ export default function SuperAdminStudentsPage() {
                       editStudent(item);
                     }
                   }}
-                  className={`w-full cursor-pointer rounded-xl border bg-card p-4 text-left hover:border-primary ${
-                    draft.id === item.student.id ? "border-primary" : ""
+                  className={`w-full cursor-pointer rounded-xl border bg-surface p-4 text-left hover:border-accent ${
+                    draft.id === item.student.id ? "border-accent" : ""
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
@@ -527,7 +527,7 @@ export default function SuperAdminStudentsPage() {
                       <Link
                         href={`/super-admin/students/${item.student.id}`}
                         onClick={(e) => e.stopPropagation()}
-                        className="rounded-md border border-border px-2 py-0.5 text-micro font-medium text-muted transition-colors hover:border-primary hover:text-foreground"
+                        className="rounded-md border border-border px-2 py-0.5 text-micro font-medium text-muted transition-colors hover:border-accent hover:text-ink"
                       >
                         View Profile
                       </Link>
@@ -548,7 +548,7 @@ export default function SuperAdminStudentsPage() {
           )}
         </section>
 
-        <section className="space-y-5 rounded-2xl border bg-card p-5">
+        <section className="space-y-5 rounded-2xl border bg-surface p-5">
           <h2 className="font-semibold">
             {draft.id ? "Edit Student" : "New Student"}
           </h2>
@@ -559,7 +559,7 @@ export default function SuperAdminStudentsPage() {
               <input
                 value={draft.fullName}
                 onChange={(e) => setDraft({ ...draft, fullName: e.target.value })}
-                className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
+                className="h-9 w-full rounded-lg border bg-bg px-3 text-caption outline-none focus:border-accent"
                 placeholder="Student name"
               />
             </label>
@@ -570,7 +570,7 @@ export default function SuperAdminStudentsPage() {
                 <input
                   value={draft.rollNumber}
                   onChange={(e) => setDraft({ ...draft, rollNumber: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
+                  className="h-9 w-full rounded-lg border bg-bg px-3 text-caption outline-none focus:border-accent"
                   placeholder="e.g. S001"
                   readOnly={!!draft.id}
                 />
@@ -581,7 +581,7 @@ export default function SuperAdminStudentsPage() {
                 <input
                   value={draft.roomNumber}
                   onChange={(e) => setDraft({ ...draft, roomNumber: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
+                  className="h-9 w-full rounded-lg border bg-bg px-3 text-caption outline-none focus:border-accent"
                   placeholder="e.g. A-101"
                 />
               </label>
@@ -592,7 +592,7 @@ export default function SuperAdminStudentsPage() {
               <select
                 value={draft.academicGroupId}
                 onChange={(e) => setDraft({ ...draft, academicGroupId: e.target.value })}
-                className="h-9 w-full rounded-lg border bg-background px-3 text-caption"
+                className="h-9 w-full rounded-lg border bg-bg px-3 text-caption"
               >
                 <option value="">Select academic group...</option>
                 {academicGroupsList.map((g) => (
@@ -610,7 +610,7 @@ export default function SuperAdminStudentsPage() {
                   type="email"
                   value={draft.email}
                   onChange={(e) => setDraft({ ...draft, email: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
+                  className="h-9 w-full rounded-lg border bg-bg px-3 text-caption outline-none focus:border-accent"
                   placeholder="email@example.com"
                 />
               </label>
@@ -620,7 +620,7 @@ export default function SuperAdminStudentsPage() {
                 <input
                   value={draft.phone}
                   onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
+                  className="h-9 w-full rounded-lg border bg-bg px-3 text-caption outline-none focus:border-accent"
                   placeholder="Phone number"
                 />
               </label>
@@ -632,7 +632,7 @@ export default function SuperAdminStudentsPage() {
                 <select
                   value={draft.gender}
                   onChange={(e) => setDraft({ ...draft, gender: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption"
+                  className="h-9 w-full rounded-lg border bg-bg px-3 text-caption"
                 >
                   <option value="">Select...</option>
                   <option value="MALE">Male</option>
@@ -646,7 +646,7 @@ export default function SuperAdminStudentsPage() {
                 <select
                   value={draft.hostelId}
                   onChange={(e) => setDraft({ ...draft, hostelId: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption"
+                  className="h-9 w-full rounded-lg border bg-bg px-3 text-caption"
                 >
                   <option value="">No hostel</option>
                   {hostelsList.map((h) => (
@@ -679,7 +679,7 @@ export default function SuperAdminStudentsPage() {
                     <input
                       value={draft.parentName}
                       onChange={(e) => setDraft({ ...draft, parentName: e.target.value })}
-                      className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
+                      className="h-9 w-full rounded-lg border bg-bg px-3 text-caption outline-none focus:border-accent"
                       placeholder="Parent name"
                     />
                   </label>
@@ -689,7 +689,7 @@ export default function SuperAdminStudentsPage() {
                     <input
                       value={draft.parentPhone}
                       onChange={(e) => setDraft({ ...draft, parentPhone: e.target.value })}
-                      className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
+                      className="h-9 w-full rounded-lg border bg-bg px-3 text-caption outline-none focus:border-accent"
                       placeholder="Parent phone"
                     />
                   </label>
@@ -699,7 +699,7 @@ export default function SuperAdminStudentsPage() {
                     <input
                       value={draft.parentRelationship}
                       onChange={(e) => setDraft({ ...draft, parentRelationship: e.target.value })}
-                      className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
+                      className="h-9 w-full rounded-lg border bg-bg px-3 text-caption outline-none focus:border-accent"
                       placeholder="e.g. Father, Mother, Guardian"
                     />
                   </label>
@@ -710,7 +710,7 @@ export default function SuperAdminStudentsPage() {
                       type="email"
                       value={draft.parentEmail}
                       onChange={(e) => setDraft({ ...draft, parentEmail: e.target.value })}
-                      className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
+                      className="h-9 w-full rounded-lg border bg-bg px-3 text-caption outline-none focus:border-accent"
                       placeholder="parent@example.com"
                     />
                   </label>
@@ -757,14 +757,14 @@ export default function SuperAdminStudentsPage() {
                       <div className="min-w-0 text-caption">
                         <span className="font-medium">{p.name}</span>
                         {p.isPrimary && (
-                          <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-micro text-primary">Primary</span>
+                          <span className="ml-1.5 rounded-full bg-accent/10 px-1.5 py-0.5 text-micro text-accent">Primary</span>
                         )}
                         <div className="text-muted">{p.relationship} &middot; {p.phone}</div>
                         {p.email && <div className="text-muted">{p.email}</div>}
                       </div>
                       <button
                         onClick={() => handleDeleteParent(p.id)}
-                        className="shrink-0 rounded p-1 text-muted hover:bg-destructive/10 hover:text-destructive"
+                        className="shrink-0 rounded p-1 text-muted hover:bg-danger/10 hover:text-danger"
                         title="Remove parent"
                       >
                         <Trash2 className="size-3.5" />
@@ -784,25 +784,25 @@ export default function SuperAdminStudentsPage() {
                     value={parentForm.name}
                     onChange={(e) => setParentForm({ ...parentForm, name: e.target.value })}
                     placeholder="Parent name"
-                    className="h-8 rounded-lg border bg-background px-2.5 text-caption outline-none focus:border-ring"
+                    className="h-8 rounded-lg border bg-bg px-2.5 text-caption outline-none focus:border-accent"
                   />
                   <input
                     value={parentForm.phone}
                     onChange={(e) => setParentForm({ ...parentForm, phone: e.target.value })}
                     placeholder="Phone"
-                    className="h-8 rounded-lg border bg-background px-2.5 text-caption outline-none focus:border-ring"
+                    className="h-8 rounded-lg border bg-bg px-2.5 text-caption outline-none focus:border-accent"
                   />
                   <input
                     value={parentForm.email}
                     onChange={(e) => setParentForm({ ...parentForm, email: e.target.value })}
                     placeholder="Email (optional)"
-                    className="h-8 rounded-lg border bg-background px-2.5 text-caption outline-none focus:border-ring"
+                    className="h-8 rounded-lg border bg-bg px-2.5 text-caption outline-none focus:border-accent"
                   />
                   <input
                     value={parentForm.relationship}
                     onChange={(e) => setParentForm({ ...parentForm, relationship: e.target.value })}
                     placeholder="Relationship (e.g. Father)"
-                    className="h-8 rounded-lg border bg-background px-2.5 text-caption outline-none focus:border-ring"
+                    className="h-8 rounded-lg border bg-bg px-2.5 text-caption outline-none focus:border-accent"
                   />
                 </div>
                 <label className="flex items-center gap-1.5 text-caption">

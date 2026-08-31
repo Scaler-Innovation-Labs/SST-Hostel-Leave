@@ -135,7 +135,7 @@ export default function AcademicGroupsPage() {
           ) : (
             <div className="space-y-2">
               {typedGroups.map((group) => (
-                <div key={group.id} className="group flex rounded-xl border bg-card hover:border-primary">
+                <div key={group.id} className="group flex rounded-xl border bg-surface hover:border-accent">
                   <button onClick={() => edit(group)} className="flex-1 p-4 text-left">
                     <div className="flex items-center gap-3">
                       <GraduationCap className="size-4 shrink-0 text-muted" />
@@ -155,7 +155,7 @@ export default function AcademicGroupsPage() {
                     disabled={deletingId === group.id}
                     onClick={() => handleDelete(group.id, group.name)}
                   >
-                    <Trash2 className="size-4 text-destructive" />
+                    <Trash2 className="size-4 text-danger" />
                   </Button>
                 </div>
               ))}
@@ -163,7 +163,7 @@ export default function AcademicGroupsPage() {
           )}
         </section>
 
-        <section className="space-y-5 rounded-2xl border bg-card p-5">
+        <section className="space-y-5 rounded-2xl border bg-surface p-5">
           <h3 className="font-semibold">{isEditing ? "Edit Academic Group" : "New Academic Group"}</h3>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -171,13 +171,13 @@ export default function AcademicGroupsPage() {
               <span className="mb-1 block font-medium">Name</span>
               <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                 placeholder="e.g. CSE Batch 2028"
-                className="h-9 w-full rounded-lg border bg-background px-3 outline-none focus:border-ring focus:ring-1 focus:ring-ring" />
+                className="h-9 w-full rounded-lg border bg-bg px-3 outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
             </label>
             <label className="block text-body">
               <span className="mb-1 block font-medium">Group Code</span>
               <input value={draft.groupCode} onChange={(e) => setDraft({ ...draft, groupCode: e.target.value })}
                 placeholder="e.g. A1"
-                className="h-9 w-full rounded-lg border bg-background px-3 font-mono outline-none focus:border-ring focus:ring-1 focus:ring-ring" />
+                className="h-9 w-full rounded-lg border bg-bg px-3 font-mono outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
             </label>
           </div>
 
@@ -185,7 +185,7 @@ export default function AcademicGroupsPage() {
             <label className="block text-body">
               <span className="mb-1 block font-medium">Department</span>
               <select value={draft.departmentId} onChange={(e) => setDraft({ ...draft, departmentId: e.target.value })}
-                className="h-9 w-full rounded-lg border bg-background px-3 outline-none focus:border-ring focus:ring-1 focus:ring-ring">
+                className="h-9 w-full rounded-lg border bg-bg px-3 outline-none focus:border-accent focus:ring-1 focus:ring-accent">
                 <option value="">Select department</option>
                 {typedDepartments.map((dept) => (
                   <option key={dept.id} value={dept.id}>{dept.name} ({dept.code})</option>
@@ -196,7 +196,7 @@ export default function AcademicGroupsPage() {
               <span className="mb-1 block font-medium">Batch Year</span>
               <input type="number" min={1900} max={2100} value={draft.batchYear}
                 onChange={(e) => setDraft({ ...draft, batchYear: e.target.value })}
-                className="h-9 w-full rounded-lg border bg-background px-3 outline-none focus:border-ring focus:ring-1 focus:ring-ring" />
+                className="h-9 w-full rounded-lg border bg-bg px-3 outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
             </label>
           </div>
 

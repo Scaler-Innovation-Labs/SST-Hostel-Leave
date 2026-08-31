@@ -237,12 +237,12 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
                 onClick={() => toggleRole(role.value)}
                 className={`inline-flex items-center rounded-full border px-3 py-1.5 text-body font-medium transition-colors ${
                   roleCodes.includes(role.value)
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-background text-muted hover:bg-surface-sunken"
+                    ? "border-accent bg-accent/10 text-accent"
+                    : "border-border bg-bg text-muted hover:bg-surface-sunken"
                 }`}
               >
                 {roleCodes.includes(role.value) && (
-                  <span className="mr-1.5 h-2 w-2 rounded-full bg-primary" />
+                  <span className="mr-1.5 h-2 w-2 rounded-full bg-accent" />
                 )}
                 {role.label}
               </button>
@@ -262,7 +262,7 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
             const roleLabel = ROLE_OPTIONS.find((r) => r.value === roleCode)?.label ?? roleCode;
             const selected = roleScopes[roleCode] ?? [];
             return (
-              <div key={roleCode} className="rounded-lg border border-border bg-background p-3">
+              <div key={roleCode} className="rounded-lg border border-border bg-bg p-3">
                 <p className="mb-2 text-body font-medium">{roleLabel}</p>
                 {hostels?.length ? (
                   <div className="flex flex-wrap gap-2">
@@ -275,11 +275,11 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
                           onClick={() => toggleHostel(roleCode, hostel.id)}
                           className={`inline-flex items-center rounded-lg border px-3 py-1.5 text-caption font-medium transition-colors ${
                             checked
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border bg-background text-muted hover:bg-surface-sunken"
+                              ? "border-accent bg-accent/10 text-accent"
+                              : "border-border bg-bg text-muted hover:bg-surface-sunken"
                           }`}
                         >
-                          {checked && <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-primary" />}
+                          {checked && <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-accent" />}
                           {hostel.name}
                         </button>
                       );

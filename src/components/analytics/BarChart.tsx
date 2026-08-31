@@ -38,7 +38,7 @@ export function AnalyticsBarChart({
 }: AnalyticsBarChartProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
         <h3 className="mb-1 text-body-lg font-semibold">{title}</h3>
         {description && <p className="mb-4 text-body text-muted">{description}</p>}
         <div className="flex h-[250px] items-center justify-center">
@@ -56,7 +56,7 @@ export function AnalyticsBarChart({
   const formatName = (name: string) => (name.length > 12 ? `${name.slice(0, 11)}…` : name);
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
       <h3 className="mb-1 text-body-lg font-semibold">{title}</h3>
       {description && <p className="mb-4 text-body text-muted">{description}</p>}
       <ResponsiveContainer width="100%" height={height}>

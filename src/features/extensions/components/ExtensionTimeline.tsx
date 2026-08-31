@@ -23,7 +23,7 @@ export function ExtensionTimeline({ extensions }: ExtensionTimelineProps) {
       {extensions.map((ext) => (
         <div key={ext.id} className="flex gap-3">
           <div className="flex flex-col items-center">
-            <div className="h-2.5 w-2.5 rounded-full bg-primary" />
+            <div className="h-2.5 w-2.5 rounded-full bg-accent" />
             <div className="h-full w-px bg-border" />
           </div>
           <div className="flex-1 pb-4">

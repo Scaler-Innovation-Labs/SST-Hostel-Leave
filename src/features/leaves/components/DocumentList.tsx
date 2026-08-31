@@ -86,9 +86,9 @@ export function DocumentList({ leaveId, canDelete = false, requiredDocument }: D
         {documents.map((doc: DocumentItem) => (
           <div
             key={doc.id}
-            className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-surface-sunken/50"
+            className="flex items-center gap-3 rounded-xl border border-border bg-surface p-3 transition-colors hover:bg-surface-sunken/50"
           >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
               {getFileIcon(doc.mimeType)}
             </div>
 
@@ -111,7 +111,7 @@ export function DocumentList({ leaveId, canDelete = false, requiredDocument }: D
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 shrink-0 text-muted hover:text-destructive"
+                className="h-8 w-8 shrink-0 text-muted hover:text-danger"
                 onClick={() => setConfirmDeleteId(doc.id)}
                 disabled={deletingId === doc.id}
               >

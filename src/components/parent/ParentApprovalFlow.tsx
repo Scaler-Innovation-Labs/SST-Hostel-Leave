@@ -11,8 +11,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
+import { Button, Textarea } from "@/design-system/sst";
 import { initialsOf } from "@/design-system/sst";
 import { formatDate } from "@/lib/date-utils";
 
@@ -91,13 +91,13 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
   if (done) {
     const approved = decision === LEAVE_APPROVAL_DECISION.APPROVED;
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
+      <div className="min-h-screen flex items-center justify-center bg-bg p-4">
+        <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-8 text-center shadow-sm">
           <div
             className={`mx-auto mb-5 flex size-16 items-center justify-center rounded-full ${
               approved
                 ? "bg-success-light text-success"
-                : "bg-destructive/10 text-destructive"
+                : "bg-danger/10 text-danger"
             }`}
           >
             {approved ? (
@@ -106,7 +106,7 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
               <XCircle className="size-9" />
             )}
           </div>
-          <h1 className="text-h2 font-semibold text-foreground">
+          <h1 className="text-h2 font-semibold text-ink">
             Response Recorded
           </h1>
           <p className="mt-2 text-muted">
@@ -115,7 +115,7 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
               className={
                 approved
                   ? "font-medium text-success"
-                  : "font-medium text-destructive"
+                  : "font-medium text-danger"
               }
             >
               {approved ? "approved" : "rejected"}
@@ -132,15 +132,15 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-background py-8 sm:py-12">
+    <div className="min-h-screen bg-bg py-8 sm:py-12">
       <div className="mx-auto w-full max-w-xl px-4">
         {/* Brand header */}
         <div className="mb-6 flex items-center justify-center gap-2.5">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-body font-semibold text-primary-foreground">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-accent text-body font-semibold text-on-fill">
             SST
           </div>
           <div className="text-left">
-            <p className="text-body font-semibold text-foreground">
+            <p className="text-body font-semibold text-ink">
               Scaler School of Technology
             </p>
             <p className="text-caption text-muted">
@@ -150,11 +150,11 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
         </div>
 
         {/* Main card */}
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
           {/* Card header */}
           <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 border-b border-border px-6 py-5">
             <div className="min-w-0">
-              <h1 className="flex items-center gap-2 text-h3 font-semibold text-foreground">
+              <h1 className="flex items-center gap-2 text-h3 font-semibold text-ink">
                 <ClipboardList className="size-5 shrink-0 text-muted" />
                 {isExtension ? "Leave Extension Request" : "Leave Request Details"}
               </h1>
@@ -171,7 +171,7 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
           </div>
 
           {error && (
-            <div className="mx-6 mt-4 rounded-lg bg-destructive/10 px-4 py-3 text-body text-destructive">
+            <div className="mx-6 mt-4 rounded-lg bg-danger/10 px-4 py-3 text-body text-danger">
               {error}
             </div>
           )}
@@ -179,11 +179,11 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
           <div className="px-6 py-5">
             {/* Student */}
             <div className="flex items-center gap-3.5">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-primary text-body font-semibold text-primary-foreground">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-accent text-body font-semibold text-on-fill">
                 {initials || "S"}
               </div>
               <div className="min-w-0">
-                <p className="truncate font-medium text-foreground">
+                <p className="truncate font-medium text-ink">
                   {leaveData.studentName}
                 </p>
                 <p className="text-body text-muted">
@@ -195,12 +195,12 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
             <div className="mt-6 space-y-5">
               {/* Leave type */}
               <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
                   <Tag className="size-4" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-body text-muted">Leave type</p>
-                  <p className="font-medium text-foreground">
+                  <p className="font-medium text-ink">
                     {leaveData.leaveTypeName || "—"}
                   </p>
                   {leaveData.leaveTypeDescription && (
@@ -213,7 +213,7 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
 
               {/* Dates */}
               <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
                   <CalendarDays className="size-4" />
                 </div>
                 <div className="min-w-0">
@@ -222,13 +222,13 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
                       <p className="text-body text-muted">
                         Current end date
                       </p>
-                      <p className="font-medium text-foreground">
+                      <p className="font-medium text-ink">
                         {formatDate(leaveData.leaveStartDate)}
                       </p>
                       <p className="mt-2 text-body text-muted">
                         Requested new end date
                       </p>
-                      <p className="font-medium text-foreground">
+                      <p className="font-medium text-ink">
                         {formatDate(leaveData.leaveEndDate)}
                       </p>
                     </>
@@ -237,7 +237,7 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
                       <p className="text-body text-muted">
                         Leave dates
                       </p>
-                      <p className="font-medium text-foreground">
+                      <p className="font-medium text-ink">
                         {formatDate(leaveData.leaveStartDate)} –{" "}
                         {formatDate(leaveData.leaveEndDate)}
                       </p>
@@ -248,14 +248,14 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
 
               {/* Reason */}
               <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
                   <MessageSquareText className="size-4" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-body text-muted">
                     {isExtension ? "Extension reason" : "Reason"}
                   </p>
-                  <p className="mt-1 whitespace-pre-wrap text-foreground">
+                  <p className="mt-1 whitespace-pre-wrap text-ink">
                     {leaveData.leaveReason || "—"}
                   </p>
                 </div>
@@ -275,7 +275,7 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
                             <dt className="text-caption text-muted">
                               {formatFieldLabel(key)}
                             </dt>
-                            <dd className="text-body font-medium text-foreground">
+                            <dd className="text-body font-medium text-ink">
                               {typeof value === "object"
                                 ? JSON.stringify(value)
                                 : String(value)}
@@ -292,17 +292,17 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
             <div className="mt-6">
               <label
                 htmlFor="parent-comments"
-                className="mb-1.5 block text-body font-medium text-foreground"
+                className="mb-1.5 block text-body font-medium text-ink"
               >
                 Comments (optional)
               </label>
-              <textarea
+              <Textarea
                 id="parent-comments"
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
-                placeholder="Add any comments..."
+                placeholder="Anything you'd like the hostel to know (optional)."
                 rows={3}
-                className="w-full resize-none rounded-lg border border-input bg-background px-3 py-2 text-body text-foreground placeholder:text-muted focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                className="resize-none"
               />
             </div>
           </div>
@@ -310,26 +310,28 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
           {/* Actions */}
           <div className="flex flex-col gap-3 border-t border-border bg-surface-sunken/40 px-6 py-5 sm:flex-row">
             <Button
+              size="lg"
+              className="flex-1"
               onClick={() => handleDecision(LEAVE_APPROVAL_DECISION.APPROVED)}
               disabled={submitting}
-              className="flex-1 py-2.5"
+              loading={submitting && decision === LEAVE_APPROVAL_DECISION.APPROVED}
+              loadingText="Sending…"
             >
-              <CheckCircle2 />
-              {submitting && decision === LEAVE_APPROVAL_DECISION.APPROVED
-                ? "Submitting..."
-                : "Approve"}
+              <CheckCircle2 className="h-5 w-5" aria-hidden />
+              Give permission
             </Button>
 
             <Button
+              size="lg"
+              variant="danger"
+              className="flex-1"
               onClick={() => handleDecision(LEAVE_APPROVAL_DECISION.REJECTED)}
               disabled={submitting}
-              variant="destructive"
-              className="flex-1 py-2.5"
+              loading={submitting && decision === LEAVE_APPROVAL_DECISION.REJECTED}
+              loadingText="Sending…"
             >
-              <XCircle />
-              {submitting && decision === LEAVE_APPROVAL_DECISION.REJECTED
-                ? "Submitting..."
-                : "Reject"}
+              <XCircle className="h-5 w-5" aria-hidden />
+              Don&apos;t allow
             </Button>
           </div>
         </div>

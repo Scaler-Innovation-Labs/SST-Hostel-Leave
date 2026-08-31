@@ -270,7 +270,7 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
             {
               label: "Total Leaves",
               value: (stats as { totalLeaves?: number }).totalLeaves ?? 0,
-              tone: "primary" as const,
+              tone: "accent" as const,
               status: "",
               icon: <FileText className="h-4 w-4" />,
             },
@@ -330,14 +330,14 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
               className={cn(
                 "flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md",
                 display.bgClass,
-                isActive && "ring-2 ring-primary/40",
+                isActive && "ring-2 ring-accent/40",
               )}
             >
               <div
                 className={cn(
                   "flex h-9 w-9 items-center justify-center rounded-full",
                   display.color,
-                  "bg-background/60",
+                  "bg-bg/60",
                 )}
               >
                 {display.icon}
@@ -370,7 +370,7 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
               filters.status === "OVERDUE" && "ring-2 ring-danger/40",
             )}
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-background/60 text-danger">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-bg/60 text-danger">
               <Clock className="h-4 w-4" />
             </div>
             <div>
@@ -397,7 +397,7 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
             <button
               type="button"
               onClick={() => updateFilter("search", "")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted hover:text-foreground"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted hover:text-ink"
             >
               <X className="h-4 w-4" />
             </button>
@@ -492,11 +492,11 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
       {/* Results count */}
       <div className="flex items-center justify-between text-caption text-muted">
         <span>
-          <span className="font-medium text-foreground">
+          <span className="font-medium text-ink">
             {filteredApprovals.length}
           </span>{" "}
           of{" "}
-          <span className="font-medium text-foreground">{total}</span> request
+          <span className="font-medium text-ink">{total}</span> request
           {total !== 1 ? "s" : ""}
           {hasActiveFilters && <span> (filtered)</span>}
         </span>

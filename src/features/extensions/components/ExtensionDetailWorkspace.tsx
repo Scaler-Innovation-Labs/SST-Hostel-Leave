@@ -83,14 +83,14 @@ export function ExtensionDetailWorkspace({
       <button
         type="button"
         onClick={onBack}
-        className="mb-2 flex items-center gap-1.5 text-body text-muted hover:text-foreground xl:hidden"
+        className="mb-2 flex items-center gap-1.5 text-body text-muted hover:text-ink xl:hidden"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to queue
       </button>
 
       {/* Student Info Card */}
-      <div className="rounded-xl border border-border bg-card p-5">
+      <div className="rounded-xl border border-border bg-surface p-5">
         <h4 className="mb-4 flex items-center gap-2 text-body font-semibold">
           <User className="h-4 w-4 text-muted" />
           Student
@@ -125,7 +125,7 @@ export function ExtensionDetailWorkspace({
       </div>
 
       {/* Extension Details Card */}
-      <div className="rounded-xl border border-border bg-card p-5">
+      <div className="rounded-xl border border-border bg-surface p-5">
         <h4 className="mb-4 flex items-center gap-2 text-body font-semibold">
           <FileText className="h-4 w-4 text-muted" />
           Extension Details
@@ -162,7 +162,7 @@ export function ExtensionDetailWorkspace({
               <dt className="text-caption font-medium uppercase tracking-wider text-muted">
                 Requested New End
               </dt>
-              <dd className="mt-0.5 flex items-center gap-1.5 text-body font-medium text-foreground">
+              <dd className="mt-0.5 flex items-center gap-1.5 text-body font-medium text-ink">
                 <Calendar className="h-3.5 w-3.5 text-accent" />
                 {formatDate(ext.requestedEndAt)}
               </dd>
@@ -182,7 +182,7 @@ export function ExtensionDetailWorkspace({
       </div>
 
       {/* Parent Leave Card */}
-      <div className="rounded-xl border border-border bg-card p-5">
+      <div className="rounded-xl border border-border bg-surface p-5">
         <h4 className="mb-4 flex items-center gap-2 text-body font-semibold">
           <Globe className="h-4 w-4 text-muted" />
           Parent Leave
@@ -219,7 +219,7 @@ export function ExtensionDetailWorkspace({
 
       {/* Action buttons */}
       {isPending && (
-        <div className="rounded-xl border border-border bg-card p-5">
+        <div className="rounded-xl border border-border bg-surface p-5">
           <div className="flex items-center justify-between">
             <h4 className="flex items-center gap-2 text-body font-semibold">
               <MessageSquare className="h-4 w-4 text-muted" />
@@ -244,7 +244,7 @@ export function ExtensionDetailWorkspace({
               onChange={(e) => setComments(e.target.value)}
               placeholder="Add a note about your decision..."
               rows={3}
-              className="mt-3 w-full rounded-lg border border-input bg-background p-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+              className="mt-3 w-full rounded-lg border border-border bg-bg p-3 text-body outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
             />
           )}
 

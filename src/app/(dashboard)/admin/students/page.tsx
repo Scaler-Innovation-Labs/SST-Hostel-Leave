@@ -96,7 +96,7 @@ export default function AdminStudentsPage() {
             {
               label: "Total Students",
               value: (stats as { totalStudents?: number }).totalStudents ?? 0,
-              tone: "primary" as const,
+              tone: "accent" as const,
               location: "",
             },
             {

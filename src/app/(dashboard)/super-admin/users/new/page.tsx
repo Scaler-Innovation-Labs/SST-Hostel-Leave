@@ -43,7 +43,7 @@ export default function NewUserPage() {
         }
       />
 
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
         <UserForm
           mode="create"
           onSubmit={handleSubmit}

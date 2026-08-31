@@ -1,5 +1,7 @@
 "use client";
 
+import { X } from "lucide-react";
+
 type PolicyConfig = Record<string, unknown>;
 
 type PolicyConfigBuilderProps = {
@@ -78,11 +80,12 @@ export function PolicyConfigBuilder({
                     onClick={() => toggle(p.value)}
                     className={`rounded-lg border px-3 py-1.5 text-caption font-medium transition-colors ${
                       active
-                        ? "border-destructive/50 bg-destructive/10 text-destructive"
+                        ? "border-danger/50 bg-danger/10 text-danger"
                         : "border-border text-muted hover:border-muted/30"
                     }`}
                   >
-                    {active ? `✕ ${p.label}` : p.label}
+                    {active && <X className="h-3 w-3 shrink-0" aria-hidden />}
+                    {p.label}
                   </button>
                 );
               })}
@@ -129,15 +132,16 @@ export function PolicyConfigBuilder({
                 {batchYears.map((year) => (
                   <span
                     key={year}
-                    className="inline-flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1 text-caption font-mono"
+                    className="inline-flex items-center gap-1.5 rounded-lg border bg-surface px-2.5 py-1 text-caption font-mono"
                   >
                     {year}
                     <button
                       type="button"
                       onClick={() => removeBatch(year)}
-                      className="text-muted hover:text-destructive"
+                      aria-label={`Remove ${year}`}
+                      className="text-muted transition-colors duration-fast ease-standard hover:text-danger"
                     >
-                      ✕
+                      <X className="h-3 w-3" aria-hidden />
                     </button>
                   </span>
                 ))}
@@ -147,7 +151,7 @@ export function PolicyConfigBuilder({
           <button
             type="button"
             onClick={addBatch}
-            className="rounded-lg border border-dashed border-border px-3 py-1.5 text-caption text-muted hover:border-primary hover:text-primary transition-colors"
+            className="rounded-lg border border-dashed border-border px-3 py-1.5 text-caption text-muted hover:border-accent hover:text-accent transition-colors"
           >
             + Add batch year
           </button>
@@ -169,7 +173,7 @@ export function PolicyConfigBuilder({
                 readOnly
                 className="peer sr-only"
               />
-              <div className="h-5 w-9 rounded-full bg-primary after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full" />
+              <div className="h-5 w-9 rounded-full bg-accent after:absolute after:left-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full" />
             </label>
             <div>
               <p className="text-body font-medium">Parent Approval Required</p>
@@ -192,7 +196,7 @@ export function PolicyConfigBuilder({
             <input
               type="time"
               value={(config.latestReturnTime as string) ?? "22:00"}              onChange={(e) => update("latestReturnTime", e.target.value)}
-                    className="h-9 w-40 rounded-lg border bg-background px-3 font-mono text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                    className="h-9 w-40 rounded-lg border bg-bg px-3 font-mono text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
           </label>
         </div>
@@ -245,7 +249,7 @@ export function PolicyConfigBuilder({
                   // Keep invalid JSON for editing
                 }
               }}
-              className="w-full rounded-lg border bg-background p-3 font-mono text-caption outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+              className="w-full rounded-lg border bg-bg p-3 font-mono text-caption outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             />
           </label>
         </div>

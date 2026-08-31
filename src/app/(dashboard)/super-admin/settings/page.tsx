@@ -23,7 +23,7 @@ function ConfigCard({ title, description, fields, onTest, testLabel, testLoading
 
   return (
     <div className={`rounded-2xl border p-6 shadow-sm ${
-      allConfigured ? "border-success/30 bg-card" : "border-border bg-card"
+      allConfigured ? "border-success/30 bg-surface" : "border-border bg-surface"
     }`}>
       <div className="mb-4 flex items-start justify-between">
         <div>
@@ -51,7 +51,7 @@ function ConfigCard({ title, description, fields, onTest, testLabel, testLoading
               )}
             </span>
             <span className={`flex items-center gap-1.5 font-medium ${
-              field.configured ? "text-success" : "text-destructive"
+              field.configured ? "text-success" : "text-danger"
             }`}>
               {field.configured ? (
                 <>
@@ -90,7 +90,7 @@ function ConfigCard({ title, description, fields, onTest, testLabel, testLoading
               className={`rounded-lg p-3 text-body ${
                 testResult.success
                   ? "bg-success-light text-success"
-                  : "bg-destructive/10 text-destructive"
+                  : "bg-danger/10 text-danger"
               }`}
             >
               {testResult.message}
@@ -203,7 +203,7 @@ export default function SuperAdminSettingsPage() {
       {/* System Configuration */}
       <section>
         <h2 className="mb-4 text-body-lg font-semibold">System</h2>
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
           <div className="space-y-3">
             {[
               { label: "NEXT_PUBLIC_BASE_URL", configured: status.system.baseUrl, desc: "Public base URL for links in notifications" },
@@ -212,7 +212,7 @@ export default function SuperAdminSettingsPage() {
             ].map((item) => (
               <div key={item.label} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0 last:pb-0">
                 <div>
-                  <span className={`font-mono text-body ${item.configured ? "text-foreground" : "text-destructive"}`}>
+                  <span className={`font-mono text-body ${item.configured ? "text-ink" : "text-danger"}`}>
                     {item.label}
                   </span>
                   <p className="mt-0.5 text-caption text-muted">{item.desc}</p>
@@ -233,7 +233,7 @@ export default function SuperAdminSettingsPage() {
       {/* Quick Reference */}
       <section>
         <h2 className="mb-4 text-body-lg font-semibold">Environment Variables Reference</h2>
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-body">
               <thead>

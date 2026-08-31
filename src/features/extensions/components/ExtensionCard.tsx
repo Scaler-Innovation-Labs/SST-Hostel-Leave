@@ -68,8 +68,8 @@ export function ExtensionCard({ item, isSelected, onClick }: ExtensionCardProps)
       className={cn(
         "group relative w-full rounded-xl border p-4 text-left transition-all duration-200",
         isSelected
-          ? "border-primary/50 bg-primary/5 shadow-sm ring-1 ring-primary/20"
-          : "border-border bg-card hover:border-muted/30 hover:shadow-sm",
+          ? "border-accent/50 bg-accent/5 shadow-sm ring-1 ring-accent/20"
+          : "border-border bg-surface hover:border-muted/30 hover:shadow-sm",
       )}
     >
       {/* Status indicator bar */}
@@ -126,7 +126,7 @@ export function ExtensionCard({ item, isSelected, onClick }: ExtensionCardProps)
                 Current: {formatDate(ext.currentEndAt)}
               </span>
               <ArrowRight className="h-3 w-3" />
-              <span className="font-medium text-foreground/70">
+              <span className="font-medium text-ink/70">
                 New: {formatDate(ext.requestedEndAt)}
               </span>
             </div>

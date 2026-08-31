@@ -1,33 +1,54 @@
-import { AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { CalendarX, CheckCircle2, ShieldAlert } from "lucide-react";
 
 import { ParentApprovalFlow } from "@/components/parent/ParentApprovalFlow";
 import { getLeaveDetailsByToken } from "@/services/parent/get-leave-details-by-token.service";
 
-function getErrorState(message: string) {
+/**
+ * Why the link didn't open — in a parent's terms, not the system's.
+ *
+ * Each case answers what happened, why, and what to do about it. A parent who
+ * followed a link from a text message has no way to act on "Invalid token".
+ */
+function explainFailure(message: string) {
   const lower = message.toLowerCase();
 
   if (lower.includes("expired")) {
     return {
-      icon: Clock,
-      title: "Link Expired",
-      className: "bg-warning-light text-warning",
+      Icon: CalendarX,
+      tone: "warning" as const,
+      title: "This link has expired",
+      why: "Approval links are only valid for a limited time, so they can't be reused later by anyone else.",
+      whatNow:
+        "Ask your child to resubmit their leave request. You'll get a fresh link straight away.",
     };
   }
 
   if (lower.includes("already") || lower.includes("processed")) {
     return {
-      icon: CheckCircle2,
-      title: "Already Responded",
-      className: "bg-success-light text-success",
+      Icon: CheckCircle2,
+      tone: "success" as const,
+      title: "You've already answered this one",
+      why: "This request has your decision recorded, so the link has been used.",
+      whatNow:
+        "There's nothing more to do. Your child can see the outcome in their leave history.",
     };
   }
 
   return {
-    icon: AlertTriangle,
-    title: "Invalid Link",
-    className: "bg-destructive/10 text-destructive",
+    Icon: ShieldAlert,
+    tone: "danger" as const,
+    title: "This link isn't valid",
+    why: "It may have been copied incompletely, or it belongs to a request that has since been withdrawn.",
+    whatNow:
+      "Open the link directly from the message you received. If it still fails, contact the hostel office.",
   };
 }
+
+const TONE = {
+  warning: "bg-warning-light text-warning ring-warning/20",
+  success: "bg-success-light text-success ring-success/20",
+  danger: "bg-danger-light text-danger ring-danger/20",
+};
 
 export default async function ParentApprovePage({
   params,
@@ -42,29 +63,26 @@ export default async function ParentApprovePage({
   try {
     leaveData = await getLeaveDetailsByToken(token);
   } catch (error) {
-    errorMessage = error instanceof Error ? error.message : "Invalid or expired link";
+    errorMessage =
+      error instanceof Error ? error.message : "This link isn't valid";
   }
 
   if (errorMessage || !leaveData) {
-    const { icon: Icon, title, className } = getErrorState(
+    const { Icon, tone, title, why, whatNow } = explainFailure(
       errorMessage ?? ""
     );
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
-          <div
-            className={`mx-auto mb-5 flex size-16 items-center justify-center rounded-full ${className}`}
+      <div className="flex min-h-screen items-center justify-center bg-bg p-4">
+        <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-8 text-center shadow-raised">
+          <span
+            className={`mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full ring-1 ring-inset ${TONE[tone]}`}
           >
-            <Icon className="size-9" />
-          </div>
-          <h1 className="text-h2 font-semibold text-foreground">{title}</h1>
-          <p className="mt-2 text-muted">
-            {errorMessage ?? "Invalid or expired link"}
-          </p>
-          <p className="mt-6 text-body text-muted/70">
-            If you believe this is a mistake, please contact the school.
-          </p>
+            <Icon className="h-7 w-7" aria-hidden />
+          </span>
+          <h1 className="text-h2 text-ink">{title}</h1>
+          <p className="mt-3 text-body text-muted">{why}</p>
+          <p className="mt-3 text-body text-muted">{whatNow}</p>
         </div>
       </div>
     );

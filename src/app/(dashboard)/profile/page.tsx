@@ -14,7 +14,7 @@ export default async function ProfilePage() {
         className="
           mt-8 rounded-3xl
           border border-border
-          bg-card p-6
+          bg-surface p-6
         "
       >
         <div className="flex items-center gap-5">

@@ -143,7 +143,7 @@ export default function NotificationTemplatesPage() {
           {isLoading ? (
             <p className="text-body text-muted">Loading...</p>
           ) : isError ? (
-            <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-card p-12">
+            <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-surface p-12">
               <p className="text-body text-muted">Failed to load templates.</p>
               <Button variant="outline" onClick={() => mutate()}>Retry</Button>
             </div>
@@ -156,8 +156,8 @@ export default function NotificationTemplatesPage() {
               <button
                 key={tpl.id}
                 onClick={() => editTemplate(tpl)}
-                className={`w-full rounded-xl border bg-card p-4 text-left hover:border-primary ${
-                  draft.id === tpl.id ? "border-primary" : ""
+                className={`w-full rounded-xl border bg-surface p-4 text-left hover:border-accent ${
+                  draft.id === tpl.id ? "border-accent" : ""
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -191,7 +191,7 @@ export default function NotificationTemplatesPage() {
           )}
         </section>
 
-        <section className="space-y-5 rounded-2xl border bg-card p-5">
+        <section className="space-y-5 rounded-2xl border bg-surface p-5">
           <h2 className="font-semibold">
             {draft.id ? "Edit Template" : "New Template"}
           </h2>
@@ -202,7 +202,7 @@ export default function NotificationTemplatesPage() {
               <input
                 value={draft.code}
                 onChange={(e) => setDraft({ ...draft, code: e.target.value })}
-                className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
+                className="h-9 w-full rounded-lg border bg-bg px-3 text-caption outline-none focus:border-accent"
                 placeholder="leave_submitted_email"
                 readOnly={!!draft.id}
               />
@@ -214,7 +214,7 @@ export default function NotificationTemplatesPage() {
                 <select
                   value={draft.eventKey}
                   onChange={(e) => setDraft({ ...draft, eventKey: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption"
+                  className="h-9 w-full rounded-lg border bg-bg px-3 text-caption"
                 >
                   {NOTIFICATION_EVENTS.map((ev) => (
                     <option key={ev} value={ev}>{EVENT_LABELS[ev] ?? ev}</option>
@@ -227,7 +227,7 @@ export default function NotificationTemplatesPage() {
                 <select
                   value={draft.channel}
                   onChange={(e) => setDraft({ ...draft, channel: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption"
+                  className="h-9 w-full rounded-lg border bg-bg px-3 text-caption"
                 >
                   {NOTIFICATION_CHANNELS.map((ch) => (
                     <option key={ch} value={ch}>{CHANNEL_LABELS[ch] ?? ch}</option>
@@ -241,7 +241,7 @@ export default function NotificationTemplatesPage() {
               <input
                 value={draft.subject}
                 onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
-                className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
+                className="h-9 w-full rounded-lg border bg-bg px-3 text-caption outline-none focus:border-accent"
                 placeholder="Optional email subject line"
               />
             </label>
@@ -251,7 +251,7 @@ export default function NotificationTemplatesPage() {
               <textarea
                 value={draft.templateBody}
                 onChange={(e) => setDraft({ ...draft, templateBody: e.target.value })}
-                className="min-h-[200px] w-full rounded-lg border bg-background px-3 py-2 text-caption font-mono outline-none focus:border-ring"
+                className="min-h-[200px] w-full rounded-lg border bg-bg px-3 py-2 text-caption font-mono outline-none focus:border-accent"
                 placeholder="Enter template content with {{variables}}"
                 rows={8}
               />

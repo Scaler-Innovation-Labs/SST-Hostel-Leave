@@ -20,7 +20,7 @@ type LeaveTypePieChartProps = {
 export function LeaveTypePieChart({ data, title }: LeaveTypePieChartProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
         <h3 className="mb-4 text-body-lg font-semibold">{title}</h3>
         <div className="flex h-[250px] items-center justify-center">
           <p className="text-body text-muted">No data available.</p>
@@ -37,7 +37,7 @@ export function LeaveTypePieChart({ data, title }: LeaveTypePieChartProps) {
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
       <h3 className="mb-4 text-body-lg font-semibold">{title}</h3>
       <div className="flex flex-col items-center gap-4 sm:flex-row">
         <div className="shrink-0">

@@ -33,7 +33,7 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-surface-sunken text-muted",
   SENT: "bg-accent-light text-accent",
-  FAILED: "bg-destructive/10 text-destructive",
+  FAILED: "bg-danger/10 text-danger",
   DELIVERED: "bg-success-light text-success",
   READ: "bg-accent-light text-accent",
 };
@@ -68,11 +68,11 @@ export default function DeliveryLogsPage() {
       />
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-card p-4">
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-surface p-4">
         <select
           value={filters.eventType}
           onChange={(e) => { setFilters((f) => ({ ...f, eventType: e.target.value })); setPage(1); }}
-          className="h-8 rounded-lg border bg-background px-2.5 text-caption outline-none focus:border-ring"
+          className="h-8 rounded-lg border bg-bg px-2.5 text-caption outline-none focus:border-accent"
         >
           <option value="">All events</option>
           {NOTIFICATION_EVENTS.map((ev) => (
@@ -83,7 +83,7 @@ export default function DeliveryLogsPage() {
         <select
           value={filters.channel}
           onChange={(e) => { setFilters((f) => ({ ...f, channel: e.target.value })); setPage(1); }}
-          className="h-8 rounded-lg border bg-background px-2.5 text-caption outline-none focus:border-ring"
+          className="h-8 rounded-lg border bg-bg px-2.5 text-caption outline-none focus:border-accent"
         >
           <option value="">All channels</option>
           {NOTIFICATION_CHANNELS.map((ch) => (
@@ -94,7 +94,7 @@ export default function DeliveryLogsPage() {
         <select
           value={filters.status}
           onChange={(e) => { setFilters((f) => ({ ...f, status: e.target.value })); setPage(1); }}
-          className="h-8 rounded-lg border bg-background px-2.5 text-caption outline-none focus:border-ring"
+          className="h-8 rounded-lg border bg-bg px-2.5 text-caption outline-none focus:border-accent"
         >
           <option value="">All statuses</option>
           {NOTIFICATION_DELIVERY_STATUSES.map((st) => (
@@ -113,7 +113,7 @@ export default function DeliveryLogsPage() {
       ) : error ? (
         <ErrorState message="Failed to load delivery logs" onRetry={() => mutate()} />
       ) : !data || data.items.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-card p-12">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-surface p-12">
           <p className="text-body text-muted">No delivery logs found.</p>
           <p className="text-caption text-muted">
             Notifications will appear here once they are sent.
@@ -121,7 +121,7 @@ export default function DeliveryLogsPage() {
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-2xl border bg-card">
+          <div className="overflow-x-auto rounded-2xl border bg-surface">
             <table className="w-full text-body">
               <thead>
                 <tr className="border-b border-border text-left text-caption text-muted">

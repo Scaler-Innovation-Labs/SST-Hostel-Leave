@@ -29,7 +29,7 @@ export function RejectionsTab({ period }: RejectionsTabProps) {
   return (
     <div className="space-y-8">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <InfoCard label="Total Rejections" value={d.totalRejections} icon={<ThumbsDown className="h-4 w-4" />} tone="primary" />
+        <InfoCard label="Total Rejections" value={d.totalRejections} icon={<ThumbsDown className="h-4 w-4" />} tone="accent" />
         <InfoCard label="Policy Rejections" value={d.policyRejections} icon={<ShieldX className="h-4 w-4" />} tone="warning" />
         <InfoCard label="Human Rejections" value={d.humanRejections} icon={<UserX className="h-4 w-4" />} tone="danger" />
       </section>
@@ -46,7 +46,7 @@ export function RejectionsTab({ period }: RejectionsTabProps) {
         <LeaveTypePieChart title="Rejections by Leave Type" data={d.byLeaveType} />
       </div>
 
-      <Tabs defaultValue="category" className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <Tabs defaultValue="category" className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
         <TabsList>
           <TabsTrigger value="category">By Reason</TabsTrigger>
           <TabsTrigger value="hostel">By Hostel</TabsTrigger>

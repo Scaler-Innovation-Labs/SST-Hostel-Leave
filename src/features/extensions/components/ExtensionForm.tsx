@@ -71,10 +71,10 @@ export function ExtensionForm({ leaveId, currentEndAt, onSuccess, onCancel }: Ex
           type="datetime-local"
           {...register("requestedEndAt")}
           min={minEnd}
-          className="h-8 w-full rounded-lg border border-input bg-background px-2.5 text-body focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+          className="h-8 w-full rounded-lg border border-border bg-bg px-2.5 text-body focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         />
         {errors.requestedEndAt && (
-          <p className="mt-1 text-caption text-destructive">{errors.requestedEndAt.message}</p>
+          <p className="mt-1 text-caption text-danger">{errors.requestedEndAt.message}</p>
         )}
       </div>
 
@@ -83,16 +83,16 @@ export function ExtensionForm({ leaveId, currentEndAt, onSuccess, onCancel }: Ex
         <textarea
           {...register("reason")}
           rows={3}
-          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-body focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+          className="w-full rounded-lg border border-border bg-bg px-3 py-2 text-body focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           placeholder="Why do you need an extension?"
         />
         {errors.reason && (
-          <p className="mt-1 text-caption text-destructive">{errors.reason.message}</p>
+          <p className="mt-1 text-caption text-danger">{errors.reason.message}</p>
         )}
       </div>
 
       {submitError && (
-        <div className="rounded-lg bg-destructive/10 p-3 text-body text-destructive">
+        <div className="rounded-lg bg-danger/10 p-3 text-body text-danger">
           {submitError}
         </div>
       )}

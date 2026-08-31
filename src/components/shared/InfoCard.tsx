@@ -1,31 +1,20 @@
 import type React from "react";
 
+import { FOCUS } from "@/design-system/sst";
 import { cn } from "@/lib/utils";
 
-const TONE_STYLES = {
-  primary: {
-    chip: "bg-primary/10 text-primary",
-    bar: "from-primary/50 to-primary/10",
-    tint: "bg-primary/[0.02]",
-  },
-  success: {
-    chip: "bg-success-light text-success",
-    bar: "from-success/50 to-success/10",
-    tint: "bg-success/[0.02]",
-  },
-  warning: {
-    chip: "bg-warning-light text-warning",
-    bar: "from-warning/50 to-warning/10",
-    tint: "bg-warning/[0.02]",
-  },
-  danger: {
-    chip: "bg-danger-light text-danger",
-    bar: "from-danger/50 to-danger/10",
-    tint: "bg-danger/[0.02]",
-  },
+/**
+ * Per the colour rule the value stays ink and the colour lives in the icon —
+ * a tile is not "the red one", it is a number with a red marker.
+ */
+const ICON_TONE = {
+  accent: "bg-accent-light text-accent ring-accent/10",
+  success: "bg-success-light text-success ring-success/10",
+  warning: "bg-warning-light text-warning ring-warning/10",
+  danger: "bg-danger-light text-danger ring-danger/10",
 } as const;
 
-type InfoCardTone = keyof typeof TONE_STYLES;
+type InfoCardTone = keyof typeof ICON_TONE;
 
 type InfoCardProps = {
   icon?: React.ReactNode;
@@ -33,82 +22,77 @@ type InfoCardProps = {
   value: string | number;
   tone?: InfoCardTone;
   className?: string;
-  /** Compact sizing for dense layouts / filter chips. */
+  /** Denser sizing for a filter strip above a table. */
   compact?: boolean;
-  /** Makes the card clickable (e.g. acting as a filter toggle). */
+  /** Makes the tile a filter toggle. */
   onClick?: () => void;
-  /** Highlighted selection state, used with onClick. */
+  /** Selected state, used with onClick. */
   active?: boolean;
 };
 
-export function InfoCard({ icon, label, value, tone, className, compact, onClick, active }: InfoCardProps) {
-  const toneStyles = tone ? TONE_STYLES[tone] : null;
+/**
+ * The metric tile: mono caption, icon at the end, one value size, tabular
+ * figures. No accent bar — an accent stripe on every card is decoration, and
+ * six of them in a row is a stripe pattern rather than a hierarchy.
+ */
+export function InfoCard({
+  icon,
+  label,
+  value,
+  tone,
+  className,
+  compact,
+  onClick,
+  active,
+}: InfoCardProps) {
   const clickable = typeof onClick === "function";
+  const Element = clickable ? "button" : "div";
 
   return (
-    <div
-      role={clickable ? "button" : undefined}
-      tabIndex={clickable ? 0 : undefined}
+    <Element
+      type={clickable ? "button" : undefined}
       onClick={onClick}
-      onKeyDown={
-        clickable
-          ? (e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                onClick();
-              }
-            }
-          : undefined
-      }
-      aria-pressed={clickable ? !!active : undefined}
+      aria-pressed={clickable ? Boolean(active) : undefined}
       className={cn(
-        "relative overflow-hidden rounded-xl border bg-card transition-all duration-200",
-        compact ? "p-3" : "p-4",
-        toneStyles?.tint,
-        clickable && "cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "rounded-2xl border bg-surface text-left shadow-raised",
+        compact ? "p-3" : "p-5",
+        clickable && [
+          "cursor-pointer select-none transition-all duration-base ease-standard",
+          "hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-raised-lift active:translate-y-px",
+          FOCUS,
+        ],
         active
-          ? "border-primary ring-2 ring-primary/30 shadow-md"
-          : clickable
-            ? "border-border hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
-            : "border-border hover:-translate-y-0.5 hover:shadow-md",
-        className,
+          ? "border-accent ring-1 ring-inset ring-accent/30"
+          : "border-border",
+        className
       )}
     >
-      <div
-        className={cn(
-          "absolute inset-x-0 top-0 h-0.5 bg-linear-to-r",
-          toneStyles ? toneStyles.bar : "from-primary/40 to-primary/10",
-        )}
-      />
-      <div className="flex items-center gap-3">
+      <div className="flex items-start justify-between gap-2">
+        <span className="font-mono text-micro uppercase tracking-wider text-muted">
+          {label}
+        </span>
         {icon && (
           <span
             className={cn(
-              "flex shrink-0 items-center justify-center rounded-lg",
-              compact ? "size-6" : "size-8",
-              toneStyles ? toneStyles.chip : "bg-surface-sunken text-muted",
+              "flex shrink-0 items-center justify-center rounded-lg ring-1 ring-inset",
+              compact ? "h-6 w-6" : "h-8 w-8",
+              tone ? ICON_TONE[tone] : "bg-surface-sunken text-muted ring-border",
+              "[&_svg]:h-4 [&_svg]:w-4"
             )}
           >
             {icon}
           </span>
         )}
-        <span
-          className={cn(
-            "font-medium uppercase tracking-wider text-muted",
-            compact ? "text-micro" : "text-caption",
-          )}
-        >
-          {label}
-        </span>
       </div>
+
       <p
         className={cn(
-          "font-semibold tabular-nums",
-          compact ? "mt-1.5 text-h3 max-sm:text-body-lg" : "mt-2 text-h2 max-sm:text-h3",
+          "mt-2 font-semibold tabular-nums tracking-tight text-ink",
+          compact ? "text-h3" : "text-h2"
         )}
       >
         {value}
       </p>
-    </div>
+    </Element>
   );
 }

@@ -25,7 +25,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, OfflineNotice } from "@/design-system/sst";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 import {
   type QrScanPreviewResult,
   scanQr,
@@ -48,6 +49,7 @@ function formatLeaveWindow(leave: QrScanPreviewResult["leave"]): string {
 }
 
 export function ScannerPage() {
+  const online = useOnlineStatus();
   const [scanning, setScanning] = useState(false);
   const [currentResult, setCurrentResult] = useState<ScanResult | null>(null);
   const [recentScans, setRecentScans] = useState<ScanResult[]>([]);
@@ -168,14 +170,26 @@ export function ScannerPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="QR Scanner"
-        description="Scan student QR passes for exit/entry verification."
+        eyebrow="Gate"
+        title="Scan a pass"
+        description="Point the camera at the student's code. Check the name and photo before you record anything."
+        status={
+          online
+            ? { label: "Connected", tone: "success" }
+            : { label: "No connection", tone: "danger" }
+        }
       />
 
       <div className="mx-auto max-w-2xl space-y-6">
+        {/*
+          A scanner that cannot reach the server cannot verify anything. It
+          says so plainly rather than appearing to work.
+        */}
+        {!online && <OfflineNotice />}
+
         {/* ── SCAN STATS ── */}
         {recentScans.length > 0 && (
-          <div className="flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-3">
+          <div className="flex items-center gap-4 rounded-xl border border-border bg-surface px-4 py-3">
             <div className="flex items-center gap-2 text-caption text-muted">
               <QrCode className="h-3.5 w-3.5" />
               <span>Today</span>
@@ -204,8 +218,8 @@ export function ScannerPage() {
 
         {/* ── SCANNING STATE ── */}
         {scanning && (
-          <div className="flex items-center justify-center gap-3 rounded-xl border border-border bg-card p-5 shadow-sm">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div className="flex items-center justify-center gap-3 rounded-xl border border-border bg-surface p-5 shadow-sm">
+            <Loader2 className="h-6 w-6 animate-spin text-accent" />
             <div>
               <p className="text-body font-medium">
                 {previewLoading ? "Verifying QR..." : "Processing scan..."}
@@ -254,7 +268,7 @@ export function ScannerPage() {
                       currentResult.success ? "text-success" : "text-danger",
                     )}
                   >
-                    {currentResult.success ? "Scan Approved" : "Scan Denied"}
+                    {currentResult.success ? "Let them through" : "Do not let them through"}
                   </p>
                   {currentResult.scanType && (
                     <span
@@ -270,14 +284,14 @@ export function ScannerPage() {
                   )}
                 </div>
 
-                <p className="mt-1 text-body text-muted">
+                <p className="mt-1 text-body-lg text-muted">
                   {currentResult.message}
                 </p>
 
                 <div className="mt-3 flex items-center gap-3 text-caption text-muted">
                   <span className="inline-flex items-center gap-1">
                     <Clock className="h-3 w-3" />
-                    {format(currentResult.timestamp, "h:mm:ss a")}
+                    {format(currentResult.timestamp, "HH:mm:ss")} IST
                   </span>
                 </div>
               </div>
@@ -285,14 +299,9 @@ export function ScannerPage() {
 
             {/* Action button */}
             <div className="mt-4 flex justify-end">
-              <Button
-                size="sm"
-                variant={currentResult.success ? "default" : "outline"}
-                onClick={handleReset}
-                className="gap-1.5"
-              >
-                <QrCode className="h-4 w-4" />
-                Scan Next
+              <Button size="guard" block onClick={handleReset}>
+                <QrCode className="h-8 w-8" aria-hidden />
+                Scan the next pass
               </Button>
             </div>
           </div>
@@ -300,7 +309,7 @@ export function ScannerPage() {
 
         {/* ── RECENT SCANS ── */}
         {recentScans.length > 0 && (
-          <div className="rounded-xl border border-border bg-card shadow-sm">
+          <div className="rounded-xl border border-border bg-surface shadow-sm">
             <div className="flex items-center justify-between border-b border-border px-5 py-3">
               <h3 className="flex items-center gap-2 text-body font-semibold">
                 <History className="h-4 w-4 text-muted" />
@@ -353,7 +362,7 @@ export function ScannerPage() {
                     </p>
                   </div>
                   <span className="shrink-0 text-caption text-muted">
-                    {format(scan.timestamp, "h:mm a")}
+                    {format(scan.timestamp, "HH:mm")}
                   </span>
                 </div>
               ))}
@@ -382,8 +391,8 @@ export function ScannerPage() {
 
           <div className="space-y-3 rounded-xl border border-border bg-surface-sunken/30 p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                <User className="h-5 w-5 text-primary" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10">
+                <User className="h-5 w-5 text-accent" />
               </div>
               <div className="min-w-0">
                 <p className="truncate font-semibold">{preview?.student?.name ?? "Unknown"}</p>
@@ -396,8 +405,8 @@ export function ScannerPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                <Building2 className="h-5 w-5 text-primary" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10">
+                <Building2 className="h-5 w-5 text-accent" />
               </div>
               <div className="min-w-0">
                 <p className="truncate font-semibold">
@@ -411,24 +420,20 @@ export function ScannerPage() {
           </div>
 
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={confirming} onClick={handleDiscard}>
-              Discard
+            <AlertDialogCancel asChild>
+              <Button variant="outline" size="lg" disabled={confirming} onClick={handleDiscard}>
+                Not this student
+              </Button>
             </AlertDialogCancel>
             <AlertDialogAction asChild>
               <Button
+                size="lg"
                 onClick={handleConfirm}
-                disabled={confirming}
-                className={cn(
-                  "gap-1.5",
-                  !isExitScan && "bg-success hover:bg-success",
-                )}
+                loading={confirming}
+                loadingText="Recording…"
               >
-                {confirming ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4" />
-                )}
-                {isExitScan ? "Confirm Exit" : "Confirm Check-in"}
+                <CheckCircle2 className="h-5 w-5" aria-hidden />
+                {isExitScan ? "Record the exit" : "Record the return"}
               </Button>
             </AlertDialogAction>
           </AlertDialogFooter>

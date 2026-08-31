@@ -18,13 +18,13 @@ export default function RootError({
         <div className="flex justify-center gap-3">
           <button
             onClick={reset}
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-input bg-background px-4 text-body font-medium hover:bg-surface-hover"
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-bg px-4 text-body font-medium hover:bg-surface-hover"
           >
             Try again
           </button>
           <button
             onClick={() => window.location.reload()}
-            className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-body font-medium text-primary-foreground hover:bg-primary/90"
+            className="inline-flex h-9 items-center justify-center rounded-lg bg-accent px-4 text-body font-medium text-on-fill hover:bg-accent/90"
           >
             Reload page
           </button>

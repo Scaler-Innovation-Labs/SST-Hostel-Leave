@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, GripVertical, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, GripVertical, Plus, Trash2, X } from "lucide-react";
 
 type FormField = {
   key: string;
@@ -111,7 +111,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
         <button
           type="button"
           onClick={addField}
-          className="flex items-center gap-1 rounded-lg border border-dashed border-border px-2.5 py-1 text-caption text-muted hover:border-primary hover:text-primary transition-colors"
+          className="flex items-center gap-1 rounded-lg border border-dashed border-border px-2.5 py-1 text-caption text-muted hover:border-accent hover:text-accent transition-colors"
         >
           <Plus className="size-3" /> Add field
         </button>
@@ -127,7 +127,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
         {fields.map((field, index) => (
           <div
             key={`${field.key}-${index}`}
-            className="rounded-xl border bg-card p-4 space-y-3"
+            className="rounded-xl border bg-surface p-4 space-y-3"
           >
             {/* Field header */}
             <div className="flex items-center justify-between">
@@ -162,7 +162,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
                 <button
                   type="button"
                   onClick={() => removeField(index)}
-                  className="rounded p-1 text-muted hover:text-destructive"
+                  className="rounded p-1 text-muted hover:text-danger"
                 >
                   <Trash2 className="size-3.5" />
                 </button>
@@ -176,7 +176,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
                 <input
                   value={field.label}
                   onChange={(e) => updateField(index, { label: e.target.value })}
-                  className="h-8 w-full rounded-md border bg-background px-2 text-caption outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-8 w-full rounded-md border bg-bg px-2 text-caption outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 />
               </label>
 
@@ -185,7 +185,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
                 <input
                   value={field.key}
                   onChange={(e) => updateField(index, { key: e.target.value })}
-                  className="h-8 w-full rounded-md border bg-background px-2 font-mono text-micro outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-8 w-full rounded-md border bg-bg px-2 font-mono text-micro outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 />
               </label>
             </div>
@@ -205,7 +205,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
                     }
                     updateField(index, patch);
                   }}
-                  className="h-8 w-full rounded-md border bg-background px-2 text-caption outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-8 w-full rounded-md border bg-bg px-2 text-caption outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 >
                   {FIELD_TYPES.map((ft) => (
                     <option key={ft.value} value={ft.value}>{ft.label}</option>
@@ -222,7 +222,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
                       min={0}
                       value={field.minLength ?? ""}
                       onChange={(e) => updateField(index, { minLength: e.target.value ? Number(e.target.value) : undefined })}
-                      className="h-8 w-full rounded-md border bg-background px-2 text-caption outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                      className="h-8 w-full rounded-md border bg-bg px-2 text-caption outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                     />
                   </label>
                   <label className="block text-caption">
@@ -232,7 +232,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
                       min={0}
                       value={field.maxLength ?? ""}
                       onChange={(e) => updateField(index, { maxLength: e.target.value ? Number(e.target.value) : undefined })}
-                      className="h-8 w-full rounded-md border bg-background px-2 text-caption outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                      className="h-8 w-full rounded-md border bg-bg px-2 text-caption outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                     />
                   </label>
                 </>
@@ -243,7 +243,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
                 <input
                   value={field.placeholder ?? ""}
                   onChange={(e) => updateField(index, { placeholder: e.target.value || undefined })}
-                  className="h-8 w-full rounded-md border bg-background px-2 text-caption outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-8 w-full rounded-md border bg-bg px-2 text-caption outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 />
               </label>
 
@@ -266,7 +266,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
                   <button
                     type="button"
                     onClick={() => addOption(index)}
-                    className="text-micro text-primary hover:underline"
+                    className="text-micro text-accent hover:underline"
                   >
                     + Add option
                   </button>
@@ -282,9 +282,10 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
                       <button
                         type="button"
                         onClick={() => removeOption(index, optIndex)}
-                        className="text-muted hover:text-destructive"
+                        aria-label={`Remove option ${optIndex + 1}`}
+                        className="text-muted transition-colors duration-fast ease-standard hover:text-danger"
                       >
-                        ✕
+                        <X className="h-3 w-3" aria-hidden />
                       </button>
                     </span>
                   ))}

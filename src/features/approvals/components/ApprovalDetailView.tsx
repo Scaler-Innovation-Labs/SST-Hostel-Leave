@@ -529,7 +529,10 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 <AlertTriangle className="h-4 w-4 text-warning" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-body font-semibold text-warning">⚠ Attention Required</p>
+                <p className="flex items-center gap-1.5 text-body font-semibold text-warning">
+                  <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
+                  Needs a closer look
+                </p>
                 <div className="mt-2 space-y-1 text-body text-warning">
                   <p className="flex items-center gap-2">
                     <Clock className="h-3.5 w-3.5" />
@@ -550,7 +553,10 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 <CheckCircle2 className="h-4 w-4 text-success" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-body font-semibold text-success">🟢 Ready for Approval</p>
+                <p className="flex items-center gap-1.5 text-body font-semibold text-success">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
+                  Ready to approve
+                </p>
                 <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1 text-body text-success">
                   <span className="flex items-center gap-1.5">
                     <Check className="h-3.5 w-3.5" />
@@ -585,7 +591,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 <TabsTrigger
                   key={tab.id}
                   value={tab.id}
-                  className="gap-1.5 text-caption data-[state=active]:bg-background"
+                  className="gap-1.5 text-caption data-[state=active]:bg-bg"
                 >
                   <tab.icon className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">{tab.label}</span>
@@ -610,7 +616,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     {email && (
                       <div className="flex items-center gap-2">
                         <Mail className="h-3.5 w-3.5 shrink-0 text-muted" />
-                        <a href={`mailto:${email}`} className="truncate text-muted hover:text-foreground hover:underline">
+                        <a href={`mailto:${email}`} className="truncate text-muted hover:text-ink hover:underline">
                           {email}
                         </a>
                       </div>
@@ -618,7 +624,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     {phone && (
                       <div className="flex items-center gap-2">
                         <Phone className="h-3.5 w-3.5 shrink-0 text-muted" />
-                        <a href={`tel:${phone}`} className="text-muted hover:text-foreground hover:underline">
+                        <a href={`tel:${phone}`} className="text-muted hover:text-ink hover:underline">
                           {phone}
                         </a>
                       </div>
@@ -1091,13 +1097,13 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                           href={doc.fileUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="group flex items-center gap-3 rounded-lg border border-border bg-card p-3 transition-all hover:border-muted/30 hover:shadow-sm"
+                          className="group flex items-center gap-3 rounded-lg border border-border bg-surface p-3 transition-all hover:border-muted/30 hover:shadow-sm"
                         >
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-sunken">
                             <DocIcon className="h-5 w-5 text-muted" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-body font-medium group-hover:text-foreground">{doc.fileName}</p>
+                            <p className="truncate text-body font-medium group-hover:text-ink">{doc.fileName}</p>
                             <p className="text-caption text-muted">
                               {doc.mimeType ?? "Unknown type"}
                               {doc.fileSize && ` · ${(doc.fileSize / 1024).toFixed(1)} KB`}
@@ -1117,7 +1123,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
         {/* ──────── RIGHT SIDEBAR ──────── */}
         <div className="space-y-4">
           {/* Status Card */}
-          <div className="rounded-xl border border-border bg-card shadow-sm">
+          <div className="rounded-xl border border-border bg-surface shadow-sm">
             <div className="border-b border-border px-4 py-3">
               <h3 className="flex items-center gap-2 text-caption font-semibold uppercase tracking-wider text-muted">
                 <Info className="h-3.5 w-3.5" />
@@ -1175,7 +1181,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
           {/* Actions Card — only visible when this leave is waiting on the viewer's step */}
           {isPending && currentApproval && viewerCanAct && (
-            <div className="rounded-xl border border-border bg-card shadow-sm">
+            <div className="rounded-xl border border-border bg-surface shadow-sm">
               <div className="border-b border-border px-4 py-3">
                 <h3 className="flex items-center gap-2 text-caption font-semibold uppercase tracking-wider text-muted">
                   <Send className="h-3.5 w-3.5" />
@@ -1225,7 +1231,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
           {/* Waiting Card — leave is pending, but it is not this viewer's turn */}
           {isPending && currentApproval && !viewerCanAct && (
-            <div className="rounded-xl border border-border bg-card shadow-sm">
+            <div className="rounded-xl border border-border bg-surface shadow-sm">
               <div className="border-b border-border px-4 py-3">
                 <h3 className="flex items-center gap-2 text-caption font-semibold uppercase tracking-wider text-muted">
                   <Clock className="h-3.5 w-3.5" />
@@ -1235,7 +1241,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
               <div className="space-y-2.5 p-4 text-body">
                 <p className="text-muted">
                   This request is waiting on{" "}
-                  <span className="font-medium text-foreground">
+                  <span className="font-medium text-ink">
                     {(currentApproval.approverRoleCode ?? "next approver").replace(/_/g, " ")}
                   </span>{" "}
                   approval.
@@ -1262,7 +1268,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
           )}
 
           {/* Leave Summary Mini Card */}
-          <div className="rounded-xl border border-border bg-card shadow-sm">
+          <div className="rounded-xl border border-border bg-surface shadow-sm">
             <div className="border-b border-border px-4 py-3">
               <h3 className="flex items-center gap-2 text-caption font-semibold uppercase tracking-wider text-muted">
                 <Calendar className="h-3.5 w-3.5" />
@@ -1324,7 +1330,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 onChange={(e) => setComments(e.target.value)}
                 placeholder="Add a note about your approval..."
                 rows={3}
-                className="w-full rounded-lg border border-input bg-background p-3 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border border-border bg-bg p-3 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-accent focus:ring-1 focus:ring-accent"
               />
             </div>
 
@@ -1338,7 +1344,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   value={ccEmailsInput}
                   onChange={(e) => setCcEmailsInput(e.target.value)}
                   placeholder="name@example.com, another@example.com"
-                  className="w-full rounded-lg border border-input bg-background p-2.5 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="w-full rounded-lg border border-border bg-bg p-2.5 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-accent focus:ring-1 focus:ring-accent"
                 />
                 <p className="mt-1 text-caption text-muted">
                   These addresses will be CC&apos;d on the approval email sent to the student.
@@ -1354,7 +1360,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                       type="checkbox"
                       checked={notifyStudent}
                       onChange={(e) => setNotifyStudent(e.target.checked)}
-                      className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                      className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
                     />
                     <span className="text-body">Notify student</span>
                   </label>
@@ -1363,7 +1369,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                       type="checkbox"
                       checked={notifyParent}
                       onChange={(e) => setNotifyParent(e.target.checked)}
-                      className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                      className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
                     />
                     <span className="text-body">Notify parent</span>
                   </label>
@@ -1375,7 +1381,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     type="checkbox"
                     checked={documentsVerified}
                     onChange={(e) => setDocumentsVerified(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-input text-warning focus:ring-warning"
+                    className="mt-0.5 h-4 w-4 rounded border-border text-warning focus:ring-warning"
                   />
                   <span className="text-body">
                     <strong>I confirm that the documents have been verified</strong>
@@ -1480,7 +1486,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
           <div className="space-y-4 py-2">
             <div>
               <label className="mb-1.5 block text-body font-medium text-muted">
-                Category <span className="text-destructive">*</span>
+                Category <span className="text-danger">*</span>
               </label>
               <Select value={rejectionCategory} onValueChange={setRejectionCategory}>
                 <SelectTrigger>
@@ -1498,14 +1504,14 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
             <div>
               <label className="mb-1.5 block text-body font-medium text-muted">
-                Reason <span className="text-destructive">*</span>
+                Reason <span className="text-danger">*</span>
               </label>
               <textarea
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
                 placeholder="Explain why this leave is being rejected..."
                 rows={3}
-                className="w-full rounded-lg border border-input bg-background p-3 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border border-border bg-bg p-3 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-accent focus:ring-1 focus:ring-accent"
               />
             </div>
 
@@ -1515,7 +1521,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   type="checkbox"
                   checked={needsResubmission}
                   onChange={(e) => setNeedsResubmission(e.target.checked)}
-                  className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                  className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
                 />
                 <div>
                   <span className="text-body font-medium">Needs resubmission</span>
@@ -1529,7 +1535,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                       type="checkbox"
                       checked={notifyStudent}
                       onChange={(e) => setNotifyStudent(e.target.checked)}
-                      className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                      className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
                     />
                     <span className="text-body">Notify student</span>
                   </label>
@@ -1538,7 +1544,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                       type="checkbox"
                       checked={notifyParent}
                       onChange={(e) => setNotifyParent(e.target.checked)}
-                      className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                      className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
                     />
                     <span className="text-body">Notify parent</span>
                   </label>
@@ -1624,7 +1630,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 onChange={(e) => setOverrideComments(e.target.value)}
                 placeholder="Reason for override..."
                 rows={2}
-                className="w-full rounded-lg border border-input bg-background p-3 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border border-border bg-bg p-3 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-accent focus:ring-1 focus:ring-accent"
               />
             </div>
 
@@ -1661,7 +1667,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
       {/* Error banner */}
       {actionError && actionTarget === null && (
-        <div className="fixed bottom-4 right-4 flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-body text-destructive shadow-lg">
+        <div className="fixed bottom-4 right-4 flex items-center gap-2 rounded-lg bg-danger/10 p-3 text-body text-danger shadow-lg">
           <AlertCircle className="h-4 w-4" />
           {actionError}
           <Button variant="ghost" size="icon-xs" onClick={() => setActionError("")} className="ml-2">

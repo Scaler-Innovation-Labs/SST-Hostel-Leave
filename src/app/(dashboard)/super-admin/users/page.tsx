@@ -122,7 +122,7 @@ export default function SuperAdminUsersPage() {
             aria-label="Filter by role"
             value={role}
             onChange={(e) => { setRole(e.target.value); setPage(1); }}
-            className="h-9 rounded-lg border border-border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+            className="h-9 rounded-lg border border-border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
           >
             {roleFilters.map((f) => (
               <option key={f.value} value={f.value}>{f.label}</option>
@@ -132,7 +132,7 @@ export default function SuperAdminUsersPage() {
             aria-label="Filter by status"
             value={isActive}
             onChange={(e) => { setIsActive(e.target.value); setPage(1); }}
-            className="h-9 rounded-lg border border-border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+            className="h-9 rounded-lg border border-border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
           >
             {activeFilters.map((f) => (
               <option key={f.value} value={f.value}>{f.label}</option>
@@ -144,7 +144,7 @@ export default function SuperAdminUsersPage() {
       {/* Summary bar */}
       {!isLoading && users.length > 0 && (
         <div className="flex items-center gap-2 text-body text-muted">
-          <span className="font-medium text-foreground">{total}</span>
+          <span className="font-medium text-ink">{total}</span>
           <span>user{total !== 1 ? "s" : ""} found</span>
         </div>
       )}
@@ -165,7 +165,7 @@ export default function SuperAdminUsersPage() {
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
           <div className="divide-y divide-border">
             {users.map((user: UserItem) => (
               <Link

@@ -27,12 +27,10 @@ export function SignOutTimer({
   }, [countdown, signOut, redirectUrl]);
 
   return (
-    <p className="text-body text-muted">
+    <p aria-live="polite" className="text-body text-muted">
       Signing you out in{" "}
-      <span className="font-medium text-foreground">
-        {countdown}
-      </span>{" "}
-      second{countdown !== 1 ? "s" : ""}...
+      <span className="font-medium tabular-nums text-ink">{countdown}</span>{" "}
+      second{countdown === 1 ? "" : "s"}
     </p>
   );
 }

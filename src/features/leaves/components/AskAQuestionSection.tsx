@@ -120,14 +120,14 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
               onChange={(e) => setQuestionText(e.target.value)}
               placeholder="Type your question for the student..."
               rows={3}
-              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-body outline-none placeholder:text-muted focus:border-ring focus:ring-1 focus:ring-ring disabled:opacity-50"
+              className="w-full resize-none rounded-lg border border-border bg-bg px-3 py-2 text-body outline-none placeholder:text-muted focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-50"
               disabled={asking}
             />
             <div className="mt-2 flex justify-end">
               <button
                 onClick={handleAsk}
                 disabled={asking || !questionText.trim()}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-body font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-body font-medium text-on-fill transition-colors hover:bg-accent/90 disabled:opacity-50"
               >
                 {asking ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -149,7 +149,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
             <div
               key={question.id}
               className={cn(
-                "rounded-xl border border-border bg-card p-4 transition-all",
+                "rounded-xl border border-border bg-surface p-4 transition-all",
                 question.status === "pending" && "ring-1 ring-warning/20",
               )}
             >
@@ -207,7 +207,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
                     onChange={(e) => setAnswerText(e.target.value)}
                     placeholder="Type your answer..."
                     rows={3}
-                    className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-body outline-none placeholder:text-muted focus:border-ring focus:ring-1 focus:ring-ring disabled:opacity-50"
+                    className="w-full resize-none rounded-lg border border-border bg-bg px-3 py-2 text-body outline-none placeholder:text-muted focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-50"
                     disabled={submitting}
                   />
 
@@ -224,7 +224,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       disabled={submitting}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-caption font-medium text-muted transition-colors hover:bg-surface-sunken/50 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-bg px-3 py-1.5 text-caption font-medium text-muted transition-colors hover:bg-surface-sunken/50 disabled:opacity-50"
                     >
                       <Paperclip className="h-3.5 w-3.5" />
                       {selectedFile ? selectedFile.name : "Attach document"}
@@ -232,7 +232,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
                     {selectedFile && (
                       <button
                         onClick={() => setSelectedFile(null)}
-                        className="text-caption text-destructive hover:underline"
+                        className="text-caption text-danger hover:underline"
                       >
                         Remove
                       </button>
@@ -243,7 +243,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
                     <button
                       onClick={() => handleAnswer(question.id)}
                       disabled={submitting || !answerText.trim()}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-body font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-4 py-2 text-body font-medium text-on-fill transition-colors hover:bg-accent/90 disabled:opacity-50"
                     >
                       {(submitting || uploadingFile) ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -255,7 +255,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
                     <button
                       onClick={() => { setAnsweringId(null); setAnswerText(""); setSelectedFile(null); }}
                       disabled={submitting}
-                      className="text-body text-muted hover:text-foreground disabled:opacity-50"
+                      className="text-body text-muted hover:text-ink disabled:opacity-50"
                     >
                       Cancel
                     </button>
@@ -268,7 +268,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
                 <div className="mt-3 ml-12">
                   <button
                     onClick={() => setAnsweringId(question.id)}
-                    className="inline-flex items-center gap-1.5 text-body font-medium text-primary hover:text-primary/80"
+                    className="inline-flex items-center gap-1.5 text-body font-medium text-accent hover:text-accent/80"
                   >
                     <SendHorizonal className="h-4 w-4" />
                     Answer this question

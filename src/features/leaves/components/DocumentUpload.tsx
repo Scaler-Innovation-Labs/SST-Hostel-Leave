@@ -104,7 +104,7 @@ export function DocumentUpload({
         }}
         className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors ${
           dragOver
-            ? "border-primary bg-primary/5"
+            ? "border-accent bg-accent/5"
             : "border-border bg-surface-sunken/30 hover:border-muted/40 hover:bg-surface-sunken/50"
         } ${disabled || uploading ? "pointer-events-none opacity-50" : ""}`}
       >
@@ -127,12 +127,12 @@ export function DocumentUpload({
 
       {uploading && (
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-sunken">
-          <div className="h-full w-1/2 animate-pulse rounded-full bg-primary" />
+          <div className="h-full w-1/2 animate-pulse rounded-full bg-accent" />
         </div>
       )}
 
       {error && (
-        <div className="rounded-lg bg-destructive/10 p-3 text-body text-destructive">
+        <div className="rounded-lg bg-danger/10 p-3 text-body text-danger">
           {error}
         </div>
       )}

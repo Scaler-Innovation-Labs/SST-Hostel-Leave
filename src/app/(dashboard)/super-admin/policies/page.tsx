@@ -270,11 +270,11 @@ export default function PoliciesPage() {
                   key={policy.id}
                   onClick={() => edit(policy)}
                   className={cn(
-                    "w-full rounded-xl border bg-card p-4 text-left transition-all hover:border-primary hover:shadow-sm",
+                    "w-full rounded-xl border bg-surface p-4 text-left transition-all hover:border-accent hover:shadow-sm",
                     "border-l-4",
                     POLICY_TYPE_COLORS[policy.policyType] ?? "border-l-border",
                     draft.id === policy.id
-                      ? "border-primary ring-1 ring-primary"
+                      ? "border-accent ring-1 ring-accent"
                       : "",
                   )}
                 >
@@ -333,7 +333,7 @@ export default function PoliciesPage() {
         </section>
 
         {/* Policy editor */}
-        <section className="space-y-5 rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <section className="space-y-5 rounded-2xl border border-border bg-surface p-5 shadow-sm">
           <div className="flex items-center justify-between border-b border-border pb-4">
             <div>
               <h3 className="font-semibold">
@@ -362,7 +362,7 @@ export default function PoliciesPage() {
                 value={draft.name}
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                 placeholder="e.g. Home Pass Max Days"
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-bg px-3 text-body outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
               />
             </label>
 
@@ -373,7 +373,7 @@ export default function PoliciesPage() {
               <select
                 value={draft.policyType}
                 onChange={(e) => handlePolicyTypeChange(e.target.value)}
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-bg px-3 text-body outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
               >
                 {POLICY_TYPES.map((type) => (
                   <option key={type} value={type}>
@@ -401,7 +401,7 @@ export default function PoliciesPage() {
                 onChange={(e) =>
                   setDraft({ ...draft, priority: Number(e.target.value) })
                 }
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-bg px-3 text-body outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
               />
             </label>
 
@@ -414,7 +414,7 @@ export default function PoliciesPage() {
                 onChange={(e) =>
                   setDraft({ ...draft, leaveTypeId: e.target.value || null })
                 }
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-bg px-3 text-body outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
               >
                 <option value="">All leave types</option>
                 {typedLeaveTypes.map((type) => (
@@ -434,7 +434,7 @@ export default function PoliciesPage() {
                 onChange={(e) =>
                   setDraft({ ...draft, hostelId: e.target.value })
                 }
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-bg px-3 text-body outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
               >
                 <option value="">All hostels</option>
                 {typedHostels.map((hostel) => (
@@ -457,7 +457,7 @@ export default function PoliciesPage() {
                 onChange={(e) =>
                   setDraft({ ...draft, departmentId: e.target.value })
                 }
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-bg px-3 text-body outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
               >
                 <option value="">All departments</option>
                 {typedDepartments.map((dept) => (
@@ -484,7 +484,7 @@ export default function PoliciesPage() {
                   setDraft({ ...draft, batchYear: e.target.value })
                 }
                 placeholder="e.g. 2028"
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-bg px-3 text-body outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
               />
               <p className="text-micro text-muted">
                 Leave empty to apply to all batches
@@ -516,7 +516,7 @@ export default function PoliciesPage() {
                 onChange={(e) =>
                   setDraft({ ...draft, startsAt: e.target.value })
                 }
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-bg px-3 text-body outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
               />
             </label>
             <label className="block space-y-1.5">
@@ -529,7 +529,7 @@ export default function PoliciesPage() {
                 onChange={(e) =>
                   setDraft({ ...draft, endsAt: e.target.value })
                 }
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-bg px-3 text-body outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent"
               />
             </label>
           </div>
@@ -542,7 +542,7 @@ export default function PoliciesPage() {
               onChange={(e) =>
                 setDraft({ ...draft, isActive: e.target.checked })
               }
-              className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+              className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
             />
             <span>Active</span>
           </label>
@@ -554,7 +554,7 @@ export default function PoliciesPage() {
                 "rounded-lg px-3 py-2 text-body",
                 messageType === "success"
                   ? "bg-success-light text-success"
-                  : "bg-destructive/10 text-destructive",
+                  : "bg-danger/10 text-danger",
               )}
             >
               {message}

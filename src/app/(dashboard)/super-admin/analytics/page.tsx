@@ -18,7 +18,7 @@ export default function SuperAdminAnalyticsPage() {
               label: "Total Users",
               valueKey: "totalUsers",
               icon: <Users className="h-4 w-4" />,
-              tone: "primary",
+              tone: "accent",
             },
           ]}
         />

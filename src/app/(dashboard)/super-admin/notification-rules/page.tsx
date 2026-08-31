@@ -186,7 +186,7 @@ export default function NotificationRulesPage() {
               <button
                 key={rule.id}
                 onClick={() => editRule(rule)}
-                className="w-full rounded-xl border bg-card p-4 text-left hover:border-primary"
+                className="w-full rounded-xl border bg-surface p-4 text-left hover:border-accent"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -207,7 +207,7 @@ export default function NotificationRulesPage() {
                       {rule.channels.map((ch) => (
                         <span
                           key={ch}
-                          className="rounded-full bg-primary/10 px-2 py-0.5 text-caption text-primary"
+                          className="rounded-full bg-accent/10 px-2 py-0.5 text-caption text-accent"
                         >
                           {CHANNEL_LABELS[ch] ?? ch}
                         </span>
@@ -223,7 +223,7 @@ export default function NotificationRulesPage() {
           )}
         </section>
 
-        <section className="space-y-5 rounded-2xl border bg-card p-5">
+        <section className="space-y-5 rounded-2xl border bg-surface p-5">
           <h2 className="font-semibold">
             {draft.id ? "Edit Rule" : "New Rule"}
           </h2>
@@ -236,7 +236,7 @@ export default function NotificationRulesPage() {
                 onChange={(e) =>
                   setDraft({ ...draft, eventType: e.target.value })
                 }
-                className="h-9 w-full rounded-lg border bg-background px-3"
+                className="h-9 w-full rounded-lg border bg-bg px-3"
               >
                 {NOTIFICATION_EVENTS.map((ev) => (
                   <option key={ev} value={ev}>
@@ -253,7 +253,7 @@ export default function NotificationRulesPage() {
                 onChange={(e) =>
                   setDraft({ ...draft, templateId: e.target.value })
                 }
-                className="h-9 w-full rounded-lg border bg-background px-3"
+                className="h-9 w-full rounded-lg border bg-bg px-3"
               >
                 <option value="">Select a template...</option>
                 {templates
@@ -274,7 +274,7 @@ export default function NotificationRulesPage() {
                     key={rt}
                     className={`cursor-pointer rounded-full border px-3 py-1 text-caption ${
                       draft.recipientTypes.includes(rt)
-                        ? "border-primary bg-primary/10 text-primary"
+                        ? "border-accent bg-accent/10 text-accent"
                         : "border-border"
                     }`}
                   >
@@ -298,7 +298,7 @@ export default function NotificationRulesPage() {
                     key={ch}
                     className={`cursor-pointer rounded-full border px-3 py-1 text-caption ${
                       draft.channels.includes(ch)
-                        ? "border-primary bg-primary/10 text-primary"
+                        ? "border-accent bg-accent/10 text-accent"
                         : "border-border"
                     }`}
                   >

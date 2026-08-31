@@ -203,10 +203,10 @@ export default function SuperAdminWorkflowsPage() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
-                className="h-9 w-full rounded-lg border bg-background pl-9 pr-8 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border bg-bg pl-9 pr-8 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
               />
               {searchInput && (
-                <button onClick={clearSearch} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-foreground">
+                <button onClick={clearSearch} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-ink">
                   <X className="size-4" />
                 </button>
               )}
@@ -214,7 +214,7 @@ export default function SuperAdminWorkflowsPage() {
             <select
               value={filterActive}
               onChange={(e) => { setFilterActive(e.target.value); setPage(1); }}
-              className="h-9 rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+              className="h-9 rounded-lg border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
             >
               <option value="">All status</option>
               <option value="true">Active</option>
@@ -224,7 +224,7 @@ export default function SuperAdminWorkflowsPage() {
           </div>
 
           {isLoading ? <LoadingState count={4} /> : data?.items.map((workflow) => (
-            <div key={workflow.id} className="group flex rounded-xl border bg-card hover:border-primary">
+            <div key={workflow.id} className="group flex rounded-xl border bg-surface hover:border-accent">
               <button onClick={() => edit(workflow)} className="flex-1 p-4 text-left">
                 <div className="flex justify-between gap-3"><span className="font-medium">{workflow.name}</span><span className="text-caption text-muted">v{workflow.version}</span></div>
                 <div className="mt-1 font-mono text-caption text-muted">{workflow.code} · {workflow.steps.length} steps · {workflow.isActive ? "Active" : "Inactive"}</div>
@@ -236,7 +236,7 @@ export default function SuperAdminWorkflowsPage() {
                 disabled={deletingId === workflow.id}
                 onClick={() => handleDelete(workflow.id, workflow.name)}
               >
-                <Trash2 className="size-4 text-destructive" />
+                <Trash2 className="size-4 text-danger" />
               </Button>
             </div>
           ))}
@@ -261,7 +261,7 @@ export default function SuperAdminWorkflowsPage() {
         </section>
 
         {/* Editor */}
-        <section className="space-y-5 rounded-2xl border bg-card p-5">
+        <section className="space-y-5 rounded-2xl border bg-surface p-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Name" value={draft.name} onChange={(name) => setDraft({ ...draft, name })} />
             <Field label="Code" value={draft.code} onChange={(code) => setDraft({ ...draft, code: code.toUpperCase().replace(/\s+/g, "_") })} mono />
@@ -274,7 +274,7 @@ export default function SuperAdminWorkflowsPage() {
             <div className="rounded-xl border bg-surface-sunken/20 p-4">
               <p className="mb-3 text-caption font-medium text-muted uppercase tracking-wider">Pipeline Preview</p>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-lg bg-primary/10 px-3 py-1.5 text-caption font-medium text-primary">Start</span>
+                <span className="rounded-lg bg-accent/10 px-3 py-1.5 text-caption font-medium text-accent">Start</span>
                 <span className="text-muted">→</span>
                 {draft.steps.map((step, i) => (
                   <span key={i} className="flex items-center gap-1">
@@ -305,7 +305,7 @@ export default function SuperAdminWorkflowsPage() {
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`space-y-3 rounded-xl border p-4 transition-all ${dragIndex === index ? "opacity-50 ring-2 ring-primary" : ""}`}
+                className={`space-y-3 rounded-xl border p-4 transition-all ${dragIndex === index ? "opacity-50 ring-2 ring-accent" : ""}`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -326,7 +326,7 @@ export default function SuperAdminWorkflowsPage() {
 
                 {/* Collapsible advanced fields */}
                 <details className="group">
-                  <summary className="cursor-pointer text-caption font-medium text-muted hover:text-foreground">Advanced settings</summary>
+                  <summary className="cursor-pointer text-caption font-medium text-muted hover:text-ink">Advanced settings</summary>
                   <div className="mt-3 space-y-3">
                     <Field label="Condition (leave property)" value={step.condition} onChange={(condition) => updateStep(index, { condition })} placeholder="e.g. days > 3" />
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -336,7 +336,7 @@ export default function SuperAdminWorkflowsPage() {
                     <label className="block text-body">
                       <span className="mb-1 block font-medium">Notes</span>
                       <textarea value={step.notes} onChange={(e) => updateStep(index, { notes: e.target.value })} rows={2} placeholder="Internal notes about this step"
-                        className="w-full rounded-lg border bg-background p-2 text-caption outline-none focus:border-ring focus:ring-1 focus:ring-ring" />
+                        className="w-full rounded-lg border bg-bg p-2 text-caption outline-none focus:border-accent focus:ring-1 focus:ring-accent" />
                     </label>
                   </div>
                 </details>
@@ -355,9 +355,9 @@ export default function SuperAdminWorkflowsPage() {
 }
 
 function Field({ label, value, onChange, mono = false, type = "text", placeholder }: { label: string; value: string; onChange: (value: string) => void; mono?: boolean; type?: string; placeholder?: string }) {
-  return <label className="block text-body"><span className="mb-1 block font-medium">{label}</span><input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className={`h-9 w-full rounded-lg border bg-background px-3 outline-none focus:border-ring focus:ring-1 focus:ring-ring ${mono ? "font-mono" : ""}`} /></label>;
+  return <label className="block text-body"><span className="mb-1 block font-medium">{label}</span><input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className={`h-9 w-full rounded-lg border bg-bg px-3 outline-none focus:border-accent focus:ring-1 focus:ring-accent ${mono ? "font-mono" : ""}`} /></label>;
 }
 
 function SelectField({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  return <label className="block text-body"><span className="mb-1 block font-medium">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-9 w-full rounded-lg border bg-background px-3 outline-none focus:border-ring focus:ring-1 focus:ring-ring">{options.map((option) => <option key={option} value={option}>{option || "None"}</option>)}</select></label>;
+  return <label className="block text-body"><span className="mb-1 block font-medium">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-9 w-full rounded-lg border bg-bg px-3 outline-none focus:border-accent focus:ring-1 focus:ring-accent">{options.map((option) => <option key={option} value={option}>{option || "None"}</option>)}</select></label>;
 }

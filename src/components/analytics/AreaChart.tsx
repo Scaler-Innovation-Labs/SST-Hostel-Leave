@@ -34,7 +34,7 @@ export function AnalyticsAreaChart({
 }: AnalyticsAreaChartProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
         <h3 className="mb-1 text-body-lg font-semibold">{title}</h3>
         {description && (
           <p className="mb-4 text-body text-muted">{description}</p>
@@ -52,7 +52,7 @@ export function AnalyticsAreaChart({
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
       <h3 className="mb-1 text-body-lg font-semibold">{title}</h3>
       {description && (
         <p className="mb-4 text-body text-muted">{description}</p>

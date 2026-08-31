@@ -128,7 +128,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
           </button>
           <div>
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-h3 font-semibold text-primary">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-h3 font-semibold text-accent">
                 {userData?.fullName?.charAt(0) ?? "?"}
               </div>
               <div>
@@ -153,8 +153,8 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
             isOverdue && "border-danger/30",
           )}
         />
-        <InfoCard label="Email" value={userData?.email ?? "—"} icon={<Mail className="h-4 w-4" />} tone="primary" />
-        <InfoCard label="Phone" value={userData?.phone ?? "—"} icon={<Phone className="h-4 w-4" />} tone="primary" />
+        <InfoCard label="Email" value={userData?.email ?? "—"} icon={<Mail className="h-4 w-4" />} tone="accent" />
+        <InfoCard label="Phone" value={userData?.phone ?? "—"} icon={<Phone className="h-4 w-4" />} tone="accent" />
         <InfoCard
           label="Status"
           value={userData?.isActive ? "Active" : "Inactive"}
@@ -165,7 +165,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
 
       <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
         {/* Profile Section */}
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <User className="h-4 w-4 text-muted" />
             <h3 className="text-body-lg font-semibold">Profile</h3>
@@ -197,7 +197,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
                 {userData?.isActive ? (
                   <span className="text-success">Active</span>
                 ) : (
-                  <span className="text-destructive">Inactive</span>
+                  <span className="text-danger">Inactive</span>
                 )}
               </dd>
             </div>
@@ -205,7 +205,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
         </div>
 
         {/* Location Details */}
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <MapPin className="h-4 w-4 text-muted" />
             <h3 className="text-body-lg font-semibold">Current Location</h3>
@@ -293,7 +293,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
         </div>
 
         {/* Quick Stats */}
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <FileText className="h-4 w-4 text-muted" />
             <h3 className="text-body-lg font-semibold">Quick Stats</h3>
@@ -312,7 +312,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
       </div>
 
       {/* Leave History */}
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-muted" />
@@ -345,7 +345,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
       </div>
 
       {/* Movement Timeline */}
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <History className="h-4 w-4 text-muted" />
@@ -353,7 +353,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
           </div>
           <Link
             href={`${movementsPath}?studentId=${studentId}`}
-            className="text-caption font-medium text-primary hover:underline"
+            className="text-caption font-medium text-accent hover:underline"
           >
             View all
           </Link>
@@ -365,8 +365,8 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
             {movements.map((mov: { id: string; eventType: string; fromState: string; toState: string; occurredAt: string }, i: number) => (
               <div key={mov.id} className="relative flex gap-4 pb-4 last:pb-0">
                 <div className="flex flex-col items-center">
-                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                    <div className="h-2 w-2 rounded-full bg-primary" />
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10">
+                    <div className="h-2 w-2 rounded-full bg-accent" />
                   </div>
                   {i < movements.length - 1 && <div className="h-full w-px bg-border" />}
                 </div>

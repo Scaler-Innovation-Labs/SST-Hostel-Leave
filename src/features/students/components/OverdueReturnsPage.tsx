@@ -141,7 +141,7 @@ export function OverdueReturnsPage({ detailBasePath }: OverdueReturnsPageProps) 
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted hover:text-foreground"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted hover:text-ink"
             >
               <X className="h-4 w-4" />
             </button>
@@ -169,7 +169,7 @@ export function OverdueReturnsPage({ detailBasePath }: OverdueReturnsPageProps) 
       <div className="flex items-center gap-2 text-caption text-muted">
         <Clock className="h-3.5 w-3.5 text-danger" />
         <span>
-          <span className="font-medium text-foreground">{overdue.length}</span> overdue return
+          <span className="font-medium text-ink">{overdue.length}</span> overdue return
           {overdue.length !== 1 ? "s" : ""}
           {hasActiveFilters && <span> (filtered)</span>}
         </span>

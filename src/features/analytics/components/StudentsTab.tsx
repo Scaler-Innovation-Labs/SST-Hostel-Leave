@@ -28,7 +28,7 @@ export function StudentsTab({ period }: StudentsTabProps) {
   return (
     <div className="space-y-8">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <InfoCard label="Total Students" value={d.totalStudents} icon={<Users className="h-4 w-4" />} tone="primary" />
+        <InfoCard label="Total Students" value={d.totalStudents} icon={<Users className="h-4 w-4" />} tone="accent" />
         <InfoCard label="In Hostel" value={d.inHostel} icon={<Building2 className="h-4 w-4" />} tone="success" />
         <InfoCard label="On Leave" value={d.onLeave} icon={<CalendarClock className="h-4 w-4" />} tone="warning" />
         <InfoCard label="Overdue Returns" value={d.overdue} icon={<GraduationCap className="h-4 w-4" />} tone="danger" />

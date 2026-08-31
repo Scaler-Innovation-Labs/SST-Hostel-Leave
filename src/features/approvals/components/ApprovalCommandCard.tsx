@@ -341,7 +341,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-all",
+        "relative overflow-hidden rounded-xl border border-border bg-surface shadow-sm transition-all",
         disableNavigation
           ? ""
           : "hover:-translate-y-0.5 hover:shadow-md cursor-pointer",
@@ -468,7 +468,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                 <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-border bg-surface-sunken/40 px-3 py-3 text-center">
                   <Clock className="h-4 w-4 text-warning" />
                   <span className="text-micro font-medium leading-tight text-muted">
-                    Waiting for <span className="text-foreground">{getStepDisplay(waitingOn).label}</span>
+                    Waiting for <span className="text-ink">{getStepDisplay(waitingOn).label}</span>
                   </span>
                 </div>
               ) : (
@@ -593,7 +593,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                 onChange={(e) => setComments(e.target.value)}
                 placeholder="Add a note about your approval..."
                 rows={3}
-                className="w-full rounded-lg border border-input bg-background p-3 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border border-border bg-bg p-3 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-accent focus:ring-1 focus:ring-accent"
               />
             </div>
 
@@ -607,7 +607,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                   value={ccEmailsInput}
                   onChange={(e) => setCcEmailsInput(e.target.value)}
                   placeholder="name@example.com, another@example.com"
-                  className="w-full rounded-lg border border-input bg-background p-2.5 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="w-full rounded-lg border border-border bg-bg p-2.5 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-accent focus:ring-1 focus:ring-accent"
                 />
                 <p className="mt-1 text-caption text-muted">
                   These addresses will be CC&apos;d on the approval email sent to the student.
@@ -623,7 +623,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                       type="checkbox"
                       checked={notifyStudent}
                       onChange={(e) => setNotifyStudent(e.target.checked)}
-                      className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                      className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
                     />
                     <span className="text-body">Notify student</span>
                   </label>
@@ -632,7 +632,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                       type="checkbox"
                       checked={notifyParent}
                       onChange={(e) => setNotifyParent(e.target.checked)}
-                      className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                      className="h-4 w-4 rounded border-border text-accent focus:ring-accent"
                     />
                     <span className="text-body">Notify parent</span>
                   </label>
@@ -644,7 +644,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                     type="checkbox"
                     checked={documentsVerified}
                     onChange={(e) => setDocumentsVerified(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-input text-warning focus:ring-warning"
+                    className="mt-0.5 h-4 w-4 rounded border-border text-warning focus:ring-warning"
                   />
                   <span className="text-body">
                     <strong>I confirm that the documents have been verified</strong>

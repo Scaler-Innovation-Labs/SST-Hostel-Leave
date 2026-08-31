@@ -90,7 +90,7 @@ export default function SuperAdminUserDetailPage() {
       {/* Back navigation */}
       <button
         onClick={() => router.push("/super-admin/users")}
-        className="group inline-flex items-center gap-1.5 text-body text-muted transition-colors hover:text-foreground"
+        className="group inline-flex items-center gap-1.5 text-body text-muted transition-colors hover:text-ink"
       >
         <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
         Back to Users
@@ -173,7 +173,7 @@ export default function SuperAdminUserDetailPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Account info */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+          <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm transition-shadow hover:shadow-md">
             <h3 className="mb-5 flex items-center gap-2 text-body-lg font-semibold">
               <UserCog className="h-4 w-4 text-muted" />
               Account Information
@@ -256,7 +256,7 @@ export default function SuperAdminUserDetailPage() {
 
         {/* Roles sidebar */}
         <div className="space-y-6">
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+          <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm transition-shadow hover:shadow-md">
             <h3 className="mb-5 flex items-center gap-2 text-body-lg font-semibold">
               <Shield className="h-4 w-4 text-muted" />
               Roles

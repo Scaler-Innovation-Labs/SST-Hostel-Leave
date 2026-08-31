@@ -103,7 +103,7 @@ export function OverdueStudentsPage({ detailBasePath }: OverdueStudentsPageProps
             <button
               type="button"
               onClick={() => setSearch("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted hover:text-foreground"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted hover:text-ink"
             >
               <X className="h-4 w-4" />
             </button>
@@ -140,8 +140,8 @@ export function OverdueStudentsPage({ detailBasePath }: OverdueStudentsPageProps
         <Clock className="h-3.5 w-3.5 text-danger" />
         <span>
           Showing{" "}
-          <span className="font-medium text-foreground">{students.length}</span> of{" "}
-          <span className="font-medium text-foreground">{total}</span> overdue student{total !== 1 ? "s" : ""}
+          <span className="font-medium text-ink">{students.length}</span> of{" "}
+          <span className="font-medium text-ink">{total}</span> overdue student{total !== 1 ? "s" : ""}
           {hasActiveFilters && <span> (filtered)</span>}
         </span>
       </div>

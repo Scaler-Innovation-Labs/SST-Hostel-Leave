@@ -29,7 +29,7 @@ export function DataTable<T extends Record<string, unknown>>({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-2xl border border-border bg-card",
+        "overflow-hidden rounded-2xl border border-border bg-surface",
         className
       )}
     >

@@ -39,7 +39,7 @@ export function MovementQrTab({ period }: MovementQrTabProps) {
   return (
     <div className="space-y-8">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <InfoCard label="Movement Events" value={d.totalMovementEvents} icon={<Activity className="h-4 w-4" />} tone="primary" />
+        <InfoCard label="Movement Events" value={d.totalMovementEvents} icon={<Activity className="h-4 w-4" />} tone="accent" />
         <InfoCard label="Total QR Passes" value={d.totalQrPasses} icon={<QrCode className="h-4 w-4" />} tone="success" />
         <InfoCard label="Active QR Passes" value={d.activeQrPasses} icon={<ShieldCheck className="h-4 w-4" />} tone="warning" />
         <InfoCard label="Overdue Returns" value={d.overdueReturns} icon={<AlertTriangle className="h-4 w-4" />} tone="danger" />
@@ -74,7 +74,7 @@ export function MovementQrTab({ period }: MovementQrTabProps) {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <LeaveTypePieChart title="QR Passes by Status" data={d.qrByStatus} />
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
           <h3 className="mb-1 text-body-lg font-semibold">Top Scan Failure Reasons</h3>
           <p className="mb-4 text-body text-muted">Most common reasons QR scans are rejected.</p>
           {d.topFailureReasons.length === 0 ? (

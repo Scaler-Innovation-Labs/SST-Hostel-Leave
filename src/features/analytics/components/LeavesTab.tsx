@@ -53,7 +53,7 @@ export function LeavesTab({ period }: LeavesTabProps) {
   return (
     <div className="space-y-8">
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <InfoCard label="Total Leaves" value={d.totalLeaves} icon={<FileText className="h-4 w-4" />} tone="primary" />
+        <InfoCard label="Total Leaves" value={d.totalLeaves} icon={<FileText className="h-4 w-4" />} tone="accent" />
         <InfoCard label="Approved" value={d.approved} icon={<CheckCircle2 className="h-4 w-4" />} tone="success" />
         <InfoCard label="Rejected" value={d.rejected} icon={<ThumbsDown className="h-4 w-4" />} tone="danger" />
         <InfoCard label="Pending" value={d.pending} icon={<Clock className="h-4 w-4" />} tone="warning" />

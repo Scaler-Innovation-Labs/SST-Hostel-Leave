@@ -33,7 +33,7 @@ type StaffAnalyticsProps = {
     valueKey?: NumericStatKey;
     value?: number | string;
     icon: React.ReactNode;
-    tone?: "primary" | "success" | "warning" | "danger";
+    tone?: "accent" | "success" | "warning" | "danger";
   }>;
   /** Hides the component's own page header, for embedding inside a parent page. */
   hidePageHeader?: boolean;
@@ -76,7 +76,7 @@ export function StaffAnalytics({ description, extraCards = [], hidePageHeader = 
           label="Total Leaves"
           value={s.totalLeaves as number ?? 0}
           icon={<Activity className="h-4 w-4" />}
-          tone="primary"
+          tone="accent"
           compact
           onClick={() => toggleFilter("")}
           active={statusFilter === ""}
@@ -115,11 +115,11 @@ export function StaffAnalytics({ description, extraCards = [], hidePageHeader = 
         <div className="flex items-center gap-2 text-body">
           <span className="text-muted">
             Filtering leaves by{" "}
-            <span className="font-semibold text-foreground">{activeLabel}</span>
+            <span className="font-semibold text-ink">{activeLabel}</span>
           </span>
           <button
             onClick={() => setStatusFilter("")}
-            className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-caption font-medium text-muted transition-colors hover:border-primary/40 hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-caption font-medium text-muted transition-colors hover:border-accent/40 hover:text-ink"
           >
             <X className="h-3 w-3" />
             Clear filter
@@ -142,7 +142,7 @@ export function StaffAnalytics({ description, extraCards = [], hidePageHeader = 
         <InfoCard
           label="Avg Approval Time"
           value={s.averageApprovalHours != null ? `${s.averageApprovalHours}h` : "—"}
-          tone="primary"
+          tone="accent"
         />
         {extraCards.map((card) => (
           <InfoCard

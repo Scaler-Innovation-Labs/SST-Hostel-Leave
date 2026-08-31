@@ -48,7 +48,7 @@ function defaultActions(basePath: string): StaffQuickAction[] {
       description: "Pending leave requests",
       href: `${basePath}/approvals`,
       icon: ListChecks,
-      tone: "text-primary bg-primary/10",
+      tone: "text-accent bg-accent/10",
     },
     {
       label: "Extension Approvals",
@@ -131,7 +131,7 @@ export function StaffDashboard({ basePath, title, description, actions, extraAct
             label="Total Students"
             value={s.totalStudents}
             icon={<Users className="h-4 w-4" />}
-            tone="primary"
+            tone="accent"
           />
           <InfoCard
             label="Active Students"
@@ -169,7 +169,7 @@ export function StaffDashboard({ basePath, title, description, actions, extraAct
             label="Pending Extensions"
             value={s.pendingExtensions}
             icon={<CalendarClock className="h-4 w-4" />}
-            tone="primary"
+            tone="accent"
           />
           <InfoCard
             label="Overdue"
@@ -189,7 +189,7 @@ export function StaffDashboard({ basePath, title, description, actions, extraAct
               <Link
                 key={action.href}
                 href={action.href}
-                className="group relative flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="group relative flex items-center gap-3 rounded-xl border border-border bg-surface p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               >
                 <span
                   className={cn("flex size-10 shrink-0 items-center justify-center rounded-lg", action.tone)}
@@ -197,17 +197,17 @@ export function StaffDashboard({ basePath, title, description, actions, extraAct
                   <Icon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-body font-medium text-foreground">{action.label}</span>
+                  <span className="block text-body font-medium text-ink">{action.label}</span>
                   <span className="mt-0.5 block truncate text-caption text-muted">
                     {action.description}
                   </span>
                 </span>
                 {typeof action.count === "number" && action.count > 0 && (
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-caption font-semibold tabular-nums text-primary-foreground">
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-caption font-semibold tabular-nums text-on-fill">
                     {action.count}
                   </span>
                 )}
-                <ArrowRight className="h-4 w-4 shrink-0 text-muted transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-foreground" />
+                <ArrowRight className="h-4 w-4 shrink-0 text-muted transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-ink" />
               </Link>
             );
           })}
