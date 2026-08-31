@@ -48,15 +48,12 @@ const POLICY_TYPE_DESCRIPTIONS: Record<string, string> = {
   FORM_FIELD_RESTRICTION: "Restrict form field values or visibility",
 };
 
-const POLICY_TYPE_COLORS: Record<string, string> = {
-  MAX_DAYS: "border-l-blue-500 bg-accent-light",
-  BLOCK_DURING_PERIOD: "border-l-amber-500 bg-warning-light",
-  RESTRICT_BATCH: "border-l-violet-500 bg-accent-light",
-  REQUIRE_PARENT_APPROVAL: "border-l-rose-500 bg-danger-light",
-  CURFEW_RESTRICTION: "border-l-emerald-500 bg-success-light",
-  MAX_EXTENSION_COUNT: "border-l-cyan-500 bg-accent-light",
-  FORM_FIELD_RESTRICTION: "border-l-orange-500 bg-warning-light",
-};
+/**
+ * A policy type is identity, not state, so it does not get its own colour —
+ * seven tinted rails in one list is a wall of colour that buries whether a
+ * policy is actually active. The type is already named in the row.
+ */
+const POLICY_ROW = "border-l-accent bg-surface-sunken";
 
 type PolicyItem = {
   id: string;
@@ -272,7 +269,7 @@ export default function PoliciesPage() {
                   className={cn(
                     "w-full rounded-xl border bg-surface p-4 text-left transition-all hover:border-accent hover:shadow-sm",
                     "border-l-4",
-                    POLICY_TYPE_COLORS[policy.policyType] ?? "border-l-border",
+                    POLICY_ROW,
                     draft.id === policy.id
                       ? "border-accent ring-1 ring-accent"
                       : "",

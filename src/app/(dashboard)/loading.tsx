@@ -1,14 +1,16 @@
+import { MetricSkeleton, RowSkeleton, Skeleton } from "@/design-system/sst";
+
+/**
+ * The shape of a console screen: masthead, a row of metric tiles, then
+ * sections. A skeleton mirrors the real layout rather than spinning — the page
+ * should not jump when the content lands.
+ */
 export default function DashboardLoading() {
   return (
-    <div className="space-y-6 p-6">
-      <div className="h-8 w-48 animate-pulse rounded-lg bg-surface-sunken" />
-      <div className="h-4 w-72 animate-pulse rounded-lg bg-surface-sunken" />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-24 animate-pulse rounded-xl bg-surface-sunken" />
-        ))}
-      </div>
-      <div className="h-64 animate-pulse rounded-2xl bg-surface-sunken" />
+    <div className="space-y-6">
+      <Skeleton className="h-40 rounded-2xl" />
+      <MetricSkeleton count={4} />
+      <RowSkeleton rows={4} />
     </div>
   );
 }
