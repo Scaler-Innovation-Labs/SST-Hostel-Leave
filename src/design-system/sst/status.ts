@@ -87,3 +87,27 @@ export const QR_STATUS_PRESENTATION: Record<QrStatus, StatusPresentation> = {
   EXPIRED: { tone: "neutral", label: "Expired", Icon: Clock },
   INVALIDATED: { tone: "danger", label: "Invalidated", Icon: Ban },
 };
+
+/**
+ * The hue as text, for the places a taxonomy entry drives an icon or a label
+ * outside a Badge — a timeline marker, say. Kept beside the taxonomies so a
+ * tone means the same thing wherever it is read.
+ */
+export const TONE_TEXT: Record<BadgeTone, string> = {
+  neutral: "text-muted",
+  accent: "text-accent",
+  success: "text-success",
+  warning: "text-warning",
+  danger: "text-danger",
+  info: "text-info",
+};
+
+/** The same tones as a marker: tinted ground plus a matching edge. */
+export const TONE_MARKER: Record<BadgeTone, string> = {
+  neutral: "border-border bg-surface-sunken",
+  accent: "border-accent bg-accent-light",
+  success: "border-success bg-success-light",
+  warning: "border-warning bg-warning-light",
+  danger: "border-danger bg-danger-light",
+  info: "border-info bg-info-light",
+};

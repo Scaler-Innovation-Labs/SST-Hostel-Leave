@@ -1,11 +1,10 @@
 "use client";
 
-import { format, formatDistanceToNow, parseISO } from "date-fns";
+import { parseISO } from "date-fns";
 import {
   AlertCircle,
   AlertTriangle,
   ArrowLeft,
-  Ban,
   Calendar,
   Check,
   CheckCircle2,
@@ -37,7 +36,7 @@ import {
   XCircle,
   Zap,
 } from "lucide-react";
-import { useCallback,useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 
@@ -68,7 +67,17 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import type { BadgeTone } from "@/design-system/sst";
+import {
+  APPROVAL_DECISION_PRESENTATION,
+  Avatar,
+  Badge,
+  SectionCard,
+  TONE_MARKER,
+  TONE_TEXT,
+} from "@/design-system/sst";
 import { useApprovalChain } from "@/features/approvals/hooks/use-approval-chain";
 import { AskAQuestionSection } from "@/features/leaves/components/AskAQuestionSection";
 import { useLeaves } from "@/features/leaves/hooks/use-leaves";
@@ -76,7 +85,7 @@ import { useDocuments } from "@/hooks/use-documents";
 import { useMovement } from "@/hooks/use-movement";
 import { approveLeave, rejectLeave, superadminOverrideLeave } from "@/lib/api/approval-api";
 import { getLeaveUrl } from "@/lib/api/leave-api";
-import { getDurationLabel } from "@/lib/date-utils";
+import { formatDate, formatDateTime, formatRelative, getDurationLabel } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
@@ -112,94 +121,7 @@ type LeaveApproval = {
 
 // ─── Constants ──────────────────────────────────────────────
 
-const STATUS_CONFIG = {
-  approved: {
-    icon: CheckCircle2,
-    color: "text-success",
-    bg: "bg-success",
-    lightBg: "bg-success-light",
-    border: "border-success",
-    label: "Approved",
-  },
-  rejected: {
-    icon: XCircle,
-    color: "text-danger",
-    bg: "bg-danger",
-    lightBg: "bg-danger-light",
-    border: "border-danger",
-    label: "Rejected",
-  },
-  pending: {
-    icon: Clock,
-    color: "text-warning",
-    bg: "bg-warning",
-    lightBg: "bg-warning-light",
-    border: "border-warning",
-    label: "Pending",
-  },
-  cancelled: {
-    icon: XCircle,
-    color: "text-muted",
-    bg: "bg-surface-sunken",
-    lightBg: "bg-surface-sunken dark:bg-surface-sunken",
-    border: "border-border-strong",
-    label: "Cancelled",
-  },
-  completed: {
-    icon: CheckCircle2,
-    color: "text-success",
-    bg: "bg-success",
-    lightBg: "bg-success-light",
-    border: "border-success",
-    label: "Completed",
-  },
-  active: {
-    icon: Clock,
-    color: "text-accent",
-    bg: "bg-accent",
-    lightBg: "bg-accent-light",
-    border: "border-accent",
-    label: "Active",
-  },
-};
 
-const DECISION_CONFIG = {
-  approved: {
-    icon: CheckCircle2,
-    color: "text-success",
-    bg: "bg-success",
-    lightBg: "bg-success-light",
-    label: "Approved",
-  },
-  auto_approved: {
-    icon: CheckCircle2,
-    color: "text-accent",
-    bg: "bg-accent",
-    lightBg: "bg-accent-light",
-    label: "Auto Approved",
-  },
-  rejected: {
-    icon: XCircle,
-    color: "text-danger",
-    bg: "bg-danger",
-    lightBg: "bg-danger-light",
-    label: "Rejected",
-  },
-  cancelled: {
-    icon: Ban,
-    color: "text-muted",
-    bg: "bg-surface-sunken",
-    lightBg: "bg-surface-sunken",
-    label: "Cancelled",
-  },
-  pending: {
-    icon: Clock,
-    color: "text-warning",
-    bg: "bg-warning",
-    lightBg: "bg-warning-light",
-    label: "Pending",
-  },
-};
 
 const REJECTION_CATEGORIES = [
   { value: "incomplete", label: "Incomplete Information" },
@@ -219,49 +141,12 @@ const TAB_CONFIG = [
   { id: "questions", label: "Questions", icon: HelpCircle },
 ];
 
-const avatarColors = [
-  "bg-accent-light text-accent",
-  "bg-success-light text-success",
-  "bg-accent-light text-accent",
-  "bg-warning-light text-warning",
-  "bg-danger-light text-danger",
-];
 
 // ─── Helpers ────────────────────────────────────────────────
 
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
-function formatDate(dateStr: string): string {
-  try {
-    return format(parseISO(dateStr), "MMM d, yyyy");
-  } catch {
-    return dateStr?.split("T")[0] ?? "—";
-  }
-}
 
-function formatDateTime(dateStr: string): string {
-  try {
-    return format(parseISO(dateStr), "MMM d, yyyy h:mm a");
-  } catch {
-    return dateStr ?? "—";
-  }
-}
 
-function formatRelative(dateStr: string): string {
-  try {
-    return formatDistanceToNow(parseISO(dateStr), { addSuffix: true });
-  } catch {
-    return "—";
-  }
-}
 
 function getTimeWaiting(createdAt: string): string {
   try {
@@ -312,32 +197,6 @@ function StatBadge({ label, value, variant }: { label: string; value: number; va
   );
 }
 
-function SectionCard({
-  title,
-  icon: Icon,
-  children,
-  className,
-  action,
-}: {
-  title: string;
-  icon: React.ElementType;
-  children: React.ReactNode;
-  className?: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className={cn("rounded-xl border border-border bg-card shadow-sm", className)}>
-      <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-        <h3 className="flex items-center gap-2 text-body font-semibold">
-          <Icon className="h-4 w-4 text-muted" />
-          {title}
-        </h3>
-        {action}
-      </div>
-      <div className="p-5">{children}</div>
-    </div>
-  );
-}
 
 function DetailRow({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
@@ -351,6 +210,14 @@ function DetailRow({ label, children, className }: { label: string; children: Re
 // ═══════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════
+
+/** A decision string from the API, resolved against the closed taxonomy. */
+function decisionPresentation(decision: string) {
+  return (
+    APPROVAL_DECISION_PRESENTATION[decision as LeaveApprovalDecision] ??
+    APPROVAL_DECISION_PRESENTATION.PENDING
+  );
+}
 
 export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDetailViewProps) {
   // The override action is available to admins and super admins.
@@ -403,7 +270,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
   const isError = !!leaveError || chainError;
 
   const requestNumber = (leave?.requestNumber as string) ?? leaveId ?? "Leave Detail";
-  const status = ((leave?.status as string) ?? "").toLowerCase() as keyof typeof STATUS_CONFIG;
+  const status = ((leave?.status as string) ?? "").toLowerCase();
   const isPending = status === "pending";
   const leaveType = leaveTypeName ?? "—";
   const startAt = (leave?.startAt as string) ?? "";
@@ -729,17 +596,10 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
             {/* ▸ OVERVIEW TAB */}
             <TabsContent value="overview" className="mt-5 space-y-5">
               {/* Student Profile */}
-              <SectionCard title="Student Profile" icon={User}>
+              <SectionCard title="Student Profile" Icon={User}>
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
                   <div className="flex items-center gap-4 sm:flex-col sm:items-center">
-                    <div
-                      className={cn(
-                        "flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-h3 font-semibold shadow-sm ring-2 ring-background",
-                        avatarColors[Math.abs(studentName.charCodeAt(0)) % avatarColors.length],
-                      )}
-                    >
-                      {getInitials(studentName)}
-                    </div>
+                    <Avatar name={studentName} size="xl" />
                     <div className="sm:text-center">
                       <p className="font-semibold">{studentName}</p>
                       <p className="text-caption text-muted">{rollNumber}</p>
@@ -788,7 +648,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
               </SectionCard>
 
               {/* Leave Details */}
-              <SectionCard title="Leave Details" icon={FileText}>
+              <SectionCard title="Leave Details" Icon={FileText}>
                 <dl className="space-y-3">
                   <DetailRow label="Leave Type">
                     <span className="flex items-center gap-2">
@@ -818,7 +678,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
               </SectionCard>
 
               {/* Policy Evaluation */}
-              <SectionCard title="Policy Evaluation" icon={Shield}>
+              <SectionCard title="Policy Evaluation" Icon={Shield}>
                 <div className="space-y-2">
                   {policyResult?.checks?.map((policy) => (
                     <div key={policy.key} className="flex items-center justify-between rounded-lg px-3 py-2 text-body transition-colors hover:bg-surface-sunken/50">
@@ -878,7 +738,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
               </SectionCard>
 
               {/* Workflow Summary */}
-              <SectionCard title="Approval Workflow" icon={Users}>
+              <SectionCard title="Approval Workflow" Icon={Users}>
                 <div className="relative">
                   {sortedApprovals.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-6 text-center">
@@ -888,9 +748,9 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   ) : (
                     <div className="space-y-0">
                       {sortedApprovals.map((app, _idx) => {
-                        const decision = app.decision as keyof typeof DECISION_CONFIG;
-                        const config = DECISION_CONFIG[decision] ?? DECISION_CONFIG.pending;
-                        const Icon = config.icon;
+                        const decision = (app.decision ?? "PENDING").toUpperCase();
+                        const config = decisionPresentation(decision);
+                        const Icon = config.Icon;
                         const _isLast = _idx === sortedApprovals.length - 1;
                         const isCurrent = decision === "pending";
 
@@ -900,16 +760,11 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                               <div
                                 className={cn(
                                   "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-all",
-                                  isCurrent
-                                    ? "border-warning bg-warning-light ring-2 ring-warning/20"
-                                    : decision === "approved" || decision === "auto_approved"
-                                    ? "border-success bg-success-light"
-                                    : decision === "rejected" || decision === "cancelled"
-                                    ? "border-danger bg-danger-light"
-                                    : "border-border bg-surface-sunken",
+                                  TONE_MARKER[config.tone],
+                                  isCurrent && "ring-2 ring-warning/20",
                                 )}
                               >
-                                <Icon className={cn("h-3.5 w-3.5", config.color)} />
+                                <Icon className={cn("h-3.5 w-3.5", TONE_TEXT[config.tone])} />
                               </div>
                               {!_isLast && (
                                 <div
@@ -930,9 +785,9 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                                 <span className={cn("text-body font-medium", isCurrent && "text-warning")}>
                                   {app.stepKey?.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) ?? `Step ${app.stepOrder}`}
                                 </span>
-                                <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-micro font-medium", config.lightBg, config.color)}>
+                                <Badge tone={config.tone} size="sm">
                                   {config.label}
-                                </span>
+                                </Badge>
                               </div>
                               <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-caption text-muted">
                                 {app.approverRoleCode && <span>{app.approverRoleCode}</span>}
@@ -968,7 +823,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
             {/* ▸ WORKFLOW TAB */}
             <TabsContent value="workflow" className="mt-5">
-              <SectionCard title="Approval Workflow" icon={Users}>
+              <SectionCard title="Approval Workflow" Icon={Users}>
                 {sortedApprovals.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <Clock className="mb-3 h-10 w-10 text-muted/50" />
@@ -992,9 +847,9 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
                     {/* Approval Steps */}
                     {sortedApprovals.map((app, _i) => {
-                      const decision = app.decision as keyof typeof DECISION_CONFIG;
-                      const config = DECISION_CONFIG[decision] ?? DECISION_CONFIG.pending;
-                      const Icon = config.icon;
+                      const decision = (app.decision ?? "PENDING").toUpperCase();
+                      const config = decisionPresentation(decision);
+                      const Icon = config.Icon;
                       const isCurrent = decision === "pending";
 
                       return (
@@ -1003,16 +858,11 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                             <div
                               className={cn(
                                 "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-all",
-                                isCurrent
-                                  ? "border-warning bg-warning-light ring-2 ring-warning/20"
-                                  : decision === "approved" || decision === "auto_approved"
-                                  ? "border-success bg-success-light"
-                                  : decision === "rejected" || decision === "cancelled"
-                                  ? "border-danger bg-danger-light"
-                                  : "border-border bg-surface-sunken",
+                                TONE_MARKER[config.tone],
+                                isCurrent && "ring-2 ring-warning/20",
                               )}
                             >
-                              <Icon className={cn("h-4 w-4", config.color)} />
+                              <Icon className={cn("h-4 w-4", TONE_TEXT[config.tone])} />
                             </div>
                             <div className={cn(
                               "h-full w-0.5",
@@ -1027,9 +877,9 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                               <span className={cn("text-body font-semibold capitalize", isCurrent && "text-warning")}>
                                 {app.stepKey?.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) ?? `Step ${app.stepOrder}`}
                               </span>
-                              <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-medium", config.lightBg, config.color)}>
-                                {isCurrent && isPending ? "● Current" : config.label}
-                              </span>
+                              <Badge tone={config.tone}>
+                                {isCurrent && isPending ? "Current" : config.label}
+                              </Badge>
                             </div>
 
                             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-muted">
@@ -1068,7 +918,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
             {/* ▸ TIMELINE TAB */}
             <TabsContent value="timeline" className="mt-5">
-              <SectionCard title="Activity Timeline" icon={Clock}>
+              <SectionCard title="Activity Timeline" Icon={Clock}>
                 {(() => {
                   const events: Array<{ id: string; type: string; label: string; timestamp: string; actor?: string }> = [];
 
@@ -1122,26 +972,40 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     );
                   }
 
-                  const eventConfig: Record<string, { icon: React.ElementType; bg: string }> = {
-                    submitted: { icon: FileText, bg: "bg-accent" },
-                    approved: { icon: CheckCircle2, bg: "bg-success" },
-                    rejected: { icon: XCircle, bg: "bg-danger" },
-                    comment: { icon: MessageSquare, bg: "bg-surface-sunken" },
-                    movement: { icon: MapPin, bg: "bg-accent" },
+                  // The marker takes its tone from the taxonomy, so a solid
+                  // fill never ends up carrying a white icon it cannot show.
+                  const eventConfig: Record<
+                    string,
+                    { icon: React.ElementType; tone: BadgeTone }
+                  > = {
+                    submitted: { icon: FileText, tone: "accent" },
+                    approved: { icon: CheckCircle2, tone: "success" },
+                    rejected: { icon: XCircle, tone: "danger" },
+                    comment: { icon: MessageSquare, tone: "neutral" },
+                    movement: { icon: MapPin, tone: "info" },
                   };
 
                   return (
                     <div className="relative">
                       {events.map((event, i) => {
-                        const config = eventConfig[event.type] ?? { icon: Clock, bg: "bg-surface-sunken" };
+                        const config =
+                          eventConfig[event.type] ??
+                          ({ icon: Clock, tone: "neutral" } as const);
                         const Icon = config.icon;
                         const _isLast = i === events.length - 1;
 
                         return (
                           <div key={event.id} className="relative flex gap-3">
                             <div className="flex flex-col items-center">
-                              <div className={cn("flex h-6 w-6 shrink-0 items-center justify-center rounded-full", config.bg)}>
-                                <Icon className="h-3 w-3 text-white" />
+                              <div
+                                className={cn(
+                                  "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2",
+                                  TONE_MARKER[config.tone],
+                                )}
+                              >
+                                <Icon
+                                  className={cn("h-3 w-3", TONE_TEXT[config.tone])}
+                                />
                               </div>
                               {!_isLast && <div className="h-full w-0.5 bg-border" />}
                             </div>
@@ -1163,7 +1027,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
             {/* ▸ AUDIT TAB */}
             <TabsContent value="audit" className="mt-5">
-              <SectionCard title="Audit Trail" icon={History}>
+              <SectionCard title="Audit Trail" Icon={History}>
                 {auditLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-5 w-5 animate-spin text-muted" />
@@ -1211,7 +1075,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
             {/* ▸ DOCUMENTS TAB */}
             <TabsContent value="documents" className="mt-5">
-              <SectionCard title="Attachments" icon={FileText}>
+              <SectionCard title="Attachments" Icon={FileText}>
                 {documents.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <FileText className="mb-3 h-10 w-10 text-muted/50" />

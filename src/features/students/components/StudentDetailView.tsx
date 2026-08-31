@@ -1,6 +1,5 @@
 "use client";
 
-import { format, parseISO } from "date-fns";
 import {
   ArrowLeft,
   ArrowRight,
@@ -39,6 +38,7 @@ import { useLeaves } from "@/features/leaves/hooks/use-leaves";
 import { useStudent } from "@/features/students/hooks/use-students";
 import { useMovement } from "@/hooks/use-movement";
 import { manualCheckout, manualReturn, markOverdue } from "@/lib/api/movement-api";
+import { formatDate, formatDateTime } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 
 type StudentDetailViewProps = {
@@ -48,21 +48,7 @@ type StudentDetailViewProps = {
   viewerRole?: string;
 };
 
-function formatDate(dateStr: string): string {
-  try {
-    return format(parseISO(dateStr), "MMM d, yyyy");
-  } catch {
-    return dateStr?.split("T")[0] ?? "—";
-  }
-}
 
-function formatDateTime(dateStr: string): string {
-  try {
-    return format(parseISO(dateStr), "MMM d, yyyy h:mm a");
-  } catch {
-    return dateStr ?? "—";
-  }
-}
 
 export function StudentDetailView({ studentId, basePath = "/admin/students", viewerRole }: StudentDetailViewProps) {
   const router = useRouter();

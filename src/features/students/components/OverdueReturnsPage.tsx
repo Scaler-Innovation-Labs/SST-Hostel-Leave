@@ -21,8 +21,8 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Avatar } from "@/design-system/sst";
 import { formatDateTime } from "@/lib/date-utils";
-import { cn } from "@/lib/utils";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -63,27 +63,7 @@ function daysOverdue(endAt: string | null, now: number): number {
   return Math.max(0, Math.floor((now - end) / DAY_MS));
 }
 
-function getAvatarColor(id: string): string {
-  const colors = [
-    "bg-danger-light text-danger",
-    "bg-danger-light text-danger",
-    "bg-warning-light text-warning",
-  ];
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
-  }
-  return colors[Math.abs(hash) % colors.length]!;
-}
 
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0] ?? "")
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
 /**
  * Students who checked out (QR scanned at exit) but have not checked back in
@@ -216,15 +196,7 @@ export function OverdueReturnsPage({ detailBasePath }: OverdueReturnsPageProps) 
                 href={`${detailBasePath}/${row.studentId}`}
                 className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface-sunken/50"
               >
-                {/* Avatar */}
-                <div
-                  className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-caption font-semibold",
-                    getAvatarColor(row.id),
-                  )}
-                >
-                  {getInitials(row.studentName ?? "?")}
-                </div>
+                <Avatar name={row.studentName} size="md" />
 
                 {/* Main content */}
                 <div className="min-w-0 flex-1">

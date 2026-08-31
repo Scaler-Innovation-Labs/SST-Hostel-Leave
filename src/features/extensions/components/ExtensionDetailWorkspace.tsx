@@ -1,6 +1,5 @@
 "use client";
 
-import { format, parseISO } from "date-fns";
 import {
   ArrowLeft,
   Calendar,
@@ -21,10 +20,11 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
+import { Avatar } from "@/design-system/sst";
 import { useLeave } from "@/features/leaves/hooks/use-leaves";
 import { approveExtension } from "@/lib/api/extension-api";
+import { formatDate } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
-import { cn } from "@/lib/utils";
 
 import type { ExtensionCardItem } from "./ExtensionCard";
 
@@ -34,32 +34,8 @@ type ExtensionDetailWorkspaceProps = {
   onActionComplete: () => void;
 };
 
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0] ?? "")
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
-function formatDate(d: Date | string): string {
-  try {
-    const date = typeof d === "string" ? parseISO(d) : d;
-    return format(date, "MMM d, yyyy");
-  } catch {
-    return "—";
-  }
-}
 
-const avatarColors = [
-  "bg-accent-light text-accent",
-  "bg-success-light text-success",
-  "bg-accent-light text-accent",
-  "bg-warning-light text-warning",
-  "bg-danger-light text-danger",
-];
 
 export function ExtensionDetailWorkspace({
   item,
@@ -120,14 +96,7 @@ export function ExtensionDetailWorkspace({
           Student
         </h4>
         <div className="flex items-center gap-4">
-          <div
-            className={cn(
-              "flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-h3 font-semibold",
-              avatarColors[Math.abs((item.studentName ?? "").charCodeAt(0) || 0) % avatarColors.length],
-            )}
-          >
-            {getInitials(item.studentName ?? "?")}
-          </div>
+          <Avatar name={item.studentName} size="lg" />
           <div className="min-w-0 flex-1">
             <h3 className="text-h3 font-semibold">{item.studentName ?? "—"}</h3>
             <p className="font-mono text-body text-muted">

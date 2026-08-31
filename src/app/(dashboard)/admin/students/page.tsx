@@ -12,6 +12,7 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Pagination } from "@/components/shared/Pagination";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
+import { Avatar } from "@/design-system/sst";
 import { useDashboardStats } from "@/features/dashboard/hooks/use-dashboard-stats";
 import { useStudents } from "@/features/students/hooks/use-students";
 import { cn } from "@/lib/utils";
@@ -47,31 +48,7 @@ type StudentRow = {
   locationState: LocationStateData | null;
 };
 
-function getAvatarColor(id: string): string {
-  const colors = [
-    "bg-accent-light text-accent",
-    "bg-success-light text-success",
-    "bg-accent-light text-accent",
-    "bg-warning-light text-warning",
-    "bg-danger-light text-danger",
-    "bg-accent-light text-accent",
-  ];
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
-  }
-  const idx = Math.abs(hash) % colors.length;
-  return colors[idx]!;
-}
 
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0] ?? "")
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
 function getLocationColor(code: string): string {
   if (code === MOVEMENT_STATE.IN_HOSTEL) return "bg-success-light text-success";
@@ -197,15 +174,7 @@ export default function AdminStudentsPage() {
                   href={`/admin/students/${row.student.id}`}
                   className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface-sunken/50"
                 >
-                  {/* Avatar */}
-                  <div
-                    className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-caption font-semibold",
-                      getAvatarColor(row.student.id),
-                    )}
-                  >
-                    {getInitials(row.user?.fullName ?? "?")}
-                  </div>
+                  <Avatar name={row.user?.fullName} size="md" />
 
                   {/* Main content */}
                   <div className="min-w-0 flex-1">

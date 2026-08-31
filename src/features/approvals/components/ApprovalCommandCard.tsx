@@ -1,6 +1,6 @@
 "use client";
 
-import { format, formatDistanceToNow, parseISO } from "date-fns";
+import { formatDistanceToNow, parseISO } from "date-fns";
 import {
   Calendar,
   CheckCircle2,
@@ -28,12 +28,12 @@ import { Button } from "@/components/ui/button";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { VIEW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
-import { CHART } from "@/design-system/sst";
+import { CHART, initialsOf } from "@/design-system/sst";
 import type { ApprovalQueueItem } from "@/features/approvals/hooks/use-approvals";
 import { approveLeave, rejectLeave } from "@/lib/api/approval-api";
 import { approveExtension } from "@/lib/api/extension-api";
 import { softTint, topBannerGradient } from "@/lib/color-utils";
-import { getDurationLabel } from "@/lib/date-utils";
+import { formatDate, getDurationLabel } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 
@@ -63,10 +63,6 @@ type ApprovalCommandCardProps = {
   viewerRole?: "POC" | "ADMIN" | "SUPER_ADMIN";
 };
 
-function formatDate(d: Date | string): string {
-  const date = typeof d === "string" ? parseISO(d) : d;
-  return format(date, "MMM d");
-}
 
 function getWaitingTime(createdAt: string | Date): string {
   try {
@@ -77,15 +73,6 @@ function getWaitingTime(createdAt: string | Date): string {
   }
 }
 
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0] ?? "")
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
 const AVATAR_COLORS = [
   "bg-accent-light text-accent",
@@ -419,7 +406,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
           {/* Student + Leave row */}
           <div className="flex items-start gap-3">
             <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-body font-semibold", avatarColor)}>
-              {getInitials(item.studentName ?? "?")}
+              {initialsOf(item.studentName ?? "?")}
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="text-body font-semibold leading-tight">{item.studentName ?? "—"}</h3>
@@ -448,7 +435,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
             />
             <span className="inline-flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
-              {lr ? `${formatDate(lr.startAt)}→${formatDate(lr.endAt)}` : "—"}
+              {lr ? `${formatDate(lr.startAt)} → ${formatDate(lr.endAt)}` : "—"}
               <span className="ml-0.5 rounded bg-surface-sunken px-1 py-0.5 text-micro font-medium">
                 {lr ? getDurationLabel(lr.startAt, lr.endAt, { short: true }) : ""}
               </span>

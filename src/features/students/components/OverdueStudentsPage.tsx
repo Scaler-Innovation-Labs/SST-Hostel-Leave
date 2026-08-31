@@ -15,9 +15,9 @@ import { Pagination } from "@/components/shared/Pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
+import { Avatar } from "@/design-system/sst";
 import { useStudents } from "@/features/students/hooks/use-students";
 import { fetcher } from "@/lib/api/fetcher";
-import { cn } from "@/lib/utils";
 
 type HostelOption = { id: string; name: string; code: string };
 
@@ -44,29 +44,7 @@ type OverdueStudentsPageProps = {
   detailBasePath: string;
 };
 
-function getAvatarColor(id: string): string {
-  const colors = [
-    "bg-danger-light text-danger",
-    "bg-danger-light text-danger",
-    "bg-warning-light text-warning",
-    "bg-danger-light text-danger",
-  ];
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
-  }
-  const idx = Math.abs(hash) % colors.length;
-  return colors[idx]!;
-}
 
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0] ?? "")
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
 
 export function OverdueStudentsPage({ detailBasePath }: OverdueStudentsPageProps) {
   const [page, setPage] = useState(1);
@@ -193,15 +171,7 @@ export function OverdueStudentsPage({ detailBasePath }: OverdueStudentsPageProps
                   href={`${detailBasePath}/${student.id}`}
                   className="group flex items-center gap-4 px-5 py-4 transition-colors hover:bg-surface-sunken/50"
                 >
-                  {/* Avatar */}
-                  <div
-                    className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-caption font-semibold",
-                      getAvatarColor(student.id),
-                    )}
-                  >
-                    {getInitials(user?.fullName ?? "?")}
-                  </div>
+                  <Avatar name={user?.fullName} size="md" />
 
                   {/* Main content */}
                   <div className="min-w-0 flex-1">

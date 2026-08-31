@@ -1,9 +1,11 @@
 "use client";
 
-import { format, formatDistanceToNow, parseISO } from "date-fns";
+import { formatDistanceToNow, parseISO } from "date-fns";
 import { ArrowRight, Calendar, Clock, FileText } from "lucide-react";
 
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
+import { Avatar } from "@/design-system/sst";
+import { formatDate } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 
 export type ExtensionCardItem = {
@@ -34,14 +36,6 @@ type ExtensionCardProps = {
   onClick: () => void;
 };
 
-function formatDate(d: Date | string): string {
-  try {
-    const date = typeof d === "string" ? parseISO(d) : d;
-    return format(date, "MMM d");
-  } catch {
-    return "—";
-  }
-}
 
 export function ExtensionCard({ item, isSelected, onClick }: ExtensionCardProps) {
   const ext = item.extension;
@@ -65,22 +59,7 @@ export function ExtensionCard({ item, isSelected, onClick }: ExtensionCardProps)
     ? "bg-danger"
     : "bg-muted";
 
-  const initials = (item.studentName ?? "?")
-    .split(" ")
-    .map((n) => n[0] ?? "")
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 
-  const avatarColors = [
-    "bg-accent-light text-accent",
-    "bg-success-light text-success",
-    "bg-accent-light text-accent",
-    "bg-warning-light text-warning",
-    "bg-danger-light text-danger",
-  ];
-  const avatarColor =
-    avatarColors[Math.abs((item.studentName ?? "").charCodeAt(0) || 0) % avatarColors.length]!;
 
   return (
     <button
@@ -124,15 +103,7 @@ export function ExtensionCard({ item, isSelected, onClick }: ExtensionCardProps)
 
       {/* Content */}
       <div className="flex items-start gap-3 pl-3">
-        {/* Avatar */}
-        <div
-          className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-caption font-semibold",
-            avatarColor,
-          )}
-        >
-          {initials}
-        </div>
+        <Avatar name={item.studentName} size="md" />
 
         <div className="min-w-0 flex-1 space-y-1.5">
           {/* Name + Roll */}

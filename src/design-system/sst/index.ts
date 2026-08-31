@@ -5,6 +5,7 @@
  * package directly, so a change to the system lands everywhere at once.
  */
 
+export { Avatar, initialsOf } from "./Avatar";
 export type { BadgeProps, BadgeTone } from "./Badge";
 export { Badge, badgeVariants } from "./Badge";
 export type { ButtonProps } from "./Button";
@@ -64,6 +65,8 @@ export {
   LEAVE_STATUS_PRESENTATION,
   MOVEMENT_STATE_PRESENTATION,
   QR_STATUS_PRESENTATION,
+  TONE_MARKER,
+  TONE_TEXT,
 } from "./status";
 export type { StatusBadgeProps } from "./StatusBadge";
 export { StatusBadge } from "./StatusBadge";

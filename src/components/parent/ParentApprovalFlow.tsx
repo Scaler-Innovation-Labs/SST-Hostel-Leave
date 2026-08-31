@@ -13,6 +13,8 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
+import { initialsOf } from "@/design-system/sst";
+import { formatDate } from "@/lib/date-utils";
 
 type LeaveData = {
   approvalId: string;
@@ -37,22 +39,7 @@ type Props = {
   leaveData: LeaveData;
 };
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
-}
 
 function formatFieldLabel(key: string): string {
   return key.replace(/([A-Z])/g, " $1").trim();
@@ -66,7 +53,7 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
   const [comments, setComments] = useState<string>("");
 
   const isExtension = leaveData.targetType === "LEAVE_EXTENSION";
-  const initials = getInitials(leaveData.studentName);
+  const initials = initialsOf(leaveData.studentName);
 
   const handleDecision = async (dec: string) => {
     setDecision(dec);

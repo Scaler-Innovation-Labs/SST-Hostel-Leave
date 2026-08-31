@@ -18,6 +18,11 @@ const DAY_MONTH = "d MMMM";
 /** `3 March 2025` — only when the date is not in the current year. */
 const DAY_MONTH_YEAR = "d MMMM yyyy";
 
+/** Callers hold either an ISO string from the API or an already-parsed Date. */
+function toDate(value: Date | string): Date {
+  return typeof value === "string" ? parseISO(value) : value;
+}
+
 function isThisYear(date: Date): boolean {
   return date.getFullYear() === new Date().getFullYear();
 }
@@ -30,9 +35,9 @@ function dayPattern(date: Date): string {
  * Relative only under 24 hours; past that a reader wants the date, not a
  * count of days to translate.
  */
-export function formatRelative(dateStr: string): string {
+export function formatRelative(value: Date | string): string {
   try {
-    const date = parseISO(dateStr);
+    const date = toDate(value);
     const diffMs = Date.now() - date.getTime();
     const future = diffMs < 0;
     const mins = Math.floor(Math.abs(diffMs) / 60000);
@@ -54,12 +59,12 @@ export function formatRelative(dateStr: string): string {
 }
 
 /** `3 March`, or `3 March 2025` outside the current year. */
-export function formatDate(dateStr: string): string {
+export function formatDate(value: Date | string): string {
   try {
-    const date = parseISO(dateStr);
+    const date = toDate(value);
     return format(date, dayPattern(date));
   } catch {
-    return dateStr.split("T")[0] ?? "\u2014";
+    return typeof value === "string" ? (value.split("T")[0] ?? "—") : "—";
   }
 }
 
@@ -73,9 +78,9 @@ export function formatShortDate(date: Date): string {
 }
 
 /** `3 March, 18:00 IST`. Within this week, the weekday leads instead. */
-export function formatDateTime(dateStr: string): string {
+export function formatDateTime(value: Date | string): string {
   try {
-    const date = parseISO(dateStr);
+    const date = toDate(value);
     const time = format(date, TIME);
     if (isWithinWeek(date)) {
       return `${format(date, "EEEE")}, ${time} ${OPERATING_TIMEZONE}`;
@@ -87,9 +92,9 @@ export function formatDateTime(dateStr: string): string {
 }
 
 /** Compact duration: `1h 30m`, never `90 minutes`. */
-export function formatTimeRemaining(dateStr: string): string {
+export function formatTimeRemaining(value: Date | string): string {
   try {
-    const target = parseISO(dateStr);
+    const target = toDate(value);
     const diffMs = target.getTime() - Date.now();
     if (diffMs <= 0) return "Expired";
 
@@ -109,10 +114,13 @@ export function formatTimeRemaining(dateStr: string): string {
  * `3 March, 18:00\u201319:00 IST` for a single day; `3 March \u2192 5 March` across
  * days. The timezone is named once, on the times it applies to.
  */
-export function formatDateRange(startStr: string, endStr: string): string {
+export function formatDateRange(
+  startValue: Date | string,
+  endValue: Date | string
+): string {
   try {
-    const start = parseISO(startStr);
-    const end = parseISO(endStr);
+    const start = toDate(startValue);
+    const end = toDate(endValue);
 
     if (start.toDateString() === end.toDateString()) {
       return `${format(start, dayPattern(start))}, ${format(start, TIME)}\u2013${format(end, TIME)} ${OPERATING_TIMEZONE}`;
