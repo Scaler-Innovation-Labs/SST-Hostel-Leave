@@ -84,9 +84,6 @@ export function ExtensionQueue({
           page={page}
           totalPages={totalPages}
           onPageChange={onPageChange}
-          variant="ghost"
-          labelPosition="center"
-          labelFormat="slash"
           className="pt-3"
         />
       )}

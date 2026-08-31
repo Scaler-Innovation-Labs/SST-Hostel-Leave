@@ -1,35 +1,42 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2 } from "lucide-react";
+import { CalendarPlus, FileText, Info, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import useSWR from "swr";
 
-import { ErrorState } from "@/components/shared/ErrorState";
-import { LoadingState } from "@/components/shared/LoadingState";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants/routes";
+import {
+  Button,
+  ConfirmDialog,
+  ErrorState,
+  Field,
+  fieldControlProps,
+  Masthead,
+  Refusal,
+  SectionCard,
+  Select,
+  Skeleton,
+  TECH_LABEL,
+  Textarea,
+} from "@/design-system/sst";
 import type { CreateLeaveDto } from "@/dto/leave/create-leave.dto";
 import type { CreateLeaveFormDto } from "@/dto/leave/create-leave-form.dto";
 import { createLeaveFormSchema } from "@/dto/leave/create-leave-form.dto";
 import { DynamicLeaveFields } from "@/features/leaves/components/DynamicLeaveFields";
-import { type LeaveTypeOption as LeaveTypeItem, useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
+import {
+  type LeaveTypeOption as LeaveTypeItem,
+  useLeaveTypes,
+} from "@/features/leaves/hooks/use-leaves";
 import { fetcher } from "@/lib/api/fetcher";
 import { createLeave } from "@/lib/api/leave-api";
 import { formatDateRange } from "@/lib/date-utils";
 import { parseLeaveFormSchema } from "@/lib/leave-form-schema";
+
+const REASON_LIMIT = 1000;
 
 type PocUser = {
   id: string;
@@ -44,11 +51,15 @@ function toDatetimeLocal(date: Date): string {
 
 export default function NewLeavePage() {
   const router = useRouter();
-  const { leaveTypes, isLoading: typesLoading, isError: typesError } = useLeaveTypes();
+  const {
+    leaveTypes,
+    isLoading: typesLoading,
+    isError: typesError,
+  } = useLeaveTypes();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [showPocPermissionNotice, setShowPocPermissionNotice] = useState(false);
-  const [prevIsLateStay, setPrevIsLateStay] = useState(false);
+  const [showPocNotice, setShowPocNotice] = useState(false);
+  const [previousWasLateStay, setPreviousWasLateStay] = useState(false);
 
   const {
     register,
@@ -58,53 +69,50 @@ export default function NewLeavePage() {
     formState: { errors },
   } = useForm<CreateLeaveFormDto>({
     resolver: zodResolver(createLeaveFormSchema),
-    defaultValues: {
-      reason: "",
-      startAt: "",
-      endAt: "",
-    },
+    defaultValues: { reason: "", startAt: "", endAt: "" },
   });
 
   const startAt = useWatch({ control, name: "startAt" });
   const endAt = useWatch({ control, name: "endAt" });
   const reason = useWatch({ control, name: "reason" });
   const selectedLeaveTypeId = useWatch({ control, name: "leaveTypeId" });
+
   const selectedLeaveType = leaveTypes.find(
-    (lt: LeaveTypeItem) => lt.id === selectedLeaveTypeId,
+    (type: LeaveTypeItem) => type.id === selectedLeaveTypeId
   );
-  const needsPoc = (selectedLeaveType as LeaveTypeItem | undefined)?.requiresPoc ?? false;
+  const typeDescription = selectedLeaveType?.description ?? undefined;
+  const needsPoc = selectedLeaveType?.requiresPoc ?? false;
   const dynamicSchema = parseLeaveFormSchema(selectedLeaveType?.formSchema);
 
-  const pocKey = needsPoc ? "/api/v1/users/pocs" : null;
-  const { data: pocData, isLoading: pocLoading } = useSWR<PocUser[]>(pocKey, fetcher);
+  const { data: pocData, isLoading: pocLoading } = useSWR<PocUser[]>(
+    needsPoc ? "/api/v1/users/pocs" : null,
+    fetcher
+  );
   const pocUsers = pocData ?? [];
 
-  // "Late Stay At College" requests must be verbally approved by the POC
-  // before the student submits — remind them whenever this type is selected.
+  // A late stay must be cleared with the POC in person before it is submitted,
+  // so the reminder fires the moment that type is chosen.
   const isLateStay = selectedLeaveType?.code === "LATE_STAY_COLLEGE";
-  if (prevIsLateStay !== isLateStay) {
-    setPrevIsLateStay(isLateStay);
-    setShowPocPermissionNotice(isLateStay);
+  if (previousWasLateStay !== isLateStay) {
+    setPreviousWasLateStay(isLateStay);
+    setShowPocNotice(isLateStay);
   }
 
   useEffect(() => {
     unregister("submittedForm");
   }, [selectedLeaveTypeId, unregister]);
 
-  const canShowDatePreview = startAt && endAt && new Date(startAt) < new Date(endAt);
+  const showPeriod = startAt && endAt && new Date(startAt) < new Date(endAt);
 
-  if (typesLoading) return <LoadingState count={3} />;
-  if (typesError) return <ErrorState message="Failed to load leave types" />;
-
-  const description = selectedLeaveType?.description ?? "Submit a new hostel leave request.";
-
-  const onSubmit = async (data: CreateLeaveFormDto) => {
+  async function onSubmit(data: CreateLeaveFormDto) {
     setSubmitting(true);
     setSubmitError(null);
 
     try {
       if (needsPoc && !data.pocId) {
-        throw new Error("Please select a Point of Contact (POC) for this leave type");
+        throw new Error(
+          "This leave type needs a point of contact. Pick the staff member who has agreed to be yours."
+        );
       }
 
       const payload: CreateLeaveDto = {
@@ -113,160 +121,193 @@ export default function NewLeavePage() {
         endAt: new Date(data.endAt).toISOString(),
       };
 
-      const result = await createLeave(payload) as { id?: string };
+      const result = (await createLeave(payload)) as { id?: string };
 
       toast.success("Leave request submitted");
-      if (result?.id) {
-        router.push(`/student/leaves/${result.id}`);
-      } else {
-        router.push(ROUTES.STUDENT_LEAVES);
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to create leave";
+      router.push(
+        result?.id ? `${ROUTES.STUDENT_LEAVES}/${result.id}` : ROUTES.STUDENT_LEAVES
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "We couldn't submit your request";
       toast.error(message);
       setSubmitError(message);
     } finally {
       setSubmitting(false);
     }
-  };
+  }
+
+  if (typesLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-40 rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+      </div>
+    );
+  }
+
+  if (typesError) {
+    return (
+      <ErrorState
+        title="We couldn't load the leave types"
+        description="Without them there's nothing to choose from. Try again in a moment."
+        onRetry={() => router.refresh()}
+      />
+    );
+  }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">New Leave Request</h1>
-        <p className="mt-1 text-sm text-muted">{description}</p>
-      </div>
+    <div className="space-y-6">
+      <Masthead
+        eyebrow="Student"
+        title="Request leave"
+        description={
+          typeDescription ??
+          "Tell us when you're going and why. Your request goes to whoever has to approve this kind of leave."
+        }
+      />
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <div className="mb-5">
-            <h2 className="text-base font-semibold">Leave Details</h2>
-            <p className="mt-1 text-xs text-muted">Choose the type of leave and describe your reason.</p>
-          </div>
-
+        <SectionCard Icon={FileText} title="The request">
           <div className="space-y-5">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">Leave Type <span className="text-destructive">*</span></label>
-              <select
+            <Field
+              htmlFor="leaveTypeId"
+              label="Leave type"
+              required
+              hint={typeDescription}
+              error={errors.leaveTypeId?.message}
+            >
+              <Select
                 {...register("leaveTypeId")}
-                className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                {...fieldControlProps("leaveTypeId", {
+                  hint: typeDescription,
+                  error: errors.leaveTypeId?.message,
+                })}
               >
-                <option value="">Select leave type...</option>
-                {leaveTypes.map((lt: LeaveTypeItem) => (
-                  <option key={lt.id} value={lt.id}>
-                    {lt.name}
+                <option value="">Choose a leave type…</option>
+                {leaveTypes.map((type: LeaveTypeItem) => (
+                  <option key={type.id} value={type.id}>
+                    {type.name}
                   </option>
                 ))}
-              </select>
-              {selectedLeaveType?.description && (
-                <p className="mt-1.5 text-xs text-muted">{selectedLeaveType.description}</p>
-              )}
-              {errors.leaveTypeId && (
-                <p className="mt-1 text-xs text-destructive">{errors.leaveTypeId.message}</p>
-              )}
-            </div>
+              </Select>
+            </Field>
 
-            <div>
-              <label className="mb-1.5 block text-sm font-medium">Reason <span className="text-destructive">*</span></label>
-              <textarea
-                {...register("reason")}
+            <Field
+              htmlFor="reason"
+              label="Reason"
+              required
+              error={errors.reason?.message}
+            >
+              <Textarea
                 rows={4}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
-                placeholder="Describe the reason for your leave..."
+                placeholder="Where you're going and why."
+                {...register("reason")}
+                {...fieldControlProps("reason", {
+                  error: errors.reason?.message,
+                })}
               />
-              <div className="mt-1 flex items-center justify-between">
-                {errors.reason ? (
-                  <p className="text-xs text-destructive">{errors.reason.message}</p>
-                ) : <span />}
-                <span className="text-xs text-muted">{(reason ?? "").length}/1000</span>
-              </div>
-            </div>
+              <p className="text-right text-caption tabular-nums text-muted">
+                {(reason ?? "").length} / {REASON_LIMIT}
+              </p>
+            </Field>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">Start Date & Time <span className="text-destructive">*</span></label>
+              <Field
+                htmlFor="startAt"
+                label="Leaving"
+                required
+                error={errors.startAt?.message}
+              >
                 <input
                   type="datetime-local"
+                  className="h-10 w-full rounded-md border border-border bg-surface-sunken px-3 text-body text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
                   {...register("startAt")}
-                  className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                  {...fieldControlProps("startAt", {
+                    error: errors.startAt?.message,
+                  })}
                 />
-                {errors.startAt && (
-                  <p className="mt-1 text-xs text-destructive">{errors.startAt.message}</p>
-                )}
-              </div>
+              </Field>
 
-              <div>
-                <label className="mb-1.5 block text-sm font-medium">End Date & Time <span className="text-destructive">*</span></label>
+              <Field
+                htmlFor="endAt"
+                label="Returning"
+                required
+                error={errors.endAt?.message}
+              >
                 <input
                   type="datetime-local"
-                  {...register("endAt")}
                   min={startAt ? toDatetimeLocal(new Date(startAt)) : undefined}
-                  className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="h-10 w-full rounded-md border border-border bg-surface-sunken px-3 text-body text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+                  {...register("endAt")}
+                  {...fieldControlProps("endAt", {
+                    error: errors.endAt?.message,
+                  })}
                 />
-                {errors.endAt && (
-                  <p className="mt-1 text-xs text-destructive">{errors.endAt.message}</p>
-                )}
-              </div>
+              </Field>
             </div>
 
-            {canShowDatePreview && (
-              <div className="rounded-lg bg-surface-sunken px-3 py-2">
-                <p className="text-xs text-muted">
-                  Leave period: <span className="font-medium text-foreground">{formatDateRange(startAt, endAt)}</span>
+            {showPeriod && (
+              <div className="rounded-lg border border-border bg-surface-sunken px-3 py-2">
+                <p className={TECH_LABEL}>You&apos;ll be away</p>
+                <p className="mt-0.5 text-body font-medium text-ink">
+                  {formatDateRange(startAt, endAt)}
                 </p>
               </div>
             )}
           </div>
-        </div>
+        </SectionCard>
 
+        {/* Asked for only once a type that needs them is chosen. */}
         {dynamicSchema.fields.length > 0 && (
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className="mb-5">
-              <h2 className="text-base font-semibold">Additional Information</h2>
-              <p className="mt-1 text-xs text-muted">Extra details required for this leave type.</p>
-            </div>
+          <SectionCard
+            Icon={Info}
+            title="Extra details"
+            meta={`Required for ${selectedLeaveType?.name ?? "this type"}`}
+          >
             <DynamicLeaveFields schema={dynamicSchema} register={register} />
-          </div>
+          </SectionCard>
         )}
 
         {needsPoc && (
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-            <div className="mb-5">
-              <h2 className="text-base font-semibold">Point of Contact <span className="text-destructive">*</span></h2>
-              <p className="mt-1 text-xs text-muted">Select the POC who will be notified about your leave.</p>
-            </div>
-            <div>
-              <select
-                {...register("pocId")}
-                className="h-9 w-full rounded-lg border border-input bg-background px-3 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+          <SectionCard Icon={UserCheck} title="Point of contact">
+            <Field
+              htmlFor="pocId"
+              label="Who is your point of contact?"
+              required
+              hint="They're notified about this leave and may need to approve it."
+              error={errors.pocId?.message}
+            >
+              <Select
                 disabled={pocLoading}
+                {...register("pocId")}
+                {...fieldControlProps("pocId", {
+                  hint: "They're notified about this leave and may need to approve it.",
+                  error: errors.pocId?.message,
+                })}
               >
                 <option value="">
-                  {pocLoading ? "Loading POCs..." : "Select a POC..."}
+                  {pocLoading ? "Loading staff…" : "Choose a point of contact…"}
                 </option>
                 {pocUsers.map((poc) => (
                   <option key={poc.id} value={poc.id}>
-                    {poc.fullName}{poc.email ? ` (${poc.email})` : ""}
+                    {poc.fullName}
+                    {poc.email ? ` — ${poc.email}` : ""}
                   </option>
                 ))}
-              </select>
-              {pocLoading && (
-                <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Loading available POCs...
-                </p>
-              )}
-              {errors.pocId && (
-                <p className="mt-1 text-xs text-destructive">{errors.pocId.message}</p>
-              )}
-            </div>
-          </div>
+              </Select>
+            </Field>
+          </SectionCard>
         )}
 
         {submitError && (
-          <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-            {submitError}
-          </div>
+          <Refusal
+            what="We couldn't submit your request"
+            why={submitError}
+            whatNow="Check the fields above and try again. Nothing has been saved yet."
+          />
         )}
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -275,36 +316,31 @@ export default function NewLeavePage() {
             variant="outline"
             onClick={() => router.back()}
             disabled={submitting}
-            className="sm:w-auto"
           >
-            Cancel
+            Discard
           </Button>
-          <Button type="submit" disabled={submitting} className="gap-1.5 sm:w-auto">
-            {submitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              "Submit Leave Request"
-            )}
+          <Button
+            type="submit"
+            loading={submitting}
+            loadingText="Submitting…"
+            trailingArrow
+          >
+            <CalendarPlus className="h-4 w-4" aria-hidden />
+            Submit request
           </Button>
         </div>
       </form>
 
-      <AlertDialog open={showPocPermissionNotice} onOpenChange={setShowPocPermissionNotice}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle>POC Permission Required</AlertDialogTitle>
-            <AlertDialogDescription>
-              Please submit your request only after getting the permission from the POC.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowPocPermissionNotice(false)}>I understand</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={showPocNotice}
+        onOpenChange={setShowPocNotice}
+        title="Clear this with your POC first"
+        consequence="A late stay needs your point of contact's agreement before you submit. Submitting without it will get the request rejected."
+        confirmLabel="I've got permission"
+        dismissLabel="Pick another type"
+        destructive={false}
+        onConfirm={() => setShowPocNotice(false)}
+      />
     </div>
   );
 }

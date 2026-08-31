@@ -68,7 +68,6 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { CATEGORY_COLORS } from "@/constants/leave/leave-category";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { useApprovalChain } from "@/features/approvals/hooks/use-approval-chain";
 import { AskAQuestionSection } from "@/features/leaves/components/AskAQuestionSection";
@@ -793,7 +792,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 <dl className="space-y-3">
                   <DetailRow label="Leave Type">
                     <span className="flex items-center gap-2">
-                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[leaveTypeCategory ?? ""] ?? "bg-surface-sunken text-muted"}`}>
+                      <span className="rounded-sm border border-border bg-surface-sunken px-1.5 py-0.5 text-micro font-medium text-muted">
                         {leaveTypeCategory ?? "—"}
                       </span>
                       {leaveType}

@@ -9,7 +9,7 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
-import { CATEGORY_COLORS, LEAVE_TYPE_COLOR_PALETTE } from "@/constants/leave/leave-category";
+import { LEAVE_TYPE_COLOR_PALETTE } from "@/constants/leave/leave-category";
 import { LEAVE_WORKFLOW_MODE } from "@/constants/leave/workflow-mode";
 import { fetcher } from "@/lib/api/fetcher";
 
@@ -271,7 +271,7 @@ export default function LeaveTypesPage() {
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${CATEGORY_COLORS[lt.category] ?? "bg-surface-sunken text-muted"}`}>
+                    <span className="rounded-sm border border-border bg-surface-sunken px-1.5 py-0.5 text-micro font-medium text-muted">
                       {CATEGORY_LABELS[lt.category] ?? lt.category}
                     </span>
                     {isSpecial && (

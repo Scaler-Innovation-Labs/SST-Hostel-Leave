@@ -1,59 +1,31 @@
 "use client";
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/design-system/sst";
 
 type ConfirmationDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** The question, naming the action: "Cancel this leave request?" */
   title: string;
-  description?: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  variant?: "default" | "destructive";
+  /** What happens if they go ahead, including anything irreversible. */
+  consequence: string;
+  /** The action, as a verb. Never "OK", "Yes" or "Confirm". */
+  confirmLabel: string;
+  /** What dismissing preserves: "Keep it". Never "Cancel". */
+  dismissLabel?: string;
+  destructive?: boolean;
   onConfirm: () => void;
   loading?: boolean;
 };
 
+/**
+ * Kept as the shared entry point for existing call sites; the implementation
+ * is the design system's. `consequence` and `confirmLabel` are required with
+ * no defaults, so a caller cannot fall back to "Are you sure? / OK / Cancel".
+ */
 export function ConfirmationDialog({
-  open,
-  onOpenChange,
-  title,
-  description,
-  confirmLabel = "Confirm",
-  cancelLabel = "Cancel",
-  variant = "default",
-  onConfirm,
-  loading = false,
+  dismissLabel = "Keep it",
+  ...props
 }: ConfirmationDialogProps) {
-  return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          {description && (
-            <AlertDialogDescription>{description}</AlertDialogDescription>
-          )}
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>{cancelLabel}</AlertDialogCancel>
-          <Button
-            variant={variant === "destructive" ? "destructive" : "default"}
-            onClick={onConfirm}
-            disabled={loading}
-          >
-            {confirmLabel}
-          </Button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
+  return <ConfirmDialog dismissLabel={dismissLabel} {...props} />;
 }

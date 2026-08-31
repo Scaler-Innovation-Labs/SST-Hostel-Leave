@@ -124,10 +124,10 @@ export function DocumentList({ leaveId, canDelete = false, requiredDocument }: D
         <ConfirmationDialog
           open={!!confirmDeleteId}
           onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}
-          title="Delete Document"
-          description="Are you sure you want to delete this document? This action cannot be undone."
-          confirmLabel="Delete"
-          variant="destructive"
+          title="Delete this document?"
+          consequence="The file is removed permanently and cannot be recovered. If it was required for this leave type, you'll need to upload a replacement."
+          confirmLabel="Delete document"
+          dismissLabel="Keep it"
           onConfirm={handleDelete}
           loading={deletingId !== null}
         />

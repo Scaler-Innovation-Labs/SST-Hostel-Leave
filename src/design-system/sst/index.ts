@@ -46,6 +46,7 @@ export type { BandTone, Stat } from "./Section";
 export { Band, RowList, Section, StatRow } from "./Section";
 export type { SectionCardProps } from "./SectionCard";
 export { SectionCard } from "./SectionCard";
+export { Select } from "./Select";
 export { Skeleton } from "./Skeleton";
 export type { EmptyStateProps, ErrorStateProps, RefusalProps } from "./States";
 export {

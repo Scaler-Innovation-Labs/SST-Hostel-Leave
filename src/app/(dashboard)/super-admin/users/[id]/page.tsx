@@ -306,10 +306,10 @@ export default function SuperAdminUserDetailPage() {
       <ConfirmationDialog
         open={showDeactivateDialog}
         onOpenChange={setShowDeactivateDialog}
-        title="Deactivate User"
-        description={`Are you sure you want to deactivate ${user.fullName}? They will lose access to the system.`}
-        confirmLabel="Deactivate"
-        variant="destructive"
+        title={`Deactivate ${user.fullName}?`}
+        consequence="They lose access immediately and any approvals waiting on them stay unactioned until someone else picks them up. You can reactivate them later."
+        confirmLabel="Deactivate account"
+        dismissLabel="Keep active"
         loading={isToggling}
         onConfirm={async () => {
           await handleToggleActive();

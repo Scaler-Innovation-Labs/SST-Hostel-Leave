@@ -430,7 +430,6 @@ export function ExtensionApprovalsPage() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
-        labelPosition="center"
       />
     </div>
   );

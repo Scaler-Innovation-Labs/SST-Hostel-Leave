@@ -311,27 +311,29 @@ export function ExtensionDetailWorkspace({
       <ConfirmationDialog
         open={actionTarget === "approve"}
         onOpenChange={() => setActionTarget(null)}
-        title="Approve Extension"
-        description={
+        title="Approve this extension?"
+        consequence={
           comments
-            ? `Approve this extension with your comment: "${comments}"`
-            : "Are you sure you want to approve this extension request?"
+            ? `The student's return deadline moves to the requested date and they are notified. Your comment is recorded: "${comments}"`
+            : "The student's return deadline moves to the requested date and they are notified."
         }
-        confirmLabel="Approve Extension"
+        confirmLabel="Approve extension"
+        dismissLabel="Go back"
+        destructive={false}
         onConfirm={handleAction}
         loading={actionLoading}
       />
       <ConfirmationDialog
         open={actionTarget === "reject"}
         onOpenChange={() => setActionTarget(null)}
-        title="Reject Extension"
-        description={
+        title="Reject this extension?"
+        consequence={
           comments
-            ? `Reject this extension with your comment: "${comments}"`
-            : "Are you sure you want to reject this extension request?"
+            ? `The student keeps their original return deadline and is notified. Your reason is recorded: "${comments}"`
+            : "The student keeps their original return deadline and is notified. Adding a reason first helps them understand the decision."
         }
-        confirmLabel="Reject Extension"
-        variant="destructive"
+        confirmLabel="Reject extension"
+        dismissLabel="Go back"
         onConfirm={handleAction}
         loading={actionLoading}
       />

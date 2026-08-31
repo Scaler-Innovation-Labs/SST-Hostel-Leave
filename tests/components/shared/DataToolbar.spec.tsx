@@ -7,12 +7,12 @@ import { DataToolbar } from "@/components/shared/DataToolbar";
 describe("DataToolbar", () => {
   it("renders search input when search props are provided", () => {
     render(<DataToolbar searchValue="" onSearchChange={() => {}} />);
-    expect(screen.getByPlaceholderText("Search...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search…")).toBeInTheDocument();
   });
 
   it("hides search input when search props are omitted", () => {
     render(<DataToolbar />);
-    expect(screen.queryByPlaceholderText("Search...")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Search…")).not.toBeInTheDocument();
   });
 
   it("renders custom search placeholder", () => {
@@ -23,7 +23,7 @@ describe("DataToolbar", () => {
   it("calls onSearchChange when typing in search", () => {
     const handleChange = vi.fn();
     render(<DataToolbar searchValue="" onSearchChange={handleChange} />);
-    const input = screen.getByPlaceholderText("Search...");
+    const input = screen.getByPlaceholderText("Search…");
     fireEvent.change(input, { target: { value: "test" } });
     expect(handleChange).toHaveBeenCalledWith("test");
   });
@@ -70,19 +70,27 @@ describe("DataToolbar", () => {
     expect(handleFilterChange).toHaveBeenCalledWith("active");
   });
 
-  it("displays total count when provided", () => {
+  it("displays the total count when provided", () => {
     render(<DataToolbar total={42} />);
     expect(screen.getByText("42")).toBeInTheDocument();
-    expect(screen.getByText("results found")).toBeInTheDocument();
+    expect(screen.getByText(/results/)).toBeInTheDocument();
   });
 
-  it("displays singular 'result' for total of 1", () => {
-    render(<DataToolbar total={1} />);
-    expect(screen.getByText("result found")).toBeInTheDocument();
+  it("uses the singular for a total of one", () => {
+    const { container } = render(<DataToolbar total={1} />);
+    expect(container.textContent).toContain("1 result");
+    expect(container.textContent).not.toContain("results");
   });
 
-  it("shows filtered indicator when filters are active", () => {
-    render(
+  it("names the counted thing when given one", () => {
+    const { container } = render(
+      <DataToolbar total={3} noun="leave request" />,
+    );
+    expect(container.textContent).toContain("leave requests");
+  });
+
+  it("says the count is filtered when a filter is active", () => {
+    const { container } = render(
       <DataToolbar
         total={10}
         filters={[
@@ -96,11 +104,11 @@ describe("DataToolbar", () => {
         ]}
       />,
     );
-    expect(screen.getByText("(filtered)")).toBeInTheDocument();
+    expect(container.textContent).toContain("matching your filters");
   });
 
-  it("does not show filtered indicator when no filters are active", () => {
-    render(<DataToolbar total={10} />);
-    expect(screen.queryByText("(filtered)")).not.toBeInTheDocument();
+  it("does not claim filtering when no filter is active", () => {
+    const { container } = render(<DataToolbar total={10} />);
+    expect(container.textContent).not.toContain("matching your filters");
   });
 });

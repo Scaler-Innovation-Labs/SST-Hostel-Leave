@@ -541,10 +541,6 @@ export default function SuperAdminStudentsPage() {
                   page={students.page}
                   totalPages={students.totalPages}
                   onPageChange={setPage}
-                  variant="plain"
-                  labelPosition="center"
-                  labelFormat="slash"
-                  bordered={false}
                   className="pt-2"
                 />
               )}

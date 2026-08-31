@@ -377,10 +377,6 @@ export default function SuperAdminParentsPage() {
                   page={parents.page}
                   totalPages={parents.totalPages}
                   onPageChange={setPage}
-                  variant="plain"
-                  labelPosition="center"
-                  labelFormat="slash"
-                  bordered={false}
                   className="pt-2"
                 />
               )}
