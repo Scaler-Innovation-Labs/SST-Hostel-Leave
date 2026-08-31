@@ -275,14 +275,14 @@ export default function LeaveTypesPage() {
                       {CATEGORY_LABELS[lt.category] ?? lt.category}
                     </span>
                     {isSpecial && (
-                      <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-medium text-yellow-800">
+                      <span className="rounded-sm bg-warning-light px-2 py-0.5 text-micro font-medium text-warning">
                         Special
                       </span>
                     )}
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
                         lt.isActive
-                          ? "bg-green-100 text-green-800"
+                          ? "bg-success-light text-success"
                           : "bg-surface-sunken text-muted"
                       }`}
                     >
@@ -486,10 +486,10 @@ export default function LeaveTypesPage() {
           <div>
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <p className="font-mono text-micro font-medium uppercase tracking-wider text-muted">
                   Required Documents
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-caption text-muted">
                   Ask students to upload supporting documents for this leave type.
                 </p>
               </div>
@@ -511,9 +511,11 @@ export default function LeaveTypesPage() {
                 Add document
               </Button>
             </div>
-            <div className="space-y-3 rounded-lg border bg-muted/10 p-4">
+            <div className="space-y-3 rounded-lg border border-border bg-surface-sunken p-4">
               {draft.requiredDocuments.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No supporting documents configured.</p>
+                <p className="text-caption text-muted">
+                  No supporting documents required for this leave type.
+                </p>
               ) : (
                 draft.requiredDocuments.map((document, index) => (
                   <div key={`${document.code}-${index}`} className="rounded-lg border bg-background p-3">
@@ -657,7 +659,7 @@ export default function LeaveTypesPage() {
           {message && (
             <p
               className={`text-sm ${
-                message === "Leave type saved." ? "text-green-600" : "text-muted"
+                message === "Leave type saved." ? "text-success" : "text-muted"
               }`}
             >
               {message}

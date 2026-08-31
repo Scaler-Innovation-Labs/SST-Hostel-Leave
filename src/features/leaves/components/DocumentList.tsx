@@ -67,7 +67,7 @@ export function DocumentList({ leaveId, canDelete = false, requiredDocument }: D
     <CollapsibleSection title="Documents" icon={FileText}>
       <div className="space-y-2">
         {requiredDocument && !hasRequiredDocument && (
-          <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+          <div className="rounded-xl border border-warning/30 bg-warning-light p-4">
             <p className="text-sm font-medium">{requiredDocument.label} required</p>
             <p className="mt-1 text-xs text-muted">
               Upload this document so it can be reviewed with your leave request.
