@@ -49,8 +49,8 @@ export function ExtensionQueue({
         )}
       >
         <Inbox className="mb-3 h-12 w-12 text-muted/50" />
-        <h3 className="text-base font-medium">No extensions found</h3>
-        <p className="mt-1 max-w-sm text-sm text-muted">
+        <h3 className="text-body-lg font-medium">No extensions found</h3>
+        <p className="mt-1 max-w-sm text-body text-muted">
           No extension approvals to review.
         </p>
       </div>
@@ -60,10 +60,10 @@ export function ExtensionQueue({
   return (
     <div className={cn("space-y-3", className)}>
       <div className="flex items-center justify-between px-1">
-        <p className="text-xs text-muted">
+        <p className="text-caption text-muted">
           <span className="font-medium text-foreground">{total}</span> extension{total !== 1 ? "s" : ""}
         </p>
-        <p className="text-xs text-muted">
+        <p className="text-caption text-muted">
           Page {page} of {totalPages}
         </p>
       </div>

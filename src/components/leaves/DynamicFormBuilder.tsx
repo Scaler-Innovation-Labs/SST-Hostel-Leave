@@ -105,20 +105,20 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-muted">
+        <p className="text-caption font-medium text-muted">
           {fields.length} field{fields.length !== 1 ? "s" : ""} configured
         </p>
         <button
           type="button"
           onClick={addField}
-          className="flex items-center gap-1 rounded-lg border border-dashed border-border px-2.5 py-1 text-xs text-muted hover:border-primary hover:text-primary transition-colors"
+          className="flex items-center gap-1 rounded-lg border border-dashed border-border px-2.5 py-1 text-caption text-muted hover:border-primary hover:text-primary transition-colors"
         >
           <Plus className="size-3" /> Add field
         </button>
       </div>
 
       {fields.length === 0 && (
-        <p className="py-6 text-center text-xs text-muted">
+        <p className="py-6 text-center text-caption text-muted">
           No form fields configured. Add at least one field.
         </p>
       )}
@@ -133,11 +133,11 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <GripVertical className="size-4 text-muted/50" />
-                <span className="text-xs font-medium text-muted">
+                <span className="text-caption font-medium text-muted">
                   Field {index + 1}
                 </span>
                 {field.required && (
-                  <span className="rounded bg-red-100 px-1.5 py-0.5 text-[10px] font-medium text-red-800">
+                  <span className="rounded bg-danger-light px-1.5 py-0.5 text-micro font-medium text-danger">
                     Required
                   </span>
                 )}
@@ -171,27 +171,27 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
 
             {/* Field properties */}
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block text-xs">
+              <label className="block text-caption">
                 <span className="mb-1 block font-medium">Label</span>
                 <input
                   value={field.label}
                   onChange={(e) => updateField(index, { label: e.target.value })}
-                  className="h-8 w-full rounded-md border bg-background px-2 text-xs outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-8 w-full rounded-md border bg-background px-2 text-caption outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                 />
               </label>
 
-              <label className="block text-xs">
+              <label className="block text-caption">
                 <span className="mb-1 block font-medium">Field key</span>
                 <input
                   value={field.key}
                   onChange={(e) => updateField(index, { key: e.target.value })}
-                  className="h-8 w-full rounded-md border bg-background px-2 font-mono text-[11px] outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-8 w-full rounded-md border bg-background px-2 font-mono text-micro outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                 />
               </label>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-4">
-              <label className="block text-xs">
+              <label className="block text-caption">
                 <span className="mb-1 block font-medium">Type</span>
                 <select
                   value={field.type}
@@ -205,7 +205,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
                     }
                     updateField(index, patch);
                   }}
-                  className="h-8 w-full rounded-md border bg-background px-2 text-xs outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-8 w-full rounded-md border bg-background px-2 text-caption outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                 >
                   {FIELD_TYPES.map((ft) => (
                     <option key={ft.value} value={ft.value}>{ft.label}</option>
@@ -215,39 +215,39 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
 
               {field.type === "text" && (
                 <>
-                  <label className="block text-xs">
+                  <label className="block text-caption">
                     <span className="mb-1 block font-medium">Min length</span>
                     <input
                       type="number"
                       min={0}
                       value={field.minLength ?? ""}
                       onChange={(e) => updateField(index, { minLength: e.target.value ? Number(e.target.value) : undefined })}
-                      className="h-8 w-full rounded-md border bg-background px-2 text-xs outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                      className="h-8 w-full rounded-md border bg-background px-2 text-caption outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                     />
                   </label>
-                  <label className="block text-xs">
+                  <label className="block text-caption">
                     <span className="mb-1 block font-medium">Max length</span>
                     <input
                       type="number"
                       min={0}
                       value={field.maxLength ?? ""}
                       onChange={(e) => updateField(index, { maxLength: e.target.value ? Number(e.target.value) : undefined })}
-                      className="h-8 w-full rounded-md border bg-background px-2 text-xs outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                      className="h-8 w-full rounded-md border bg-background px-2 text-caption outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                     />
                   </label>
                 </>
               )}
 
-              <label className="block text-xs">
+              <label className="block text-caption">
                 <span className="mb-1 block font-medium">Placeholder</span>
                 <input
                   value={field.placeholder ?? ""}
                   onChange={(e) => updateField(index, { placeholder: e.target.value || undefined })}
-                  className="h-8 w-full rounded-md border bg-background px-2 text-xs outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-8 w-full rounded-md border bg-background px-2 text-caption outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                 />
               </label>
 
-              <label className="flex items-center gap-2 text-xs pt-5">
+              <label className="flex items-center gap-2 text-caption pt-5">
                 <input
                   type="checkbox"
                   checked={field.required ?? false}
@@ -262,11 +262,11 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
             {field.type === "select" && (
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-muted">Options</span>
+                  <span className="text-micro font-medium text-muted">Options</span>
                   <button
                     type="button"
                     onClick={() => addOption(index)}
-                    className="text-[11px] text-primary hover:underline"
+                    className="text-micro text-primary hover:underline"
                   >
                     + Add option
                   </button>
@@ -277,7 +277,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
                       <input
                         value={option}
                         onChange={(e) => updateOption(index, optIndex, e.target.value)}
-                        className="w-20 bg-transparent text-[11px] outline-none"
+                        className="w-20 bg-transparent text-micro outline-none"
                       />
                       <button
                         type="button"

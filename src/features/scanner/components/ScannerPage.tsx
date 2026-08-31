@@ -176,17 +176,17 @@ export function ScannerPage() {
         {/* ── SCAN STATS ── */}
         {recentScans.length > 0 && (
           <div className="flex items-center gap-4 rounded-xl border border-border bg-card px-4 py-3">
-            <div className="flex items-center gap-2 text-xs text-muted">
+            <div className="flex items-center gap-2 text-caption text-muted">
               <QrCode className="h-3.5 w-3.5" />
               <span>Today</span>
             </div>
-            <div className="flex items-center gap-1.5 text-xs">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-              <span className="font-medium text-emerald-600">{todaySuccessCount}</span>
+            <div className="flex items-center gap-1.5 text-caption">
+              <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+              <span className="font-medium text-success">{todaySuccessCount}</span>
             </div>
-            <div className="flex items-center gap-1.5 text-xs">
-              <XCircle className="h-3.5 w-3.5 text-red-500" />
-              <span className="font-medium text-red-600">{todayFailCount}</span>
+            <div className="flex items-center gap-1.5 text-caption">
+              <XCircle className="h-3.5 w-3.5 text-danger" />
+              <span className="font-medium text-danger">{todayFailCount}</span>
             </div>
           </div>
         )}
@@ -197,7 +197,7 @@ export function ScannerPage() {
             onScan={handleScanToken}
             className="aspect-square w-full rounded-2xl"
           />
-          <p className="text-center text-xs text-muted">
+          <p className="text-center text-caption text-muted">
             Point the camera at the student&apos;s QR code
           </p>
         </div>
@@ -207,10 +207,10 @@ export function ScannerPage() {
           <div className="flex items-center justify-center gap-3 rounded-xl border border-border bg-card p-5 shadow-sm">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
             <div>
-              <p className="text-sm font-medium">
+              <p className="text-body font-medium">
                 {previewLoading ? "Verifying QR..." : "Processing scan..."}
               </p>
-              <p className="text-xs text-muted">
+              <p className="text-caption text-muted">
                 {previewLoading
                   ? "Fetching student details for confirmation"
                   : "Recording movement"}
@@ -225,8 +225,8 @@ export function ScannerPage() {
             className={cn(
               "relative overflow-hidden rounded-xl border p-6 shadow-sm transition-all",
               currentResult.success
-                ? "border-emerald-500/30 bg-gradient-to-br from-emerald-500/5 to-emerald-500/10"
-                : "border-red-500/30 bg-gradient-to-br from-red-500/5 to-red-500/10",
+                ? "border-success/30 bg-gradient-to-br from-success/5 to-success/10"
+                : "border-danger/30 bg-gradient-to-br from-danger/5 to-danger/10",
             )}
           >
             {/* Success/Error icon */}
@@ -235,14 +235,14 @@ export function ScannerPage() {
                 className={cn(
                   "flex h-14 w-14 shrink-0 items-center justify-center rounded-full",
                   currentResult.success
-                    ? "bg-emerald-500/10"
-                    : "bg-red-500/10",
+                    ? "bg-success-light"
+                    : "bg-danger-light",
                 )}
               >
                 {currentResult.success ? (
-                  <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+                  <CheckCircle2 className="h-8 w-8 text-success" />
                 ) : (
-                  <XCircle className="h-8 w-8 text-red-500" />
+                  <XCircle className="h-8 w-8 text-danger" />
                 )}
               </div>
 
@@ -250,8 +250,8 @@ export function ScannerPage() {
                 <div className="flex items-center gap-2">
                   <p
                     className={cn(
-                      "text-lg font-semibold",
-                      currentResult.success ? "text-emerald-600" : "text-red-600",
+                      "text-h3 font-semibold",
+                      currentResult.success ? "text-success" : "text-danger",
                     )}
                   >
                     {currentResult.success ? "Scan Approved" : "Scan Denied"}
@@ -259,10 +259,10 @@ export function ScannerPage() {
                   {currentResult.scanType && (
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-micro font-medium",
                         currentResult.scanType === "EXIT_SCAN"
-                          ? "bg-amber-500/10 text-amber-600"
-                          : "bg-emerald-500/10 text-emerald-600",
+                          ? "bg-warning-light text-warning"
+                          : "bg-success-light text-success",
                       )}
                     >
                       {currentResult.scanType === "EXIT_SCAN" ? "Exit" : "Return"}
@@ -270,11 +270,11 @@ export function ScannerPage() {
                   )}
                 </div>
 
-                <p className="mt-1 text-sm text-muted">
+                <p className="mt-1 text-body text-muted">
                   {currentResult.message}
                 </p>
 
-                <div className="mt-3 flex items-center gap-3 text-xs text-muted">
+                <div className="mt-3 flex items-center gap-3 text-caption text-muted">
                   <span className="inline-flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {format(currentResult.timestamp, "h:mm:ss a")}
@@ -302,11 +302,11 @@ export function ScannerPage() {
         {recentScans.length > 0 && (
           <div className="rounded-xl border border-border bg-card shadow-sm">
             <div className="flex items-center justify-between border-b border-border px-5 py-3">
-              <h3 className="flex items-center gap-2 text-sm font-semibold">
+              <h3 className="flex items-center gap-2 text-body font-semibold">
                 <History className="h-4 w-4 text-muted" />
                 Recent Scans
               </h3>
-              <span className="text-xs text-muted">
+              <span className="text-caption text-muted">
                 Last {recentScans.length}
               </span>
             </div>
@@ -314,14 +314,14 @@ export function ScannerPage() {
               {recentScans.map((scan, i) => (
                 <div
                   key={`${scan.timestamp.getTime()}-${i}`}
-                  className="flex items-center gap-3 px-5 py-3 text-sm transition-colors hover:bg-surface-sunken/30"
+                  className="flex items-center gap-3 px-5 py-3 text-body transition-colors hover:bg-surface-sunken/30"
                 >
                   <div
                     className={cn(
                       "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
                       scan.success
-                        ? "bg-emerald-500/10 text-emerald-500"
-                        : "bg-red-500/10 text-red-500",
+                        ? "bg-success-light text-success"
+                        : "bg-danger-light text-danger",
                     )}
                   >
                     {scan.success ? (
@@ -332,27 +332,27 @@ export function ScannerPage() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className={cn("font-medium", scan.success ? "text-emerald-600" : "text-red-600")}>
+                      <span className={cn("font-medium", scan.success ? "text-success" : "text-danger")}>
                         {scan.success ? "Approved" : "Denied"}
                       </span>
                       {scan.scanType && (
                         <span
                           className={cn(
-                            "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                            "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-micro font-medium",
                             scan.scanType === "EXIT_SCAN"
-                              ? "bg-amber-500/10 text-amber-600"
-                              : "bg-emerald-500/10 text-emerald-600",
+                              ? "bg-warning-light text-warning"
+                              : "bg-success-light text-success",
                           )}
                         >
                           {scan.scanType === "EXIT_SCAN" ? "Exit" : "Return"}
                         </span>
                       )}
                     </div>
-                    <p className="truncate text-xs text-muted">
+                    <p className="truncate text-caption text-muted">
                       {scan.message}
                     </p>
                   </div>
-                  <span className="shrink-0 text-xs text-muted">
+                  <span className="shrink-0 text-caption text-muted">
                     {format(scan.timestamp, "h:mm a")}
                   </span>
                 </div>
@@ -387,7 +387,7 @@ export function ScannerPage() {
               </div>
               <div className="min-w-0">
                 <p className="truncate font-semibold">{preview?.student?.name ?? "Unknown"}</p>
-                <p className="truncate text-xs text-muted">
+                <p className="truncate text-caption text-muted">
                   {preview?.student?.rollNumber ?? "No roll number"}
                   {preview?.student?.roomNumber
                     ? ` · Room ${preview.student.roomNumber}`
@@ -403,7 +403,7 @@ export function ScannerPage() {
                 <p className="truncate font-semibold">
                   {preview?.student?.hostelName ?? "No hostel"}
                 </p>
-                <p className="truncate text-xs text-muted">
+                <p className="truncate text-caption text-muted">
                   {formatLeaveWindow(preview?.leave)}
                 </p>
               </div>
@@ -420,7 +420,7 @@ export function ScannerPage() {
                 disabled={confirming}
                 className={cn(
                   "gap-1.5",
-                  !isExitScan && "bg-emerald-600 hover:bg-emerald-700",
+                  !isExitScan && "bg-success hover:bg-success",
                 )}
               >
                 {confirming ? (

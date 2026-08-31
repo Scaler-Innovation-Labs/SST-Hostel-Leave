@@ -16,6 +16,7 @@ import { InfoCard } from "@/components/shared/InfoCard";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import { CHART } from "@/design-system/sst";
 import type { StaffDashboardStats } from "@/dto/dashboard/dashboard-stats.dto";
 import { useDashboardStats } from "@/features/dashboard/hooks/use-dashboard-stats";
 
@@ -111,14 +112,14 @@ export function StaffAnalytics({ description, extraCards = [], hidePageHeader = 
 
       {/* Active filter indicator */}
       {statusFilter && (
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-2 text-body">
           <span className="text-muted">
             Filtering leaves by{" "}
             <span className="font-semibold text-foreground">{activeLabel}</span>
           </span>
           <button
             onClick={() => setStatusFilter("")}
-            className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs font-medium text-muted transition-colors hover:border-primary/40 hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-caption font-medium text-muted transition-colors hover:border-primary/40 hover:text-foreground"
           >
             <X className="h-3 w-3" />
             Clear filter
@@ -160,14 +161,14 @@ export function StaffAnalytics({ description, extraCards = [], hidePageHeader = 
           title={`Leaves Created (Last 7 Days)${statusFilter ? ` — ${activeLabel}` : ""}`}
           description="Daily leave submissions over the past week."
           data={(s.leavesLast7Days as Array<{ date: string; value: number }>) ?? []}
-          color="#6366f1"
+          color={CHART.accent}
         />
 
         <AnalyticsAreaChart
           title="Approvals (Last 7 Days)"
           description="Daily approval decisions over the past week."
           data={(s.approvalsLast7Days as Array<{ date: string; value: number }>) ?? []}
-          color="#10b981"
+          color={CHART.success}
         />
       </div>
 
@@ -176,7 +177,7 @@ export function StaffAnalytics({ description, extraCards = [], hidePageHeader = 
           title={`Leaves Created (Last 30 Days)${statusFilter ? ` — ${activeLabel}` : ""}`}
           description="Daily leave submissions over the past month."
           data={(s.leavesLast30Days as Array<{ date: string; value: number }>) ?? []}
-          color="#f59e0b"
+          color={CHART.warning}
           height={200}
         />
 

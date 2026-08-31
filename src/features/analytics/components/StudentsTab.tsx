@@ -8,6 +8,7 @@ import { LeaveTypePieChart } from "@/components/analytics/LeaveTypePieChart";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { InfoCard } from "@/components/shared/InfoCard";
 import { LoadingState } from "@/components/shared/LoadingState";
+import { CHART } from "@/design-system/sst";
 import type { AnalyticsPeriod } from "@/dto/analytics/analytics-period.dto";
 import type { StudentAnalytics } from "@/dto/analytics/student-analytics.dto";
 import { useStudentAnalytics } from "@/features/analytics/hooks/use-analytics";
@@ -37,7 +38,7 @@ export function StudentsTab({ period }: StudentsTabProps) {
         title="Active Students Trend"
         description="Daily count of active students over the selected period."
         data={d.trend.map((point) => ({ date: point.date, value: point.value }))}
-        color="#6366f1"
+        color={CHART.accent}
       />
 
       <div className="grid gap-6 lg:grid-cols-2">

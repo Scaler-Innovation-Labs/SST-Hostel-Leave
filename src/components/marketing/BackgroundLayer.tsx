@@ -23,7 +23,7 @@ export function BackgroundLayer() {
           h-[900px] w-[900px]
           -translate-x-1/2
           rounded-full
-          bg-blue-500/12
+          bg-accent-light
           blur-[140px]
         "
       />
@@ -33,7 +33,7 @@ export function BackgroundLayer() {
           absolute left-0 top-1/3
           h-[500px] w-[500px]
           rounded-full
-          bg-cyan-500/10
+          bg-accent-light
           blur-[120px]
         "
       />
@@ -43,7 +43,7 @@ export function BackgroundLayer() {
           absolute right-0 top-1/4
           h-[500px] w-[500px]
           rounded-full
-          bg-indigo-500/10
+          bg-accent-light
           blur-[120px]
         "
       />

@@ -9,19 +9,19 @@ const TONE_STYLES = {
     tint: "bg-primary/[0.02]",
   },
   success: {
-    chip: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    bar: "from-emerald-500/50 to-emerald-500/10",
-    tint: "bg-emerald-500/[0.02]",
+    chip: "bg-success-light text-success",
+    bar: "from-success/50 to-success/10",
+    tint: "bg-success/[0.02]",
   },
   warning: {
-    chip: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    bar: "from-amber-500/50 to-amber-500/10",
-    tint: "bg-amber-500/[0.02]",
+    chip: "bg-warning-light text-warning",
+    bar: "from-warning/50 to-warning/10",
+    tint: "bg-warning/[0.02]",
   },
   danger: {
-    chip: "bg-red-500/10 text-red-600 dark:text-red-400",
-    bar: "from-red-500/50 to-red-500/10",
-    tint: "bg-red-500/[0.02]",
+    chip: "bg-danger-light text-danger",
+    bar: "from-danger/50 to-danger/10",
+    tint: "bg-danger/[0.02]",
   },
 } as const;
 
@@ -95,7 +95,7 @@ export function InfoCard({ icon, label, value, tone, className, compact, onClick
         <span
           className={cn(
             "font-medium uppercase tracking-wider text-muted",
-            compact ? "text-[11px]" : "text-xs",
+            compact ? "text-micro" : "text-caption",
           )}
         >
           {label}
@@ -104,7 +104,7 @@ export function InfoCard({ icon, label, value, tone, className, compact, onClick
       <p
         className={cn(
           "font-semibold tabular-nums",
-          compact ? "mt-1.5 text-lg max-sm:text-base" : "mt-2 text-2xl max-sm:text-xl",
+          compact ? "mt-1.5 text-h3 max-sm:text-body-lg" : "mt-2 text-h2 max-sm:text-h3",
         )}
       >
         {value}

@@ -74,7 +74,7 @@ export function Navbar({ items, logo }: NavbarProps) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative inline-flex items-center gap-1.5 rounded-xl px-2.5 lg:px-3 py-2 text-sm font-medium transition-all duration-200",
+                  "relative inline-flex items-center gap-1.5 rounded-xl px-2.5 lg:px-3 py-2 text-body font-medium transition-all duration-200",
                   active
                     ? "bg-primary/10 text-primary"
                     : "text-muted hover:bg-surface-hover hover:text-foreground",
@@ -104,7 +104,7 @@ export function Navbar({ items, logo }: NavbarProps) {
             <SignedOut>
               <Link
                 href={ROUTES.LOGIN}
-                className="inline-flex items-center justify-center rounded-xl bg-linear-to-r from-blue-500 to-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:shadow-md hover:brightness-110"
+                className="inline-flex items-center justify-center rounded-xl bg-linear-to-r from-accent to-accent px-4 py-2 text-body font-medium text-white shadow-sm transition-all hover:shadow-md hover:brightness-110"
               >
                 Login
               </Link>
@@ -147,7 +147,7 @@ export function Navbar({ items, logo }: NavbarProps) {
                         href={item.href}
                         onClick={closeMobile}
                         className={cn(
-                          "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                          "flex items-center gap-3 rounded-xl px-3 py-2.5 text-body font-medium transition-all duration-200",
                           active
                             ? "bg-primary/10 text-primary"
                             : "text-muted hover:bg-surface-hover hover:text-foreground",
@@ -175,7 +175,7 @@ export function Navbar({ items, logo }: NavbarProps) {
                   <Link
                     href={ROUTES.LOGIN}
                     onClick={closeMobile}
-                    className="flex w-full items-center justify-center rounded-xl bg-linear-to-r from-blue-500 to-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm"
+                    className="flex w-full items-center justify-center rounded-xl bg-linear-to-r from-accent to-accent px-4 py-2.5 text-body font-medium text-white shadow-sm"
                   >
                     Login
                   </Link>
@@ -185,10 +185,10 @@ export function Navbar({ items, logo }: NavbarProps) {
                   <div className="flex items-center gap-3">
                     <UserButton afterSignOutUrl="/" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">
+                      <p className="truncate text-body font-medium text-foreground">
                         {user?.fullName ?? "User"}
                       </p>
-                      <p className="truncate text-xs text-muted">
+                      <p className="truncate text-caption text-muted">
                         {user?.primaryEmailAddress?.emailAddress ?? ""}
                       </p>
                     </div>

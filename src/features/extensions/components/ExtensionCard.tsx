@@ -50,19 +50,19 @@ export function ExtensionCard({ item, isSelected, onClick }: ExtensionCardProps)
   const isRejected = item.decision === LEAVE_APPROVAL_DECISION.REJECTED;
 
   const statusColor = isPending
-    ? "bg-amber-500/10 text-amber-600 border-amber-200/50"
+    ? "bg-warning-light text-warning border-warning/50"
     : isApproved
-    ? "bg-emerald-500/10 text-emerald-600 border-emerald-200/50"
+    ? "bg-success-light text-success border-success/50"
     : isRejected
-    ? "bg-red-500/10 text-red-600 border-red-200/50"
+    ? "bg-danger-light text-danger border-danger/50"
     : "bg-surface-sunken text-muted border-border";
 
   const statusDot = isPending
-    ? "bg-amber-500"
+    ? "bg-warning"
     : isApproved
-    ? "bg-emerald-500"
+    ? "bg-success"
     : isRejected
-    ? "bg-red-500"
+    ? "bg-danger"
     : "bg-muted";
 
   const initials = (item.studentName ?? "?")
@@ -73,11 +73,11 @@ export function ExtensionCard({ item, isSelected, onClick }: ExtensionCardProps)
     .toUpperCase();
 
   const avatarColors = [
-    "bg-blue-500/10 text-blue-600",
-    "bg-emerald-500/10 text-emerald-600",
-    "bg-violet-500/10 text-violet-600",
-    "bg-amber-500/10 text-amber-600",
-    "bg-rose-500/10 text-rose-600",
+    "bg-accent-light text-accent",
+    "bg-success-light text-success",
+    "bg-accent-light text-accent",
+    "bg-warning-light text-warning",
+    "bg-danger-light text-danger",
   ];
   const avatarColor =
     avatarColors[Math.abs((item.studentName ?? "").charCodeAt(0) || 0) % avatarColors.length]!;
@@ -97,26 +97,26 @@ export function ExtensionCard({ item, isSelected, onClick }: ExtensionCardProps)
       <div
         className={cn(
           "absolute left-0 top-2 bottom-2 w-1 rounded-full transition-colors",
-          isPending ? "bg-amber-400" : isApproved ? "bg-emerald-400" : isRejected ? "bg-red-400" : "bg-muted/30",
+          isPending ? "bg-warning" : isApproved ? "bg-success" : isRejected ? "bg-danger" : "bg-muted/30",
         )}
       />
 
       {/* Top row */}
       <div className="mb-2.5 flex items-center gap-2 pl-3">
-        <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium", statusColor)}>
+        <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-micro font-medium", statusColor)}>
           <span className={cn("h-1.5 w-1.5 rounded-full", statusDot)} />
           {isPending ? "Pending" : isApproved ? "Approved" : isRejected ? "Rejected" : item.decision}
         </span>
 
         {ext && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-600">
+          <span className="inline-flex items-center gap-1 rounded-full bg-accent-light px-2 py-0.5 text-micro font-medium text-accent">
             <FileText className="h-3 w-3" />
             Extension #{ext.extensionNumber}
           </span>
         )}
 
         {item.leaveRequest?.requestNumber && (
-          <span className="font-mono text-[10px] text-muted">
+          <span className="font-mono text-micro text-muted">
             {item.leaveRequest.requestNumber}
           </span>
         )}
@@ -127,7 +127,7 @@ export function ExtensionCard({ item, isSelected, onClick }: ExtensionCardProps)
         {/* Avatar */}
         <div
           className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xs font-semibold",
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-caption font-semibold",
             avatarColor,
           )}
         >
@@ -137,11 +137,11 @@ export function ExtensionCard({ item, isSelected, onClick }: ExtensionCardProps)
         <div className="min-w-0 flex-1 space-y-1.5">
           {/* Name + Roll */}
           <div className="flex items-center gap-2">
-            <span className="truncate text-sm font-semibold">
+            <span className="truncate text-body font-semibold">
               {item.studentName ?? "—"}
             </span>
             {item.studentRollNumber && (
-              <span className="shrink-0 font-mono text-[10px] text-muted">
+              <span className="shrink-0 font-mono text-micro text-muted">
                 #{item.studentRollNumber}
               </span>
             )}
@@ -149,7 +149,7 @@ export function ExtensionCard({ item, isSelected, onClick }: ExtensionCardProps)
 
           {/* Dates */}
           {ext && (
-            <div className="flex items-center gap-2 text-xs text-muted">
+            <div className="flex items-center gap-2 text-caption text-muted">
               <Calendar className="h-3 w-3 shrink-0" />
               <span>
                 Current: {formatDate(ext.currentEndAt)}
@@ -163,14 +163,14 @@ export function ExtensionCard({ item, isSelected, onClick }: ExtensionCardProps)
 
           {/* Reason */}
           {ext?.reason && (
-            <p className="line-clamp-1 text-xs text-muted">
+            <p className="line-clamp-1 text-caption text-muted">
               {ext.reason}
             </p>
           )}
 
           {/* Waiting time */}
           {item.createdAt && (
-            <div className="flex items-center gap-1.5 pt-1 text-[11px] text-muted">
+            <div className="flex items-center gap-1.5 pt-1 text-micro text-muted">
               <Clock className="h-3 w-3" />
               <span>
                 Waiting{" "}

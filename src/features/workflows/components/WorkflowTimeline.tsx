@@ -9,7 +9,7 @@ type WorkflowTimelineProps = {
 };
 
 const statusClasses: Record<WorkflowStep["status"], string> = {
-  completed: "border-emerald-500/20 bg-emerald-500/10 text-emerald-500",
+  completed: "border-success/20 bg-success-light text-success",
   current: "border-primary/20 bg-primary/10 text-primary",
   upcoming: "border-border bg-surface-sunken text-muted",
 };
@@ -27,7 +27,7 @@ export function WorkflowTimeline({
           <div className="flex flex-col items-center">
             <div
               className={
-                `flex size-8 items-center justify-center rounded-full border text-xs font-semibold ${statusClasses[step.status]}`
+                `flex size-8 items-center justify-center rounded-full border text-caption font-semibold ${statusClasses[step.status]}`
               }
             >
               {index + 1}
@@ -39,11 +39,11 @@ export function WorkflowTimeline({
           </div>
 
           <div className="pb-1">
-            <h4 className="text-sm font-medium">
+            <h4 className="text-body font-medium">
               {step.title}
             </h4>
 
-            <p className="mt-1 text-sm text-muted">
+            <p className="mt-1 text-body text-muted">
               {step.description}
             </p>
           </div>

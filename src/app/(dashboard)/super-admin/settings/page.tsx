@@ -23,18 +23,18 @@ function ConfigCard({ title, description, fields, onTest, testLabel, testLoading
 
   return (
     <div className={`rounded-2xl border p-6 shadow-sm ${
-      allConfigured ? "border-emerald-500/30 bg-card" : "border-border bg-card"
+      allConfigured ? "border-success/30 bg-card" : "border-border bg-card"
     }`}>
       <div className="mb-4 flex items-start justify-between">
         <div>
-          <h3 className="text-base font-semibold">{title}</h3>
-          <p className="mt-0.5 text-sm text-muted">{description}</p>
+          <h3 className="text-body-lg font-semibold">{title}</h3>
+          <p className="mt-0.5 text-body text-muted">{description}</p>
         </div>
         <span
-          className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+          className={`shrink-0 rounded-full px-2.5 py-0.5 text-caption font-medium ${
             allConfigured
-              ? "bg-emerald-500/10 text-emerald-600"
-              : "bg-amber-500/10 text-amber-600"
+              ? "bg-success-light text-success"
+              : "bg-warning-light text-warning"
           }`}
         >
           {allConfigured ? "Configured" : "Missing"}
@@ -43,15 +43,15 @@ function ConfigCard({ title, description, fields, onTest, testLabel, testLoading
 
       <div className="space-y-2">
         {fields.map((field) => (
-          <div key={field.label} className="flex items-center justify-between gap-4 text-sm">
+          <div key={field.label} className="flex items-center justify-between gap-4 text-body">
             <span>
               <span className="text-muted">{field.label}</span>
               {field.desc && (
-                <span className="mt-0.5 block text-xs text-muted/70">{field.desc}</span>
+                <span className="mt-0.5 block text-caption text-muted/70">{field.desc}</span>
               )}
             </span>
             <span className={`flex items-center gap-1.5 font-medium ${
-              field.configured ? "text-emerald-600" : "text-destructive"
+              field.configured ? "text-success" : "text-destructive"
             }`}>
               {field.configured ? (
                 <>
@@ -87,9 +87,9 @@ function ConfigCard({ title, description, fields, onTest, testLabel, testLoading
 
           {testResult && (
             <div
-              className={`rounded-lg p-3 text-sm ${
+              className={`rounded-lg p-3 text-body ${
                 testResult.success
-                  ? "bg-emerald-500/10 text-emerald-600"
+                  ? "bg-success-light text-success"
                   : "bg-destructive/10 text-destructive"
               }`}
             >
@@ -202,7 +202,7 @@ export default function SuperAdminSettingsPage() {
 
       {/* System Configuration */}
       <section>
-        <h2 className="mb-4 text-base font-semibold">System</h2>
+        <h2 className="mb-4 text-body-lg font-semibold">System</h2>
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <div className="space-y-3">
             {[
@@ -212,15 +212,15 @@ export default function SuperAdminSettingsPage() {
             ].map((item) => (
               <div key={item.label} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0 last:pb-0">
                 <div>
-                  <span className={`font-mono text-sm ${item.configured ? "text-foreground" : "text-destructive"}`}>
+                  <span className={`font-mono text-body ${item.configured ? "text-foreground" : "text-destructive"}`}>
                     {item.label}
                   </span>
-                  <p className="mt-0.5 text-xs text-muted">{item.desc}</p>
+                  <p className="mt-0.5 text-caption text-muted">{item.desc}</p>
                 </div>
-                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-caption font-medium ${
                   item.configured
-                    ? "bg-emerald-500/10 text-emerald-600"
-                    : "bg-amber-500/10 text-amber-600"
+                    ? "bg-success-light text-success"
+                    : "bg-warning-light text-warning"
                 }`}>
                   {item.configured ? "Set" : "Missing"}
                 </span>
@@ -232,10 +232,10 @@ export default function SuperAdminSettingsPage() {
 
       {/* Quick Reference */}
       <section>
-        <h2 className="mb-4 text-base font-semibold">Environment Variables Reference</h2>
+        <h2 className="mb-4 text-body-lg font-semibold">Environment Variables Reference</h2>
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-body">
               <thead>
                 <tr className="border-b border-border text-left">
                   <th className="pb-2 font-medium text-muted">Variable</th>
@@ -261,7 +261,7 @@ export default function SuperAdminSettingsPage() {
                   ["CLERK_SECRET_KEY", "Auth", "Clerk secret key"],
                 ].map(([variable, requiredFor, purpose]) => (
                   <tr key={variable}>
-                    <td className="py-2 font-mono text-xs">{variable}</td>
+                    <td className="py-2 font-mono text-caption">{variable}</td>
                     <td className="py-2 text-muted">{requiredFor}</td>
                     <td className="py-2 text-muted">{purpose}</td>
                   </tr>

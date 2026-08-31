@@ -21,9 +21,9 @@ export function LeaveTypePieChart({ data, title }: LeaveTypePieChartProps) {
   if (!data || data.length === 0) {
     return (
       <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <h3 className="mb-4 text-base font-semibold">{title}</h3>
+        <h3 className="mb-4 text-body-lg font-semibold">{title}</h3>
         <div className="flex h-[250px] items-center justify-center">
-          <p className="text-sm text-muted">No data available.</p>
+          <p className="text-body text-muted">No data available.</p>
         </div>
       </div>
     );
@@ -38,7 +38,7 @@ export function LeaveTypePieChart({ data, title }: LeaveTypePieChartProps) {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <h3 className="mb-4 text-base font-semibold">{title}</h3>
+      <h3 className="mb-4 text-body-lg font-semibold">{title}</h3>
       <div className="flex flex-col items-center gap-4 sm:flex-row">
         <div className="shrink-0">
           <ResponsiveContainer width={180} height={180}>
@@ -65,7 +65,7 @@ export function LeaveTypePieChart({ data, title }: LeaveTypePieChartProps) {
                 contentStyle={{
                   borderRadius: "8px",
                   border: "1px solid var(--color-border, hsl(240 5% 84%))",
-                  background: "var(--color-card, hsl(0 0% 100%))",
+                  background: "rgb(var(--sst-surface))",
                   fontSize: "12px",
                 }}
                 formatter={(value, name) => [typeof value === "number" ? value : 0, name]}
@@ -75,7 +75,7 @@ export function LeaveTypePieChart({ data, title }: LeaveTypePieChartProps) {
         </div>
         <div className="flex-1 space-y-2">
           {data.map((item, index) => (
-            <div key={item.name} className="flex items-center justify-between text-sm">
+            <div key={item.name} className="flex items-center justify-between text-body">
               <div className="flex items-center gap-2">
                 <span
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -85,7 +85,7 @@ export function LeaveTypePieChart({ data, title }: LeaveTypePieChartProps) {
               </div>
               <div className="flex items-center gap-3">
                 <span className="font-medium tabular-nums">{item.count}</span>
-                <span className="w-10 text-right text-xs text-muted">
+                <span className="w-10 text-right text-caption text-muted">
                   {total > 0 ? Math.round((item.count / total) * 100) : 0}%
                 </span>
               </div>

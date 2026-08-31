@@ -134,7 +134,7 @@ export default function HostelsPage() {
           </div>
           {isLoading ? <LoadingState count={5} /> : typedHostels.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-12">
-              <p className="text-sm text-muted">No hostels yet.</p>
+              <p className="text-body text-muted">No hostels yet.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -145,7 +145,7 @@ export default function HostelsPage() {
                       <Building2 className="size-4 shrink-0 text-muted" />
                       <span className="font-medium">{hostel.name}</span>
                     </div>
-                    <p className="mt-1 font-mono text-xs text-muted">
+                    <p className="mt-1 font-mono text-caption text-muted">
                       {hostel.code} · {hostel.capacity ?? "?"} capacity
                     </p>
                   </button>
@@ -193,16 +193,16 @@ export default function HostelsPage() {
               placeholder="Channel id or #name (e.g. #leave-hostel-neeladri)"
             />
           </div>
-          <p className="text-xs text-muted">
+          <p className="text-caption text-muted">
             Slack alerts for this hostel&apos;s admins post here; falls back to SLACK_CHANNEL_ID when blank. The admin tag is CC&apos;d on each post. Leave both blank to disable.
           </p>
 
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-body">
             <input type="checkbox" checked={draft.isActive} onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })} />
             Active
           </label>
 
-          {message && <p className="text-sm text-muted">{message}</p>}
+          {message && <p className="text-body text-muted">{message}</p>}
           <div className="flex justify-end border-t border-border pt-4">
             <Button onClick={submit} disabled={saving || !draft.name.trim() || !draft.code.trim()}>
               <Save className="size-4" /> {saving ? "Saving..." : isEditing ? "Update" : "Create"}
@@ -216,7 +216,7 @@ export default function HostelsPage() {
 
 function Field({ label, value, onChange, mono = false, type = "text", placeholder }: { label: string; value: string; onChange: (v: string) => void; mono?: boolean; type?: string; placeholder?: string }) {
   return (
-    <label className="block text-sm">
+    <label className="block text-body">
       <span className="mb-1 block font-medium">{label}</span>
       <input type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
         className={`h-9 w-full rounded-lg border bg-background px-3 outline-none focus:border-ring focus:ring-1 focus:ring-ring ${mono ? "font-mono" : ""}`} />

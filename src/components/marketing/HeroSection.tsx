@@ -18,7 +18,7 @@ export function HeroSection() {
               className="
                 inline-flex items-center gap-2 rounded-full
                 border border-border bg-card/40 px-4 py-2
-                text-sm text-muted backdrop-blur-xl
+                text-body text-muted backdrop-blur-xl
               "
             >
               <div className="size-2 rounded-full bg-primary" />
@@ -29,7 +29,7 @@ export function HeroSection() {
           <Reveal delay={100}>
             <h1
               className="
-                mt-8 text-5xl font-semibold leading-[0.95]
+                mt-8 text-display font-semibold leading-[0.95]
                 tracking-[-0.04em] sm:text-6xl xl:text-[5.5rem]
               "
             >
@@ -39,21 +39,21 @@ export function HeroSection() {
               <br />
               Move Safely.
               <br />
-              <span className="bg-linear-to-r from-blue-400 via-blue-500 to-indigo-500 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-accent via-accent to-accent bg-clip-text text-transparent">
                 All in One Place.
               </span>
             </h1>
           </Reveal>
 
           <Reveal delay={200}>
-            <p className="mt-6 max-w-lg text-lg leading-8 text-muted">
+            <p className="mt-6 max-w-lg text-h3 leading-8 text-muted">
               Request leaves, get parent approval via a secure link, receive your QR pass, and move in and out of campus safely.
             </p>
           </Reveal>
 
           <Reveal delay={300}>
             <div className="mt-8">
-              <Link href="/login" className="inline-flex items-center gap-3 rounded-2xl bg-linear-to-r from-blue-500 to-indigo-600 px-7 py-4 text-sm font-medium text-white shadow-[0_0_60px_rgba(59,130,246,0.35)] transition-all duration-300 hover:scale-[1.02]">
+              <Link href="/login" className="inline-flex items-center gap-3 rounded-2xl bg-linear-to-r from-accent to-accent px-7 py-4 text-body font-medium text-white shadow-[0_0_60px_rgba(59,130,246,0.35)] transition-all duration-300 hover:scale-[1.02]">
                 Login to Dashboard
                 <span>→</span>
               </Link>
@@ -81,8 +81,8 @@ export function HeroSection() {
             ].map((item, index) => (
               <Reveal key={item.title} delay={400 + index * 80}>
                 <div className="h-full rounded-3xl border border-border bg-card/40 p-5 backdrop-blur-xl transition-colors hover:bg-surface-hover">
-                  <h3 className="text-sm font-medium">{item.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-muted">{item.desc}</p>
+                  <h3 className="text-body font-medium">{item.title}</h3>
+                  <p className="mt-3 text-body leading-6 text-muted">{item.desc}</p>
                 </div>
               </Reveal>
             ))}
@@ -96,12 +96,12 @@ export function HeroSection() {
             <div className="relative overflow-hidden rounded-[2rem] border border-border bg-card/70 shadow-[0_30px_80px_-35px_rgba(15,23,42,0.95)] backdrop-blur-xl">
               <div className="flex items-center justify-between border-b border-border bg-surface-sunken/30 px-6 py-4">
                 <div className="flex items-center gap-3">
-                  <div className="size-3 rounded-full bg-red-500" />
-                  <div className="size-3 rounded-full bg-yellow-500" />
-                  <div className="size-3 rounded-full bg-green-500" />
+                  <div className="size-3 rounded-full bg-danger" />
+                  <div className="size-3 rounded-full bg-warning" />
+                  <div className="size-3 rounded-full bg-success" />
                 </div>
 
-                <div className="text-sm font-medium text-muted">SST Leave Dashboard</div>
+                <div className="text-body font-medium text-muted">SST Leave Dashboard</div>
               </div>
 
               <div className="space-y-5 p-5">
@@ -115,8 +115,8 @@ export function HeroSection() {
                       key={item.label}
                       className="rounded-2xl border border-border bg-surface-sunken/20 p-4"
                     >
-                      <p className="text-xs uppercase tracking-[0.16em] text-muted">{item.label}</p>
-                      <h3 className="mt-2 text-2xl font-semibold">{item.value}</h3>
+                      <p className="text-caption uppercase tracking-[0.16em] text-muted">{item.label}</p>
+                      <h3 className="mt-2 text-h2 font-semibold">{item.value}</h3>
                     </div>
                   ))}
                 </div>
@@ -125,10 +125,10 @@ export function HeroSection() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-medium">Leave Workflow</h3>
-                      <p className="mt-1 text-sm text-muted">Awaiting admin approval</p>
+                      <p className="mt-1 text-body text-muted">Awaiting admin approval</p>
                     </div>
 
-                    <div className="rounded-full border border-amber-400/15 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-300">
+                    <div className="rounded-full border border-warning/15 bg-warning-light px-3 py-1 text-caption font-medium text-warning">
                       Pending
                     </div>
                   </div>
@@ -142,7 +142,7 @@ export function HeroSection() {
                       "QR",
                     ].map((step, index) => (
                       <div key={step} className="flex items-center gap-3">
-                        <div className="rounded-full border border-border bg-surface-sunken/30 px-3 py-2 text-xs">
+                        <div className="rounded-full border border-border bg-surface-sunken/30 px-3 py-2 text-caption">
                           {step}
                         </div>
 
@@ -157,7 +157,7 @@ export function HeroSection() {
                     <div className="flex items-center justify-between">
                       <h3 className="font-medium">Movement</h3>
 
-                      <div className="rounded-full border border-emerald-400/15 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
+                      <div className="rounded-full border border-success/15 bg-success-light px-3 py-1 text-caption font-medium text-success">
                         Live
                       </div>
                     </div>
@@ -172,8 +172,8 @@ export function HeroSection() {
                           key={item}
                           className="flex items-center justify-between rounded-xl border border-border bg-background/40 px-3 py-2"
                         >
-                          <p className="text-xs">{item}</p>
-                          <span className="text-[10px] text-muted">2m ago</span>
+                          <p className="text-caption">{item}</p>
+                          <span className="text-micro text-muted">2m ago</span>
                         </div>
                       ))}
                     </div>
@@ -182,11 +182,11 @@ export function HeroSection() {
                   <div className="rounded-2xl border border-border bg-background/80 p-5">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm font-medium">QR Pass</p>
-                        <p className="mt-1 text-xs text-muted">Ready for exit scan</p>
+                        <p className="text-body font-medium">QR Pass</p>
+                        <p className="mt-1 text-caption text-muted">Ready for exit scan</p>
                       </div>
 
-                      <div className="rounded-full border border-emerald-400/15 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
+                      <div className="rounded-full border border-success/15 bg-success-light px-3 py-1 text-caption font-medium text-success">
                         Active
                       </div>
                     </div>

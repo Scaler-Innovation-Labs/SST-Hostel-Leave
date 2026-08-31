@@ -19,12 +19,12 @@ export function FilterBar({ label, options, value, onChange, className }: Filter
   return (
     <div className={cn("flex items-center gap-2", className)}>
       {label && (
-        <label className="text-xs font-medium text-muted">{label}</label>
+        <label className="text-caption font-medium text-muted">{label}</label>
       )}
       <select
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
-        className="h-8 rounded-lg border border-input bg-background px-2.5 text-sm focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
+        className="h-8 rounded-lg border border-input bg-background px-2.5 text-body focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
       >
         <option value="">All</option>
         {options.map((opt) => (

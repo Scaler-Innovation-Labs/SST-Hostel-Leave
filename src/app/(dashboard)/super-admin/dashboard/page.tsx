@@ -10,14 +10,14 @@ const EXTRA_ACTIONS: StaffQuickAction[] = [
     description: "Assign roles and permissions",
     href: "/super-admin/users",
     icon: Users,
-    tone: "text-violet-600 bg-violet-500/10 dark:text-violet-400",
+    tone: "text-accent bg-accent-light",
   },
   {
     label: "Analytics",
     description: "Trends, breakdowns and reports",
     href: "/super-admin/analytics",
     icon: BarChart3,
-    tone: "text-cyan-600 bg-cyan-500/10 dark:text-cyan-400",
+    tone: "text-accent bg-accent-light",
   },
 ];
 

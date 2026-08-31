@@ -142,12 +142,12 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
           </button>
           <div>
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-lg font-semibold text-primary">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-h3 font-semibold text-primary">
                 {userData?.fullName?.charAt(0) ?? "?"}
               </div>
               <div>
-                <h1 className="text-xl font-semibold">{userData?.fullName ?? "Student"}</h1>
-                <p className="text-sm text-muted">Roll: {studentData.rollNumber ?? "—"}</p>
+                <h1 className="text-h3 font-semibold">{userData?.fullName ?? "Student"}</h1>
+                <p className="text-body text-muted">Roll: {studentData.rollNumber ?? "—"}</p>
               </div>
             </div>
           </div>
@@ -162,9 +162,9 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
           icon={<MapPin className="h-4 w-4" />}
           tone={isInHostel ? "success" : isOverdue ? "danger" : "warning"}
           className={cn(
-            isInHostel && "border-emerald-500/30",
-            isOnLeave && "border-blue-500/30",
-            isOverdue && "border-red-500/30",
+            isInHostel && "border-success/30",
+            isOnLeave && "border-accent/30",
+            isOverdue && "border-danger/30",
           )}
         />
         <InfoCard label="Email" value={userData?.email ?? "—"} icon={<Mail className="h-4 w-4" />} tone="primary" />
@@ -182,16 +182,16 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <User className="h-4 w-4 text-muted" />
-            <h3 className="text-base font-semibold">Profile</h3>
+            <h3 className="text-body-lg font-semibold">Profile</h3>
           </div>
-          <dl className="space-y-4 text-sm">
+          <dl className="space-y-4 text-body">
             <div className="flex justify-between">
               <dt className="text-muted">Full Name</dt>
               <dd className="font-medium">{userData?.fullName ?? "—"}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted">Roll Number</dt>
-              <dd className="font-mono text-xs font-medium">{studentData.rollNumber ?? "—"}</dd>
+              <dd className="font-mono text-caption font-medium">{studentData.rollNumber ?? "—"}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-muted">Gender</dt>
@@ -209,7 +209,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
               <dt className="text-muted">Active</dt>
               <dd>
                 {userData?.isActive ? (
-                  <span className="text-emerald-600 dark:text-emerald-400">Active</span>
+                  <span className="text-success">Active</span>
                 ) : (
                   <span className="text-destructive">Inactive</span>
                 )}
@@ -222,27 +222,27 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <MapPin className="h-4 w-4 text-muted" />
-            <h3 className="text-base font-semibold">Current Location</h3>
+            <h3 className="text-body-lg font-semibold">Current Location</h3>
           </div>
           <div className="flex items-center gap-3">
             <div
               className={cn(
                 "flex h-12 w-12 items-center justify-center rounded-full",
-                isInHostel ? "bg-emerald-500/10" : isOverdue ? "bg-red-500/10" : "bg-amber-500/10",
+                isInHostel ? "bg-success-light" : isOverdue ? "bg-danger-light" : "bg-warning-light",
               )}
             >
               <MapPin
                 className={cn(
                   "h-5 w-5",
-                  isInHostel ? "text-emerald-500" : isOverdue ? "text-red-500" : "text-amber-500",
+                  isInHostel ? "text-success" : isOverdue ? "text-danger" : "text-warning",
                 )}
               />
             </div>
             <div>
-              <p className="text-sm font-semibold">
+              <p className="text-body font-semibold">
                 {locationState?.name ?? locationCode.replace(/_/g, " ").toLowerCase()}
               </p>
-              <p className="text-xs text-muted">
+              <p className="text-caption text-muted">
                 {isInHostel ? "Currently in hostel" : isOnLeave ? "On approved leave" : isOverdue ? "Overdue return" : "Outside hostel"}
               </p>
             </div>
@@ -277,11 +277,11 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
                 {canMarkOverdue && (
                   <Button
                     variant="outline"
-                    className="w-full justify-start gap-2 border-red-500/30 text-red-600 hover:bg-red-500/10 dark:text-red-400"
+                    className="w-full justify-start gap-2 border-danger/30 text-danger hover:bg-danger-light"
                     onClick={() => setLocationAction("overdue")}
                     disabled={actionBusy}
                   >
-                    <MapPin className="h-4 w-4 text-red-500" />
+                    <MapPin className="h-4 w-4 text-danger" />
                     Mark Overdue
                   </Button>
                 )}
@@ -289,7 +289,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
             )}
             <Link
               href={`${movementsPath}?studentId=${studentId}`}
-              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:bg-surface-sunken"
+              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-body transition-colors hover:bg-surface-sunken"
             >
               <History className="h-4 w-4 text-muted" />
               View Movement History
@@ -297,7 +297,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
             </Link>
             <Link
               href={`${basePath}`}
-              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:bg-surface-sunken"
+              className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-body transition-colors hover:bg-surface-sunken"
             >
               <FileText className="h-4 w-4 text-muted" />
               Back to Students
@@ -310,16 +310,16 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <div className="mb-4 flex items-center gap-2">
             <FileText className="h-4 w-4 text-muted" />
-            <h3 className="text-base font-semibold">Quick Stats</h3>
+            <h3 className="text-body-lg font-semibold">Quick Stats</h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-lg bg-surface-sunken/50 p-3 text-center">
-              <p className="text-2xl font-semibold tabular-nums">{leaves.length}</p>
-              <p className="text-xs text-muted">Recent Leaves</p>
+              <p className="text-h2 font-semibold tabular-nums">{leaves.length}</p>
+              <p className="text-caption text-muted">Recent Leaves</p>
             </div>
             <div className="rounded-lg bg-surface-sunken/50 p-3 text-center">
-              <p className="text-2xl font-semibold tabular-nums">{movements.length}</p>
-              <p className="text-xs text-muted">Movements</p>
+              <p className="text-h2 font-semibold tabular-nums">{movements.length}</p>
+              <p className="text-caption text-muted">Movements</p>
             </div>
           </div>
         </div>
@@ -330,11 +330,11 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-muted" />
-            <h3 className="text-base font-semibold">Recent Leaves</h3>
+            <h3 className="text-body-lg font-semibold">Recent Leaves</h3>
           </div>
         </div>
         {leaves.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted">No leave records found.</p>
+          <p className="py-6 text-center text-body text-muted">No leave records found.</p>
         ) : (
           <div className="divide-y divide-border">              {leaves.map((l: { id: string; status: string; startAt: string; endAt: string; leaveTypeName?: string; leaveTypeUiConfig?: Record<string, unknown> | null }) => (
               <Link
@@ -347,7 +347,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
                     name={l.leaveTypeName ?? "Leave"}
                     color={(l.leaveTypeUiConfig?.color as string | undefined) ?? null}
                   />
-                  <p className="mt-1 text-xs text-muted">
+                  <p className="mt-1 text-caption text-muted">
                     {formatDate(l.startAt)} — {formatDate(l.endAt)}
                   </p>
                 </div>
@@ -363,17 +363,17 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <History className="h-4 w-4 text-muted" />
-            <h3 className="text-base font-semibold">Movement Timeline</h3>
+            <h3 className="text-body-lg font-semibold">Movement Timeline</h3>
           </div>
           <Link
             href={`${movementsPath}?studentId=${studentId}`}
-            className="text-xs font-medium text-primary hover:underline"
+            className="text-caption font-medium text-primary hover:underline"
           >
             View all
           </Link>
         </div>
         {movements.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted">No movement events recorded.</p>
+          <p className="py-6 text-center text-body text-muted">No movement events recorded.</p>
         ) : (
           <div className="relative">
             {movements.map((mov: { id: string; eventType: string; fromState: string; toState: string; occurredAt: string }, i: number) => (
@@ -385,8 +385,8 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
                   {i < movements.length - 1 && <div className="h-full w-px bg-border" />}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{getEventLabel(mov.eventType)}</p>
-                  <p className="text-xs text-muted">
+                  <p className="text-body font-medium">{getEventLabel(mov.eventType)}</p>
+                  <p className="text-caption text-muted">
                     {mov.fromState} → {mov.toState}
                     {mov.occurredAt && ` · ${formatDateTime(mov.occurredAt)}`}
                   </p>

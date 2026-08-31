@@ -142,7 +142,7 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+        <div className="rounded-lg border border-danger bg-danger-light p-3 text-body text-danger">
           {error}
         </div>
       )}
@@ -189,7 +189,7 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
             placeholder="U0123AB456"
             className="font-mono"
           />
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 text-caption text-muted">
             Used for Slack mentions/DMs. Find it in the Slack member profile menu.
           </p>
         </div>
@@ -235,7 +235,7 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
                 key={role.value}
                 type="button"
                 onClick={() => toggleRole(role.value)}
-                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                className={`inline-flex items-center rounded-full border px-3 py-1.5 text-body font-medium transition-colors ${
                   roleCodes.includes(role.value)
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border bg-background text-muted hover:bg-surface-sunken"
@@ -254,7 +254,7 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
       {scopableSelectedRoles.length > 0 && (
         <div className="rounded-xl border border-border bg-surface-sunken/40 p-4">
           <Label className="mb-1 block">Hostel Scope</Label>
-          <p className="mb-3 text-xs text-muted">
+          <p className="mb-3 text-caption text-muted">
             Restrict each {scopableSelectedRoles.join(" / ")} role to specific hostels. Unchecked
             = access to all hostels.
           </p>
@@ -263,7 +263,7 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
             const selected = roleScopes[roleCode] ?? [];
             return (
               <div key={roleCode} className="rounded-lg border border-border bg-background p-3">
-                <p className="mb-2 text-sm font-medium">{roleLabel}</p>
+                <p className="mb-2 text-body font-medium">{roleLabel}</p>
                 {hostels?.length ? (
                   <div className="flex flex-wrap gap-2">
                     {hostels.map((hostel) => {
@@ -273,7 +273,7 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
                           key={hostel.id}
                           type="button"
                           onClick={() => toggleHostel(roleCode, hostel.id)}
-                          className={`inline-flex items-center rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                          className={`inline-flex items-center rounded-lg border px-3 py-1.5 text-caption font-medium transition-colors ${
                             checked
                               ? "border-primary bg-primary/10 text-primary"
                               : "border-border bg-background text-muted hover:bg-surface-sunken"
@@ -286,7 +286,7 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
                     })}
                   </div>
                 ) : (
-                  <p className="text-xs text-muted">
+                  <p className="text-caption text-muted">
                     Unrestricted (all hostels)
                   </p>
                 )}

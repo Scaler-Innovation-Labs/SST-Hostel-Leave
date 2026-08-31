@@ -45,11 +45,11 @@ export function WorkflowSection() {
       <div className="mx-auto max-w-7xl px-8">
         <Reveal>
           <div className="max-w-2xl">
-            <h2 className="text-4xl font-bold tracking-tight">
+            <h2 className="text-h1 font-semibold tracking-tight">
               One lifecycle, end to end.
             </h2>
 
-            <p className="mt-4 text-lg text-muted">
+            <p className="mt-4 text-h3 text-muted">
               Every leave follows a transparent path from request to verified
               movement — nothing happens outside the record.
             </p>
@@ -86,7 +86,7 @@ export function WorkflowSection() {
                     <step.icon className="size-5" />
                   </div>
 
-                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">
+                  <p className="text-caption font-medium uppercase tracking-[0.14em] text-muted">
                     Step {index + 1}
                   </p>
 
@@ -94,7 +94,7 @@ export function WorkflowSection() {
                     {step.title}
                   </h3>
 
-                  <p className="mt-3 text-sm leading-6 text-muted">
+                  <p className="mt-3 text-body leading-6 text-muted">
                     {step.desc}
                   </p>
                 </div>

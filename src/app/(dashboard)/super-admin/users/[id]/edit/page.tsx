@@ -90,7 +90,7 @@ export default function EditUserPage() {
       />
 
       {submitError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+        <div className="rounded-lg border border-danger bg-danger-light p-3 text-body text-danger">
           {submitError}
         </div>
       )}

@@ -25,14 +25,14 @@ import { getAvatarColor, getInitials } from "@/lib/user-utils";
 
 const ROLE_STYLES: Record<string, string> = {
   SUPER_ADMIN:
-    "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800",
+    "bg-accent-light text-accent border-accent dark:border-accent",
   ADMIN:
-    "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800",
-  POC: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800",
+    "bg-accent-light text-accent border-accent dark:border-accent",
+  POC: "bg-warning-light text-warning border-warning dark:border-warning",
   STUDENT:
-    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800",
+    "bg-success-light text-success border-success dark:border-success",
   GUARD:
-    "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400 border-slate-200 dark:border-slate-800",
+    "bg-surface-sunken text-muted dark:bg-surface-sunken border-border-strong dark:border-border-strong",
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -90,7 +90,7 @@ export default function SuperAdminUserDetailPage() {
       {/* Back navigation */}
       <button
         onClick={() => router.push("/super-admin/users")}
-        className="group inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-foreground"
+        className="group inline-flex items-center gap-1.5 text-body text-muted transition-colors hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
         Back to Users
@@ -100,15 +100,15 @@ export default function SuperAdminUserDetailPage() {
       <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-center gap-5">
           <div
-            className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-xl font-bold text-white shadow-sm ${getAvatarColor(user.fullName)}`}
+            className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-h3 font-semibold text-white shadow-sm ${getAvatarColor(user.fullName)}`}
           >
             {getInitials(user.fullName)}
           </div>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="text-h2 font-semibold tracking-tight">
               {user.fullName}
             </h1>
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-body text-muted">
               <span className="flex items-center gap-1">
                 <Mail className="h-3.5 w-3.5" />
                 {user.email}
@@ -125,7 +125,7 @@ export default function SuperAdminUserDetailPage() {
               {user.slackId && (
                 <>
                   <span className="text-muted/50">·</span>
-                  <span className="flex items-center gap-1 font-mono text-xs">
+                  <span className="flex items-center gap-1 font-mono text-caption">
                     <Hash className="h-3.5 w-3.5" />
                     {user.slackId}
                   </span>
@@ -174,54 +174,54 @@ export default function SuperAdminUserDetailPage() {
         {/* Account info */}
         <div className="lg:col-span-2 space-y-6">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
-            <h3 className="mb-5 flex items-center gap-2 text-base font-semibold">
+            <h3 className="mb-5 flex items-center gap-2 text-body-lg font-semibold">
               <UserCog className="h-4 w-4 text-muted" />
               Account Information
             </h3>
             <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
               <div className="space-y-1">
-                <dt className="text-xs font-medium text-muted uppercase tracking-wider">
+                <dt className="text-caption font-medium text-muted uppercase tracking-wider">
                   Full Name
                 </dt>
-                <dd className="text-sm font-medium">{user.fullName}</dd>
+                <dd className="text-body font-medium">{user.fullName}</dd>
               </div>
               <div className="space-y-1">
-                <dt className="text-xs font-medium text-muted uppercase tracking-wider">
+                <dt className="text-caption font-medium text-muted uppercase tracking-wider">
                   Email
                 </dt>
-                <dd className="flex items-center gap-1.5 text-sm">
+                <dd className="flex items-center gap-1.5 text-body">
                   <Mail className="h-3.5 w-3.5 text-muted" />
                   {user.email ?? "—"}
                 </dd>
               </div>
               <div className="space-y-1">
-                <dt className="text-xs font-medium text-muted uppercase tracking-wider">
+                <dt className="text-caption font-medium text-muted uppercase tracking-wider">
                   Phone
                 </dt>
-                <dd className="flex items-center gap-1.5 text-sm">
+                <dd className="flex items-center gap-1.5 text-body">
                   <Phone className="h-3.5 w-3.5 text-muted" />
                   {user.phone ?? "—"}
                 </dd>
               </div>
               <div className="space-y-1">
-                <dt className="text-xs font-medium text-muted uppercase tracking-wider">
+                <dt className="text-caption font-medium text-muted uppercase tracking-wider">
                   Slack ID
                 </dt>
-                <dd className="flex items-center gap-1.5 font-mono text-sm">
+                <dd className="flex items-center gap-1.5 font-mono text-body">
                   <Hash className="h-3.5 w-3.5 text-muted" />
                   {user.slackId ?? "—"}
                 </dd>
               </div>
               <div className="space-y-1">
-                <dt className="text-xs font-medium text-muted uppercase tracking-wider">
+                <dt className="text-caption font-medium text-muted uppercase tracking-wider">
                   Status
                 </dt>
                 <dd>
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-caption font-medium ${
                       user.isActive
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                        ? "bg-success-light text-success"
+                        : "bg-danger-light text-danger"
                     }`}
                   >
                     {user.isActive ? (
@@ -235,17 +235,17 @@ export default function SuperAdminUserDetailPage() {
               </div>
               {user.gender && (
                 <div className="space-y-1">
-                  <dt className="text-xs font-medium text-muted uppercase tracking-wider">
+                  <dt className="text-caption font-medium text-muted uppercase tracking-wider">
                     Gender
                   </dt>
-                  <dd className="text-sm capitalize">{user.gender}</dd>
+                  <dd className="text-body capitalize">{user.gender}</dd>
                 </div>
               )}
               <div className="space-y-1">
-                <dt className="text-xs font-medium text-muted uppercase tracking-wider">
+                <dt className="text-caption font-medium text-muted uppercase tracking-wider">
                   Created
                 </dt>
-                <dd className="flex items-center gap-1.5 text-sm">
+                <dd className="flex items-center gap-1.5 text-body">
                   <Calendar className="h-3.5 w-3.5 text-muted" />
                   {createdAtDate}
                 </dd>
@@ -257,13 +257,13 @@ export default function SuperAdminUserDetailPage() {
         {/* Roles sidebar */}
         <div className="space-y-6">
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
-            <h3 className="mb-5 flex items-center gap-2 text-base font-semibold">
+            <h3 className="mb-5 flex items-center gap-2 text-body-lg font-semibold">
               <Shield className="h-4 w-4 text-muted" />
               Roles
             </h3>
             <div className="space-y-3">
               {user.userRoles.length === 0 ? (
-                <p className="text-sm text-muted">
+                <p className="text-body text-muted">
                   No roles assigned
                 </p>
               ) : (
@@ -275,21 +275,21 @@ export default function SuperAdminUserDetailPage() {
                     <div className="flex items-center gap-2">
                       <Shield className="h-4 w-4 shrink-0" />
                       <div className="min-w-0">
-                        <p className="text-sm font-medium">
+                        <p className="text-body font-medium">
                           {ROLE_LABELS[r.roleCode] ?? r.roleName}
                           {r.scopeType === "HOSTEL" && r.scopeName && (
-                            <span className="ml-1.5 text-[10px] font-normal opacity-60">
+                            <span className="ml-1.5 text-micro font-normal opacity-60">
                               · {r.scopeName}
                             </span>
                           )}
                           {r.scopeType === "HOSTEL" && !r.scopeName && (
-                            <span className="ml-1.5 text-[10px] font-normal opacity-60">
+                            <span className="ml-1.5 text-micro font-normal opacity-60">
                               · Hostel-scoped
                             </span>
                           )}
                         </p>
                         {r.assignedAt && (
-                          <p className="text-[10px] opacity-70">
+                          <p className="text-micro opacity-70">
                             Since {new Date(r.assignedAt).toLocaleDateString()}
                           </p>
                         )}

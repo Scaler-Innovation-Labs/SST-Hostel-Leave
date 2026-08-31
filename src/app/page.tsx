@@ -67,7 +67,7 @@ export default async function HomePage() {
         >
           <div>
             <Logo />
-            <p className="mt-4 max-w-xs text-sm leading-6 text-muted">
+            <p className="mt-4 max-w-xs text-body leading-6 text-muted">
               Campus leave and movement management — approvals, QR passes,
               and audit trails in one platform.
             </p>
@@ -75,7 +75,7 @@ export default async function HomePage() {
 
           {FOOTER_COLUMNS.map((column) => (
             <div key={column.heading}>
-              <h3 className="text-sm font-semibold uppercase tracking-[0.14em] text-muted">
+              <h3 className="text-body font-semibold uppercase tracking-[0.14em] text-muted">
                 {column.heading}
               </h3>
 
@@ -84,7 +84,7 @@ export default async function HomePage() {
                   <li key={link.label}>
                     <a
                       href={link.href}
-                      className="text-sm text-muted transition-colors hover:text-foreground"
+                      className="text-body text-muted transition-colors hover:text-foreground"
                     >
                       {link.label}
                     </a>
@@ -101,11 +101,11 @@ export default async function HomePage() {
             justify-between border-t border-border px-6 pt-6
           "
         >
-          <p className="text-sm text-muted">
+          <p className="text-body text-muted">
             SST Hostel Leave System
           </p>
 
-          <p className="text-sm text-muted">
+          <p className="text-body text-muted">
             Operational workflow platform
           </p>
         </div>

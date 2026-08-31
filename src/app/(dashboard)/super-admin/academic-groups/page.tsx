@@ -130,7 +130,7 @@ export default function AcademicGroupsPage() {
           </div>
           {isLoading ? <LoadingState count={5} /> : typedGroups.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-12">
-              <p className="text-sm text-muted">No academic groups yet.</p>
+              <p className="text-body text-muted">No academic groups yet.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -141,10 +141,10 @@ export default function AcademicGroupsPage() {
                       <GraduationCap className="size-4 shrink-0 text-muted" />
                       <span className="font-medium">{group.name}</span>
                     </div>
-                    <p className="mt-1 text-xs text-muted">
+                    <p className="mt-1 text-caption text-muted">
                       Batch {group.batchYear} · {deptNameById[group.departmentId] ?? "Unknown dept"}
                       {group.groupCode ? ` · ${group.groupCode}` : ""}
-                      <span className={`ml-2 ${group.isActive ? "text-emerald-500" : "text-muted"}`}>
+                      <span className={`ml-2 ${group.isActive ? "text-success" : "text-muted"}`}>
                         {group.isActive ? "Active" : "Inactive"}
                       </span>
                     </p>
@@ -167,13 +167,13 @@ export default function AcademicGroupsPage() {
           <h3 className="font-semibold">{isEditing ? "Edit Academic Group" : "New Academic Group"}</h3>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm">
+            <label className="block text-body">
               <span className="mb-1 block font-medium">Name</span>
               <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                 placeholder="e.g. CSE Batch 2028"
                 className="h-9 w-full rounded-lg border bg-background px-3 outline-none focus:border-ring focus:ring-1 focus:ring-ring" />
             </label>
-            <label className="block text-sm">
+            <label className="block text-body">
               <span className="mb-1 block font-medium">Group Code</span>
               <input value={draft.groupCode} onChange={(e) => setDraft({ ...draft, groupCode: e.target.value })}
                 placeholder="e.g. A1"
@@ -182,7 +182,7 @@ export default function AcademicGroupsPage() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm">
+            <label className="block text-body">
               <span className="mb-1 block font-medium">Department</span>
               <select value={draft.departmentId} onChange={(e) => setDraft({ ...draft, departmentId: e.target.value })}
                 className="h-9 w-full rounded-lg border bg-background px-3 outline-none focus:border-ring focus:ring-1 focus:ring-ring">
@@ -192,7 +192,7 @@ export default function AcademicGroupsPage() {
                 ))}
               </select>
             </label>
-            <label className="block text-sm">
+            <label className="block text-body">
               <span className="mb-1 block font-medium">Batch Year</span>
               <input type="number" min={1900} max={2100} value={draft.batchYear}
                 onChange={(e) => setDraft({ ...draft, batchYear: e.target.value })}
@@ -200,12 +200,12 @@ export default function AcademicGroupsPage() {
             </label>
           </div>
 
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-body">
             <input type="checkbox" checked={draft.isActive} onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })} />
             Active
           </label>
 
-          {message && <p className="text-sm text-muted">{message}</p>}
+          {message && <p className="text-body text-muted">{message}</p>}
           <div className="flex justify-end border-t border-border pt-4">
             <Button onClick={submit} disabled={saving || !draft.name.trim() || !draft.departmentId}>
               <Save className="size-4" /> {saving ? "Saving..." : isEditing ? "Update" : "Create"}

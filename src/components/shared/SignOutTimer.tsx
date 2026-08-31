@@ -27,7 +27,7 @@ export function SignOutTimer({
   }, [countdown, signOut, redirectUrl]);
 
   return (
-    <p className="text-sm text-muted">
+    <p className="text-body text-muted">
       Signing you out in{" "}
       <span className="font-medium text-foreground">
         {countdown}

@@ -46,10 +46,10 @@ type OverdueStudentsPageProps = {
 
 function getAvatarColor(id: string): string {
   const colors = [
-    "bg-red-500/10 text-red-600 dark:text-red-400",
-    "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-    "bg-orange-500/10 text-orange-600 dark:text-orange-400",
-    "bg-red-500/10 text-red-600 dark:text-red-400",
+    "bg-danger-light text-danger",
+    "bg-danger-light text-danger",
+    "bg-warning-light text-warning",
+    "bg-danger-light text-danger",
   ];
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
@@ -158,8 +158,8 @@ export function OverdueStudentsPage({ detailBasePath }: OverdueStudentsPageProps
       </div>
 
       {/* Result count */}
-      <div className="flex items-center gap-2 text-xs text-muted">
-        <Clock className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+      <div className="flex items-center gap-2 text-caption text-muted">
+        <Clock className="h-3.5 w-3.5 text-danger" />
         <span>
           Showing{" "}
           <span className="font-medium text-foreground">{students.length}</span> of{" "}
@@ -196,7 +196,7 @@ export function OverdueStudentsPage({ detailBasePath }: OverdueStudentsPageProps
                   {/* Avatar */}
                   <div
                     className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xs font-semibold",
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-caption font-semibold",
                       getAvatarColor(student.id),
                     )}
                   >
@@ -206,14 +206,14 @@ export function OverdueStudentsPage({ detailBasePath }: OverdueStudentsPageProps
                   {/* Main content */}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-semibold">
+                      <span className="truncate text-body font-semibold">
                         {user?.fullName ?? "—"}
                       </span>
-                      <span className="inline-flex shrink-0 items-center rounded-full bg-red-500/10 px-2.5 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">
+                      <span className="inline-flex shrink-0 items-center rounded-full bg-danger-light px-2.5 py-0.5 text-micro font-medium text-danger">
                         Overdue
                       </span>
                     </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted">
                       <span className="font-mono">{student.rollNumber ?? "—"}</span>
                       <span className="inline-flex items-center gap-1">
                         <Mail className="h-3 w-3" />

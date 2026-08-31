@@ -9,13 +9,14 @@ import { MultiSeriesBarChart, type SeriesDef } from "@/components/analytics/Mult
 import { ErrorState } from "@/components/shared/ErrorState";
 import { InfoCard } from "@/components/shared/InfoCard";
 import { LoadingState } from "@/components/shared/LoadingState";
+import { CHART } from "@/design-system/sst";
 import type { AnalyticsPeriod } from "@/dto/analytics/analytics-period.dto";
 import type { MovementAnalytics, ScanTrendPoint } from "@/dto/analytics/movement-analytics.dto";
 import { useMovementAnalytics } from "@/features/analytics/hooks/use-analytics";
 
 const SCAN_SERIES: SeriesDef[] = [
-  { key: "success", label: "Success", color: "#10b981" },
-  { key: "failed", label: "Failed", color: "#ef4444" },
+  { key: "success", label: "Success", color: CHART.success },
+  { key: "failed", label: "Failed", color: CHART.danger },
 ];
 
 const toScanData = (rows: ScanTrendPoint[]): Array<Record<string, string | number>> =>
@@ -55,7 +56,7 @@ export function MovementQrTab({ period }: MovementQrTabProps) {
           title="Movement Events Trend"
           description="Daily movement events over the selected period."
           data={d.movementTrend.map((point) => ({ date: point.date, value: point.value }))}
-          color="#6366f1"
+          color={CHART.accent}
         />
         <MultiSeriesBarChart
           title="QR Scan Results"
@@ -74,18 +75,18 @@ export function MovementQrTab({ period }: MovementQrTabProps) {
       <div className="grid gap-6 lg:grid-cols-2">
         <LeaveTypePieChart title="QR Passes by Status" data={d.qrByStatus} />
         <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <h3 className="mb-1 text-base font-semibold">Top Scan Failure Reasons</h3>
-          <p className="mb-4 text-sm text-muted">Most common reasons QR scans are rejected.</p>
+          <h3 className="mb-1 text-body-lg font-semibold">Top Scan Failure Reasons</h3>
+          <p className="mb-4 text-body text-muted">Most common reasons QR scans are rejected.</p>
           {d.topFailureReasons.length === 0 ? (
             <div className="flex h-[220px] items-center justify-center">
-              <p className="text-sm text-muted">No failure reasons recorded.</p>
+              <p className="text-body text-muted">No failure reasons recorded.</p>
             </div>
           ) : (
             <ul className="space-y-3">
               {d.topFailureReasons.map((item) => (
                 <li key={item.reason} className="flex items-center justify-between gap-4">
-                  <span className="truncate text-sm text-muted">{item.reason}</span>
-                  <span className="shrink-0 rounded-md bg-surface-sunken px-2 py-0.5 text-xs font-semibold tabular-nums">
+                  <span className="truncate text-body text-muted">{item.reason}</span>
+                  <span className="shrink-0 rounded-md bg-surface-sunken px-2 py-0.5 text-caption font-semibold tabular-nums">
                     {item.count}
                   </span>
                 </li>

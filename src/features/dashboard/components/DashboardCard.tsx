@@ -26,12 +26,12 @@ export function DashboardCard({
       )}
     >
       <div className="mb-4">
-        <h3 className="text-base font-semibold">
+        <h3 className="text-body-lg font-semibold">
           {title}
         </h3>
 
         {description && (
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-body text-muted">
             {description}
           </p>
         )}

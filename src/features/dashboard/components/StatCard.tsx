@@ -16,16 +16,16 @@ export function StatCard({
         bg-card p-6
       "
     >
-      <p className="text-sm text-muted">
+      <p className="text-body text-muted">
         {label}
       </p>
 
-      <h3 className="mt-3 text-3xl font-bold tracking-tight">
+      <h3 className="mt-3 text-h1 font-semibold tracking-tight">
         {value}
       </h3>
 
       {helperText && (
-        <p className="mt-2 text-sm text-muted">
+        <p className="mt-2 text-body text-muted">
           {helperText}
         </p>
       )}

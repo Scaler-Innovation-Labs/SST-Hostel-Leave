@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { VIEW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
+import { CHART } from "@/design-system/sst";
 import type { ApprovalQueueItem } from "@/features/approvals/hooks/use-approvals";
 import { approveLeave, rejectLeave } from "@/lib/api/approval-api";
 import { approveExtension } from "@/lib/api/extension-api";
@@ -87,11 +88,11 @@ function getInitials(name: string): string {
 }
 
 const AVATAR_COLORS = [
-  "bg-blue-500/10 text-blue-600",
-  "bg-emerald-500/10 text-emerald-600",
-  "bg-violet-500/10 text-violet-600",
-  "bg-amber-500/10 text-amber-600",
-  "bg-rose-500/10 text-rose-600",
+  "bg-accent-light text-accent",
+  "bg-success-light text-success",
+  "bg-accent-light text-accent",
+  "bg-warning-light text-warning",
+  "bg-danger-light text-danger",
 ];
 
 function workflowStepLabel(stepKey: string): string {
@@ -144,13 +145,13 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
   // Status color for the left rail — the decision at a glance.
   const statusColor =
     isPending
-      ? "#f59e0b"
+      ? CHART.warning
       : leaveStatus === LEAVE_REQUEST_STATUS.REJECTED ||
           leaveStatus === LEAVE_REQUEST_STATUS.CANCELLED ||
           leaveStatus === LEAVE_REQUEST_STATUS.EXPIRED ||
           leaveStatus === LEAVE_REQUEST_STATUS.OVERDUE
-        ? "#ef4444"
-        : "#10b981";
+        ? CHART.danger
+        : CHART.success;
 
   // Role required by the currently active workflow step. When it doesn't match
   // this viewer's role, the approver's turn hasn't come yet — show a waiting
@@ -392,23 +393,23 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
       >
         <div className="flex items-center gap-2">
           <span className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-caption font-medium",
             isPending
-              ? "bg-amber-500/10 text-amber-600"
+              ? "bg-warning-light text-warning"
               : leaveStatus === LEAVE_REQUEST_STATUS.REJECTED || leaveStatus === LEAVE_REQUEST_STATUS.CANCELLED
-                ? "bg-red-500/10 text-red-600"
+                ? "bg-danger-light text-danger"
                 : leaveStatus === LEAVE_REQUEST_STATUS.EXPIRED || leaveStatus === LEAVE_REQUEST_STATUS.OVERDUE
-                  ? "bg-red-500/10 text-red-600"
-                  : "bg-emerald-500/10 text-emerald-600",
+                  ? "bg-danger-light text-danger"
+                  : "bg-success-light text-success",
           )}>
-            <span className={cn("h-1.5 w-1.5 rounded-full", isPending ? "bg-amber-500" : leaveStatus === LEAVE_REQUEST_STATUS.REJECTED || leaveStatus === LEAVE_REQUEST_STATUS.CANCELLED || leaveStatus === LEAVE_REQUEST_STATUS.EXPIRED || leaveStatus === LEAVE_REQUEST_STATUS.OVERDUE ? "bg-red-500" : "bg-emerald-500")} />
+            <span className={cn("h-1.5 w-1.5 rounded-full", isPending ? "bg-warning" : leaveStatus === LEAVE_REQUEST_STATUS.REJECTED || leaveStatus === LEAVE_REQUEST_STATUS.CANCELLED || leaveStatus === LEAVE_REQUEST_STATUS.EXPIRED || leaveStatus === LEAVE_REQUEST_STATUS.OVERDUE ? "bg-danger" : "bg-success")} />
             {headerBadge}
           </span>
           {isExtension && (
-            <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-600">Extension</span>
+            <span className="rounded-full bg-accent-light px-2 py-0.5 text-micro font-medium text-accent">Extension</span>
           )}
         </div>
-        <span className="font-mono text-xs text-muted">{lr?.requestNumber ?? "—"}</span>
+        <span className="font-mono text-caption text-muted">{lr?.requestNumber ?? "—"}</span>
       </div>
 
       {/* ── Card body ── */}
@@ -417,12 +418,12 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
         <div className="min-w-0 flex-1 space-y-3">
           {/* Student + Leave row */}
           <div className="flex items-start gap-3">
-            <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold", avatarColor)}>
+            <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-body font-semibold", avatarColor)}>
               {getInitials(item.studentName ?? "?")}
             </div>
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-semibold leading-tight">{item.studentName ?? "—"}</h3>
-              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
+              <h3 className="text-body font-semibold leading-tight">{item.studentName ?? "—"}</h3>
+              <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-caption text-muted">
                 <span className="font-mono">{item.studentRollNumber}</span>
                 {item.departmentName && <span>{item.departmentName}</span>}
                 {item.roomNumber && <span>Room {item.roomNumber}</span>}
@@ -434,13 +435,13 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                 )}
               </div>
             </div>
-            <span className="shrink-0 text-[11px] text-muted">
+            <span className="shrink-0 text-micro text-muted">
               {getWaitingTime(item.createdAt)}
             </span>
           </div>
 
           {/* Leave summary — compact horizontal */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-muted">
             <LeaveTypeBadge
               name={item.leaveTypeName ?? "Leave"}
               color={(item.leaveTypeUiConfig?.color as string | undefined) ?? null}
@@ -448,7 +449,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
             <span className="inline-flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
               {lr ? `${formatDate(lr.startAt)}→${formatDate(lr.endAt)}` : "—"}
-              <span className="ml-0.5 rounded bg-surface-sunken px-1 py-0.5 text-[10px] font-medium">
+              <span className="ml-0.5 rounded bg-surface-sunken px-1 py-0.5 text-micro font-medium">
                 {lr ? getDurationLabel(lr.startAt, lr.endAt, { short: true }) : ""}
               </span>
             </span>
@@ -461,7 +462,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
           </div>
 
           {/* Reason */}
-          <div className="line-clamp-1 text-xs text-muted">
+          <div className="line-clamp-1 text-caption text-muted">
             {lr?.reason ?? "—"}
           </div>
 
@@ -478,8 +479,8 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
             <div className="flex w-full flex-col gap-2">
               {showWaitingPanel ? (
                 <div className="flex flex-col items-center gap-1.5 rounded-lg border border-dashed border-border bg-surface-sunken/40 px-3 py-3 text-center">
-                  <Clock className="h-4 w-4 text-amber-500" />
-                  <span className="text-[11px] font-medium leading-tight text-muted">
+                  <Clock className="h-4 w-4 text-warning" />
+                  <span className="text-micro font-medium leading-tight text-muted">
                     Waiting for <span className="text-foreground">{getStepDisplay(waitingOn).label}</span>
                   </span>
                 </div>
@@ -493,7 +494,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                       setApproveOpen(true);
                     }}
                     disabled={actionLoading}
-                    className="h-8 w-full gap-1.5 text-xs"
+                    className="h-8 w-full gap-1.5 text-caption"
                   >
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Approve
@@ -506,7 +507,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                       setShowPreview("reject");
                     }}
                     disabled={actionLoading}
-                    className="h-8 w-full gap-1.5 text-xs"
+                    className="h-8 w-full gap-1.5 text-caption"
                   >
                     <XCircle className="h-3.5 w-3.5" />
                     Reject
@@ -518,8 +519,8 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
             <div className="flex flex-col items-center gap-1.5">
               {leaveStatus === LEAVE_REQUEST_STATUS.REJECTED || leaveStatus === LEAVE_REQUEST_STATUS.CANCELLED ? (
                 <>
-                  <XCircle className="h-5 w-5 text-red-500" />
-                  <span className="text-xs font-semibold uppercase tracking-wide text-red-600">
+                  <XCircle className="h-5 w-5 text-danger" />
+                  <span className="text-caption font-semibold uppercase tracking-wide text-danger">
                     {leaveStatus === LEAVE_REQUEST_STATUS.CANCELLED
                       ? "Cancelled"
                       : failedStepLabel
@@ -529,15 +530,15 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                 </>
               ) : leaveStatus === LEAVE_REQUEST_STATUS.EXPIRED || leaveStatus === LEAVE_REQUEST_STATUS.OVERDUE ? (
                 <>
-                  <XCircle className="h-5 w-5 text-red-500" />
-                  <span className="text-xs font-semibold uppercase tracking-wide text-red-600">
+                  <XCircle className="h-5 w-5 text-danger" />
+                  <span className="text-caption font-semibold uppercase tracking-wide text-danger">
                     {leaveStatus === LEAVE_REQUEST_STATUS.EXPIRED ? "Expired" : "Overdue"}
                   </span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                  <span className="text-xs font-semibold uppercase tracking-wide text-emerald-600">
+                  <CheckCircle2 className="h-5 w-5 text-success" />
+                  <span className="text-caption font-semibold uppercase tracking-wide text-success">
                     {leaveStatus === LEAVE_REQUEST_STATUS.COMPLETED ? "Completed" : "Approved"}
                   </span>
                 </>
@@ -549,7 +550,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
 
       {actionError && (
         <div className="border-t border-border px-4 py-3">
-          <div className="rounded-lg bg-red-50 p-2 text-xs text-red-700 dark:bg-red-500/10 dark:text-red-400">
+          <div className="rounded-lg bg-danger-light p-2 text-caption text-danger">
             {actionError}
           </div>
         </div>
@@ -581,11 +582,11 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success-light">
+                <CheckCircle2 className="h-5 w-5 text-success" />
               </div>
               <div>
-                <AlertDialogTitle className="text-lg">
+                <AlertDialogTitle className="text-h3">
                   {isExtension ? "Approve Extension" : "Approve Leave"}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
@@ -597,7 +598,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
 
           <div className="space-y-4 py-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-muted">
+              <label className="mb-1.5 block text-body font-medium text-muted">
                 Comment <span className="text-muted/50">(optional)</span>
               </label>
               <textarea
@@ -605,13 +606,13 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                 onChange={(e) => setComments(e.target.value)}
                 placeholder="Add a note about your approval..."
                 rows={3}
-                className="w-full rounded-lg border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border border-input bg-background p-3 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
               />
             </div>
 
             {!isPocViewer && (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-muted">
+                <label className="mb-1.5 block text-body font-medium text-muted">
                   CC recipients <span className="text-muted/50">(optional)</span>
                 </label>
                 <input
@@ -619,9 +620,9 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                   value={ccEmailsInput}
                   onChange={(e) => setCcEmailsInput(e.target.value)}
                   placeholder="name@example.com, another@example.com"
-                  className="w-full rounded-lg border border-input bg-background p-2.5 text-sm outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="w-full rounded-lg border border-input bg-background p-2.5 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
                 />
-                <p className="mt-1 text-xs text-muted">
+                <p className="mt-1 text-caption text-muted">
                   These addresses will be CC&apos;d on the approval email sent to the student.
                 </p>
               </div>
@@ -637,7 +638,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                       onChange={(e) => setNotifyStudent(e.target.checked)}
                       className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
                     />
-                    <span className="text-sm">Notify student</span>
+                    <span className="text-body">Notify student</span>
                   </label>
                   <label className="flex items-center gap-3">
                     <input
@@ -646,21 +647,21 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                       onChange={(e) => setNotifyParent(e.target.checked)}
                       className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
                     />
-                    <span className="text-sm">Notify parent</span>
+                    <span className="text-body">Notify parent</span>
                   </label>
                 </>
               )}
               {isSpecialLeave && (
-                <label className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950">
+                <label className="flex items-start gap-3 rounded-md border border-warning bg-warning-light p-3 dark:border-warning dark:bg-warning">
                   <input
                     type="checkbox"
                     checked={documentsVerified}
                     onChange={(e) => setDocumentsVerified(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-input text-amber-600 focus:ring-amber-500"
+                    className="mt-0.5 h-4 w-4 rounded border-input text-warning focus:ring-warning"
                   />
-                  <span className="text-sm">
+                  <span className="text-body">
                     <strong>I confirm that the documents have been verified</strong>
-                    <p className="mt-0.5 text-xs text-muted">
+                    <p className="mt-0.5 text-caption text-muted">
                       This leave type requires document verification before approval.
                     </p>
                   </span>
@@ -669,7 +670,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
             </div>
 
             {actionError && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+              <div className="rounded-lg bg-danger-light p-3 text-body text-danger">
                 {actionError}
               </div>
             )}
@@ -677,7 +678,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
 
           <AlertDialogFooter>
             <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
-            <Button onClick={submitApprove} disabled={actionLoading} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+            <Button onClick={submitApprove} disabled={actionLoading} className="gap-2 bg-success hover:bg-success">
               {actionLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -699,11 +700,11 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
-                <Clock className="h-5 w-5 text-amber-500" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-light">
+                <Clock className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <AlertDialogTitle className="text-lg">Parent approval pending</AlertDialogTitle>
+                <AlertDialogTitle className="text-h3">Parent approval pending</AlertDialogTitle>
                 <AlertDialogDescription>
                   Parent approval is still pending for {item.studentName ?? "this student"}. Approving now will
                   override the parent approval process.
@@ -713,7 +714,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
           </AlertDialogHeader>
 
           {actionError && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+            <div className="rounded-lg bg-danger-light p-3 text-body text-danger">
               {actionError}
             </div>
           )}
@@ -723,7 +724,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
             <Button
               onClick={submitOverride}
               disabled={actionLoading}
-              className="gap-2 bg-amber-600 hover:bg-amber-700"
+              className="gap-2 bg-warning hover:bg-warning"
             >
               {actionLoading ? (
                 <>

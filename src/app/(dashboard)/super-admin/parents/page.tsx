@@ -266,7 +266,7 @@ export default function SuperAdminParentsPage() {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
               />
             </div>
             <Button variant="outline" onClick={startNew}>
@@ -284,12 +284,12 @@ export default function SuperAdminParentsPage() {
                 <a
                   href="/api/v1/parents/template?format=csv"
                   download
-                  className="text-xs text-primary underline underline-offset-2 hover:text-primary/80"
+                  className="text-caption text-primary underline underline-offset-2 hover:text-primary/80"
                 >
                   Download CSV Template
                 </a>
               </div>
-              <p className="text-xs text-muted">
+              <p className="text-caption text-muted">
                 Upload a CSV (.csv) or Excel (.xlsx/.xls) file. Required fields:{" "}
                 <code>studentEmail</code>, <code>name</code>, <code>phone</code>, <code>relationship</code>.
               </p>
@@ -299,14 +299,14 @@ export default function SuperAdminParentsPage() {
                   type="file"
                   accept=".csv,.txt,.xlsx,.xls"
                   onChange={handleFileUpload}
-                  className="text-sm"
+                  className="text-body"
                 />
-                <span className="text-xs text-muted">or</span>
+                <span className="text-caption text-muted">or</span>
               </div>
               <textarea
                 value={bulkJson}
                 onChange={(e) => setBulkJson(e.target.value)}
-                className="min-h-[100px] w-full rounded-lg border bg-background px-3 py-2 font-mono text-xs outline-none focus:border-ring"
+                className="min-h-[100px] w-full rounded-lg border bg-background px-3 py-2 font-mono text-caption outline-none focus:border-ring"
                 placeholder='[{ "studentEmail": "student@example.com", "name": "John Doe Sr.", "phone": "9876543210", "relationship": "father" }]'
                 rows={4}
               />
@@ -316,12 +316,12 @@ export default function SuperAdminParentsPage() {
                 </Button>
               </div>
               {bulkResults && (
-                <div className="max-h-[200px] space-y-1 overflow-y-auto rounded-lg border bg-background p-3 text-xs">
+                <div className="max-h-[200px] space-y-1 overflow-y-auto rounded-lg border bg-background p-3 text-caption">
                   <p className="font-medium">
                     {bulkResults.filter((r) => r.success).length} succeeded, {bulkResults.filter((r) => !r.success).length} failed
                   </p>
                   {bulkResults.filter((r) => !r.success).map((r, i) => (
-                    <p key={i} className="text-red-600">
+                    <p key={i} className="text-danger">
                       Row {r.row}: {r.error}
                     </p>
                   ))}
@@ -331,14 +331,14 @@ export default function SuperAdminParentsPage() {
           )}
 
           {isLoading ? (
-            <p className="text-sm text-muted">Loading...</p>
+            <p className="text-body text-muted">Loading...</p>
           ) : error ? (
             <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-card p-12">
-              <p className="text-sm text-muted">Failed to load parents.</p>
+              <p className="text-body text-muted">Failed to load parents.</p>
               <Button variant="outline" onClick={() => mutate()}>Retry</Button>
             </div>
           ) : !parents || parents.items.length === 0 ? (
-            <p className="text-sm text-muted">No parents found.</p>
+            <p className="text-body text-muted">No parents found.</p>
           ) : (
             <div className="space-y-2">
               {parents.items.map((parent) => (
@@ -351,20 +351,20 @@ export default function SuperAdminParentsPage() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <span className="text-sm font-medium">{parent.name}</span>
-                      <div className="mt-0.5 text-xs text-muted">
+                      <span className="text-body font-medium">{parent.name}</span>
+                      <div className="mt-0.5 text-caption text-muted">
                         {parent.relationship}
                         {parent.studentName && (
                           <> &middot; {parent.studentName} ({parent.studentRollNumber ?? "—"})</>
                         )}
                       </div>
-                      <div className="mt-0.5 text-xs text-muted">
+                      <div className="mt-0.5 text-caption text-muted">
                         {parent.phone}
                         {parent.email && <> &middot; {parent.email}</>}
                       </div>
                     </div>
                     {parent.isPrimary && (
-                      <span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600">
+                      <span className="shrink-0 rounded-full bg-success-light px-2 py-0.5 text-micro font-medium text-success">
                         Primary
                       </span>
                     )}
@@ -392,7 +392,7 @@ export default function SuperAdminParentsPage() {
           <div className="space-y-4">
             {!draft.id && (
               <div className="space-y-2">
-                <label className="block text-sm">
+                <label className="block text-body">
                   <span className="mb-1 block font-medium">Student</span>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
@@ -401,7 +401,7 @@ export default function SuperAdminParentsPage() {
                       placeholder="Search students..."
                       value={studentSearch}
                       onChange={(e) => setStudentSearch(e.target.value)}
-                      className="h-9 w-full rounded-lg border bg-background pl-9 pr-3 text-xs outline-none focus:border-ring"
+                      className="h-9 w-full rounded-lg border bg-background pl-9 pr-3 text-caption outline-none focus:border-ring"
                     />
                   </div>
                 </label>
@@ -415,7 +415,7 @@ export default function SuperAdminParentsPage() {
                           setDraft({ ...draft, studentId: s.id });
                           setStudentSearch(s.fullName);
                         }}
-                        className={`w-full rounded-md px-2 py-1.5 text-left text-xs hover:bg-surface-sunken ${
+                        className={`w-full rounded-md px-2 py-1.5 text-left text-caption hover:bg-surface-sunken ${
                           draft.studentId === s.id ? "bg-primary/10" : ""
                         }`}
                       >
@@ -425,7 +425,7 @@ export default function SuperAdminParentsPage() {
                   </div>
                 )}
                 {draft.studentId && (
-                  <div className="flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs text-primary">
+                  <div className="flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-caption text-primary">
                     Student selected
                     <button
                       type="button"
@@ -442,54 +442,54 @@ export default function SuperAdminParentsPage() {
             )}
 
             {draft.id && (
-              <div className="rounded-lg bg-surface-sunken/30 px-3 py-2 text-xs text-muted">
+              <div className="rounded-lg bg-surface-sunken/30 px-3 py-2 text-caption text-muted">
                 Student ID: {draft.studentId}
               </div>
             )}
 
-            <label className="block text-sm">
+            <label className="block text-body">
               <span className="mb-1 block font-medium">Name</span>
               <input
                 value={draft.name}
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
                 placeholder="Parent name"
               />
             </label>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-1 block font-medium">Phone</span>
                 <input
                   value={draft.phone}
                   onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
                   placeholder="Phone number"
                 />
               </label>
 
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-1 block font-medium">Email</span>
                 <input
                   value={draft.email}
                   onChange={(e) => setDraft({ ...draft, email: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
                   placeholder="email@example.com"
                 />
               </label>
             </div>
 
-            <label className="block text-sm">
+            <label className="block text-body">
               <span className="mb-1 block font-medium">Relationship</span>
               <input
                 value={draft.relationship}
                 onChange={(e) => setDraft({ ...draft, relationship: e.target.value })}
-                className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
                 placeholder="e.g. father, mother, guardian"
               />
             </label>
 
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-body">
               <input
                 type="checkbox"
                 checked={draft.isPrimary}

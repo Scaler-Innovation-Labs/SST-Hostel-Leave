@@ -55,28 +55,28 @@ function defaultActions(basePath: string): StaffQuickAction[] {
       description: "Pending extension requests",
       href: `${basePath}/extension-approvals`,
       icon: CalendarClock,
-      tone: "text-blue-600 bg-blue-500/10 dark:text-blue-400",
+      tone: "text-accent bg-accent-light",
     },
     {
       label: "Overdue Returns",
       description: "Students marked overdue",
       href: `${basePath}/overdue`,
       icon: AlertTriangle,
-      tone: "text-red-600 bg-red-500/10 dark:text-red-400",
+      tone: "text-danger bg-danger-light",
     },
     {
       label: "View Students",
       description: "Browse student profiles",
       href: `${basePath}/students`,
       icon: Users,
-      tone: "text-emerald-600 bg-emerald-500/10 dark:text-emerald-400",
+      tone: "text-success bg-success-light",
     },
     {
       label: "Movement History",
       description: "Recent entry/exit events",
       href: `${basePath}/movements`,
       icon: Route,
-      tone: "text-amber-600 bg-amber-500/10 dark:text-amber-400",
+      tone: "text-warning bg-warning-light",
     },
   ];
 }
@@ -84,7 +84,7 @@ function defaultActions(basePath: string): StaffQuickAction[] {
 function SectionHeader({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-      <h2 className="text-sm font-semibold uppercase tracking-wider text-muted">
+      <h2 className="text-body font-semibold uppercase tracking-wider text-muted">
         {title}
       </h2>
       {children}
@@ -197,13 +197,13 @@ export function StaffDashboard({ basePath, title, description, actions, extraAct
                   <Icon className="h-5 w-5" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium text-foreground">{action.label}</span>
-                  <span className="mt-0.5 block truncate text-xs text-muted">
+                  <span className="block text-body font-medium text-foreground">{action.label}</span>
+                  <span className="mt-0.5 block truncate text-caption text-muted">
                     {action.description}
                   </span>
                 </span>
                 {typeof action.count === "number" && action.count > 0 && (
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold tabular-nums text-primary-foreground">
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-caption font-semibold tabular-nums text-primary-foreground">
                     {action.count}
                   </span>
                 )}

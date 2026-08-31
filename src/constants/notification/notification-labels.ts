@@ -15,19 +15,19 @@ export const EVENT_LABELS: Record<string, string> = {
 };
 
 export const EVENT_COLORS: Record<string, string> = {
-  LEAVE_SUBMITTED: "bg-blue-500/10 text-blue-600",
-  LEAVE_APPROVED: "bg-emerald-500/10 text-emerald-600",
+  LEAVE_SUBMITTED: "bg-accent-light text-accent",
+  LEAVE_APPROVED: "bg-success-light text-success",
   LEAVE_REJECTED: "bg-destructive/10 text-destructive",
   LEAVE_CANCELLED: "bg-surface-sunken text-muted",
-  LEAVE_COMPLETED: "bg-emerald-500/10 text-emerald-600",
-  LEAVE_EXPIRED: "bg-amber-500/10 text-amber-600",
+  LEAVE_COMPLETED: "bg-success-light text-success",
+  LEAVE_EXPIRED: "bg-warning-light text-warning",
   LEAVE_OVERDUE: "bg-destructive/10 text-destructive",
-  LEAVE_EXTENSION_REQUESTED: "bg-blue-500/10 text-blue-600",
-  LEAVE_EXTENSION_APPROVED: "bg-emerald-500/10 text-emerald-600",
+  LEAVE_EXTENSION_REQUESTED: "bg-accent-light text-accent",
+  LEAVE_EXTENSION_APPROVED: "bg-success-light text-success",
   LEAVE_EXTENSION_REJECTED: "bg-destructive/10 text-destructive",
-  PARENT_APPROVAL_REQUESTED: "bg-violet-500/10 text-violet-600",
+  PARENT_APPROVAL_REQUESTED: "bg-accent-light text-accent",
   QR_GENERATED: "bg-primary/10 text-primary",
-  QR_INVALIDATED: "bg-amber-500/10 text-amber-600",
+  QR_INVALIDATED: "bg-warning-light text-warning",
 };
 
 export function getEventLabel(eventType: string): string {

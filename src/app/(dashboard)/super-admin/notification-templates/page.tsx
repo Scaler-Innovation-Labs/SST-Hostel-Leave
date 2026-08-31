@@ -25,11 +25,11 @@ const CHANNEL_LABELS: Record<string, string> = {
 };
 
 const CHANNEL_COLORS: Record<string, string> = {
-  EMAIL: "bg-blue-500/10 text-blue-600",
-  SMS: "bg-emerald-500/10 text-emerald-600",
-  PUSH: "bg-violet-500/10 text-violet-600",
-  WEBHOOK: "bg-amber-500/10 text-amber-600",
-  SLACK: "bg-rose-500/10 text-rose-600",
+  EMAIL: "bg-accent-light text-accent",
+  SMS: "bg-success-light text-success",
+  PUSH: "bg-accent-light text-accent",
+  WEBHOOK: "bg-warning-light text-warning",
+  SLACK: "bg-danger-light text-danger",
 };
 
 type TemplateDraft = {
@@ -141,14 +141,14 @@ export default function NotificationTemplatesPage() {
           </div>
 
           {isLoading ? (
-            <p className="text-sm text-muted">Loading...</p>
+            <p className="text-body text-muted">Loading...</p>
           ) : isError ? (
             <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-card p-12">
-              <p className="text-sm text-muted">Failed to load templates.</p>
+              <p className="text-body text-muted">Failed to load templates.</p>
               <Button variant="outline" onClick={() => mutate()}>Retry</Button>
             </div>
           ) : templates.length === 0 ? (
-            <p className="text-sm text-muted">
+            <p className="text-body text-muted">
               No notification templates configured.
             </p>
           ) : (
@@ -162,24 +162,24 @@ export default function NotificationTemplatesPage() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <span className="text-sm font-medium">{tpl.code}</span>
+                    <span className="text-body font-medium">{tpl.code}</span>
                     <div className="mt-1 flex flex-wrap gap-1">
                       <span
-                        className="rounded-full bg-surface-sunken px-2 py-0.5 text-xs"
+                        className="rounded-full bg-surface-sunken px-2 py-0.5 text-caption"
                       >
                         {EVENT_LABELS[tpl.eventKey] ?? tpl.eventKey}
                       </span>
                       <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${CHANNEL_COLORS[tpl.channel] ?? "bg-surface-sunken text-muted"}`}
+                        className={`inline-block rounded-full px-2 py-0.5 text-micro font-medium ${CHANNEL_COLORS[tpl.channel] ?? "bg-surface-sunken text-muted"}`}
                       >
                         {CHANNEL_LABELS[tpl.channel] ?? tpl.channel}
                       </span>
                     </div>
                   </div>
                   <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-micro font-medium ${
                       tpl.isActive
-                        ? "bg-emerald-500/10 text-emerald-600"
+                        ? "bg-success-light text-success"
                         : "bg-surface-sunken text-muted"
                     }`}
                   >
@@ -197,24 +197,24 @@ export default function NotificationTemplatesPage() {
           </h2>
 
           <div className="space-y-4">
-            <label className="block text-sm">
+            <label className="block text-body">
               <span className="mb-1 block font-medium">Code</span>
               <input
                 value={draft.code}
                 onChange={(e) => setDraft({ ...draft, code: e.target.value })}
-                className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
                 placeholder="leave_submitted_email"
                 readOnly={!!draft.id}
               />
             </label>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-1 block font-medium">Event</span>
                 <select
                   value={draft.eventKey}
                   onChange={(e) => setDraft({ ...draft, eventKey: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-xs"
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption"
                 >
                   {NOTIFICATION_EVENTS.map((ev) => (
                     <option key={ev} value={ev}>{EVENT_LABELS[ev] ?? ev}</option>
@@ -222,12 +222,12 @@ export default function NotificationTemplatesPage() {
                 </select>
               </label>
 
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-1 block font-medium">Channel</span>
                 <select
                   value={draft.channel}
                   onChange={(e) => setDraft({ ...draft, channel: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-xs"
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption"
                 >
                   {NOTIFICATION_CHANNELS.map((ch) => (
                     <option key={ch} value={ch}>{CHANNEL_LABELS[ch] ?? ch}</option>
@@ -236,28 +236,28 @@ export default function NotificationTemplatesPage() {
               </label>
             </div>
 
-            <label className="block text-sm">
+            <label className="block text-body">
               <span className="mb-1 block font-medium">Subject</span>
               <input
                 value={draft.subject}
                 onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
-                className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
                 placeholder="Optional email subject line"
               />
             </label>
 
-            <label className="block text-sm">
+            <label className="block text-body">
               <span className="mb-1 block font-medium">Template Body</span>
               <textarea
                 value={draft.templateBody}
                 onChange={(e) => setDraft({ ...draft, templateBody: e.target.value })}
-                className="min-h-[200px] w-full rounded-lg border bg-background px-3 py-2 text-xs font-mono outline-none focus:border-ring"
+                className="min-h-[200px] w-full rounded-lg border bg-background px-3 py-2 text-caption font-mono outline-none focus:border-ring"
                 placeholder="Enter template content with {{variables}}"
                 rows={8}
               />
             </label>
 
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-body">
               <input
                 type="checkbox"
                 checked={draft.isActive}

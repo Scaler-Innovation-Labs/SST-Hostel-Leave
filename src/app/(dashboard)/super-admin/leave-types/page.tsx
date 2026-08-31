@@ -266,7 +266,7 @@ export default function LeaveTypesPage() {
                       )}
                       {lt.name}
                     </span>
-                    <p className="mt-0.5 font-mono text-xs text-muted">
+                    <p className="mt-0.5 font-mono text-caption text-muted">
                       {lt.code} · v{lt.version}
                     </p>
                   </div>
@@ -280,7 +280,7 @@ export default function LeaveTypesPage() {
                       </span>
                     )}
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      className={`rounded-full px-2 py-0.5 text-micro font-medium ${
                         lt.isActive
                           ? "bg-success-light text-success"
                           : "bg-surface-sunken text-muted"
@@ -290,7 +290,7 @@ export default function LeaveTypesPage() {
                     </span>
                   </div>
                 </div>
-                <p className="mt-1 text-xs text-muted">
+                <p className="mt-1 text-caption text-muted">
                   {lt.formSchema.fields.length} form fields
                   {lt.allowExtensions ? ` · ${lt.maxExtensionCount ?? "?"} max extensions` : " · No extensions"}
                 </p>
@@ -306,20 +306,20 @@ export default function LeaveTypesPage() {
 
           {/* ── Section 1: Basic Information ── */}
           <div>
-            <p className="mb-3 text-xs font-medium text-muted uppercase tracking-wider">
+            <p className="mb-3 text-caption font-medium text-muted uppercase tracking-wider">
               Leave Type Information
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-1 block font-medium">Name</span>
                 <input
                   value={draft.name}
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                   placeholder="e.g. Home Pass"
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                 />
               </label>
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-1 block font-medium">Code</span>
                 <input
                   value={draft.code}
@@ -327,30 +327,30 @@ export default function LeaveTypesPage() {
                     setDraft({ ...draft, code: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "_") })
                   }
                   placeholder="HOME_PASS"
-                  className="h-9 w-full rounded-lg border bg-background px-3 font-mono text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border bg-background px-3 font-mono text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                 />
               </label>
             </div>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-1 block font-medium">Category</span>
                 <select
                   value={draft.category}
                   onChange={(e) => setDraft({ ...draft, category: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                 >
                   {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
                   ))}
                 </select>
               </label>
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-1 block font-medium">Status</span>
                 <select
                   value={draft.isActive ? "active" : "inactive"}
                   onChange={(e) => setDraft({ ...draft, isActive: e.target.value === "active" })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
@@ -359,18 +359,18 @@ export default function LeaveTypesPage() {
               <div />
             </div>
 
-            <label className="mt-4 block text-sm">
+            <label className="mt-4 block text-body">
               <span className="mb-1 block font-medium">Description</span>
               <textarea
                 value={draft.description}
                 onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                 rows={2}
-                className="w-full rounded-lg border bg-background p-2 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border bg-background p-2 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
               />
             </label>
 
             <div className="mt-4 space-y-3 rounded-lg border bg-surface-sunken/10 p-4">
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2 text-body">
                 <input
                   type="checkbox"
                   checked={draft.allowExtensions}
@@ -380,7 +380,7 @@ export default function LeaveTypesPage() {
                 Allow extensions
               </label>
               {draft.allowExtensions && (
-                <label className="block text-sm">
+                <label className="block text-body">
                   <span className="mb-1 block font-medium">Max extension count</span>
                   <input
                     type="number"
@@ -388,14 +388,14 @@ export default function LeaveTypesPage() {
                     max={100}
                     value={draft.maxExtensionCount}
                     onChange={(e) => setDraft({ ...draft, maxExtensionCount: e.target.value })}
-                    className="h-9 w-32 rounded-lg border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                    className="h-9 w-32 rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                   />
                 </label>
               )}
             </div>
 
             <div className="mt-4 space-y-3 rounded-lg border bg-surface-sunken/10 p-4">
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2 text-body">
                 <input
                   type="checkbox"
                   checked={draft.isSpecial}
@@ -407,14 +407,14 @@ export default function LeaveTypesPage() {
                 </span>
               </label>
               {draft.isSpecial && (
-                <p className="text-xs text-muted">
+                <p className="text-caption text-muted">
                   Admin will be required to confirm document verification before approving this leave type.
                 </p>
               )}
             </div>
 
             <div className="mt-4 space-y-3 rounded-lg border bg-surface-sunken/10 p-4">
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-2 block font-medium">Color</span>
                 <span className="flex flex-wrap items-center gap-2">
                   {LEAVE_TYPE_COLOR_PALETTE.map((swatch) => (
@@ -436,27 +436,27 @@ export default function LeaveTypesPage() {
 
           {/* ── Section 2: Workflow Configuration ── */}
           <div>
-            <p className="mb-3 text-xs font-medium text-muted uppercase tracking-wider">
+            <p className="mb-3 text-caption font-medium text-muted uppercase tracking-wider">
               Workflow Configuration
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-1 block font-medium">Workflow Mode</span>
                 <select
                   value={draft.workflowMode}
                   onChange={(e) => setDraft({ ...draft, workflowMode: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                 >
                   <option value={LEAVE_WORKFLOW_MODE.HOSTEL}>Hostel Default</option>
                   <option value={LEAVE_WORKFLOW_MODE.ACADEMIC}>Leave-Type Specific</option>
                 </select>
               </label>
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-1 block font-medium">Default Workflow</span>
                 <select
                   value={draft.defaultWorkflowId ?? ""}
                   onChange={(e) => setDraft({ ...draft, defaultWorkflowId: e.target.value || null })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                 >
                   <option value="">No default</option>
                   {workflows?.map((wf) => (
@@ -471,7 +471,7 @@ export default function LeaveTypesPage() {
 
           {/* ── Section 3: Dynamic Form Builder ── */}
           <div>
-            <p className="mb-3 text-xs font-medium text-muted uppercase tracking-wider">
+            <p className="mb-3 text-caption font-medium text-muted uppercase tracking-wider">
               Form Builder
             </p>
             <div className="rounded-lg border bg-surface-sunken/10 p-4">
@@ -520,7 +520,7 @@ export default function LeaveTypesPage() {
                 draft.requiredDocuments.map((document, index) => (
                   <div key={`${document.code}-${index}`} className="rounded-lg border bg-background p-3">
                     <div className="grid gap-3 sm:grid-cols-2">
-                      <label className="block text-sm">
+                      <label className="block text-body">
                         <span className="mb-1 block font-medium">Document code</span>
                         <input
                           value={document.code}
@@ -533,10 +533,10 @@ export default function LeaveTypesPage() {
                             setDraft({ ...draft, requiredDocuments });
                           }}
                           placeholder="MEDICAL_CERTIFICATE"
-                          className="h-9 w-full rounded-lg border bg-background px-3 font-mono text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                          className="h-9 w-full rounded-lg border bg-background px-3 font-mono text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                         />
                       </label>
-                      <label className="block text-sm">
+                      <label className="block text-body">
                         <span className="mb-1 block font-medium">Display label</span>
                         <input
                           value={document.label}
@@ -546,12 +546,12 @@ export default function LeaveTypesPage() {
                             setDraft({ ...draft, requiredDocuments });
                           }}
                           placeholder="Medical certificate"
-                          className="h-9 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                          className="h-9 w-full rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                         />
                       </label>
                     </div>
                     <div className="mt-3 flex flex-wrap items-end gap-3">
-                      <label className="block min-w-56 flex-1 text-sm">
+                      <label className="block min-w-56 flex-1 text-body">
                         <span className="mb-1 block font-medium">Accepted file types</span>
                         <input
                           value={document.acceptedTypes?.join(", ") ?? ""}
@@ -565,10 +565,10 @@ export default function LeaveTypesPage() {
                             setDraft({ ...draft, requiredDocuments });
                           }}
                           placeholder="PDF, JPG, PNG"
-                          className="h-9 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                          className="h-9 w-full rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
                         />
                       </label>
-                      <label className="flex h-9 items-center gap-2 text-sm">
+                      <label className="flex h-9 items-center gap-2 text-body">
                         <input
                           type="checkbox"
                           checked={document.required}
@@ -604,18 +604,18 @@ export default function LeaveTypesPage() {
 
           {/* ── Section 5: Preview ── */}
           <div>
-            <p className="mb-3 flex items-center gap-1.5 text-xs font-medium text-muted uppercase tracking-wider">
+            <p className="mb-3 flex items-center gap-1.5 text-caption font-medium text-muted uppercase tracking-wider">
               <Eye className="size-3" />
               Student Preview
             </p>
             <div className="rounded-lg border bg-background p-4">
               {draft.formSchema.fields.length === 0 ? (
-                <p className="text-xs text-muted">No form fields configured.</p>
+                <p className="text-caption text-muted">No form fields configured.</p>
               ) : (
                 <div className="space-y-3">
                   {draft.formSchema.fields.map((field) => (
                     <div key={field.key}>
-                      <label className="mb-1 block text-xs font-medium text-foreground">
+                      <label className="mb-1 block text-caption font-medium text-foreground">
                         {field.label}
                         {field.required && <span className="ml-0.5 text-destructive">*</span>}
                       </label>
@@ -623,13 +623,13 @@ export default function LeaveTypesPage() {
                         <textarea
                           readOnly
                           placeholder={field.placeholder ?? `Enter ${(field.label ?? '').toLowerCase()}...`}
-                          className="w-full rounded-md border bg-surface-sunken/30 px-3 py-2 text-xs text-muted outline-none"
+                          className="w-full rounded-md border bg-surface-sunken/30 px-3 py-2 text-caption text-muted outline-none"
                           rows={3}
                         />
                       ) : field.type === "select" ? (
                         <select
                           disabled
-                          className="h-8 w-full rounded-md border bg-surface-sunken/30 px-3 text-xs text-muted outline-none"
+                          className="h-8 w-full rounded-md border bg-surface-sunken/30 px-3 text-caption text-muted outline-none"
                         >
                           <option>{field.placeholder ?? `Select ${(field.label ?? '').toLowerCase()}...`}</option>
                           {field.options?.map((opt) => (
@@ -640,11 +640,11 @@ export default function LeaveTypesPage() {
                         <input
                           readOnly
                           placeholder={field.placeholder ?? `Enter ${(field.label ?? '').toLowerCase()}...`}
-                          className="h-8 w-full rounded-md border bg-surface-sunken/30 px-3 text-xs text-muted outline-none"
+                          className="h-8 w-full rounded-md border bg-surface-sunken/30 px-3 text-caption text-muted outline-none"
                         />
                       )}
                       {field.minLength != null && field.maxLength != null && (
-                        <p className="mt-0.5 text-[10px] text-muted">
+                        <p className="mt-0.5 text-micro text-muted">
                           {field.minLength}–{field.maxLength} characters
                         </p>
                       )}
@@ -658,7 +658,7 @@ export default function LeaveTypesPage() {
           {/* Active toggle */}
           {message && (
             <p
-              className={`text-sm ${
+              className={`text-body ${
                 message === "Leave type saved." ? "text-success" : "text-muted"
               }`}
             >

@@ -9,6 +9,7 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { InfoCard } from "@/components/shared/InfoCard";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CHART } from "@/design-system/sst";
 import type { AnalyticsPeriod } from "@/dto/analytics/analytics-period.dto";
 import type { RejectionAnalytics } from "@/dto/analytics/rejection-analytics.dto";
 import { useRejectionAnalytics } from "@/features/analytics/hooks/use-analytics";
@@ -37,7 +38,7 @@ export function RejectionsTab({ period }: RejectionsTabProps) {
         title="Rejections Trend"
         description="Daily rejections over the selected period."
         data={d.rejectionTrend.map((point) => ({ date: point.date, count: point.value }))}
-        series={[{ key: "count", label: "Rejections", color: "#ef4444" }]}
+        series={[{ key: "count", label: "Rejections", color: CHART.danger }]}
       />
 
       <div className="grid gap-6 lg:grid-cols-2">

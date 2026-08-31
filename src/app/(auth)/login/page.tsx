@@ -46,7 +46,7 @@ export default function LoginPage() {
           h-[700px] w-[700px]
           -translate-x-1/2 -translate-y-1/2
           rounded-full
-          bg-blue-500/10
+          bg-accent-light
           blur-[140px]
         "
       />
@@ -73,9 +73,9 @@ export default function LoginPage() {
               flex size-16 items-center
               justify-center
               rounded-2xl
-              bg-blue-500/10
-              text-2xl font-semibold
-              text-blue-400
+              bg-accent-light
+              text-h2 font-semibold
+              text-accent
             "
           >
             S
@@ -84,13 +84,13 @@ export default function LoginPage() {
 
         {/* TITLE */}
         <div className="mt-8 text-center">
-          <h1 className="text-3xl font-semibold text-white">
+          <h1 className="text-h1 font-semibold text-white">
             Welcome Back
           </h1>
 
           <p
             className="
-              mt-3 text-sm
+              mt-3 text-body
               leading-7
               text-white/45
             "
@@ -121,7 +121,7 @@ export default function LoginPage() {
               rounded-2xl
               bg-white
               px-5 py-4
-              text-sm font-medium
+              text-body font-medium
               text-black
               transition-transform
               hover:scale-[1.01]
@@ -137,7 +137,7 @@ export default function LoginPage() {
         <p
           className="
             mt-8 text-center
-            text-xs leading-6
+            text-caption leading-6
             text-white/35
           "
         >

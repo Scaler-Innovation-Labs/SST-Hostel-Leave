@@ -17,6 +17,7 @@ export {
   CardHeader,
   CardTitle,
 } from "./Card";
+export { CHART, CHART_AXIS, CHART_SERIES } from "./chart";
 export type { ConfirmDialogProps } from "./ConfirmDialog";
 export { ConfirmDialog } from "./ConfirmDialog";
 export type { Density } from "./DensityProvider";

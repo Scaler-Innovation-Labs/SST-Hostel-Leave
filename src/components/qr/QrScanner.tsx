@@ -79,7 +79,7 @@ export function QrScanner({ onScan, onError, className }: QrScannerProps) {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            <span className="text-sm">Starting camera...</span>
+            <span className="text-body">Starting camera...</span>
           </div>
         </div>
       )}
@@ -88,8 +88,8 @@ export function QrScanner({ onScan, onError, className }: QrScannerProps) {
         <div className="flex aspect-square w-full flex-col items-center justify-center gap-4 bg-black/90 p-8">
           <CameraOff className="h-12 w-12 text-white/40" />
           <div className="space-y-1 text-center">
-            <p className="text-sm font-medium text-white/80">Camera Error</p>
-            <p className="max-w-xs text-xs text-white/50">{errorMessage}</p>
+            <p className="text-body font-medium text-white/80">Camera Error</p>
+            <p className="max-w-xs text-caption text-white/50">{errorMessage}</p>
           </div>
           <Button
             variant="outline"

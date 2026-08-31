@@ -62,7 +62,7 @@ export function MovementsPage({
         key: "eventType" as keyof MovementRow,
         header: "Event",
         render: (value: unknown) => (
-          <span className="rounded-full bg-surface-sunken px-2.5 py-0.5 text-xs font-medium capitalize">
+          <span className="rounded-full bg-surface-sunken px-2.5 py-0.5 text-caption font-medium capitalize">
             {(value as string)?.replace(/_/g, " ").toLowerCase()}
           </span>
         ),
@@ -71,7 +71,7 @@ export function MovementsPage({
         key: "fromState" as keyof MovementRow,
         header: "From",
         render: (value: unknown) => (
-          <span className="text-xs text-muted">
+          <span className="text-caption text-muted">
             {(value as string)?.replace(/_/g, " ") ?? "—"}
           </span>
         ),
@@ -80,7 +80,7 @@ export function MovementsPage({
         key: "toState" as keyof MovementRow,
         header: "To",
         render: (value: unknown) => (
-          <span className="text-xs text-muted">
+          <span className="text-caption text-muted">
             {(value as string)?.replace(/_/g, " ") ?? "—"}
           </span>
         ),
@@ -89,7 +89,7 @@ export function MovementsPage({
         key: "createdAt" as keyof MovementRow,
         header: "Timestamp",
         render: (value: unknown) => (
-          <span className="text-xs text-muted">
+          <span className="text-caption text-muted">
             {(value as string)?.split("T")[0]}
           </span>
         ),

@@ -11,6 +11,8 @@ import {
   YAxis,
 } from "recharts";
 
+import { CHART } from "@/design-system/sst";
+
 type BarPoint = {
   name: string;
   count: number;
@@ -25,22 +27,22 @@ type AnalyticsBarChartProps = {
   height?: number;
 };
 
-const DEFAULT_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#84cc16"];
+const DEFAULT_COLORS = [CHART.accent, CHART.success, CHART.warning, CHART.danger, CHART.accent, CHART.info, CHART.danger, CHART.success];
 
 export function AnalyticsBarChart({
   data,
   title,
   description,
-  color = "#6366f1",
+  color = CHART.accent,
   height = 250,
 }: AnalyticsBarChartProps) {
   if (!data || data.length === 0) {
     return (
       <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <h3 className="mb-1 text-base font-semibold">{title}</h3>
-        {description && <p className="mb-4 text-sm text-muted">{description}</p>}
+        <h3 className="mb-1 text-body-lg font-semibold">{title}</h3>
+        {description && <p className="mb-4 text-body text-muted">{description}</p>}
         <div className="flex h-[250px] items-center justify-center">
-          <p className="text-sm text-muted">No data available.</p>
+          <p className="text-body text-muted">No data available.</p>
         </div>
       </div>
     );
@@ -55,23 +57,23 @@ export function AnalyticsBarChart({
 
   return (
     <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <h3 className="mb-1 text-base font-semibold">{title}</h3>
-      {description && <p className="mb-4 text-sm text-muted">{description}</p>}
+      <h3 className="mb-1 text-body-lg font-semibold">{title}</h3>
+      {description && <p className="mb-4 text-body text-muted">{description}</p>}
       <ResponsiveContainer width="100%" height={height}>
         <RechartsBarChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border, hsl(240 5% 84%))" opacity={0.4} vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} opacity={0.4} vertical={false} />
           <XAxis
             dataKey="name"
             tickFormatter={formatName}
             interval={0}
             angle={-25}
             textAnchor="end"
-            tick={{ fontSize: 10, fill: "var(--color-muted, hsl(240 4% 46%))" }}
+            tick={{ fontSize: 10, fill: CHART.axis }}
             axisLine={false}
             tickLine={false}
           />
           <YAxis
-            tick={{ fontSize: 11, fill: "var(--color-muted, hsl(240 4% 46%))" }}
+            tick={{ fontSize: 11, fill: CHART.axis }}
             axisLine={false}
             tickLine={false}
             allowDecimals={false}
@@ -80,7 +82,7 @@ export function AnalyticsBarChart({
             contentStyle={{
               borderRadius: "8px",
               border: "1px solid var(--color-border, hsl(240 5% 84%))",
-              background: "var(--color-card, hsl(0 0% 100%))",
+              background: "rgb(var(--sst-surface))",
               fontSize: "12px",
             }}
             formatter={(value) => [typeof value === "number" ? value : 0, "Count"]}

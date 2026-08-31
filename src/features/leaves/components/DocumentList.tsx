@@ -68,8 +68,8 @@ export function DocumentList({ leaveId, canDelete = false, requiredDocument }: D
       <div className="space-y-2">
         {requiredDocument && !hasRequiredDocument && (
           <div className="rounded-xl border border-warning/30 bg-warning-light p-4">
-            <p className="text-sm font-medium">{requiredDocument.label} required</p>
-            <p className="mt-1 text-xs text-muted">
+            <p className="text-body font-medium">{requiredDocument.label} required</p>
+            <p className="mt-1 text-caption text-muted">
               Upload this document so it can be reviewed with your leave request.
             </p>
             <div className="mt-4">
@@ -97,11 +97,11 @@ export function DocumentList({ leaveId, canDelete = false, requiredDocument }: D
                 href={doc.fileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block truncate text-sm font-medium hover:underline"
+                className="block truncate text-body font-medium hover:underline"
               >
                 {doc.fileName}
               </a>
-              <p className="text-xs text-muted">
+              <p className="text-caption text-muted">
                 {formatFileSize(doc.fileSize)}
                 {doc.mimeType && ` · ${doc.mimeType.split("/")[1]?.toUpperCase() ?? ""}`}
               </p>

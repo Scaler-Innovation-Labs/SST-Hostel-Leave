@@ -50,36 +50,36 @@ function getStepDisplay(stepKey: string | null): StepDisplay {
     return {
       icon: <FileText className="h-4 w-4" />,
       label: "Policy Check",
-      color: "text-blue-600 dark:text-blue-400",
-      bgClass: "bg-blue-500/10 hover:bg-blue-500/20 border-blue-200/40 dark:border-blue-800/30",
+      color: "text-accent",
+      bgClass: "bg-accent-light hover:bg-accent-light border-accent/40 dark:border-accent/30",
     };
   if (key === WORKFLOW_STEP_KEY.PARENT_APPROVAL || key.includes(WORKFLOW_STEP_KEY.PARENT_APPROVAL))
     return {
       icon: <User className="h-4 w-4" />,
       label: "Parent Approval",
-      color: "text-violet-600 dark:text-violet-400",
-      bgClass: "bg-violet-500/10 hover:bg-violet-500/20 border-violet-200/40 dark:border-violet-800/30",
+      color: "text-accent",
+      bgClass: "bg-accent-light hover:bg-accent-light border-accent/40 dark:border-accent/30",
     };
   if (key === WORKFLOW_STEP_KEY.POC_APPROVAL || key.includes(WORKFLOW_STEP_KEY.POC_APPROVAL))
     return {
       icon: <Shield className="h-4 w-4" />,
       label: "POC Approval",
-      color: "text-amber-600 dark:text-amber-400",
-      bgClass: "bg-amber-500/10 hover:bg-amber-500/20 border-amber-200/40 dark:border-amber-800/30",
+      color: "text-warning",
+      bgClass: "bg-warning-light hover:bg-warning-light border-warning/40 dark:border-warning/30",
     };
   if (key === WORKFLOW_STEP_KEY.ADMIN_APPROVAL || key.includes(WORKFLOW_STEP_KEY.ADMIN_APPROVAL))
     return {
       icon: <Building2 className="h-4 w-4" />,
       label: "Admin Approval",
-      color: "text-indigo-600 dark:text-indigo-400",
-      bgClass: "bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-200/40 dark:border-indigo-800/30",
+      color: "text-accent",
+      bgClass: "bg-accent-light hover:bg-accent-light border-accent/40 dark:border-accent/30",
     };
   if (key === VIEW_STEP_KEY.COMPLETE || key.includes(VIEW_STEP_KEY.COMPLETE))
     return {
       icon: <CheckCircle2 className="h-4 w-4" />,
       label: "Completed",
-      color: "text-emerald-600 dark:text-emerald-400",
-      bgClass: "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-200/40 dark:border-emerald-800/30",
+      color: "text-success",
+      bgClass: "bg-success-light hover:bg-success-light border-success/40 dark:border-success/30",
     };
   const fallbackLabel = key
     .replace(/_/g, " ")
@@ -87,7 +87,7 @@ function getStepDisplay(stepKey: string | null): StepDisplay {
   return {
     icon: <Clock className="h-4 w-4" />,
     label: fallbackLabel || "Unknown",
-    color: "text-gray-600 dark:text-gray-400",
+    color: "text-muted",
     bgClass: "bg-surface-sunken hover:bg-surface-hover border-border",
   };
 }
@@ -263,10 +263,10 @@ export function ExtensionApprovalsPage() {
                 {display.icon}
               </div>
               <div>
-                <div className={cn("text-sm font-semibold", display.color)}>
+                <div className={cn("text-body font-semibold", display.color)}>
                   {display.label}
                 </div>
-                <div className="text-2xl font-bold tabular-nums">
+                <div className="text-h2 font-semibold tabular-nums">
                   {g.count}
                 </div>
               </div>
@@ -381,7 +381,7 @@ export function ExtensionApprovalsPage() {
       </div>
 
       {/* Results count */}
-      <div className="flex items-center justify-between text-xs text-muted">
+      <div className="flex items-center justify-between text-caption text-muted">
         <span>
           <span className="font-medium text-foreground">
             {items.length}
@@ -406,8 +406,8 @@ export function ExtensionApprovalsPage() {
           </div>
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center">
-            <h3 className="text-base font-medium">No extension requests found</h3>
-            <p className="mt-1 text-sm text-muted">
+            <h3 className="text-body-lg font-medium">No extension requests found</h3>
+            <p className="mt-1 text-body text-muted">
               {total === 0
                 ? "All caught up! No extension requests match your filters."
                 : "Try adjusting your filters."}

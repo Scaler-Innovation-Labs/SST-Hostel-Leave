@@ -16,11 +16,11 @@ import { ROLES } from "@/lib/auth/roles";
 import { getAvatarColor, getInitials } from "@/lib/user-utils";
 
 const ROLE_STYLES: Record<string, string> = {
-  SUPER_ADMIN: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  ADMIN: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  POC: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  STUDENT: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  GUARD: "bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400",
+  SUPER_ADMIN: "bg-accent-light text-accent",
+  ADMIN: "bg-accent-light text-accent",
+  POC: "bg-warning-light text-warning",
+  STUDENT: "bg-success-light text-success",
+  GUARD: "bg-surface-sunken text-muted dark:bg-surface-sunken",
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -122,7 +122,7 @@ export default function SuperAdminUsersPage() {
             aria-label="Filter by role"
             value={role}
             onChange={(e) => { setRole(e.target.value); setPage(1); }}
-            className="h-9 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+            className="h-9 rounded-lg border border-border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
           >
             {roleFilters.map((f) => (
               <option key={f.value} value={f.value}>{f.label}</option>
@@ -132,7 +132,7 @@ export default function SuperAdminUsersPage() {
             aria-label="Filter by status"
             value={isActive}
             onChange={(e) => { setIsActive(e.target.value); setPage(1); }}
-            className="h-9 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+            className="h-9 rounded-lg border border-border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
           >
             {activeFilters.map((f) => (
               <option key={f.value} value={f.value}>{f.label}</option>
@@ -143,7 +143,7 @@ export default function SuperAdminUsersPage() {
 
       {/* Summary bar */}
       {!isLoading && users.length > 0 && (
-        <div className="flex items-center gap-2 text-sm text-muted">
+        <div className="flex items-center gap-2 text-body text-muted">
           <span className="font-medium text-foreground">{total}</span>
           <span>user{total !== 1 ? "s" : ""} found</span>
         </div>
@@ -175,7 +175,7 @@ export default function SuperAdminUsersPage() {
               >
                 {/* Avatar */}
                 <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ${getAvatarColor(user.fullName)}`}
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-body font-semibold text-white ${getAvatarColor(user.fullName)}`}
                 >
                   {getInitials(user.fullName)}
                 </div>
@@ -183,14 +183,14 @@ export default function SuperAdminUsersPage() {
                 {/* Info */}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium">{user.fullName}</span>
+                    <span className="truncate text-body font-medium">{user.fullName}</span>
                     {!user.isActive && (
-                      <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                      <span className="inline-flex items-center rounded-full bg-danger-light px-2 py-0.5 text-micro font-medium text-danger">
                         Inactive
                       </span>
                     )}
                   </div>
-                  <div className="mt-0.5 flex items-center gap-3 text-xs text-muted">
+                  <div className="mt-0.5 flex items-center gap-3 text-caption text-muted">
                     <span className="flex items-center gap-1">
                       <Mail className="h-3 w-3" />
                       {user.email}
@@ -203,14 +203,14 @@ export default function SuperAdminUsersPage() {
                   {user.userRoles.map((r) => (
                     <span
                       key={r.roleCode}
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ROLE_STYLES[r.roleCode] ?? "bg-surface-sunken text-muted"}`}
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-medium ${ROLE_STYLES[r.roleCode] ?? "bg-surface-sunken text-muted"}`}
                     >
                       <Shield className="mr-1 h-3 w-3" />
                       {ROLE_LABELS[r.roleCode] ?? r.roleName}
                     </span>
                   ))}
                   {user.userRoles.length === 0 && (
-                    <span className="text-xs text-muted">No roles</span>
+                    <span className="text-caption text-muted">No roles</span>
                   )}
                 </div>
 
@@ -218,7 +218,7 @@ export default function SuperAdminUsersPage() {
                 <div className="hidden sm:block">
                   <div
                     className={`h-2.5 w-2.5 rounded-full ${
-                      user.isActive ? "bg-emerald-500" : "bg-red-400"
+                      user.isActive ? "bg-success" : "bg-danger"
                     }`}
                   />
                 </div>

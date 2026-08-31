@@ -394,7 +394,7 @@ export default function SuperAdminStudentsPage() {
               setSearch(e.target.value);
               setPage(1);
             }}
-            className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+            className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
           />
         </div>
         <Button variant="outline" onClick={() => { startNew(); setBulkSection(null); }}>
@@ -416,13 +416,13 @@ export default function SuperAdminStudentsPage() {
               <a
                 href="/api/v1/students/template?format=csv"
                 download
-                className="text-xs text-primary underline underline-offset-2 hover:text-primary/80"
+                className="text-caption text-primary underline underline-offset-2 hover:text-primary/80"
               >
                 Download CSV Template
               </a>
             )}
           </div>
-          <p className="text-xs text-muted">
+          <p className="text-caption text-muted">
             {bulkSection === "parents"
               ? "Upload a CSV (.csv) or Excel (.xlsx/.xls) file. Required fields: <code>studentId</code>, <code>name</code>, <code>phone</code>, <code>relationship</code>."
               : "Upload a CSV (.csv) or Excel (.xlsx/.xls) file. Required fields: <code>rollNumber</code>, <code>fullName</code>, <code>academicGroupId</code>, <code>parentName</code>, <code>parentPhone</code>, <code>parentRelationship</code>."}
@@ -433,14 +433,14 @@ export default function SuperAdminStudentsPage() {
               type="file"
               accept=".csv,.txt,.xlsx,.xls"
               onChange={handleFileUpload}
-              className="text-sm"
+              className="text-body"
             />
-            <span className="text-xs text-muted">or</span>
+            <span className="text-caption text-muted">or</span>
           </div>
           <textarea
             value={bulkJson}
             onChange={(e) => setBulkJson(e.target.value)}
-            className="min-h-[100px] w-full rounded-lg border bg-background px-3 py-2 font-mono text-xs outline-none focus:border-ring"
+            className="min-h-[100px] w-full rounded-lg border bg-background px-3 py-2 font-mono text-caption outline-none focus:border-ring"
             placeholder={
               bulkSection === "parents"
                 ? '[{ "studentId": "uuid", "name": "Father Name", "phone": "9876543210", "relationship": "Father" }]'
@@ -454,12 +454,12 @@ export default function SuperAdminStudentsPage() {
             </Button>
           </div>
           {bulkResults && (
-            <div className="max-h-[200px] space-y-1 overflow-y-auto rounded-lg border bg-background p-3 text-xs">
+            <div className="max-h-[200px] space-y-1 overflow-y-auto rounded-lg border bg-background p-3 text-caption">
               <p className="font-medium">
                 {bulkResults.filter((r) => r.success).length} succeeded, {bulkResults.filter((r) => !r.success).length} failed
               </p>
               {bulkResults.filter((r) => !r.success).map((r, i) => (
-                <p key={i} className="text-red-600">
+                <p key={i} className="text-danger">
                   {r.rollNumber ? `${r.rollNumber}: ` : r.row ? `Row ${r.row}: ` : ""}{r.error}
                 </p>
               ))}
@@ -473,14 +473,14 @@ export default function SuperAdminStudentsPage() {
           <h2 className="font-semibold">Students</h2>
 
           {isLoading ? (
-            <p className="text-sm text-muted">Loading...</p>
+            <p className="text-body text-muted">Loading...</p>
           ) : error ? (
             <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-card p-12">
-              <p className="text-sm text-muted">Failed to load students.</p>
+              <p className="text-body text-muted">Failed to load students.</p>
               <Button variant="outline" onClick={() => mutate()}>Retry</Button>
             </div>
           ) : !students || students.items.length === 0 ? (
-            <p className="text-sm text-muted">No students found.</p>
+            <p className="text-body text-muted">No students found.</p>
           ) : (
             <div className="space-y-2">
               {students.items.map((item) => (
@@ -501,33 +501,33 @@ export default function SuperAdminStudentsPage() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <span className="text-sm font-medium">{item.user?.fullName ?? "—"}</span>
-                      <span className="ml-2 text-xs text-muted">{item.student.rollNumber}</span>
-                      <div className="mt-0.5 text-xs text-muted">
+                      <span className="text-body font-medium">{item.user?.fullName ?? "—"}</span>
+                      <span className="ml-2 text-caption text-muted">{item.student.rollNumber}</span>
+                      <div className="mt-0.5 text-caption text-muted">
                         {item.user?.email ?? "—"}
                         {item.user?.phone && <> &middot; {item.user.phone}</>}
                       </div>
                       {item.student.roomNumber && (
-                        <div className="mt-0.5 text-xs text-muted">Room: {item.student.roomNumber}</div>
+                        <div className="mt-0.5 text-caption text-muted">Room: {item.student.roomNumber}</div>
                       )}
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        className={`rounded-full px-2 py-0.5 text-micro font-medium ${
                           item.user?.isActive ?? true
-                            ? "bg-emerald-500/10 text-emerald-600"
+                            ? "bg-success-light text-success"
                             : "bg-surface-sunken text-muted"
                         }`}
                       >
                         {item.user?.isActive ?? true ? "Active" : "Inactive"}
                       </span>
-                      <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-[10px] text-muted">
+                      <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-micro text-muted">
                         {item.locationState?.name ?? item.student.currentLocationState}
                       </span>
                       <Link
                         href={`/super-admin/students/${item.student.id}`}
                         onClick={(e) => e.stopPropagation()}
-                        className="rounded-md border border-border px-2 py-0.5 text-[10px] font-medium text-muted transition-colors hover:border-primary hover:text-foreground"
+                        className="rounded-md border border-border px-2 py-0.5 text-micro font-medium text-muted transition-colors hover:border-primary hover:text-foreground"
                       >
                         View Profile
                       </Link>
@@ -554,45 +554,45 @@ export default function SuperAdminStudentsPage() {
           </h2>
 
           <div className="space-y-4">
-            <label className="block text-sm">
+            <label className="block text-body">
               <span className="mb-1 block font-medium">Full Name</span>
               <input
                 value={draft.fullName}
                 onChange={(e) => setDraft({ ...draft, fullName: e.target.value })}
-                className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
                 placeholder="Student name"
               />
             </label>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-1 block font-medium">Roll Number</span>
                 <input
                   value={draft.rollNumber}
                   onChange={(e) => setDraft({ ...draft, rollNumber: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
                   placeholder="e.g. S001"
                   readOnly={!!draft.id}
                 />
               </label>
 
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-1 block font-medium">Room Number</span>
                 <input
                   value={draft.roomNumber}
                   onChange={(e) => setDraft({ ...draft, roomNumber: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
                   placeholder="e.g. A-101"
                 />
               </label>
             </div>
 
-            <label className="block text-sm">
+            <label className="block text-body">
               <span className="mb-1 block font-medium">Academic Group</span>
               <select
                 value={draft.academicGroupId}
                 onChange={(e) => setDraft({ ...draft, academicGroupId: e.target.value })}
-                className="h-9 w-full rounded-lg border bg-background px-3 text-xs"
+                className="h-9 w-full rounded-lg border bg-background px-3 text-caption"
               >
                 <option value="">Select academic group...</option>
                 {academicGroupsList.map((g) => (
@@ -604,35 +604,35 @@ export default function SuperAdminStudentsPage() {
             </label>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-1 block font-medium">Email</span>
                 <input
                   type="email"
                   value={draft.email}
                   onChange={(e) => setDraft({ ...draft, email: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
                   placeholder="email@example.com"
                 />
               </label>
 
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-1 block font-medium">Phone</span>
                 <input
                   value={draft.phone}
                   onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
                   placeholder="Phone number"
                 />
               </label>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-1 block font-medium">Gender</span>
                 <select
                   value={draft.gender}
                   onChange={(e) => setDraft({ ...draft, gender: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-xs"
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption"
                 >
                   <option value="">Select...</option>
                   <option value="MALE">Male</option>
@@ -641,12 +641,12 @@ export default function SuperAdminStudentsPage() {
                 </select>
               </label>
 
-              <label className="block text-sm">
+              <label className="block text-body">
                 <span className="mb-1 block font-medium">Hostel</span>
                 <select
                   value={draft.hostelId}
                   onChange={(e) => setDraft({ ...draft, hostelId: e.target.value })}
-                  className="h-9 w-full rounded-lg border bg-background px-3 text-xs"
+                  className="h-9 w-full rounded-lg border bg-background px-3 text-caption"
                 >
                   <option value="">No hostel</option>
                   {hostelsList.map((h) => (
@@ -657,7 +657,7 @@ export default function SuperAdminStudentsPage() {
             </div>
 
             {draft.id && (
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2 text-body">
                 <input
                   type="checkbox"
                   checked={draft.isActive}
@@ -671,46 +671,46 @@ export default function SuperAdminStudentsPage() {
               <div className="rounded-xl border border-dashed p-4">
                 <div className="mb-3 flex items-center gap-2">
                   <Users className="size-4 text-muted" />
-                  <h3 className="text-sm font-semibold">Parent / Guardian</h3>
+                  <h3 className="text-body font-semibold">Parent / Guardian</h3>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="block text-sm">
+                  <label className="block text-body">
                     <span className="mb-1 block font-medium">Parent Name *</span>
                     <input
                       value={draft.parentName}
                       onChange={(e) => setDraft({ ...draft, parentName: e.target.value })}
-                      className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                      className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
                       placeholder="Parent name"
                     />
                   </label>
 
-                  <label className="block text-sm">
+                  <label className="block text-body">
                     <span className="mb-1 block font-medium">Parent Phone *</span>
                     <input
                       value={draft.parentPhone}
                       onChange={(e) => setDraft({ ...draft, parentPhone: e.target.value })}
-                      className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                      className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
                       placeholder="Parent phone"
                     />
                   </label>
 
-                  <label className="block text-sm">
+                  <label className="block text-body">
                     <span className="mb-1 block font-medium">Relationship *</span>
                     <input
                       value={draft.parentRelationship}
                       onChange={(e) => setDraft({ ...draft, parentRelationship: e.target.value })}
-                      className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                      className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
                       placeholder="e.g. Father, Mother, Guardian"
                     />
                   </label>
 
-                  <label className="block text-sm">
+                  <label className="block text-body">
                     <span className="mb-1 block font-medium">Parent Email (optional)</span>
                     <input
                       type="email"
                       value={draft.parentEmail}
                       onChange={(e) => setDraft({ ...draft, parentEmail: e.target.value })}
-                      className="h-9 w-full rounded-lg border bg-background px-3 text-xs outline-none focus:border-ring"
+                      className="h-9 w-full rounded-lg border bg-background px-3 text-caption outline-none focus:border-ring"
                       placeholder="parent@example.com"
                     />
                   </label>
@@ -745,19 +745,19 @@ export default function SuperAdminStudentsPage() {
             <div className="border-t border-border pt-5">
               <div className="flex items-center gap-2 mb-4">
                 <Users className="size-4 text-muted" />
-                <h3 className="font-semibold text-sm">Parents</h3>
+                <h3 className="font-semibold text-body">Parents</h3>
               </div>
 
               {parents.length === 0 ? (
-                <p className="text-xs text-muted mb-3">No parents linked to this student.</p>
+                <p className="text-caption text-muted mb-3">No parents linked to this student.</p>
               ) : (
                 <div className="space-y-2 mb-4">
                   {parents.map((p) => (
                     <div key={p.id} className="flex items-center justify-between rounded-lg border bg-surface-sunken/20 px-3 py-2">
-                      <div className="min-w-0 text-xs">
+                      <div className="min-w-0 text-caption">
                         <span className="font-medium">{p.name}</span>
                         {p.isPrimary && (
-                          <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">Primary</span>
+                          <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-micro text-primary">Primary</span>
                         )}
                         <div className="text-muted">{p.relationship} &middot; {p.phone}</div>
                         {p.email && <div className="text-muted">{p.email}</div>}
@@ -775,7 +775,7 @@ export default function SuperAdminStudentsPage() {
               )}
 
               <div className="rounded-lg border border-dashed p-3 space-y-2">
-                <div className="flex items-center gap-1 text-xs font-medium text-muted">
+                <div className="flex items-center gap-1 text-caption font-medium text-muted">
                   <UserPlus className="size-3.5" />
                   Add Parent
                 </div>
@@ -784,28 +784,28 @@ export default function SuperAdminStudentsPage() {
                     value={parentForm.name}
                     onChange={(e) => setParentForm({ ...parentForm, name: e.target.value })}
                     placeholder="Parent name"
-                    className="h-8 rounded-lg border bg-background px-2.5 text-xs outline-none focus:border-ring"
+                    className="h-8 rounded-lg border bg-background px-2.5 text-caption outline-none focus:border-ring"
                   />
                   <input
                     value={parentForm.phone}
                     onChange={(e) => setParentForm({ ...parentForm, phone: e.target.value })}
                     placeholder="Phone"
-                    className="h-8 rounded-lg border bg-background px-2.5 text-xs outline-none focus:border-ring"
+                    className="h-8 rounded-lg border bg-background px-2.5 text-caption outline-none focus:border-ring"
                   />
                   <input
                     value={parentForm.email}
                     onChange={(e) => setParentForm({ ...parentForm, email: e.target.value })}
                     placeholder="Email (optional)"
-                    className="h-8 rounded-lg border bg-background px-2.5 text-xs outline-none focus:border-ring"
+                    className="h-8 rounded-lg border bg-background px-2.5 text-caption outline-none focus:border-ring"
                   />
                   <input
                     value={parentForm.relationship}
                     onChange={(e) => setParentForm({ ...parentForm, relationship: e.target.value })}
                     placeholder="Relationship (e.g. Father)"
-                    className="h-8 rounded-lg border bg-background px-2.5 text-xs outline-none focus:border-ring"
+                    className="h-8 rounded-lg border bg-background px-2.5 text-caption outline-none focus:border-ring"
                   />
                 </div>
-                <label className="flex items-center gap-1.5 text-xs">
+                <label className="flex items-center gap-1.5 text-caption">
                   <input
                     type="checkbox"
                     checked={parentForm.isPrimary}

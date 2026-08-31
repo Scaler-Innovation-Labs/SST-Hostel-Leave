@@ -93,7 +93,7 @@ export default function DepartmentsPage() {
           </div>
           {isLoading ? <LoadingState count={5} /> : typedDepartments.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-12">
-              <p className="text-sm text-muted">No departments yet.</p>
+              <p className="text-body text-muted">No departments yet.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -103,7 +103,7 @@ export default function DepartmentsPage() {
                     <div className="flex items-center gap-3">
                       <Building2 className="size-4 shrink-0 text-muted" />
                       <span className="font-medium">{dept.name}</span>
-                      <span className="font-mono text-xs text-muted">({dept.code})</span>
+                      <span className="font-mono text-caption text-muted">({dept.code})</span>
                     </div>
                   </button>
                   <Button
@@ -124,19 +124,19 @@ export default function DepartmentsPage() {
           <h3 className="font-semibold">{isEditing ? "Edit Department" : "New Department"}</h3>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm">
+            <label className="block text-body">
               <span className="mb-1 block font-medium">Name</span>
               <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                 className="h-9 w-full rounded-lg border bg-background px-3 outline-none focus:border-ring focus:ring-1 focus:ring-ring" />
             </label>
-            <label className="block text-sm">
+            <label className="block text-body">
               <span className="mb-1 block font-medium">Code</span>
               <input value={draft.code} onChange={(e) => setDraft({ ...draft, code: e.target.value.toUpperCase().replace(/\s+/g, "_") })}
                 className="h-9 w-full rounded-lg border bg-background px-3 font-mono outline-none focus:border-ring focus:ring-1 focus:ring-ring" />
             </label>
           </div>
 
-          {message && <p className="text-sm text-muted">{message}</p>}
+          {message && <p className="text-body text-muted">{message}</p>}
           <div className="flex justify-end border-t border-border pt-4">
             <Button onClick={submit} disabled={saving || !draft.name.trim() || !draft.code.trim()}>
               <Save className="size-4" /> {saving ? "Saving..." : isEditing ? "Update" : "Create"}

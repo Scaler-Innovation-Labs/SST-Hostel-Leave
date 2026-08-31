@@ -29,7 +29,7 @@ export function HostelFilter({ value, hostels, onChange, className }: HostelFilt
     const hostel = hostels?.[0];
     return (
       <div
-        className={`inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-surface-sunken/40 px-3 text-sm text-muted ${className ?? ""}`}
+        className={`inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-surface-sunken/40 px-3 text-body text-muted ${className ?? ""}`}
         title="Your scope"
       >
         <Building2 className="h-3.5 w-3.5" />

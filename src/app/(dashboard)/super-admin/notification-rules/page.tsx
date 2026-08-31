@@ -176,9 +176,9 @@ export default function NotificationRulesPage() {
           </div>
 
           {loading ? (
-            <p className="text-sm text-muted">Loading...</p>
+            <p className="text-body text-muted">Loading...</p>
           ) : rules.length === 0 ? (
-            <p className="text-sm text-muted">
+            <p className="text-body text-muted">
               No global notification rules configured.
             </p>
           ) : (
@@ -190,14 +190,14 @@ export default function NotificationRulesPage() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="text-sm font-medium">
+                    <span className="text-body font-medium">
                       {EVENT_LABELS[rule.eventType] ?? rule.eventType}
                     </span>
                     <div className="mt-1 flex flex-wrap gap-1">
                       {rule.recipientTypes.map((rt) => (
                         <span
                           key={rt}
-                          className="rounded-full bg-surface-sunken px-2 py-0.5 text-xs"
+                          className="rounded-full bg-surface-sunken px-2 py-0.5 text-caption"
                         >
                           {RECIPIENT_LABELS[rt] ?? rt}
                         </span>
@@ -207,14 +207,14 @@ export default function NotificationRulesPage() {
                       {rule.channels.map((ch) => (
                         <span
                           key={ch}
-                          className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary"
+                          className="rounded-full bg-primary/10 px-2 py-0.5 text-caption text-primary"
                         >
                           {CHANNEL_LABELS[ch] ?? ch}
                         </span>
                       ))}
                     </div>
                   </div>
-                  <span className="shrink-0 text-xs text-muted">
+                  <span className="shrink-0 text-caption text-muted">
                     {rule.templateCode}
                   </span>
                 </div>
@@ -229,7 +229,7 @@ export default function NotificationRulesPage() {
           </h2>
 
           <div className="space-y-4">
-            <label className="block text-sm">
+            <label className="block text-body">
               <span className="mb-1 block font-medium">Event</span>
               <select
                 value={draft.eventType}
@@ -246,7 +246,7 @@ export default function NotificationRulesPage() {
               </select>
             </label>
 
-            <label className="block text-sm">
+            <label className="block text-body">
               <span className="mb-1 block font-medium">Template</span>
               <select
                 value={draft.templateId}
@@ -266,13 +266,13 @@ export default function NotificationRulesPage() {
               </select>
             </label>
 
-            <div className="text-sm">
+            <div className="text-body">
               <span className="mb-2 block font-medium">Recipients</span>
               <div className="flex flex-wrap gap-2">
                 {NOTIFICATION_RECIPIENT_TYPES.map((rt) => (
                   <label
                     key={rt}
-                    className={`cursor-pointer rounded-full border px-3 py-1 text-xs ${
+                    className={`cursor-pointer rounded-full border px-3 py-1 text-caption ${
                       draft.recipientTypes.includes(rt)
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border"
@@ -290,13 +290,13 @@ export default function NotificationRulesPage() {
               </div>
             </div>
 
-            <div className="text-sm">
+            <div className="text-body">
               <span className="mb-2 block font-medium">Channels</span>
               <div className="flex flex-wrap gap-2">
                 {NOTIFICATION_CHANNELS.map((ch) => (
                   <label
                     key={ch}
-                    className={`cursor-pointer rounded-full border px-3 py-1 text-xs ${
+                    className={`cursor-pointer rounded-full border px-3 py-1 text-caption ${
                       draft.channels.includes(ch)
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border"
@@ -314,7 +314,7 @@ export default function NotificationRulesPage() {
               </div>
             </div>
 
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-body">
               <input
                 type="checkbox"
                 checked={draft.enabled}

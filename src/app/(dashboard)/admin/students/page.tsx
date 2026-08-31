@@ -49,12 +49,12 @@ type StudentRow = {
 
 function getAvatarColor(id: string): string {
   const colors = [
-    "bg-blue-500/10 text-blue-600",
-    "bg-emerald-500/10 text-emerald-600",
-    "bg-violet-500/10 text-violet-600",
-    "bg-amber-500/10 text-amber-600",
-    "bg-rose-500/10 text-rose-600",
-    "bg-cyan-500/10 text-cyan-600",
+    "bg-accent-light text-accent",
+    "bg-success-light text-success",
+    "bg-accent-light text-accent",
+    "bg-warning-light text-warning",
+    "bg-danger-light text-danger",
+    "bg-accent-light text-accent",
   ];
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
@@ -74,10 +74,10 @@ function getInitials(name: string): string {
 }
 
 function getLocationColor(code: string): string {
-  if (code === MOVEMENT_STATE.IN_HOSTEL) return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
-  if (code === MOVEMENT_STATE.APPROVED_LEAVE) return "bg-blue-500/10 text-blue-600 dark:text-blue-400";
-  if (code === MOVEMENT_STATE.CHECKED_OUT) return "bg-amber-500/10 text-amber-600 dark:text-amber-400";
-  if (code === MOVEMENT_STATE.OVERDUE) return "bg-red-500/10 text-red-600 dark:text-red-400";
+  if (code === MOVEMENT_STATE.IN_HOSTEL) return "bg-success-light text-success";
+  if (code === MOVEMENT_STATE.APPROVED_LEAVE) return "bg-accent-light text-accent";
+  if (code === MOVEMENT_STATE.CHECKED_OUT) return "bg-warning-light text-warning";
+  if (code === MOVEMENT_STATE.OVERDUE) return "bg-danger-light text-danger";
   return "bg-surface-sunken text-muted";
 }
 
@@ -200,7 +200,7 @@ export default function AdminStudentsPage() {
                   {/* Avatar */}
                   <div
                     className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xs font-semibold",
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-caption font-semibold",
                       getAvatarColor(row.student.id),
                     )}
                   >
@@ -210,11 +210,11 @@ export default function AdminStudentsPage() {
                   {/* Main content */}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-semibold">
+                      <span className="truncate text-body font-semibold">
                         {row.user?.fullName ?? "—"}
                       </span>
                     </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-muted">
                       <span className="font-mono">{row.student.rollNumber ?? "—"}</span>
                       <span className="inline-flex items-center gap-1">
                         <Mail className="h-3 w-3" />
@@ -227,7 +227,7 @@ export default function AdminStudentsPage() {
                   <div className="flex shrink-0 items-center gap-3">
                     <span
                       className={cn(
-                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-medium capitalize",
+                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-micro font-medium capitalize",
                         getLocationColor(locationCode),
                       )}
                     >

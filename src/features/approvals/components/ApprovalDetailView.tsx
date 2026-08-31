@@ -115,50 +115,50 @@ type LeaveApproval = {
 const STATUS_CONFIG = {
   approved: {
     icon: CheckCircle2,
-    color: "text-emerald-600",
-    bg: "bg-emerald-500",
-    lightBg: "bg-emerald-50 dark:bg-emerald-500/10",
-    border: "border-emerald-500",
+    color: "text-success",
+    bg: "bg-success",
+    lightBg: "bg-success-light",
+    border: "border-success",
     label: "Approved",
   },
   rejected: {
     icon: XCircle,
-    color: "text-red-600",
-    bg: "bg-red-500",
-    lightBg: "bg-red-50 dark:bg-red-500/10",
-    border: "border-red-500",
+    color: "text-danger",
+    bg: "bg-danger",
+    lightBg: "bg-danger-light",
+    border: "border-danger",
     label: "Rejected",
   },
   pending: {
     icon: Clock,
-    color: "text-amber-600",
-    bg: "bg-amber-500",
-    lightBg: "bg-amber-50 dark:bg-amber-500/10",
-    border: "border-amber-500",
+    color: "text-warning",
+    bg: "bg-warning",
+    lightBg: "bg-warning-light",
+    border: "border-warning",
     label: "Pending",
   },
   cancelled: {
     icon: XCircle,
-    color: "text-gray-500",
-    bg: "bg-gray-500",
-    lightBg: "bg-gray-50 dark:bg-gray-500/10",
-    border: "border-gray-500",
+    color: "text-muted",
+    bg: "bg-surface-sunken",
+    lightBg: "bg-surface-sunken dark:bg-surface-sunken",
+    border: "border-border-strong",
     label: "Cancelled",
   },
   completed: {
     icon: CheckCircle2,
-    color: "text-emerald-600",
-    bg: "bg-emerald-500",
-    lightBg: "bg-emerald-50 dark:bg-emerald-500/10",
-    border: "border-emerald-500",
+    color: "text-success",
+    bg: "bg-success",
+    lightBg: "bg-success-light",
+    border: "border-success",
     label: "Completed",
   },
   active: {
     icon: Clock,
-    color: "text-blue-600",
-    bg: "bg-blue-500",
-    lightBg: "bg-blue-50 dark:bg-blue-500/10",
-    border: "border-blue-500",
+    color: "text-accent",
+    bg: "bg-accent",
+    lightBg: "bg-accent-light",
+    border: "border-accent",
     label: "Active",
   },
 };
@@ -166,37 +166,37 @@ const STATUS_CONFIG = {
 const DECISION_CONFIG = {
   approved: {
     icon: CheckCircle2,
-    color: "text-emerald-600",
-    bg: "bg-emerald-500",
-    lightBg: "bg-emerald-500/10",
+    color: "text-success",
+    bg: "bg-success",
+    lightBg: "bg-success-light",
     label: "Approved",
   },
   auto_approved: {
     icon: CheckCircle2,
-    color: "text-blue-600",
-    bg: "bg-blue-500",
-    lightBg: "bg-blue-500/10",
+    color: "text-accent",
+    bg: "bg-accent",
+    lightBg: "bg-accent-light",
     label: "Auto Approved",
   },
   rejected: {
     icon: XCircle,
-    color: "text-red-600",
-    bg: "bg-red-500",
-    lightBg: "bg-red-500/10",
+    color: "text-danger",
+    bg: "bg-danger",
+    lightBg: "bg-danger-light",
     label: "Rejected",
   },
   cancelled: {
     icon: Ban,
-    color: "text-gray-500",
-    bg: "bg-gray-500",
-    lightBg: "bg-gray-500/10",
+    color: "text-muted",
+    bg: "bg-surface-sunken",
+    lightBg: "bg-surface-sunken",
     label: "Cancelled",
   },
   pending: {
     icon: Clock,
-    color: "text-amber-600",
-    bg: "bg-amber-500",
-    lightBg: "bg-amber-500/10",
+    color: "text-warning",
+    bg: "bg-warning",
+    lightBg: "bg-warning-light",
     label: "Pending",
   },
 };
@@ -220,11 +220,11 @@ const TAB_CONFIG = [
 ];
 
 const avatarColors = [
-  "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-  "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  "bg-violet-500/10 text-violet-600 dark:text-violet-400",
-  "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+  "bg-accent-light text-accent",
+  "bg-success-light text-success",
+  "bg-accent-light text-accent",
+  "bg-warning-light text-warning",
+  "bg-danger-light text-danger",
 ];
 
 // ─── Helpers ────────────────────────────────────────────────
@@ -299,15 +299,15 @@ function getDocumentIcon(mimeType: string | null, fileName: string): React.Eleme
 
 function StatBadge({ label, value, variant }: { label: string; value: number; variant: "success" | "danger" | "warning" | "default" }) {
   const styles = {
-    success: "text-emerald-600 bg-emerald-500/10",
-    danger: "text-red-600 bg-red-500/10",
-    warning: "text-amber-600 bg-amber-500/10",
+    success: "text-success bg-success-light",
+    danger: "text-danger bg-danger-light",
+    warning: "text-warning bg-warning-light",
     default: "text-muted bg-surface-sunken",
   };
   return (
     <div className="text-center">
-      <p className={cn("text-lg font-semibold tabular-nums", styles[variant].split(" ")[0])}>{value}</p>
-      <p className="text-[10px] uppercase tracking-wider text-muted">{label}</p>
+      <p className={cn("text-h3 font-semibold tabular-nums", styles[variant].split(" ")[0])}>{value}</p>
+      <p className="text-micro uppercase tracking-wider text-muted">{label}</p>
     </div>
   );
 }
@@ -328,7 +328,7 @@ function SectionCard({
   return (
     <div className={cn("rounded-xl border border-border bg-card shadow-sm", className)}>
       <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
-        <h3 className="flex items-center gap-2 text-sm font-semibold">
+        <h3 className="flex items-center gap-2 text-body font-semibold">
           <Icon className="h-4 w-4 text-muted" />
           {title}
         </h3>
@@ -342,8 +342,8 @@ function SectionCard({
 function DetailRow({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={cn("flex items-start justify-between gap-4", className)}>
-      <dt className="shrink-0 text-xs font-medium uppercase tracking-wider text-muted">{label}</dt>
-      <dd className="text-right text-sm font-medium">{children}</dd>
+      <dt className="shrink-0 text-caption font-medium uppercase tracking-wider text-muted">{label}</dt>
+      <dd className="text-right text-body font-medium">{children}</dd>
     </div>
   );
 }
@@ -616,16 +616,16 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
           </Button>
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="font-mono text-xl font-semibold tracking-tight">{requestNumber}</h1>
+              <h1 className="font-mono text-h3 font-semibold tracking-tight">{requestNumber}</h1>
               <StatusBadge status={status as "approved" | "pending" | "rejected" | "active"} />
               {createdAt && (
-                <span className="flex items-center gap-1 text-sm text-muted">
+                <span className="flex items-center gap-1 text-body text-muted">
                   <Clock className="h-3.5 w-3.5" />
                   {getTimeWaiting(createdAt)}
                 </span>
               )}
             </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-body text-muted">
               <LeaveTypeBadge
                 name={leaveTypeName ?? "—"}
                 color={(leaveTypeUiConfig.color as string | undefined) ?? null}
@@ -634,7 +634,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 <Calendar className="h-3.5 w-3.5" />
                 {formatDate(startAt)} → {formatDate(endAt)}
               </span>
-              <span className="rounded-md bg-surface-sunken px-2 py-0.5 text-xs font-medium">
+              <span className="rounded-md bg-surface-sunken px-2 py-0.5 text-caption font-medium">
                 {getDurationLabel(startAt, endAt)}
               </span>
             </div>
@@ -652,18 +652,18 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
           className={cn(
             "rounded-xl border p-4 transition-all",
             parentPending
-              ? "border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/5"
-              : "border-emerald-200 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/5",
+              ? "border-warning bg-warning-light dark:border-warning/30"
+              : "border-success bg-success-light dark:border-success/30",
           )}
         >
           {parentPending ? (
             <div className="flex items-start gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-500/10">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-warning-light">
+                <AlertTriangle className="h-4 w-4 text-warning" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">⚠ Attention Required</p>
-                <div className="mt-2 space-y-1 text-sm text-amber-700 dark:text-amber-400">
+                <p className="text-body font-semibold text-warning">⚠ Attention Required</p>
+                <div className="mt-2 space-y-1 text-body text-warning">
                   <p className="flex items-center gap-2">
                     <Clock className="h-3.5 w-3.5" />
                     Parent approval still pending
@@ -679,12 +679,12 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
             </div>
           ) : (
             <div className="flex items-start gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
-                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-success-light">
+                <CheckCircle2 className="h-4 w-4 text-success" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">🟢 Ready for Approval</p>
-                <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-emerald-700 dark:text-emerald-400">
+                <p className="text-body font-semibold text-success">🟢 Ready for Approval</p>
+                <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1 text-body text-success">
                   <span className="flex items-center gap-1.5">
                     <Check className="h-3.5 w-3.5" />
                     {hasParentApproval && parentApproved ? "Parent Approved" : "No Parent Required"}
@@ -698,7 +698,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     No Overlapping Leaves
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+                <p className="mt-2 text-caption text-success">
                   Waiting for: <span className="font-semibold">{currentApproval?.stepKey?.replace(/_/g, " ") ?? "Your"} Approval</span>
                 </p>
               </div>
@@ -718,7 +718,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 <TabsTrigger
                   key={tab.id}
                   value={tab.id}
-                  className="gap-1.5 text-xs data-[state=active]:bg-background"
+                  className="gap-1.5 text-caption data-[state=active]:bg-background"
                 >
                   <tab.icon className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">{tab.label}</span>
@@ -734,7 +734,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   <div className="flex items-center gap-4 sm:flex-col sm:items-center">
                     <div
                       className={cn(
-                        "flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-lg font-semibold shadow-sm ring-2 ring-background",
+                        "flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-h3 font-semibold shadow-sm ring-2 ring-background",
                         avatarColors[Math.abs(studentName.charCodeAt(0)) % avatarColors.length],
                       )}
                     >
@@ -742,11 +742,11 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     </div>
                     <div className="sm:text-center">
                       <p className="font-semibold">{studentName}</p>
-                      <p className="text-xs text-muted">{rollNumber}</p>
+                      <p className="text-caption text-muted">{rollNumber}</p>
                     </div>
                   </div>
 
-                  <div className="grid flex-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                  <div className="grid flex-1 gap-x-6 gap-y-2 text-body sm:grid-cols-2">
                     {email && (
                       <div className="flex items-center gap-2">
                         <Mail className="h-3.5 w-3.5 shrink-0 text-muted" />
@@ -771,7 +771,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     )}
                     <div className="flex items-center gap-2">
                       <Shield className="h-3.5 w-3.5 shrink-0 text-muted" />
-                      <span className={cn("capitalize", status === "active" ? "text-emerald-600" : "text-muted")}>
+                      <span className={cn("capitalize", status === "active" ? "text-success" : "text-muted")}>
                         {status.replace(/_/g, " ")}
                       </span>
                     </div>
@@ -805,14 +805,14 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   </DetailRow>
                   <DetailRow label="Applied">{createdAt ? formatRelative(createdAt) : "—"}</DetailRow>
                   <DetailRow label="Request #">
-                    <span className="font-mono text-xs text-muted">{requestNumber}</span>
+                    <span className="font-mono text-caption text-muted">{requestNumber}</span>
                   </DetailRow>
                 </dl>
 
                 {reason && reason !== "—" && (
                   <div className="mt-4 rounded-lg bg-surface-sunken/50 p-3">
-                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted">Reason</p>
-                    <p className="text-sm leading-relaxed">{reason}</p>
+                    <p className="mb-1 text-micro font-medium uppercase tracking-wider text-muted">Reason</p>
+                    <p className="text-body leading-relaxed">{reason}</p>
                   </div>
                 )}
               </SectionCard>
@@ -821,52 +821,52 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
               <SectionCard title="Policy Evaluation" icon={Shield}>
                 <div className="space-y-2">
                   {policyResult?.checks?.map((policy) => (
-                    <div key={policy.key} className="flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-surface-sunken/50">
+                    <div key={policy.key} className="flex items-center justify-between rounded-lg px-3 py-2 text-body transition-colors hover:bg-surface-sunken/50">
                       <span className="flex items-center gap-2.5">
-                        <div className={cn("flex h-5 w-5 items-center justify-center rounded-full", policy.passed ? "bg-emerald-500/10" : "bg-red-500/10")}>
+                        <div className={cn("flex h-5 w-5 items-center justify-center rounded-full", policy.passed ? "bg-success-light" : "bg-danger-light")}>
                           {policy.passed ? (
-                            <Check className="h-3 w-3 text-emerald-500" />
+                            <Check className="h-3 w-3 text-success" />
                           ) : (
-                            <X className="h-3 w-3 text-red-500" />
+                            <X className="h-3 w-3 text-danger" />
                           )}
                         </div>
                         <span>{policy.label}</span>
                         {policy.message && (
-                          <span className="text-xs text-muted">— {policy.message}</span>
+                          <span className="text-caption text-muted">— {policy.message}</span>
                         )}
                       </span>
-                      <span className={cn("text-xs font-medium", policy.passed ? "text-emerald-600" : "text-red-600")}>
+                      <span className={cn("text-caption font-medium", policy.passed ? "text-success" : "text-danger")}>
                         {policy.passed ? "Passed" : "Failed"}
                       </span>
                     </div>
                   ))}
                   {(!policyResult?.checks || policyResult.checks.length === 0) && (
-                    <p className="text-sm text-muted">No policy checks configured for this leave type.</p>
+                    <p className="text-body text-muted">No policy checks configured for this leave type.</p>
                   )}
                   {hasParentApproval && (
                     <div className={cn(
-                      "flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors hover:bg-surface-sunken/50",
-                      parentApproved ? "" : "bg-amber-500/5",
+                      "flex items-center justify-between rounded-lg px-3 py-2 text-body transition-colors hover:bg-surface-sunken/50",
+                      parentApproved ? "" : "bg-warning-light",
                     )}>
                       <span className="flex items-center gap-2.5">
                         <div className={cn(
                           "flex h-5 w-5 items-center justify-center rounded-full",
-                          parentApproved ? "bg-emerald-500/10" : parentRejected ? "bg-red-500/10" : "bg-amber-500/10",
+                          parentApproved ? "bg-success-light" : parentRejected ? "bg-danger-light" : "bg-warning-light",
                         )}>
-                          {parentApproved ? <Check className="h-3 w-3 text-emerald-500" /> : parentRejected ? <X className="h-3 w-3 text-red-500" /> : <Clock className="h-3 w-3 text-amber-500" />}
+                          {parentApproved ? <Check className="h-3 w-3 text-success" /> : parentRejected ? <X className="h-3 w-3 text-danger" /> : <Clock className="h-3 w-3 text-warning" />}
                         </div>
                         Parent Approval
                       </span>
                       <span className={cn(
-                        "text-xs font-medium",
-                        parentApproved ? "text-emerald-600" : parentRejected ? "text-red-600" : "text-amber-600",
+                        "text-caption font-medium",
+                        parentApproved ? "text-success" : parentRejected ? "text-danger" : "text-warning",
                       )}>
                         {parentApproved ? "Approved" : parentRejected ? "Rejected" : "Pending"}
                       </span>
                     </div>
                   )}
                 </div>
-                <p className="mt-3 text-xs text-muted">
+                <p className="mt-3 text-caption text-muted">
                   {parentPending
                     ? "Parent approval is still pending — waiting for parent response."
                     : !policyResult
@@ -883,7 +883,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   {sortedApprovals.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-6 text-center">
                       <Clock className="mb-2 h-6 w-6 text-muted/50" />
-                      <p className="text-sm text-muted">No approval steps defined.</p>
+                      <p className="text-body text-muted">No approval steps defined.</p>
                     </div>
                   ) : (
                     <div className="space-y-0">
@@ -901,11 +901,11 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                                 className={cn(
                                   "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 transition-all",
                                   isCurrent
-                                    ? "border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/20"
+                                    ? "border-warning bg-warning-light ring-2 ring-warning/20"
                                     : decision === "approved" || decision === "auto_approved"
-                                    ? "border-emerald-500 bg-emerald-500/10"
+                                    ? "border-success bg-success-light"
                                     : decision === "rejected" || decision === "cancelled"
-                                    ? "border-red-500 bg-red-500/10"
+                                    ? "border-danger bg-danger-light"
                                     : "border-border bg-surface-sunken",
                                 )}
                               >
@@ -916,9 +916,9 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                                   className={cn(
                                     "h-full w-0.5",
                                     decision === "approved" || decision === "auto_approved"
-                                      ? "bg-emerald-200 dark:bg-emerald-800/50"
+                                      ? "bg-success-light"
                                       : decision === "rejected" || decision === "cancelled"
-                                      ? "bg-red-200 dark:bg-red-800/50"
+                                      ? "bg-danger-light"
                                       : "bg-border",
                                   )}
                                 />
@@ -927,20 +927,20 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
                             <div className={cn("min-w-0 flex-1 pb-4", _isLast && "pb-0")}>
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className={cn("text-sm font-medium", isCurrent && "text-amber-600 dark:text-amber-400")}>
+                                <span className={cn("text-body font-medium", isCurrent && "text-warning")}>
                                   {app.stepKey?.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) ?? `Step ${app.stepOrder}`}
                                 </span>
-                                <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium", config.lightBg, config.color)}>
+                                <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-micro font-medium", config.lightBg, config.color)}>
                                   {config.label}
                                 </span>
                               </div>
-                              <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted">
+                              <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-caption text-muted">
                                 {app.approverRoleCode && <span>{app.approverRoleCode}</span>}
                                 {app.approverName && <span>· {app.approverName}</span>}
                                 {app.createdAt && <span>· {formatRelative(app.createdAt)}</span>}
                               </div>
                               {app.comments && (
-                                <div className="mt-1.5 rounded-lg bg-surface-sunken/50 px-3 py-1.5 text-xs text-muted">
+                                <div className="mt-1.5 rounded-lg bg-surface-sunken/50 px-3 py-1.5 text-caption text-muted">
                                   &ldquo;{app.comments}&rdquo;
                                 </div>
                               )}
@@ -951,12 +951,12 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                       {allApproved && (
                         <div className="relative flex gap-3">
                           <div className="flex items-center">
-                            <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-emerald-500/20 bg-emerald-500/10">
-                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                            <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-success/20 bg-success-light">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-success" />
                             </div>
                           </div>
                           <div className="flex items-center py-1">
-                            <span className="text-sm font-medium text-emerald-600">Completed</span>
+                            <span className="text-body font-medium text-success">Completed</span>
                           </div>
                         </div>
                       )}
@@ -972,21 +972,21 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 {sortedApprovals.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <Clock className="mb-3 h-10 w-10 text-muted/50" />
-                    <p className="text-sm text-muted">No approval steps defined for this leave type.</p>
+                    <p className="text-body text-muted">No approval steps defined for this leave type.</p>
                   </div>
                 ) : (
                   <div className="relative">
                     {/* Student Submitted (always first) */}
                     <div className="relative flex gap-4 pb-6">
                       <div className="flex flex-col items-center">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-blue-500 bg-blue-500/10">
-                          <User className="h-4 w-4 text-blue-500" />
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-accent bg-accent-light">
+                          <User className="h-4 w-4 text-accent" />
                         </div>
                         <div className="h-full w-0.5 bg-border" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold">Student Submitted</p>
-                        {createdAt && <p className="text-xs text-muted">{formatDateTime(createdAt)}</p>}
+                        <p className="text-body font-semibold">Student Submitted</p>
+                        {createdAt && <p className="text-caption text-muted">{formatDateTime(createdAt)}</p>}
                       </div>
                     </div>
 
@@ -1004,11 +1004,11 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                               className={cn(
                                 "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 transition-all",
                                 isCurrent
-                                  ? "border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/20"
+                                  ? "border-warning bg-warning-light ring-2 ring-warning/20"
                                   : decision === "approved" || decision === "auto_approved"
-                                  ? "border-emerald-500 bg-emerald-500/10"
+                                  ? "border-success bg-success-light"
                                   : decision === "rejected" || decision === "cancelled"
-                                  ? "border-red-500 bg-red-500/10"
+                                  ? "border-danger bg-danger-light"
                                   : "border-border bg-surface-sunken",
                               )}
                             >
@@ -1016,31 +1016,31 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                             </div>
                             <div className={cn(
                               "h-full w-0.5",
-                              isCurrent ? "bg-amber-200 dark:bg-amber-800/50" :
-                              decision === "approved" || decision === "auto_approved" ? "bg-emerald-200 dark:bg-emerald-800/50" :
+                              isCurrent ? "bg-warning-light" :
+                              decision === "approved" || decision === "auto_approved" ? "bg-success-light" :
                               "bg-border",
                             )} />
                           </div>
 
                           <div className={cn("min-w-0 flex-1 pb-6")}>
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className={cn("text-sm font-semibold capitalize", isCurrent && "text-amber-600")}>
+                              <span className={cn("text-body font-semibold capitalize", isCurrent && "text-warning")}>
                                 {app.stepKey?.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) ?? `Step ${app.stepOrder}`}
                               </span>
-                              <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium", config.lightBg, config.color)}>
+                              <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-medium", config.lightBg, config.color)}>
                                 {isCurrent && isPending ? "● Current" : config.label}
                               </span>
                             </div>
 
-                            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+                            <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-muted">
                               <span className="font-medium">{app.approverRoleCode ?? "—"}</span>
                               {app.approverName && <span>· {app.approverName}</span>}
                               {app.createdAt && <span>· {formatDateTime(app.createdAt)}</span>}
                             </div>
 
                             {app.comments && (
-                              <div className="mt-2 rounded-lg bg-surface-sunken/50 px-3 py-2 text-sm">
-                                <span className="text-xs font-medium text-muted">Comment:</span> {app.comments}
+                              <div className="mt-2 rounded-lg bg-surface-sunken/50 px-3 py-2 text-body">
+                                <span className="text-caption font-medium text-muted">Comment:</span> {app.comments}
                               </div>
                             )}
                           </div>
@@ -1052,12 +1052,12 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     {allApproved && (
                       <div className="relative flex gap-4">
                         <div className="flex flex-col items-center">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-emerald-500/20 bg-emerald-500/10">
-                            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-success/20 bg-success-light">
+                            <CheckCircle2 className="h-4 w-4 text-success" />
                           </div>
                         </div>
                         <div className="flex items-center pb-0">
-                          <span className="text-sm font-semibold text-emerald-600">Completed</span>
+                          <span className="text-body font-semibold text-success">Completed</span>
                         </div>
                       </div>
                     )}
@@ -1117,23 +1117,23 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     return (
                       <div className="flex flex-col items-center justify-center py-12 text-center">
                         <Clock className="mb-3 h-10 w-10 text-muted/50" />
-                        <p className="text-sm text-muted">No activity recorded yet.</p>
+                        <p className="text-body text-muted">No activity recorded yet.</p>
                       </div>
                     );
                   }
 
                   const eventConfig: Record<string, { icon: React.ElementType; bg: string }> = {
-                    submitted: { icon: FileText, bg: "bg-blue-500" },
-                    approved: { icon: CheckCircle2, bg: "bg-emerald-500" },
-                    rejected: { icon: XCircle, bg: "bg-red-500" },
-                    comment: { icon: MessageSquare, bg: "bg-gray-500" },
-                    movement: { icon: MapPin, bg: "bg-violet-500" },
+                    submitted: { icon: FileText, bg: "bg-accent" },
+                    approved: { icon: CheckCircle2, bg: "bg-success" },
+                    rejected: { icon: XCircle, bg: "bg-danger" },
+                    comment: { icon: MessageSquare, bg: "bg-surface-sunken" },
+                    movement: { icon: MapPin, bg: "bg-accent" },
                   };
 
                   return (
                     <div className="relative">
                       {events.map((event, i) => {
-                        const config = eventConfig[event.type] ?? { icon: Clock, bg: "bg-gray-500" };
+                        const config = eventConfig[event.type] ?? { icon: Clock, bg: "bg-surface-sunken" };
                         const Icon = config.icon;
                         const _isLast = i === events.length - 1;
 
@@ -1146,8 +1146,8 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                               {!_isLast && <div className="h-full w-0.5 bg-border" />}
                             </div>
                             <div className={cn("min-w-0 flex-1 pb-4", _isLast && "pb-0")}>
-                              <p className="text-sm font-medium">{event.label}</p>
-                              <p className="text-xs text-muted">
+                              <p className="text-body font-medium">{event.label}</p>
+                              <p className="text-caption text-muted">
                                 {formatDateTime(event.timestamp)}
                                 {event.actor && <span> · by {event.actor}</span>}
                               </p>
@@ -1171,7 +1171,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 ) : !auditData?.data || auditData.data.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <History className="mb-3 h-10 w-10 text-muted/50" />
-                    <p className="text-sm text-muted">No audit records yet.</p>
+                    <p className="text-body text-muted">No audit records yet.</p>
                   </div>
                 ) : (
                   <div className="relative">
@@ -1188,10 +1188,10 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                               {!_isLast && <div className="h-full w-0.5 bg-border" />}
                             </div>
                             <div className={cn("min-w-0 flex-1 pb-4", _isLast && "pb-0")}>
-                              <p className="text-sm font-medium capitalize">
+                              <p className="text-body font-medium capitalize">
                                 {entry.action.replace(/_/g, " ").toLowerCase()}
                               </p>
-                              <p className="text-xs text-muted">
+                              <p className="text-caption text-muted">
                                 {formatDateTime(entry.createdAt)}
                                 {entry.actorUserId && <span> · by user {entry.actorUserId.slice(0, 8)}</span>}
                               </p>
@@ -1215,7 +1215,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 {documents.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <FileText className="mb-3 h-10 w-10 text-muted/50" />
-                    <p className="text-sm text-muted">No documents attached.</p>
+                    <p className="text-body text-muted">No documents attached.</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -1233,8 +1233,8 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                             <DocIcon className="h-5 w-5 text-muted" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium group-hover:text-foreground">{doc.fileName}</p>
-                            <p className="text-xs text-muted">
+                            <p className="truncate text-body font-medium group-hover:text-foreground">{doc.fileName}</p>
+                            <p className="text-caption text-muted">
                               {doc.mimeType ?? "Unknown type"}
                               {doc.fileSize && ` · ${(doc.fileSize / 1024).toFixed(1)} KB`}
                             </p>
@@ -1255,12 +1255,12 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
           {/* Status Card */}
           <div className="rounded-xl border border-border bg-card shadow-sm">
             <div className="border-b border-border px-4 py-3">
-              <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
+              <h3 className="flex items-center gap-2 text-caption font-semibold uppercase tracking-wider text-muted">
                 <Info className="h-3.5 w-3.5" />
                 Status Info
               </h3>
             </div>
-            <div className="space-y-3 p-4 text-sm">
+            <div className="space-y-3 p-4 text-body">
               <div className="flex items-center justify-between">
                 <span className="text-muted">Status</span>
                 <StatusBadge status={status as "approved" | "pending" | "rejected" | "active"} />
@@ -1275,7 +1275,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted">SLA</span>
-                <span className="flex items-center gap-1 font-medium text-amber-600">
+                <span className="flex items-center gap-1 font-medium text-warning">
                   <Clock className="h-3 w-3" />
                   {hoursSinceCreation !== null ? `${hoursSinceCreation}h` : "—"}
                 </span>
@@ -1285,7 +1285,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   <span className="text-muted">Parent</span>
                   <span className={cn(
                     "flex items-center gap-1 font-medium",
-                    parentApproved ? "text-emerald-600" : parentRejected ? "text-red-600" : "text-amber-600",
+                    parentApproved ? "text-success" : parentRejected ? "text-danger" : "text-warning",
                   )}>
                     <Users className="h-3 w-3" />
                     {parentApproved ? "Approved" : parentRejected ? "Rejected" : "Pending"}
@@ -1296,7 +1296,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 <span className="text-muted">QR Status</span>
                 <span className={cn(
                   "flex items-center gap-1 font-medium",
-                  isActive ? "text-emerald-600" : "text-muted",
+                  isActive ? "text-success" : "text-muted",
                 )}>
                   <QrCode className="h-3 w-3" />
                   {isActive ? "Active" : "—"}
@@ -1304,7 +1304,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted">Policy</span>
-                <span className="font-medium text-emerald-600">Passed</span>
+                <span className="font-medium text-success">Passed</span>
               </div>
             </div>
           </div>
@@ -1313,7 +1313,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
           {isPending && currentApproval && viewerCanAct && (
             <div className="rounded-xl border border-border bg-card shadow-sm">
               <div className="border-b border-border px-4 py-3">
-                <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
+                <h3 className="flex items-center gap-2 text-caption font-semibold uppercase tracking-wider text-muted">
                   <Send className="h-3.5 w-3.5" />
                   Actions
                 </h3>
@@ -1338,7 +1338,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   <XCircle className="h-4 w-4" />
                   Reject
                 </Button>
-                <Button variant="outline" size="sm" className="w-full gap-1.5 text-xs">
+                <Button variant="outline" size="sm" className="w-full gap-1.5 text-caption">
                   <Download className="h-3.5 w-3.5" />
                   Download PDF
                 </Button>
@@ -1348,7 +1348,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                       variant="ghost"
                       size="sm"
                       onClick={() => { setOverrideOpen(true); setOverrideError(""); }}
-                      className="w-full gap-1.5 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+                      className="w-full gap-1.5 text-caption text-warning hover:text-warning hover:bg-warning-light"
                     >
                       <Zap className="h-3.5 w-3.5" />
                       Override
@@ -1363,12 +1363,12 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
           {isPending && currentApproval && !viewerCanAct && (
             <div className="rounded-xl border border-border bg-card shadow-sm">
               <div className="border-b border-border px-4 py-3">
-                <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
+                <h3 className="flex items-center gap-2 text-caption font-semibold uppercase tracking-wider text-muted">
                   <Clock className="h-3.5 w-3.5" />
                   Waiting
                 </h3>
               </div>
-              <div className="space-y-2.5 p-4 text-sm">
+              <div className="space-y-2.5 p-4 text-body">
                 <p className="text-muted">
                   This request is waiting on{" "}
                   <span className="font-medium text-foreground">
@@ -1377,7 +1377,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   approval.
                 </p>
                 {viewerAlreadyActed && (
-                  <p className="flex items-center gap-1.5 text-xs text-emerald-600">
+                  <p className="flex items-center gap-1.5 text-caption text-success">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Your approval has been recorded.
                   </p>
@@ -1387,7 +1387,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     variant="outline"
                     size="sm"
                     onClick={() => { setOverrideOpen(true); setOverrideError(""); }}
-                    className="w-full gap-1.5 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+                    className="w-full gap-1.5 text-caption text-warning hover:text-warning hover:bg-warning-light"
                   >
                     <Zap className="h-3.5 w-3.5" />
                     Override
@@ -1400,12 +1400,12 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
           {/* Leave Summary Mini Card */}
           <div className="rounded-xl border border-border bg-card shadow-sm">
             <div className="border-b border-border px-4 py-3">
-              <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
+              <h3 className="flex items-center gap-2 text-caption font-semibold uppercase tracking-wider text-muted">
                 <Calendar className="h-3.5 w-3.5" />
                 Summary
               </h3>
             </div>
-            <div className="space-y-2.5 p-4 text-sm">
+            <div className="space-y-2.5 p-4 text-body">
               <div className="flex items-center justify-between">
                 <span className="text-muted">Type</span>
                 <span className="font-medium">{leaveType}</span>
@@ -1423,7 +1423,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
               {attendance !== null && (
                 <div className="flex items-center justify-between">
                   <span className="text-muted">Attendance</span>
-                  <span className={cn("font-medium tabular-nums", attendance < 75 ? "text-red-600" : "text-emerald-600")}>
+                  <span className={cn("font-medium tabular-nums", attendance < 75 ? "text-danger" : "text-success")}>
                     {attendance}%
                   </span>
                 </div>
@@ -1438,11 +1438,11 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10">
-                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success-light">
+                <CheckCircle2 className="h-5 w-5 text-success" />
               </div>
               <div>
-                <AlertDialogTitle className="text-lg">Approve Leave</AlertDialogTitle>
+                <AlertDialogTitle className="text-h3">Approve Leave</AlertDialogTitle>
                 <AlertDialogDescription>
                   This will approve {requestNumber} for {studentName}
                 </AlertDialogDescription>
@@ -1452,7 +1452,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
           <div className="space-y-4 py-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-muted">
+              <label className="mb-1.5 block text-body font-medium text-muted">
                 Comment <span className="text-muted/50">(optional)</span>
               </label>
               <textarea
@@ -1460,13 +1460,13 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 onChange={(e) => setComments(e.target.value)}
                 placeholder="Add a note about your approval..."
                 rows={3}
-                className="w-full rounded-lg border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border border-input bg-background p-3 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
               />
             </div>
 
             {!isPocViewer && (
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-muted">
+                <label className="mb-1.5 block text-body font-medium text-muted">
                   CC recipients <span className="text-muted/50">(optional)</span>
                 </label>
                 <input
@@ -1474,9 +1474,9 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   value={ccEmailsInput}
                   onChange={(e) => setCcEmailsInput(e.target.value)}
                   placeholder="name@example.com, another@example.com"
-                  className="w-full rounded-lg border border-input bg-background p-2.5 text-sm outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                  className="w-full rounded-lg border border-input bg-background p-2.5 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
                 />
-                <p className="mt-1 text-xs text-muted">
+                <p className="mt-1 text-caption text-muted">
                   These addresses will be CC&apos;d on the approval email sent to the student.
                 </p>
               </div>
@@ -1492,7 +1492,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                       onChange={(e) => setNotifyStudent(e.target.checked)}
                       className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
                     />
-                    <span className="text-sm">Notify student</span>
+                    <span className="text-body">Notify student</span>
                   </label>
                   <label className="flex items-center gap-3">
                     <input
@@ -1501,21 +1501,21 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                       onChange={(e) => setNotifyParent(e.target.checked)}
                       className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
                     />
-                    <span className="text-sm">Notify parent</span>
+                    <span className="text-body">Notify parent</span>
                   </label>
                 </>
               )}
               {isSpecialLeave && (
-                <label className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950">
+                <label className="flex items-start gap-3 rounded-md border border-warning bg-warning-light p-3 dark:border-warning dark:bg-warning">
                   <input
                     type="checkbox"
                     checked={documentsVerified}
                     onChange={(e) => setDocumentsVerified(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-input text-amber-600 focus:ring-amber-500"
+                    className="mt-0.5 h-4 w-4 rounded border-input text-warning focus:ring-warning"
                   />
-                  <span className="text-sm">
+                  <span className="text-body">
                     <strong>I confirm that the documents have been verified</strong>
-                    <p className="mt-0.5 text-xs text-muted">
+                    <p className="mt-0.5 text-caption text-muted">
                       This leave type requires document verification before approval.
                     </p>
                   </span>
@@ -1524,7 +1524,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
             </div>
 
             {actionError && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+              <div className="rounded-lg bg-danger-light p-3 text-body text-danger">
                 {actionError}
               </div>
             )}
@@ -1532,7 +1532,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
           <AlertDialogFooter>
             <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
-            <Button onClick={handleAction} disabled={actionLoading} className="gap-2 bg-emerald-600 hover:bg-emerald-700">
+            <Button onClick={handleAction} disabled={actionLoading} className="gap-2 bg-success hover:bg-success">
               {actionLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -1554,11 +1554,11 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
-                <AlertTriangle className="h-5 w-5 text-amber-500" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-light">
+                <AlertTriangle className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <AlertDialogTitle className="text-lg">Parent approval pending</AlertDialogTitle>
+                <AlertDialogTitle className="text-h3">Parent approval pending</AlertDialogTitle>
                 <AlertDialogDescription>
                   Parent approval is still pending for {studentName}. Approving now will override the parent
                   approval process.
@@ -1568,7 +1568,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
           </AlertDialogHeader>
 
           {actionError && (
-            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+            <div className="rounded-lg bg-danger-light p-3 text-body text-danger">
               {actionError}
             </div>
           )}
@@ -1578,7 +1578,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
             <Button
               onClick={confirmParentOverride}
               disabled={actionLoading}
-              className="gap-2 bg-amber-600 hover:bg-amber-700"
+              className="gap-2 bg-warning hover:bg-warning"
             >
               {actionLoading ? (
                 <>
@@ -1601,11 +1601,11 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10">
-                <XCircle className="h-5 w-5 text-red-500" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-danger-light">
+                <XCircle className="h-5 w-5 text-danger" />
               </div>
               <div>
-                <AlertDialogTitle className="text-lg">Reject Leave</AlertDialogTitle>
+                <AlertDialogTitle className="text-h3">Reject Leave</AlertDialogTitle>
                 <AlertDialogDescription>
                   This will reject {requestNumber} for {studentName}
                 </AlertDialogDescription>
@@ -1615,7 +1615,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
           <div className="space-y-4 py-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-muted">
+              <label className="mb-1.5 block text-body font-medium text-muted">
                 Category <span className="text-destructive">*</span>
               </label>
               <Select value={rejectionCategory} onValueChange={setRejectionCategory}>
@@ -1633,7 +1633,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-muted">
+              <label className="mb-1.5 block text-body font-medium text-muted">
                 Reason <span className="text-destructive">*</span>
               </label>
               <textarea
@@ -1641,7 +1641,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 onChange={(e) => setComments(e.target.value)}
                 placeholder="Explain why this leave is being rejected..."
                 rows={3}
-                className="w-full rounded-lg border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border border-input bg-background p-3 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
               />
             </div>
 
@@ -1654,8 +1654,8 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
                 />
                 <div>
-                  <span className="text-sm font-medium">Needs resubmission</span>
-                  <p className="text-xs text-muted">Allow student to reapply with corrections</p>
+                  <span className="text-body font-medium">Needs resubmission</span>
+                  <p className="text-caption text-muted">Allow student to reapply with corrections</p>
                 </div>
               </label>
               {!isPocViewer && (
@@ -1667,7 +1667,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                       onChange={(e) => setNotifyStudent(e.target.checked)}
                       className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
                     />
-                    <span className="text-sm">Notify student</span>
+                    <span className="text-body">Notify student</span>
                   </label>
                   <label className="flex items-center gap-3">
                     <input
@@ -1676,14 +1676,14 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                       onChange={(e) => setNotifyParent(e.target.checked)}
                       className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
                     />
-                    <span className="text-sm">Notify parent</span>
+                    <span className="text-body">Notify parent</span>
                   </label>
                 </>
               )}
             </div>
 
             {actionError && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+              <div className="rounded-lg bg-danger-light p-3 text-body text-danger">
                 {actionError}
               </div>
             )}
@@ -1718,11 +1718,11 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
-                <ShieldAlert className="h-5 w-5 text-amber-600" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-light">
+                <ShieldAlert className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <AlertDialogTitle className="text-lg">Override Approval</AlertDialogTitle>
+                <AlertDialogTitle className="text-h3">Override Approval</AlertDialogTitle>
                 <AlertDialogDescription>
                   Force-advance this leave request through the approval workflow.
                 </AlertDialogDescription>
@@ -1732,7 +1732,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
           <div className="space-y-4 py-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-muted">
+              <label className="mb-1.5 block text-body font-medium text-muted">
                 Override Mode
               </label>
               <Select value={overrideMode} onValueChange={(v) => setOverrideMode(v as "ONE_STEP" | "ALL")}>
@@ -1744,7 +1744,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   <SelectItem value="ALL">Approve All (Finalize)</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="mt-1.5 text-xs text-muted">
+              <p className="mt-1.5 text-caption text-muted">
                 {overrideMode === "ONE_STEP"
                   ? "Advances the leave to the next approval step. Workflow continues normally."
                   : "Approves all pending steps and finalizes the leave. This is irreversible."}
@@ -1752,7 +1752,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-muted">
+              <label className="mb-1.5 block text-body font-medium text-muted">
                 Comment <span className="text-muted/50">(optional)</span>
               </label>
               <textarea
@@ -1760,12 +1760,12 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 onChange={(e) => setOverrideComments(e.target.value)}
                 placeholder="Reason for override..."
                 rows={2}
-                className="w-full rounded-lg border border-input bg-background p-3 text-sm outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border border-input bg-background p-3 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-ring focus:ring-1 focus:ring-ring"
               />
             </div>
 
             {overrideError && (
-              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-400">
+              <div className="rounded-lg bg-danger-light p-3 text-body text-danger">
                 {overrideError}
               </div>
             )}
@@ -1777,7 +1777,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
               variant="default"
               onClick={handleOverride}
               disabled={overrideLoading}
-              className="gap-2 bg-amber-600 hover:bg-amber-700"
+              className="gap-2 bg-warning hover:bg-warning"
             >
               {overrideLoading ? (
                 <>
@@ -1797,7 +1797,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
 
       {/* Error banner */}
       {actionError && actionTarget === null && (
-        <div className="fixed bottom-4 right-4 flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive shadow-lg">
+        <div className="fixed bottom-4 right-4 flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-body text-destructive shadow-lg">
           <AlertCircle className="h-4 w-4" />
           {actionError}
           <Button variant="ghost" size="icon-xs" onClick={() => setActionError("")} className="ml-2">

@@ -28,20 +28,20 @@ export function ExtensionTimeline({ extensions }: ExtensionTimelineProps) {
           </div>
           <div className="flex-1 pb-4">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">
+              <span className="text-body font-medium">
                 Extension #{ext.extensionNumber}
               </span>
               <ExtensionStatusBadge
                 status={ext.status as "pending" | "approved" | "rejected" | "cancelled"}
               />
             </div>
-            <p className="mt-0.5 text-xs text-muted">
+            <p className="mt-0.5 text-caption text-muted">
               Requested end: {new Date(ext.requestedEndAt).toLocaleDateString()}
             </p>
             {ext.reason && (
-              <p className="mt-1 text-sm text-muted">{ext.reason}</p>
+              <p className="mt-1 text-body text-muted">{ext.reason}</p>
             )}
-            <p className="mt-0.5 text-xs text-muted">
+            <p className="mt-0.5 text-caption text-muted">
               {new Date(ext.createdAt).toLocaleDateString()}
             </p>
           </div>

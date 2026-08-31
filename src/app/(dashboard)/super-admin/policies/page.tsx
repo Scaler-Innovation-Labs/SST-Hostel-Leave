@@ -49,13 +49,13 @@ const POLICY_TYPE_DESCRIPTIONS: Record<string, string> = {
 };
 
 const POLICY_TYPE_COLORS: Record<string, string> = {
-  MAX_DAYS: "border-l-blue-500 bg-blue-500/5",
-  BLOCK_DURING_PERIOD: "border-l-amber-500 bg-amber-500/5",
-  RESTRICT_BATCH: "border-l-violet-500 bg-violet-500/5",
-  REQUIRE_PARENT_APPROVAL: "border-l-rose-500 bg-rose-500/5",
-  CURFEW_RESTRICTION: "border-l-emerald-500 bg-emerald-500/5",
-  MAX_EXTENSION_COUNT: "border-l-cyan-500 bg-cyan-500/5",
-  FORM_FIELD_RESTRICTION: "border-l-orange-500 bg-orange-500/5",
+  MAX_DAYS: "border-l-blue-500 bg-accent-light",
+  BLOCK_DURING_PERIOD: "border-l-amber-500 bg-warning-light",
+  RESTRICT_BATCH: "border-l-violet-500 bg-accent-light",
+  REQUIRE_PARENT_APPROVAL: "border-l-rose-500 bg-danger-light",
+  CURFEW_RESTRICTION: "border-l-emerald-500 bg-success-light",
+  MAX_EXTENSION_COUNT: "border-l-cyan-500 bg-accent-light",
+  FORM_FIELD_RESTRICTION: "border-l-orange-500 bg-warning-light",
 };
 
 type PolicyItem = {
@@ -240,10 +240,10 @@ export default function PoliciesPage() {
         {/* Policy list */}
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold">
+            <h2 className="text-body font-semibold">
               Policies
               {typedPolicies.length > 0 && (
-                <span className="ml-2 text-xs font-normal text-muted">
+                <span className="ml-2 text-caption font-normal text-muted">
                   ({typedPolicies.length})
                 </span>
               )}
@@ -258,8 +258,8 @@ export default function PoliciesPage() {
             <LoadingState count={5} />
           ) : typedPolicies.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-12">
-              <p className="text-sm text-muted">No policies yet.</p>
-              <p className="text-xs text-muted">
+              <p className="text-body text-muted">No policies yet.</p>
+              <p className="text-caption text-muted">
                 Create your first policy to start configuring rules.
               </p>
             </div>
@@ -281,7 +281,7 @@ export default function PoliciesPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <span className="font-medium">{policy.name}</span>
-                      <p className="mt-0.5 text-xs text-muted">
+                      <p className="mt-0.5 text-caption text-muted">
                         {POLICY_TYPE_LABELS[policy.policyType] ?? policy.policyType}
                         <span className="mx-1.5">·</span>
                         priority {policy.priority}
@@ -289,25 +289,25 @@ export default function PoliciesPage() {
                       {(policy.leaveTypeId || policy.hostelId || policy.departmentId || policy.batchYear != null) && (
                         <div className="mt-1 flex flex-wrap gap-1.5">
                           {policy.leaveTypeId && leaveTypeNameById[policy.leaveTypeId] && (
-                            <span className="inline-flex items-center gap-0.5 rounded-md bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
+                            <span className="inline-flex items-center gap-0.5 rounded-md bg-accent-light px-1.5 py-0.5 text-micro font-medium text-accent">
                               <Tag className="h-3 w-3" />
                               {leaveTypeNameById[policy.leaveTypeId]}
                             </span>
                           )}
                           {policy.hostelId && hostelNameById[policy.hostelId] && (
-                            <span className="inline-flex items-center gap-0.5 rounded-md bg-orange-500/10 px-1.5 py-0.5 text-[10px] font-medium text-orange-600 dark:text-orange-400">
+                            <span className="inline-flex items-center gap-0.5 rounded-md bg-warning-light px-1.5 py-0.5 text-micro font-medium text-warning">
                               <Hotel className="h-3 w-3" />
                               {hostelNameById[policy.hostelId]}
                             </span>
                           )}
                           {policy.departmentId && deptNameById[policy.departmentId] && (
-                            <span className="inline-flex items-center gap-0.5 rounded-md bg-violet-500/10 px-1.5 py-0.5 text-[10px] font-medium text-violet-600 dark:text-violet-400">
+                            <span className="inline-flex items-center gap-0.5 rounded-md bg-accent-light px-1.5 py-0.5 text-micro font-medium text-accent">
                               <Building2 className="h-3 w-3" />
                               {deptNameById[policy.departmentId]}
                             </span>
                           )}
                           {policy.batchYear != null && (
-                            <span className="inline-flex items-center gap-0.5 rounded-md bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-medium text-cyan-600 dark:text-cyan-400">
+                            <span className="inline-flex items-center gap-0.5 rounded-md bg-accent-light px-1.5 py-0.5 text-micro font-medium text-accent">
                               <GraduationCap className="h-3 w-3" />
                               Batch {policy.batchYear}
                             </span>
@@ -317,9 +317,9 @@ export default function PoliciesPage() {
                     </div>
                     <span
                       className={cn(
-                        "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                        "shrink-0 rounded-full px-2 py-0.5 text-micro font-medium",
                         policy.isActive
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          ? "bg-success-light text-success"
                           : "bg-surface-sunken text-muted",
                       )}
                     >
@@ -339,7 +339,7 @@ export default function PoliciesPage() {
               <h3 className="font-semibold">
                 {isEditing ? "Edit Policy" : "New Policy"}
               </h3>
-              <p className="mt-0.5 text-xs text-muted">
+              <p className="mt-0.5 text-caption text-muted">
                 {isEditing
                   ? "Update the policy configuration below."
                   : "Fill in the details to create a new policy."}
@@ -355,25 +355,25 @@ export default function PoliciesPage() {
           {/* Name */}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted">
+              <span className="text-caption font-medium text-muted">
                 Name
               </span>
               <input
                 value={draft.name}
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                 placeholder="e.g. Home Pass Max Days"
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
               />
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted">
+              <span className="text-caption font-medium text-muted">
                 Policy Type
               </span>
               <select
                 value={draft.policyType}
                 onChange={(e) => handlePolicyTypeChange(e.target.value)}
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
               >
                 {POLICY_TYPES.map((type) => (
                   <option key={type} value={type}>
@@ -381,7 +381,7 @@ export default function PoliciesPage() {
                   </option>
                 ))}
               </select>
-              <p className="text-[10px] text-muted">
+              <p className="text-micro text-muted">
                 {POLICY_TYPE_DESCRIPTIONS[draft.policyType] ?? ""}
               </p>
             </label>
@@ -390,7 +390,7 @@ export default function PoliciesPage() {
           {/* Priority + Leave Type + Hostel + Department + Batch Year */}
           <div className="grid gap-4 sm:grid-cols-3">
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted">
+              <span className="text-caption font-medium text-muted">
                 Priority
               </span>
               <input
@@ -401,12 +401,12 @@ export default function PoliciesPage() {
                 onChange={(e) =>
                   setDraft({ ...draft, priority: Number(e.target.value) })
                 }
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
               />
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted">
+              <span className="text-caption font-medium text-muted">
                 Leave Type
               </span>
               <select
@@ -414,7 +414,7 @@ export default function PoliciesPage() {
                 onChange={(e) =>
                   setDraft({ ...draft, leaveTypeId: e.target.value || null })
                 }
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
               >
                 <option value="">All leave types</option>
                 {typedLeaveTypes.map((type) => (
@@ -426,7 +426,7 @@ export default function PoliciesPage() {
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted">
+              <span className="text-caption font-medium text-muted">
                 Hostel
               </span>
               <select
@@ -434,7 +434,7 @@ export default function PoliciesPage() {
                 onChange={(e) =>
                   setDraft({ ...draft, hostelId: e.target.value })
                 }
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
               >
                 <option value="">All hostels</option>
                 {typedHostels.map((hostel) => (
@@ -443,13 +443,13 @@ export default function PoliciesPage() {
                   </option>
                 ))}
               </select>
-              <p className="text-[10px] text-muted">
+              <p className="text-micro text-muted">
                 Leave empty to apply to all hostels
               </p>
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted">
+              <span className="text-caption font-medium text-muted">
                 Department
               </span>
               <select
@@ -457,7 +457,7 @@ export default function PoliciesPage() {
                 onChange={(e) =>
                   setDraft({ ...draft, departmentId: e.target.value })
                 }
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
               >
                 <option value="">All departments</option>
                 {typedDepartments.map((dept) => (
@@ -466,13 +466,13 @@ export default function PoliciesPage() {
                   </option>
                 ))}
               </select>
-              <p className="text-[10px] text-muted">
+              <p className="text-micro text-muted">
                 Leave empty to apply to all departments
               </p>
             </label>
 
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted">
+              <span className="text-caption font-medium text-muted">
                 Batch Year
               </span>
               <input
@@ -484,9 +484,9 @@ export default function PoliciesPage() {
                   setDraft({ ...draft, batchYear: e.target.value })
                 }
                 placeholder="e.g. 2028"
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
               />
-              <p className="text-[10px] text-muted">
+              <p className="text-micro text-muted">
                 Leave empty to apply to all batches
               </p>
             </label>
@@ -494,7 +494,7 @@ export default function PoliciesPage() {
 
           {/* Visual config builder */}
           <div className="rounded-xl border border-border bg-surface-sunken/30 p-4">
-            <p className="mb-3 text-xs font-medium text-muted uppercase tracking-wider">
+            <p className="mb-3 text-caption font-medium text-muted uppercase tracking-wider">
               Policy Configuration
             </p>
             <PolicyConfigBuilder
@@ -507,7 +507,7 @@ export default function PoliciesPage() {
           {/* Date range */}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted">
+              <span className="text-caption font-medium text-muted">
                 Starts at
               </span>
               <input
@@ -516,11 +516,11 @@ export default function PoliciesPage() {
                 onChange={(e) =>
                   setDraft({ ...draft, startsAt: e.target.value })
                 }
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
               />
             </label>
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-muted">
+              <span className="text-caption font-medium text-muted">
                 Ends at
               </span>
               <input
@@ -529,13 +529,13 @@ export default function PoliciesPage() {
                 onChange={(e) =>
                   setDraft({ ...draft, endsAt: e.target.value })
                 }
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border border-border bg-background px-3 text-body outline-none transition-colors focus:border-ring focus:ring-1 focus:ring-ring"
               />
             </label>
           </div>
 
           {/* Active toggle */}
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
+          <label className="flex cursor-pointer items-center gap-2 text-body">
             <input
               type="checkbox"
               checked={draft.isActive}
@@ -551,9 +551,9 @@ export default function PoliciesPage() {
           {message && (
             <div
               className={cn(
-                "rounded-lg px-3 py-2 text-sm",
+                "rounded-lg px-3 py-2 text-body",
                 messageType === "success"
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  ? "bg-success-light text-success"
                   : "bg-destructive/10 text-destructive",
               )}
             >

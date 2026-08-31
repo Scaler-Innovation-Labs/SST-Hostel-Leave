@@ -9,15 +9,16 @@ import { MultiSeriesBarChart, type SeriesDef } from "@/components/analytics/Mult
 import { ErrorState } from "@/components/shared/ErrorState";
 import { InfoCard } from "@/components/shared/InfoCard";
 import { LoadingState } from "@/components/shared/LoadingState";
+import { CHART } from "@/design-system/sst";
 import type { AnalyticsPeriod } from "@/dto/analytics/analytics-period.dto";
 import type { LeaveAnalytics, StatusTrendPoint } from "@/dto/analytics/leave-analytics.dto";
 import { useLeaveAnalytics } from "@/features/analytics/hooks/use-analytics";
 
 const STATUS_SERIES: SeriesDef[] = [
-  { key: "PENDING", label: "Pending", color: "#f59e0b" },
-  { key: "APPROVED", label: "Approved", color: "#10b981" },
-  { key: "REJECTED", label: "Rejected", color: "#ef4444" },
-  { key: "CANCELLED", label: "Cancelled", color: "#94a3b8" },
+  { key: "PENDING", label: "Pending", color: CHART.warning },
+  { key: "APPROVED", label: "Approved", color: CHART.success },
+  { key: "REJECTED", label: "Rejected", color: CHART.danger },
+  { key: "CANCELLED", label: "Cancelled", color: CHART.muted },
 ];
 
 function pivotStatusTrend(rows: StatusTrendPoint[]): Array<Record<string, string | number>> {
@@ -67,7 +68,7 @@ export function LeavesTab({ period }: LeavesTabProps) {
         title="Leaves Created Trend"
         description="Daily leave submissions over the selected period."
         data={d.leaveTrend.map((point) => ({ date: point.date, value: point.value }))}
-        color="#6366f1"
+        color={CHART.accent}
       />
 
       <MultiSeriesBarChart

@@ -34,7 +34,7 @@ export function DataTable<T extends Record<string, unknown>>({
       )}
     >
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-body">
           <thead className="border-b border-border bg-surface-sunken/50">
             <tr>
               {columns.map((column, i) => (
@@ -53,7 +53,7 @@ export function DataTable<T extends Record<string, unknown>>({
               <tr>
                 <td
                   colSpan={columns.length}
-                  className="px-4 py-12 text-center text-sm text-muted"
+                  className="px-4 py-12 text-center text-body text-muted"
                 >
                   No data found
                 </td>

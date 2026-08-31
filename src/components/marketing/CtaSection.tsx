@@ -22,14 +22,14 @@ export function CtaSection() {
               "
             />
 
-            <h2 className="mx-auto max-w-2xl text-4xl font-bold tracking-tight sm:text-5xl">
+            <h2 className="mx-auto max-w-2xl text-h1 font-semibold tracking-tight sm:text-display">
               Ready to move
-              <span className="bg-linear-to-r from-blue-400 via-blue-500 to-indigo-500 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-accent via-accent to-accent bg-clip-text text-transparent">
                 {" "}without the paperwork?
               </span>
             </h2>
 
-            <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-muted">
+            <p className="mx-auto mt-6 max-w-xl text-h3 leading-8 text-muted">
               Students request, parents approve, staff review, guards scan —
               one platform for the entire campus movement lifecycle.
             </p>
@@ -39,7 +39,7 @@ export function CtaSection() {
                 href="/login"
                 className="
                   inline-flex items-center gap-3 rounded-2xl bg-linear-to-r
-                  from-blue-500 to-indigo-600 px-8 py-4 text-sm font-medium
+                  from-accent to-accent px-8 py-4 text-body font-medium
                   text-white shadow-[0_0_60px_rgba(59,130,246,0.35)]
                   transition-all duration-300 hover:scale-[1.02]
                 "

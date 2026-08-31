@@ -6,7 +6,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="text-3xl font-semibold">
+      <h1 className="text-h1 font-semibold">
         Profile
       </h1>
 
@@ -29,7 +29,7 @@ export default async function ProfilePage() {
           />
 
           <div>
-            <h2 className="text-xl font-medium">
+            <h2 className="text-h3 font-medium">
               {user?.fullName}
             </h2>
 

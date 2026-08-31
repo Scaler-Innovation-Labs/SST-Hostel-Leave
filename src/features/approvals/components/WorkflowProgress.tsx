@@ -26,9 +26,9 @@ function DotIcon({ status }: { status: WorkflowStep["status"] }) {
 
 function dotColor(status: WorkflowStep["status"]) {
   switch (status) {
-    case "completed": return "text-emerald-500";
-    case "current": return "text-amber-500";
-    case "failed": return "text-red-500";
+    case "completed": return "text-success";
+    case "current": return "text-warning";
+    case "failed": return "text-danger";
     default: return "text-muted";
   }
 }
@@ -44,7 +44,7 @@ export function WorkflowProgress({ steps, className, compact }: WorkflowProgress
               <DotIcon status={step.status} />
             </span>
             {i < steps.length - 1 && (
-              <span className={cn("mx-0.5 h-px w-3", step.status === "completed" ? "bg-emerald-400" : "bg-border")} />
+              <span className={cn("mx-0.5 h-px w-3", step.status === "completed" ? "bg-success" : "bg-border")} />
             )}
           </span>
         ))}
@@ -65,11 +65,11 @@ export function WorkflowProgress({ steps, className, compact }: WorkflowProgress
                   className={cn(
                     "flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-all",
                     step.status === "completed"
-                      ? "bg-emerald-500 text-white"
+                      ? "bg-success text-on-fill"
                       : step.status === "current"
-                      ? "bg-amber-500 text-white ring-2 ring-amber-500/30"
+                      ? "bg-warning text-on-fill ring-2 ring-warning/30"
                       : step.status === "failed"
-                      ? "bg-red-500 text-white"
+                      ? "bg-danger text-on-fill"
                       : "bg-surface-sunken text-muted",
                   )}
                 >
@@ -83,20 +83,20 @@ export function WorkflowProgress({ steps, className, compact }: WorkflowProgress
                 </div>
                 <span
                   className={cn(
-                    "whitespace-nowrap text-[10px] font-medium",
+                    "whitespace-nowrap text-micro font-medium",
                     step.status === "completed"
-                      ? "text-emerald-600 dark:text-emerald-400"
+                      ? "text-success"
                       : step.status === "current"
-                      ? "text-amber-600 dark:text-amber-400"
+                      ? "text-warning"
                       : step.status === "failed"
-                      ? "text-red-600 dark:text-red-400"
+                      ? "text-danger"
                       : "text-muted",
                   )}
                 >
                   {step.label}
                 </span>
                 {step.timestamp && (
-                  <span className="text-[9px] text-muted">
+                  <span className="text-micro text-muted">
                     {step.timestamp}
                   </span>
                 )}
@@ -107,7 +107,7 @@ export function WorkflowProgress({ steps, className, compact }: WorkflowProgress
                   className={cn(
                     "mx-1 mt-[-1.5rem] h-0.5 flex-1",
                     step.status === "completed"
-                      ? "bg-emerald-300 dark:bg-emerald-700"
+                      ? "bg-success dark:bg-success"
                       : "bg-border",
                   )}
                 />

@@ -7,9 +7,9 @@ export default function UnauthorizedPage() {
 		<main className="min-h-screen flex flex-col items-center justify-center gap-6">
 			<div className="flex flex-col items-center gap-2">
 				<div className="size-12 rounded-full bg-destructive/10 flex items-center justify-center">
-					<span className="text-destructive text-xl">!</span>
+					<span className="text-destructive text-h3">!</span>
 				</div>
-				<h1 className="text-2xl font-semibold">Unauthorized Access</h1>
+				<h1 className="text-h2 font-semibold">Unauthorized Access</h1>
 				<p className="text-muted text-center max-w-md">
 					Your account is not provisioned in the system.
 					Please contact your administrator to get access.

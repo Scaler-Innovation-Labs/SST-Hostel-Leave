@@ -32,11 +32,11 @@ type AskAQuestionSectionProps = {
 };
 
 const ROLE_STYLES: Record<string, string> = {
-  STUDENT: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-  POC: "bg-violet-500/10 text-violet-600 border-violet-500/20",
-  ADMIN: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-  SUPER_ADMIN: "bg-red-500/10 text-red-600 border-red-500/20",
-  PARENT: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  STUDENT: "bg-accent-light text-accent border-accent/20",
+  POC: "bg-accent-light text-accent border-accent/20",
+  ADMIN: "bg-warning-light text-warning border-warning/20",
+  SUPER_ADMIN: "bg-danger-light text-danger border-danger/20",
+  PARENT: "bg-success-light text-success border-success/20",
 };
 
 export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false }: AskAQuestionSectionProps) {
@@ -111,7 +111,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
         {/* Ask a question (staff) */}
         {canAsk && (
           <div className="rounded-xl border border-border bg-surface-sunken/30 p-4">
-            <p className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+            <p className="mb-2 flex items-center gap-1.5 text-body font-medium">
               <MessageSquarePlus className="h-4 w-4 text-muted" />
               Ask the student a question
             </p>
@@ -120,14 +120,14 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
               onChange={(e) => setQuestionText(e.target.value)}
               placeholder="Type your question for the student..."
               rows={3}
-              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:border-ring focus:ring-1 focus:ring-ring disabled:opacity-50"
+              className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-body outline-none placeholder:text-muted focus:border-ring focus:ring-1 focus:ring-ring disabled:opacity-50"
               disabled={asking}
             />
             <div className="mt-2 flex justify-end">
               <button
                 onClick={handleAsk}
                 disabled={asking || !questionText.trim()}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-body font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
                 {asking ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -141,7 +141,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
         )}
 
         {questions.length === 0 && canAsk ? (
-          <p className="py-4 text-center text-sm text-muted">
+          <p className="py-4 text-center text-body text-muted">
             No questions yet. Ask the student for more information above.
           </p>
         ) : (
@@ -150,31 +150,31 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
               key={question.id}
               className={cn(
                 "rounded-xl border border-border bg-card p-4 transition-all",
-                question.status === "pending" && "ring-1 ring-amber-500/20",
+                question.status === "pending" && "ring-1 ring-warning/20",
               )}
             >
               {/* Question */}
               <div className="flex gap-3">
                 <div className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-caption font-semibold",
                   ROLE_STYLES[question.askedByRole] ?? "bg-surface-sunken text-muted",
                 )}>
                   {question.askedByName.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold">{question.askedByName}</span>
-                    <span className="rounded bg-surface-sunken/50 px-1.5 py-0.5 text-[10px] font-medium uppercase text-muted">
+                    <span className="text-body font-semibold">{question.askedByName}</span>
+                    <span className="rounded bg-surface-sunken/50 px-1.5 py-0.5 text-micro font-medium uppercase text-muted">
                       {question.askedByRole}
                     </span>
-                    <span className="text-xs text-muted">
+                    <span className="text-caption text-muted">
                       {formatDistanceToNow(parseISO(question.createdAt), { addSuffix: true })}
                     </span>
                     <span className={cn(
-                      "ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                      "ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-micro font-medium",
                       question.status === "answered"
-                        ? "bg-emerald-500/10 text-emerald-600"
-                        : "bg-amber-500/10 text-amber-600",
+                        ? "bg-success-light text-success"
+                        : "bg-warning-light text-warning",
                     )}>
                       {question.status === "answered" ? (
                         <CheckCircle2 className="h-3 w-3" />
@@ -184,18 +184,18 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
                       {question.status === "answered" ? "Answered" : "Pending"}
                     </span>
                   </div>
-                  <p className="mt-1.5 text-sm leading-relaxed">{question.question}</p>
+                  <p className="mt-1.5 text-body leading-relaxed">{question.question}</p>
                 </div>
               </div>
 
               {/* Answer (if answered) */}
               {question.answer && (
                 <div className="mt-3 ml-12 rounded-lg bg-surface-sunken/40 p-3">
-                  <div className="flex items-center gap-2 text-xs text-muted">
-                    <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                  <div className="flex items-center gap-2 text-caption text-muted">
+                    <CheckCircle2 className="h-3 w-3 text-success" />
                     <span>Answered{question.answeredAt ? ` ${formatDistanceToNow(parseISO(question.answeredAt), { addSuffix: true })}` : ""}</span>
                   </div>
-                  <p className="mt-1 text-sm leading-relaxed whitespace-pre-wrap">{question.answer}</p>
+                  <p className="mt-1 text-body leading-relaxed whitespace-pre-wrap">{question.answer}</p>
                 </div>
               )}
 
@@ -207,7 +207,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
                     onChange={(e) => setAnswerText(e.target.value)}
                     placeholder="Type your answer..."
                     rows={3}
-                    className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none placeholder:text-muted focus:border-ring focus:ring-1 focus:ring-ring disabled:opacity-50"
+                    className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-body outline-none placeholder:text-muted focus:border-ring focus:ring-1 focus:ring-ring disabled:opacity-50"
                     disabled={submitting}
                   />
 
@@ -224,7 +224,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       disabled={submitting}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-surface-sunken/50 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-caption font-medium text-muted transition-colors hover:bg-surface-sunken/50 disabled:opacity-50"
                     >
                       <Paperclip className="h-3.5 w-3.5" />
                       {selectedFile ? selectedFile.name : "Attach document"}
@@ -232,7 +232,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
                     {selectedFile && (
                       <button
                         onClick={() => setSelectedFile(null)}
-                        className="text-xs text-destructive hover:underline"
+                        className="text-caption text-destructive hover:underline"
                       >
                         Remove
                       </button>
@@ -243,7 +243,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
                     <button
                       onClick={() => handleAnswer(question.id)}
                       disabled={submitting || !answerText.trim()}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-body font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                     >
                       {(submitting || uploadingFile) ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -255,7 +255,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
                     <button
                       onClick={() => { setAnsweringId(null); setAnswerText(""); setSelectedFile(null); }}
                       disabled={submitting}
-                      className="text-sm text-muted hover:text-foreground disabled:opacity-50"
+                      className="text-body text-muted hover:text-foreground disabled:opacity-50"
                     >
                       Cancel
                     </button>
@@ -268,7 +268,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
                 <div className="mt-3 ml-12">
                   <button
                     onClick={() => setAnsweringId(question.id)}
-                    className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80"
+                    className="inline-flex items-center gap-1.5 text-body font-medium text-primary hover:text-primary/80"
                   >
                     <SendHorizonal className="h-4 w-4" />
                     Answer this question
@@ -278,7 +278,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
 
               {/* Pending, staff viewer - hint */}
               {!canAnswer && question.status === "pending" && (
-                <p className="mt-2 ml-12 text-xs text-muted">
+                <p className="mt-2 ml-12 text-caption text-muted">
                   Waiting for the student&apos;s response.
                 </p>
               )}

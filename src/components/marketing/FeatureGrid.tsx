@@ -57,11 +57,11 @@ export function FeatureGrid() {
 			<div className="mx-auto max-w-7xl px-8">
 				<Reveal>
 					<div className="max-w-2xl">
-						<h2 className="text-4xl font-bold tracking-tight">
+						<h2 className="text-h1 font-semibold tracking-tight">
 							Built for operational clarity.
 						</h2>
 
-						<p className="mt-4 text-lg text-muted">
+						<p className="mt-4 text-h3 text-muted">
 							Streamline approvals, movement,
 							and communication workflows across
 							institutions.
@@ -96,11 +96,11 @@ export function FeatureGrid() {
 									<feature.icon className="size-5" />
 								</div>
 
-								<h3 className="mt-5 text-lg font-semibold">
+								<h3 className="mt-5 text-h3 font-semibold">
 									{feature.title}
 								</h3>
 
-								<p className="mt-3 text-sm leading-7 text-muted">
+								<p className="mt-3 text-body leading-7 text-muted">
 									{feature.description}
 								</p>
 							</div>

@@ -55,36 +55,36 @@ function getStepDisplay(stepKey: string | null): StepDisplay {
     return {
       icon: <FileText className="h-4 w-4" />,
       label: "Policy Check",
-      color: "text-blue-600 dark:text-blue-400",
-      bgClass: "bg-blue-500/10 hover:bg-blue-500/20 border-blue-200/40 dark:border-blue-800/30",
+      color: "text-accent",
+      bgClass: "bg-accent-light hover:bg-accent-light border-accent/40 dark:border-accent/30",
     };
   if (key === WORKFLOW_STEP_KEY.PARENT_APPROVAL || key.includes(WORKFLOW_STEP_KEY.PARENT_APPROVAL))
     return {
       icon: <User className="h-4 w-4" />,
       label: "Parent Approval",
-      color: "text-violet-600 dark:text-violet-400",
-      bgClass: "bg-violet-500/10 hover:bg-violet-500/20 border-violet-200/40 dark:border-violet-800/30",
+      color: "text-accent",
+      bgClass: "bg-accent-light hover:bg-accent-light border-accent/40 dark:border-accent/30",
     };
   if (key === WORKFLOW_STEP_KEY.POC_APPROVAL || key.includes(WORKFLOW_STEP_KEY.POC_APPROVAL))
     return {
       icon: <Shield className="h-4 w-4" />,
       label: "POC Approval",
-      color: "text-amber-600 dark:text-amber-400",
-      bgClass: "bg-amber-500/10 hover:bg-amber-500/20 border-amber-200/40 dark:border-amber-800/30",
+      color: "text-warning",
+      bgClass: "bg-warning-light hover:bg-warning-light border-warning/40 dark:border-warning/30",
     };
   if (key === WORKFLOW_STEP_KEY.ADMIN_APPROVAL || key.includes(WORKFLOW_STEP_KEY.ADMIN_APPROVAL))
     return {
       icon: <Building2 className="h-4 w-4" />,
       label: "Admin Approval",
-      color: "text-indigo-600 dark:text-indigo-400",
-      bgClass: "bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-200/40 dark:border-indigo-800/30",
+      color: "text-accent",
+      bgClass: "bg-accent-light hover:bg-accent-light border-accent/40 dark:border-accent/30",
     };
   if (key === VIEW_STEP_KEY.COMPLETE || key.includes(VIEW_STEP_KEY.COMPLETE))
     return {
       icon: <CheckCircle2 className="h-4 w-4" />,
       label: "Completed",
-      color: "text-emerald-600 dark:text-emerald-400",
-      bgClass: "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-200/40 dark:border-emerald-800/30",
+      color: "text-success",
+      bgClass: "bg-success-light hover:bg-success-light border-success/40 dark:border-success/30",
     };
   // Fallback: clean up snake_case key
   const fallbackLabel = key
@@ -93,7 +93,7 @@ function getStepDisplay(stepKey: string | null): StepDisplay {
   return {
     icon: <Clock className="h-4 w-4" />,
     label: fallbackLabel || "Unknown",
-    color: "text-gray-600 dark:text-gray-400",
+    color: "text-muted",
     bgClass: "bg-surface-sunken hover:bg-surface-hover border-border",
   };
 }
@@ -343,10 +343,10 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
                 {display.icon}
               </div>
               <div>
-                <div className={cn("text-sm font-semibold", display.color)}>
+                <div className={cn("text-body font-semibold", display.color)}>
                   {display.label}
                 </div>
-                <div className="text-2xl font-bold tabular-nums">
+                <div className="text-h2 font-semibold tabular-nums">
                   {g.count}
                 </div>
               </div>
@@ -365,19 +365,19 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
               }
             }}
             className={cn(
-              "flex items-center gap-3 rounded-xl border border-red-200/40 px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md",
-              "bg-red-500/10 hover:bg-red-500/20",
-              filters.status === "OVERDUE" && "ring-2 ring-red-400/40",
+              "flex items-center gap-3 rounded-xl border border-danger/40 px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md",
+              "bg-danger-light hover:bg-danger-light",
+              filters.status === "OVERDUE" && "ring-2 ring-danger/40",
             )}
           >
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-background/60 text-red-600 dark:text-red-400">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-background/60 text-danger">
               <Clock className="h-4 w-4" />
             </div>
             <div>
-              <div className="text-sm font-semibold text-red-600 dark:text-red-400">
+              <div className="text-body font-semibold text-danger">
                 Overdue
               </div>
-              <div className="text-2xl font-bold tabular-nums">{overdueCount}</div>
+              <div className="text-h2 font-semibold tabular-nums">{overdueCount}</div>
             </div>
           </button>
         )}
@@ -490,7 +490,7 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
       </div>
 
       {/* Results count */}
-      <div className="flex items-center justify-between text-xs text-muted">
+      <div className="flex items-center justify-between text-caption text-muted">
         <span>
           <span className="font-medium text-foreground">
             {filteredApprovals.length}
@@ -503,7 +503,7 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
         {!isOverdue && <span>
           Page {page} of {totalPages}
         </span>}
-        {isOverdue && <span className="text-xs">Showing all pending requests — overdue filtered client-side</span>}
+        {isOverdue && <span className="text-caption">Showing all pending requests — overdue filtered client-side</span>}
       </div>
 
       {/* Command Cards */}
@@ -516,8 +516,8 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
           </div>
         ) : filteredApprovals.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-20 text-center">
-            <h3 className="text-base font-medium">No requests found</h3>
-            <p className="mt-1 text-sm text-muted">
+            <h3 className="text-body-lg font-medium">No requests found</h3>
+            <p className="mt-1 text-body text-muted">
               {total === 0
                 ? "All caught up! No requests match your filters."
                 : "Try adjusting your filters."}
@@ -548,7 +548,7 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
           >
             Previous
           </Button>
-          <span className="text-xs text-muted">
+          <span className="text-caption text-muted">
             Page {page} of {totalPages}
           </span>
           <Button

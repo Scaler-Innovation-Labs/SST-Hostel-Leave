@@ -39,7 +39,7 @@ export function QrCodeDisplay({ token, size = 200, className }: QrCodeDisplayPro
 
   if (error) {
     return (
-      <div className="flex items-center justify-center rounded-xl bg-destructive/10 p-4 text-sm text-destructive">
+      <div className="flex items-center justify-center rounded-xl bg-destructive/10 p-4 text-body text-destructive">
         {error}
       </div>
     );

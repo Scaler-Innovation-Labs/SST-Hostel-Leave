@@ -10,7 +10,7 @@ function getErrorState(message: string) {
     return {
       icon: Clock,
       title: "Link Expired",
-      className: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+      className: "bg-warning-light text-warning",
     };
   }
 
@@ -18,7 +18,7 @@ function getErrorState(message: string) {
     return {
       icon: CheckCircle2,
       title: "Already Responded",
-      className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+      className: "bg-success-light text-success",
     };
   }
 
@@ -58,11 +58,11 @@ export default async function ParentApprovePage({
           >
             <Icon className="size-9" />
           </div>
-          <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+          <h1 className="text-h2 font-semibold text-foreground">{title}</h1>
           <p className="mt-2 text-muted">
             {errorMessage ?? "Invalid or expired link"}
           </p>
-          <p className="mt-6 text-sm text-muted/70">
+          <p className="mt-6 text-body text-muted/70">
             If you believe this is a mistake, please contact the school.
           </p>
         </div>

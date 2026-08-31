@@ -109,10 +109,10 @@ export function DocumentUpload({
         } ${disabled || uploading ? "pointer-events-none opacity-50" : ""}`}
       >
         <Upload className="mb-3 h-8 w-8 text-muted" />
-        <p className="text-sm font-medium">
+        <p className="text-body font-medium">
           {uploading ? "Uploading..." : `Drop ${documentLabel.toLowerCase()} here or click to upload`}
         </p>
-        <p className="mt-1 text-xs text-muted">
+        <p className="mt-1 text-caption text-muted">
           JPG, PNG, GIF, PDF, DOC, DOCX up to 10MB
         </p>
         <input
@@ -132,7 +132,7 @@ export function DocumentUpload({
       )}
 
       {error && (
-        <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="rounded-lg bg-destructive/10 p-3 text-body text-destructive">
           {error}
         </div>
       )}

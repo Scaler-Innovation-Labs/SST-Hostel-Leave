@@ -56,9 +56,9 @@ export function AutoPreviewModal({
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             {action === "approve" ? (
-              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              <CheckCircle2 className="h-5 w-5 text-success" />
             ) : (
-              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <AlertTriangle className="h-5 w-5 text-danger" />
             )}
             {action === "approve" ? "Approve Leave" : "Reject Leave"}
           </AlertDialogTitle>
@@ -76,21 +76,21 @@ export function AutoPreviewModal({
               <div
                 key={effect.label}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm",
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-body",
                   action === "approve"
-                    ? "bg-emerald-500/5"
-                    : "bg-red-500/5",
+                    ? "bg-success-light"
+                    : "bg-danger-light",
                 )}
               >
                 <Icon
                   className={cn(
                     "h-4 w-4 shrink-0",
-                    action === "approve" ? "text-emerald-500" : "text-red-500",
+                    action === "approve" ? "text-success" : "text-danger",
                   )}
                 />
                 <div>
                   <p className="font-medium">{effect.label}</p>
-                  <p className="text-xs text-muted">{effect.description}</p>
+                  <p className="text-caption text-muted">{effect.description}</p>
                 </div>
               </div>
             );

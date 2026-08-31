@@ -203,7 +203,7 @@ export default function SuperAdminWorkflowsPage() {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={handleSearchKeyDown}
-                className="h-9 w-full rounded-lg border bg-background pl-9 pr-8 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+                className="h-9 w-full rounded-lg border bg-background pl-9 pr-8 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
               />
               {searchInput && (
                 <button onClick={clearSearch} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted hover:text-foreground">
@@ -214,7 +214,7 @@ export default function SuperAdminWorkflowsPage() {
             <select
               value={filterActive}
               onChange={(e) => { setFilterActive(e.target.value); setPage(1); }}
-              className="h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:border-ring focus:ring-1 focus:ring-ring"
+              className="h-9 rounded-lg border bg-background px-3 text-body outline-none focus:border-ring focus:ring-1 focus:ring-ring"
             >
               <option value="">All status</option>
               <option value="true">Active</option>
@@ -226,8 +226,8 @@ export default function SuperAdminWorkflowsPage() {
           {isLoading ? <LoadingState count={4} /> : data?.items.map((workflow) => (
             <div key={workflow.id} className="group flex rounded-xl border bg-card hover:border-primary">
               <button onClick={() => edit(workflow)} className="flex-1 p-4 text-left">
-                <div className="flex justify-between gap-3"><span className="font-medium">{workflow.name}</span><span className="text-xs text-muted">v{workflow.version}</span></div>
-                <div className="mt-1 font-mono text-xs text-muted">{workflow.code} · {workflow.steps.length} steps · {workflow.isActive ? "Active" : "Inactive"}</div>
+                <div className="flex justify-between gap-3"><span className="font-medium">{workflow.name}</span><span className="text-caption text-muted">v{workflow.version}</span></div>
+                <div className="mt-1 font-mono text-caption text-muted">{workflow.code} · {workflow.steps.length} steps · {workflow.isActive ? "Active" : "Inactive"}</div>
               </button>
               <Button
                 variant="ghost"
@@ -243,7 +243,7 @@ export default function SuperAdminWorkflowsPage() {
 
           {/* Pagination */}
           {data && data.totalPages > 1 && (
-            <div className="flex items-center justify-between pt-2 text-sm text-muted">
+            <div className="flex items-center justify-between pt-2 text-body text-muted">
               <span>{data.total} workflow{data.total !== 1 ? "s" : ""}</span>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="icon" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
@@ -267,18 +267,18 @@ export default function SuperAdminWorkflowsPage() {
             <Field label="Code" value={draft.code} onChange={(code) => setDraft({ ...draft, code: code.toUpperCase().replace(/\s+/g, "_") })} mono />
           </div>
           <Field label="Description" value={draft.description} onChange={(description) => setDraft({ ...draft, description })} />
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={draft.isActive} onChange={(event) => setDraft({ ...draft, isActive: event.target.checked })} /> Active</label>
+          <label className="flex items-center gap-2 text-body"><input type="checkbox" checked={draft.isActive} onChange={(event) => setDraft({ ...draft, isActive: event.target.checked })} /> Active</label>
 
           {/* Pipeline preview */}
           {draft.steps.length > 0 && (
             <div className="rounded-xl border bg-surface-sunken/20 p-4">
-              <p className="mb-3 text-xs font-medium text-muted uppercase tracking-wider">Pipeline Preview</p>
+              <p className="mb-3 text-caption font-medium text-muted uppercase tracking-wider">Pipeline Preview</p>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">Start</span>
+                <span className="rounded-lg bg-primary/10 px-3 py-1.5 text-caption font-medium text-primary">Start</span>
                 <span className="text-muted">→</span>
                 {draft.steps.map((step, i) => (
                   <span key={i} className="flex items-center gap-1">
-                    <span className={`rounded-lg px-3 py-1.5 text-xs font-medium ${step.isParentApproval ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"}`}>
+                    <span className={`rounded-lg px-3 py-1.5 text-caption font-medium ${step.isParentApproval ? "bg-warning-light text-warning" : "bg-accent-light text-accent"}`}>
                       {step.isParentApproval ? "Parent" : step.approverRoleCode ?? "?"}{step.isRequired ? "" : " (opt)"}
                       {step.condition ? "*" : ""}
                       {step.timeoutHours ? <Timer className="ml-1 inline size-3" /> : null}
@@ -287,7 +287,7 @@ export default function SuperAdminWorkflowsPage() {
                   </span>
                 ))}
                 <span className="text-muted">→</span>
-                <span className="rounded-lg bg-emerald-100 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Done</span>
+                <span className="rounded-lg bg-success-light px-3 py-1.5 text-caption font-medium text-success">Done</span>
               </div>
             </div>
           )}
@@ -310,7 +310,7 @@ export default function SuperAdminWorkflowsPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <GripVertical className="size-4 cursor-grab text-muted" />
-                    <span className="text-sm font-medium">Step {index + 1}</span>
+                    <span className="text-body font-medium">Step {index + 1}</span>
                   </div>
                   <div className="flex gap-1">
                     <Button variant="outline" size="icon" onClick={() => moveStep(index, -1)}><ArrowUp className="size-4" /></Button>
@@ -326,27 +326,27 @@ export default function SuperAdminWorkflowsPage() {
 
                 {/* Collapsible advanced fields */}
                 <details className="group">
-                  <summary className="cursor-pointer text-xs font-medium text-muted hover:text-foreground">Advanced settings</summary>
+                  <summary className="cursor-pointer text-caption font-medium text-muted hover:text-foreground">Advanced settings</summary>
                   <div className="mt-3 space-y-3">
                     <Field label="Condition (leave property)" value={step.condition} onChange={(condition) => updateStep(index, { condition })} placeholder="e.g. days > 3" />
                     <div className="grid gap-3 sm:grid-cols-2">
                       <Field label="Timeout (hours)" value={step.timeoutHours} onChange={(timeoutHours) => updateStep(index, { timeoutHours })} type="number" placeholder="e.g. 24" />
                       <SelectField label="Escalate to" value={step.escalateToStepKey} options={["", ...draft.steps.map((s) => s.stepKey)]} onChange={(escalateToStepKey) => updateStep(index, { escalateToStepKey })} />
                     </div>
-                    <label className="block text-sm">
+                    <label className="block text-body">
                       <span className="mb-1 block font-medium">Notes</span>
                       <textarea value={step.notes} onChange={(e) => updateStep(index, { notes: e.target.value })} rows={2} placeholder="Internal notes about this step"
-                        className="w-full rounded-lg border bg-background p-2 text-xs outline-none focus:border-ring focus:ring-1 focus:ring-ring" />
+                        className="w-full rounded-lg border bg-background p-2 text-caption outline-none focus:border-ring focus:ring-1 focus:ring-ring" />
                     </label>
                   </div>
                 </details>
 
-                <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={step.isRequired} onChange={(event) => updateStep(index, { isRequired: event.target.checked })} /> Required step</label>
+                <label className="flex items-center gap-2 text-caption"><input type="checkbox" checked={step.isRequired} onChange={(event) => updateStep(index, { isRequired: event.target.checked })} /> Required step</label>
               </div>
             ))}
           </div>
 
-          {message && <p className="text-sm text-muted">{message}</p>}
+          {message && <p className="text-body text-muted">{message}</p>}
           <div className="flex justify-end"><Button onClick={submit} disabled={saving || draft.steps.length === 0}><Save className="size-4" /> {saving ? "Saving..." : "Save workflow"}</Button></div>
         </section>
       </div>
@@ -355,9 +355,9 @@ export default function SuperAdminWorkflowsPage() {
 }
 
 function Field({ label, value, onChange, mono = false, type = "text", placeholder }: { label: string; value: string; onChange: (value: string) => void; mono?: boolean; type?: string; placeholder?: string }) {
-  return <label className="block text-sm"><span className="mb-1 block font-medium">{label}</span><input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className={`h-9 w-full rounded-lg border bg-background px-3 outline-none focus:border-ring focus:ring-1 focus:ring-ring ${mono ? "font-mono" : ""}`} /></label>;
+  return <label className="block text-body"><span className="mb-1 block font-medium">{label}</span><input type={type} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} className={`h-9 w-full rounded-lg border bg-background px-3 outline-none focus:border-ring focus:ring-1 focus:ring-ring ${mono ? "font-mono" : ""}`} /></label>;
 }
 
 function SelectField({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  return <label className="block text-sm"><span className="mb-1 block font-medium">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-9 w-full rounded-lg border bg-background px-3 outline-none focus:border-ring focus:ring-1 focus:ring-ring">{options.map((option) => <option key={option} value={option}>{option || "None"}</option>)}</select></label>;
+  return <label className="block text-body"><span className="mb-1 block font-medium">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-9 w-full rounded-lg border bg-background px-3 outline-none focus:border-ring focus:ring-1 focus:ring-ring">{options.map((option) => <option key={option} value={option}>{option || "None"}</option>)}</select></label>;
 }
