@@ -135,7 +135,7 @@ export function getRoutesForAudit(
   return PAGE_ROUTES.filter((r) => {
     if (r.skip) return false;
     if (!includeDynamic && r.dynamic) return false;
-    if (role && r.role !== role && r.role !== "public") return false;
+    if (role && r.role !== role) return false;
     return true;
   });
 }
