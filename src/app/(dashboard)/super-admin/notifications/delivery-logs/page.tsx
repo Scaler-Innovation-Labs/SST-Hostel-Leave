@@ -149,7 +149,7 @@ export default function DeliveryLogsPage() {
                       {log.recipient}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-micro font-medium ${getEventColor(log.eventType)}`}>
+                      <span className={`inline-block rounded-sm px-2 py-0.5 text-micro font-medium ${getEventColor(log.eventType)}`}>
                         {getEventLabel(log.eventType)}
                       </span>
                     </td>
@@ -157,7 +157,7 @@ export default function DeliveryLogsPage() {
                       {CHANNEL_LABELS[log.channel] ?? log.channel}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block rounded-full px-2 py-0.5 text-micro font-medium ${STATUS_COLORS[log.deliveryStatus] ?? ""}`}>
+                      <span className={`inline-block rounded-sm px-2 py-0.5 text-micro font-medium ${STATUS_COLORS[log.deliveryStatus] ?? ""}`}>
                         {STATUS_LABELS[log.deliveryStatus] ?? log.deliveryStatus}
                       </span>
                     </td>

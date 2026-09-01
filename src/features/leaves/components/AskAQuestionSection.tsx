@@ -171,7 +171,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
                       {formatDistanceToNow(parseISO(question.createdAt), { addSuffix: true })}
                     </span>
                     <span className={cn(
-                      "ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-micro font-medium",
+                      "ml-auto inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-micro font-medium",
                       question.status === "answered"
                         ? "bg-success-light text-success"
                         : "bg-warning-light text-warning",

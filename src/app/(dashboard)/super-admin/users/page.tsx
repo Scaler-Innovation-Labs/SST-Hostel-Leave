@@ -203,7 +203,7 @@ export default function SuperAdminUsersPage() {
                   {user.userRoles.map((r) => (
                     <span
                       key={r.roleCode}
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-medium ${ROLE_STYLES[r.roleCode] ?? "bg-surface-sunken text-muted"}`}
+                      className={`inline-flex items-center rounded-sm px-2.5 py-0.5 text-caption font-medium ${ROLE_STYLES[r.roleCode] ?? "bg-surface-sunken text-muted"}`}
                     >
                       <Shield className="mr-1 h-3 w-3" />
                       {ROLE_LABELS[r.roleCode] ?? r.roleName}

@@ -139,6 +139,8 @@ export function ExtensionApprovalsPage() {
   const total = data?.total ?? 0;
   const totalPages = data?.totalPages ?? 1;
   const stats = data?.stats;
+  /** The standing state of the screen: what is still undecided, unfiltered. */
+  const pendingExtensions = stats?.pending ?? 0;
 
   const updateFilter = (key: keyof FilterState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -186,8 +188,17 @@ export function ExtensionApprovalsPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Extension Approvals"
-        description={`${items.length} request${items.length !== 1 ? "s" : ""}${hasActiveFilters ? " (filtered)" : ""}`}
+        eyebrow="Queues"
+        title="Extensions"
+        description="Requests to push back a return date. An extension amends an existing leave — it never becomes a new one."
+        status={
+          pendingExtensions > 0
+            ? {
+                label: `${pendingExtensions} awaiting you`,
+                tone: "warning" as const,
+              }
+            : { label: "Nothing waiting on you", tone: "success" as const }
+        }
       />
 
       {/* Summary cards — scope-wide totals (clicking a card filters the list) */}

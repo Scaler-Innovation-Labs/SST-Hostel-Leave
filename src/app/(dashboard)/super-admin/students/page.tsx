@@ -513,7 +513,7 @@ export default function SuperAdminStudentsPage() {
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
                       <span
-                        className={`rounded-full px-2 py-0.5 text-micro font-medium ${
+                        className={`rounded-sm px-2 py-0.5 text-micro font-medium ${
                           item.user?.isActive ?? true
                             ? "bg-success-light text-success"
                             : "bg-surface-sunken text-muted"

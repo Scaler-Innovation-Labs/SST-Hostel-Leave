@@ -218,7 +218,7 @@ export default function SuperAdminUserDetailPage() {
                 </dt>
                 <dd>
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-caption font-medium ${
+                    className={`inline-flex items-center gap-1.5 rounded-sm px-3 py-1 text-caption font-medium ${
                       user.isActive
                         ? "bg-success-light text-success"
                         : "bg-danger-light text-danger"

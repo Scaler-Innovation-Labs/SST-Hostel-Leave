@@ -170,14 +170,14 @@ export default function NotificationTemplatesPage() {
                         {EVENT_LABELS[tpl.eventKey] ?? tpl.eventKey}
                       </span>
                       <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-micro font-medium ${CHANNEL_COLORS[tpl.channel] ?? "bg-surface-sunken text-muted"}`}
+                        className={`inline-block rounded-sm px-2 py-0.5 text-micro font-medium ${CHANNEL_COLORS[tpl.channel] ?? "bg-surface-sunken text-muted"}`}
                       >
                         {CHANNEL_LABELS[tpl.channel] ?? tpl.channel}
                       </span>
                     </div>
                   </div>
                   <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-micro font-medium ${
+                    className={`shrink-0 rounded-sm px-2 py-0.5 text-micro font-medium ${
                       tpl.isActive
                         ? "bg-success-light text-success"
                         : "bg-surface-sunken text-muted"

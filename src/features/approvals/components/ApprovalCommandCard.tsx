@@ -8,6 +8,7 @@ import {
   Home,
   Loader2,
   MapPin,
+  Repeat,
   XCircle,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -26,13 +27,22 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
+import type { LeaveRequestStatus } from "@/constants/leave/leave-status";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { VIEW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
-import { CHART, initialsOf } from "@/design-system/sst";
+import type { StatusPresentation } from "@/design-system/sst";
+import {
+  APPROVAL_DECISION_PRESENTATION,
+  Badge,
+  FOCUS,
+  HOVER_LIFT,
+  initialsOf,
+  LEAVE_STATUS_PRESENTATION,
+  StatusBadge,
+} from "@/design-system/sst";
 import type { ApprovalQueueItem } from "@/features/approvals/hooks/use-approvals";
 import { approveLeave, rejectLeave } from "@/lib/api/approval-api";
 import { approveExtension } from "@/lib/api/extension-api";
-import { softTint, topBannerGradient } from "@/lib/color-utils";
 import { formatDate, getDurationLabel } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
@@ -101,14 +111,22 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
   const isApproved = item.decision === LEAVE_APPROVAL_DECISION.APPROVED || item.decision === LEAVE_APPROVAL_DECISION.AUTO_APPROVED;
   const leaveStatus = lr?.status ?? null;
   const isLeavePending = leaveStatus === LEAVE_REQUEST_STATUS.PENDING;
-  const headerBadge =
-    isPending
-      ? "PENDING"
-      : leaveStatus === LEAVE_REQUEST_STATUS.PENDING
-        ? isApproved
-          ? "APPROVED"
-          : "REJECTED"
-        : leaveStatus ?? "DONE";
+  /**
+   * What this card's chip says.
+   *
+   * A pending approval step means the *request* is still awaiting a decision,
+   * whatever the leave's own status says. Once this step is decided but the
+   * leave is still pending, the chip reports this approver's own decision —
+   * the leave has simply moved on to the next step in the chain.
+   */
+  const headerStatus: StatusPresentation = isPending
+    ? APPROVAL_DECISION_PRESENTATION.PENDING
+    : leaveStatus === LEAVE_REQUEST_STATUS.PENDING
+      ? isApproved
+        ? APPROVAL_DECISION_PRESENTATION.APPROVED
+        : APPROVAL_DECISION_PRESENTATION.REJECTED
+      : (LEAVE_STATUS_PRESENTATION[leaveStatus as LeaveRequestStatus] ??
+        LEAVE_STATUS_PRESENTATION.COMPLETED);
 
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -126,20 +144,6 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
   const isExtension = !!item.leaveExtensionId;
   const isSpecialLeave = (item.leaveTypeUiConfig?.isSpecial as boolean | undefined) ?? false;
   const isPocViewer = viewerRole === "POC";
-  const leaveColor =
-    typeof item.leaveTypeUiConfig?.color === "string" ? item.leaveTypeUiConfig.color : null;
-
-  // Status color for the left rail — the decision at a glance.
-  const statusColor =
-    isPending
-      ? CHART.warning
-      : leaveStatus === LEAVE_REQUEST_STATUS.REJECTED ||
-          leaveStatus === LEAVE_REQUEST_STATUS.CANCELLED ||
-          leaveStatus === LEAVE_REQUEST_STATUS.EXPIRED ||
-          leaveStatus === LEAVE_REQUEST_STATUS.OVERDUE
-        ? CHART.danger
-        : CHART.success;
-
   // Role required by the currently active workflow step. When it doesn't match
   // this viewer's role, the approver's turn hasn't come yet — show a waiting
   // panel instead of action buttons (e.g. a POC who already approved now sees
@@ -341,10 +345,8 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl border border-border bg-surface shadow-sm transition-all",
-        disableNavigation
-          ? ""
-          : "hover:-translate-y-0.5 hover:shadow-md cursor-pointer",
+        "relative overflow-hidden rounded-xl border border-border bg-surface shadow-raised",
+        !disableNavigation && ["cursor-pointer", HOVER_LIFT, FOCUS],
       )}
       onClick={() => {
         if (disableNavigation || !lr?.id) return;
@@ -363,37 +365,15 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
         }
       }}
     >
-      {/* ── Status color rail ── */}
-      <span
-        className="absolute inset-y-0 left-0 w-1"
-        style={{ backgroundColor: statusColor }}
-        aria-hidden
-      />
-
       {/* ── HEADER ── */}
-      <div
-        className="flex items-center justify-between border-b border-border px-4 py-2.5"
-        style={{
-          backgroundColor: softTint(leaveColor ?? ""),
-          backgroundImage: leaveColor ? topBannerGradient(leaveColor) : undefined,
-        }}
-      >
+      <div className="flex items-center justify-between gap-3 border-b border-border bg-surface-sunken px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <span className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-caption font-medium",
-            isPending
-              ? "bg-warning-light text-warning"
-              : leaveStatus === LEAVE_REQUEST_STATUS.REJECTED || leaveStatus === LEAVE_REQUEST_STATUS.CANCELLED
-                ? "bg-danger-light text-danger"
-                : leaveStatus === LEAVE_REQUEST_STATUS.EXPIRED || leaveStatus === LEAVE_REQUEST_STATUS.OVERDUE
-                  ? "bg-danger-light text-danger"
-                  : "bg-success-light text-success",
-          )}>
-            <span className={cn("h-1.5 w-1.5 rounded-full", isPending ? "bg-warning" : leaveStatus === LEAVE_REQUEST_STATUS.REJECTED || leaveStatus === LEAVE_REQUEST_STATUS.CANCELLED || leaveStatus === LEAVE_REQUEST_STATUS.EXPIRED || leaveStatus === LEAVE_REQUEST_STATUS.OVERDUE ? "bg-danger" : "bg-success")} />
-            {headerBadge}
-          </span>
+          <StatusBadge status={headerStatus} />
           {isExtension && (
-            <span className="rounded-full bg-accent-light px-2 py-0.5 text-micro font-medium text-accent">Extension</span>
+            <Badge tone="accent" size="sm">
+              <Repeat className="h-3 w-3 shrink-0" aria-hidden />
+              Extension
+            </Badge>
           )}
         </div>
         <span className="font-mono text-caption text-muted">{lr?.requestNumber ?? "—"}</span>

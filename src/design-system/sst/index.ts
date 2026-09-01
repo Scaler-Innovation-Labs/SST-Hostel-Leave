@@ -26,6 +26,7 @@ export { DensityProvider } from "./DensityProvider";
 export type { EditorialRowProps, RowTone } from "./EditorialRow";
 export { EditorialRow } from "./EditorialRow";
 export { Field, fieldControlProps } from "./Field";
+export { FilterChip } from "./FilterChip";
 export { Input, Textarea } from "./Input";
 export {
   DISABLED,

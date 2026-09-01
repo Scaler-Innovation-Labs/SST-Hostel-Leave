@@ -33,12 +33,12 @@ import {
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { VIEW_STEP_KEY, WORKFLOW_STEP_KEY, WORKFLOW_STEP_KEYS } from "@/constants/workflow/workflow-step-key";
+import { FilterChip } from "@/design-system/sst";
 import { ApprovalCommandCard } from "@/features/approvals/components/ApprovalCommandCard";
 import { useApprovals } from "@/features/approvals/hooks/use-approvals";
 import { useDashboardStats } from "@/features/dashboard/hooks/use-dashboard-stats";
 import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
 import { computeDateRange, DATE_RANGE_OPTIONS } from "@/lib/date-utils";
-import { cn } from "@/lib/utils";
 
 // ── Step display mapping ──
 // Maps DB step keys to human-readable labels and icons.
@@ -236,6 +236,19 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
     [filteredApprovals, now],
   );
 
+  /**
+   * What is still undecided in this queue. The API already scopes the queue to
+   * the viewer's role, so a pending item here is one they can act on — this is
+   * deliberately the unfiltered count, since it is the standing state of the
+   * screen rather than a reflection of the filters.
+   */
+  const pendingForViewer = useMemo(
+    () =>
+      approvals.filter((a) => a.decision === LEAVE_APPROVAL_DECISION.PENDING)
+        .length,
+    [approvals],
+  );
+
   const hasActiveFilters = Object.values(filters).some((v) => v !== "");
 
   // Build the set of active step keys for the Waiting On filter options
@@ -254,10 +267,24 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
       {/* Header */}
       {showHeader && (
         <PageHeader
-          title="Approvals"
-          description={isOverdue
-            ? `${filteredApprovals.length} overdue of ${approvals.length} pending`
-            : `${filteredApprovals.length} request${filteredApprovals.length !== 1 ? "s" : ""}${hasActiveFilters ? " (filtered)" : ""}`
+          eyebrow={isOverdue ? "Queues · Overdue" : "Queues"}
+          title={isOverdue ? "Overdue returns" : "Approvals"}
+          description={
+            isOverdue
+              ? "Students who are past the return time on an approved leave."
+              : "Leave requests waiting on a decision. The chain decides who sees each one."
+          }
+          /*
+           * The standing state is what is waiting on *you* — the filtered count
+           * already appears above the list, so repeating it here says nothing.
+           */
+          status={
+            pendingForViewer > 0
+              ? {
+                  label: `${pendingForViewer} awaiting you`,
+                  tone: "warning" as const,
+                }
+              : { label: "Nothing waiting on you", tone: "success" as const }
           }
         />
       )}
@@ -310,76 +337,56 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
         </section>
       )}
 
-      {/* Step cards — dynamic workflow step counts */}
-      <div className="flex flex-wrap gap-3">
-        {stepGroups.map((g) => {
-          const display = getStepDisplay(g.stepKey);
-          const isActive = filters.waitingOn === g.stepKey;
+      {/*
+        Which step each request is sitting with. These are filters rather than
+        metrics, so they stay neutral and let the accent mark the active one.
+      */}
+      <div className="flex flex-wrap gap-2">
+        {stepGroups.map((group) => {
+          const display = getStepDisplay(group.stepKey);
+          const isActive = filters.waitingOn === group.stepKey;
+
           return (
-            <button
-              key={g.stepKey}
-              type="button"
+            <FilterChip
+              key={group.stepKey}
+              label={display.label}
+              count={group.count}
+              active={isActive}
               onClick={() => {
                 if (isOverdue) {
-                  setFilters((prev) => ({ ...prev, status: "", waitingOn: g.stepKey }));
+                  setFilters((prev) => ({
+                    ...prev,
+                    status: "",
+                    waitingOn: group.stepKey,
+                  }));
                   setPage(1);
                 } else {
-                  updateFilter("waitingOn", isActive ? "" : g.stepKey);
+                  updateFilter("waitingOn", isActive ? "" : group.stepKey);
                 }
               }}
-              className={cn(
-                "flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md",
-                display.bgClass,
-                isActive && "ring-2 ring-accent/40",
-              )}
-            >
-              <div
-                className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-full",
-                  display.color,
-                  "bg-bg/60",
-                )}
-              >
-                {display.icon}
-              </div>
-              <div>
-                <div className={cn("text-body font-semibold", display.color)}>
-                  {display.label}
-                </div>
-                <div className="text-h2 font-semibold tabular-nums">
-                  {g.count}
-                </div>
-              </div>
-            </button>
+            />
           );
         })}
+
         {overdueCount > 0 && (
-          <button
-            type="button"
+          <FilterChip
+            label="Overdue"
+            count={overdueCount}
+            Icon={Clock}
+            active={filters.status === "OVERDUE"}
             onClick={() => {
               if (filters.status === "OVERDUE") {
                 updateFilter("status", "");
               } else {
                 setPage(1);
-                setFilters((prev) => ({ ...prev, status: "OVERDUE", waitingOn: "" }));
+                setFilters((prev) => ({
+                  ...prev,
+                  status: "OVERDUE",
+                  waitingOn: "",
+                }));
               }
             }}
-            className={cn(
-              "flex items-center gap-3 rounded-xl border border-danger/40 px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:shadow-md",
-              "bg-danger-light hover:bg-danger-light",
-              filters.status === "OVERDUE" && "ring-2 ring-danger/40",
-            )}
-          >
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-bg/60 text-danger">
-              <Clock className="h-4 w-4" />
-            </div>
-            <div>
-              <div className="text-body font-semibold text-danger">
-                Overdue
-              </div>
-              <div className="text-h2 font-semibold tabular-nums">{overdueCount}</div>
-            </div>
-          </button>
+          />
         )}
       </div>
 

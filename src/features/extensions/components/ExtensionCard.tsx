@@ -82,7 +82,7 @@ export function ExtensionCard({ item, isSelected, onClick }: ExtensionCardProps)
 
       {/* Top row */}
       <div className="mb-2.5 flex items-center gap-2 pl-3">
-        <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-micro font-medium", statusColor)}>
+        <span className={cn("inline-flex items-center gap-1.5 rounded-sm px-2 py-0.5 text-micro font-medium", statusColor)}>
           <span className={cn("h-1.5 w-1.5 rounded-full", statusDot)} />
           {isPending ? "Pending" : isApproved ? "Approved" : isRejected ? "Rejected" : item.decision}
         </span>

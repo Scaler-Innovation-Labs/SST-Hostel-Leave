@@ -280,7 +280,7 @@ export default function LeaveTypesPage() {
                       </span>
                     )}
                     <span
-                      className={`rounded-full px-2 py-0.5 text-micro font-medium ${
+                      className={`rounded-sm px-2 py-0.5 text-micro font-medium ${
                         lt.isActive
                           ? "bg-success-light text-success"
                           : "bg-surface-sunken text-muted"

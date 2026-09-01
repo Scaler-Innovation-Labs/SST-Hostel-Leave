@@ -314,7 +314,7 @@ export default function PoliciesPage() {
                     </div>
                     <span
                       className={cn(
-                        "shrink-0 rounded-full px-2 py-0.5 text-micro font-medium",
+                        "shrink-0 rounded-sm px-2 py-0.5 text-micro font-medium",
                         policy.isActive
                           ? "bg-success-light text-success"
                           : "bg-surface-sunken text-muted",

@@ -196,7 +196,7 @@ export default function AdminStudentsPage() {
                   <div className="flex shrink-0 items-center gap-3">
                     <span
                       className={cn(
-                        "inline-flex items-center rounded-full px-2.5 py-0.5 text-micro font-medium capitalize",
+                        "inline-flex items-center rounded-sm px-2.5 py-0.5 text-micro font-medium capitalize",
                         getLocationColor(locationCode),
                       )}
                     >

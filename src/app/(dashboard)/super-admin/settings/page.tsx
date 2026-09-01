@@ -31,7 +31,7 @@ function ConfigCard({ title, description, fields, onTest, testLabel, testLoading
           <p className="mt-0.5 text-body text-muted">{description}</p>
         </div>
         <span
-          className={`shrink-0 rounded-full px-2.5 py-0.5 text-caption font-medium ${
+          className={`shrink-0 rounded-sm px-2.5 py-0.5 text-caption font-medium ${
             allConfigured
               ? "bg-success-light text-success"
               : "bg-warning-light text-warning"
@@ -217,7 +217,7 @@ export default function SuperAdminSettingsPage() {
                   </span>
                   <p className="mt-0.5 text-caption text-muted">{item.desc}</p>
                 </div>
-                <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-caption font-medium ${
+                <span className={`shrink-0 rounded-sm px-2.5 py-0.5 text-caption font-medium ${
                   item.configured
                     ? "bg-success-light text-success"
                     : "bg-warning-light text-warning"

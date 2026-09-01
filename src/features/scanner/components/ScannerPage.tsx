@@ -273,7 +273,7 @@ export function ScannerPage() {
                   {currentResult.scanType && (
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-micro font-medium",
+                        "inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-micro font-medium",
                         currentResult.scanType === "EXIT_SCAN"
                           ? "bg-warning-light text-warning"
                           : "bg-success-light text-success",
@@ -347,7 +347,7 @@ export function ScannerPage() {
                       {scan.scanType && (
                         <span
                           className={cn(
-                            "inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-micro font-medium",
+                            "inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-micro font-medium",
                             scan.scanType === "EXIT_SCAN"
                               ? "bg-warning-light text-warning"
                               : "bg-success-light text-success",
