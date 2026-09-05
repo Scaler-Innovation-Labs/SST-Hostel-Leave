@@ -3,6 +3,7 @@ import useSWR, { mutate as globalMutate } from "swr";
 import type { ApprovalQueueItem } from "@/features/approvals/hooks/use-approvals";
 import { getExtensionApprovalsUrl } from "@/lib/api/extension-api";
 import { fetcher } from "@/lib/api/fetcher";
+import type { ApprovalStepBreakdownEntry } from "@/types/leave/approval-step-breakdown";
 
 type UseExtensionApprovalsOptions = {
   status?: string;
@@ -32,6 +33,8 @@ export function useExtensionApprovals(options?: UseExtensionApprovalsOptions) {
       page: number;
       totalPages: number;
       stats?: { total: number; pending: number; approved: number; rejected: number };
+      /** Queue-wide waiting-on counts — see ApprovalStepBreakdownEntry. */
+      stepBreakdown?: ApprovalStepBreakdownEntry[];
     },
     isLoading,
     isError: !!error,

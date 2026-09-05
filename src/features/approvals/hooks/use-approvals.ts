@@ -4,6 +4,7 @@ import useSWR from "swr";
 
 import type { ListApprovalsQuery } from "@/dto/approval/list-approvals.dto";
 import { getApprovalsUrl } from "@/lib/api/approval-api";
+import type { ApprovalStepBreakdownEntry } from "@/types/leave/approval-step-breakdown";
 
 export type ApprovalQueueItem = {
   id: string;
@@ -55,6 +56,8 @@ export function useApprovals(query?: Partial<ListApprovalsQuery>) {
     approvals: (data?.data?.items ?? []) as ApprovalQueueItem[],
     total: data?.data?.total ?? 0,
     totalPages: data?.data?.totalPages ?? 1,
+    /** Queue-wide waiting-on counts — see ApprovalStepBreakdownEntry. */
+    stepBreakdown: (data?.data?.stepBreakdown ?? []) as ApprovalStepBreakdownEntry[],
     isLoading,
     isError: !!error,
     error,
