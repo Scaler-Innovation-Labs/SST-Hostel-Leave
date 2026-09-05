@@ -1,15 +1,6 @@
 "use client";
 
-import {
-  Building2,
-  CheckCircle2,
-  Clock,
-  FileText,
-  Search,
-  Shield,
-  User,
-  X,
-} from "lucide-react";
+import { CheckCircle2, Clock, FileText, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 
@@ -26,77 +17,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
-import { VIEW_STEP_KEY, WORKFLOW_STEP_KEY, WORKFLOW_STEP_KEYS } from "@/constants/workflow/workflow-step-key";
+import { VIEW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { ApprovalCommandCard } from "@/features/approvals/components/ApprovalCommandCard";
+import {
+  getStepDisplay,
+  sortByStepOrder,
+  stepKeyToFilterLabel,
+  toWaitingOnStepKeys,
+} from "@/features/approvals/lib/step-display";
 import { useExtensionApprovals } from "@/features/extensions/hooks/use-approve-extension";
 import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
 import { fetcher } from "@/lib/api/fetcher";
 import { computeDateRange, DATE_RANGE_OPTIONS } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
-
-// ── Step display mapping (same as the approvals page) ──
-type StepDisplay = {
-  icon: React.ReactNode;
-  label: string;
-  color: string;
-  bgClass: string;
-};
-
-function getStepDisplay(stepKey: string | null): StepDisplay {
-  const key = stepKey ?? "";
-  if (key === "" || key === VIEW_STEP_KEY.SUBMITTED || key === VIEW_STEP_KEY.POLICY)
-    return {
-      icon: <FileText className="h-4 w-4" />,
-      label: "Policy Check",
-      color: "text-accent",
-      bgClass: "bg-accent-light hover:bg-accent-light border-accent/40 dark:border-accent/30",
-    };
-  if (key === WORKFLOW_STEP_KEY.PARENT_APPROVAL || key.includes(WORKFLOW_STEP_KEY.PARENT_APPROVAL))
-    return {
-      icon: <User className="h-4 w-4" />,
-      label: "Parent Approval",
-      color: "text-accent",
-      bgClass: "bg-accent-light hover:bg-accent-light border-accent/40 dark:border-accent/30",
-    };
-  if (key === WORKFLOW_STEP_KEY.POC_APPROVAL || key.includes(WORKFLOW_STEP_KEY.POC_APPROVAL))
-    return {
-      icon: <Shield className="h-4 w-4" />,
-      label: "POC Approval",
-      color: "text-warning",
-      bgClass: "bg-warning-light hover:bg-warning-light border-warning/40 dark:border-warning/30",
-    };
-  if (key === WORKFLOW_STEP_KEY.ADMIN_APPROVAL || key.includes(WORKFLOW_STEP_KEY.ADMIN_APPROVAL))
-    return {
-      icon: <Building2 className="h-4 w-4" />,
-      label: "Admin Approval",
-      color: "text-accent",
-      bgClass: "bg-accent-light hover:bg-accent-light border-accent/40 dark:border-accent/30",
-    };
-  if (key === VIEW_STEP_KEY.COMPLETE || key.includes(VIEW_STEP_KEY.COMPLETE))
-    return {
-      icon: <CheckCircle2 className="h-4 w-4" />,
-      label: "Completed",
-      color: "text-success",
-      bgClass: "bg-success-light hover:bg-success-light border-success/40 dark:border-success/30",
-    };
-  const fallbackLabel = key
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-  return {
-    icon: <Clock className="h-4 w-4" />,
-    label: fallbackLabel || "Unknown",
-    color: "text-muted",
-    bgClass: "bg-surface-sunken hover:bg-surface-hover border-border",
-  };
-}
-
-function stepKeyToFilterLabel(stepKey: string): string {
-  if (stepKey === "") return "All Status";
-  if (stepKey === VIEW_STEP_KEY.COMPLETE) return "Completed";
-  return getStepDisplay(stepKey).label;
-}
 
 type FilterState = {
   status: string;
@@ -152,38 +86,22 @@ export function ExtensionApprovalsPage() {
     setPage(1);
   };
 
-  // ── Step grouping for top cards (pending extensions only) ──
-  const stepGroups = useMemo(() => {
-    const groups = new Map<string, { count: number; stepKey: string }>();
-    for (const a of items) {
-      if (a.decision !== LEAVE_APPROVAL_DECISION.PENDING) continue;
-      const key = a.stepKey || VIEW_STEP_KEY.POLICY;
-      const existing = groups.get(key) ?? { count: 0, stepKey: key };
-      existing.count++;
-      groups.set(key, existing);
-    }
-    const stepOrder = [VIEW_STEP_KEY.POLICY, ...WORKFLOW_STEP_KEYS];
-    return Array.from(groups.entries())
-      .map(([, g]) => g)
-      .sort((a, b) => {
-        const aIdx = stepOrder.indexOf(a.stepKey as typeof stepOrder[number]);
-        const bIdx = stepOrder.indexOf(b.stepKey as typeof stepOrder[number]);
-        return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
-      });
-  }, [items]);
+  /*
+   * Which step each extension is sitting at, counted by the server across the
+   * whole queue with every filter applied except this one. Counting it from
+   * the page would let a card rewrite its own number the moment it is
+   * selected — and hide every step it filtered out.
+   */
+  const stepGroups = useMemo(
+    () => sortByStepOrder(data?.stepBreakdown ?? []),
+    [data?.stepBreakdown],
+  );
 
   const hasActiveFilters = Object.values(filters).some((v) => v !== "");
 
-  // Active step keys for the Waiting On filter options
-  const activeStepKeys = useMemo(() => {
-    const keys = new Set<string>();
-    for (const a of items) {
-      if (a.decision !== LEAVE_APPROVAL_DECISION.PENDING) continue;
-      const key = a.stepKey || VIEW_STEP_KEY.POLICY;
-      keys.add(key);
-    }
-    return keys;
-  }, [items]);
+  // The Waiting On options are the steps the queue actually has work at, so
+  // they come from the same breakdown as the cards.
+  const activeStepKeys = useMemo(() => toWaitingOnStepKeys(stepGroups), [stepGroups]);
 
   return (
     <div className="space-y-5">
@@ -316,7 +234,7 @@ export function ExtensionApprovalsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">All Steps</SelectItem>
-            {Array.from(activeStepKeys).map((key) => (
+            {activeStepKeys.map((key) => (
               <SelectItem key={key} value={key}>
                 {stepKeyToFilterLabel(key)}
               </SelectItem>

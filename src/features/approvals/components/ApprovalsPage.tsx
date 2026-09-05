@@ -7,16 +7,7 @@ import { fetcher } from "@/lib/api/fetcher";
 
 const OVERDUE_LIMIT = 200;
 
-import {
-  Building2,
-  CheckCircle2,
-  Clock,
-  FileText,
-  Search,
-  Shield,
-  User,
-  X,
-} from "lucide-react";
+import { CheckCircle2, Clock, FileText, Search, X } from "lucide-react";
 
 import { HostelFilter } from "@/components/shared/HostelFilter";
 import { InfoCard } from "@/components/shared/InfoCard";
@@ -32,78 +23,20 @@ import {
 } from "@/components/ui/select";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
-import { VIEW_STEP_KEY, WORKFLOW_STEP_KEY, WORKFLOW_STEP_KEYS } from "@/constants/workflow/workflow-step-key";
+import { VIEW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { FilterChip } from "@/design-system/sst";
 import { ApprovalCommandCard } from "@/features/approvals/components/ApprovalCommandCard";
 import { useApprovals } from "@/features/approvals/hooks/use-approvals";
+import {
+  countPendingByStep,
+  getStepDisplay,
+  sortByStepOrder,
+  stepKeyToFilterLabel,
+  toWaitingOnStepKeys,
+} from "@/features/approvals/lib/step-display";
 import { useDashboardStats } from "@/features/dashboard/hooks/use-dashboard-stats";
 import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
 import { computeDateRange, DATE_RANGE_OPTIONS } from "@/lib/date-utils";
-
-// ── Step display mapping ──
-// Maps DB step keys to human-readable labels and icons.
-type StepDisplay = {
-  icon: React.ReactNode;
-  label: string;
-  color: string;
-  bgClass: string;
-};
-
-function getStepDisplay(stepKey: string | null): StepDisplay {
-  const key = stepKey ?? "";
-  if (key === "" || key === VIEW_STEP_KEY.SUBMITTED || key === VIEW_STEP_KEY.POLICY)
-    return {
-      icon: <FileText className="h-4 w-4" />,
-      label: "Policy Check",
-      color: "text-accent",
-      bgClass: "bg-accent-light hover:bg-accent-light border-accent/40 dark:border-accent/30",
-    };
-  if (key === WORKFLOW_STEP_KEY.PARENT_APPROVAL || key.includes(WORKFLOW_STEP_KEY.PARENT_APPROVAL))
-    return {
-      icon: <User className="h-4 w-4" />,
-      label: "Parent Approval",
-      color: "text-accent",
-      bgClass: "bg-accent-light hover:bg-accent-light border-accent/40 dark:border-accent/30",
-    };
-  if (key === WORKFLOW_STEP_KEY.POC_APPROVAL || key.includes(WORKFLOW_STEP_KEY.POC_APPROVAL))
-    return {
-      icon: <Shield className="h-4 w-4" />,
-      label: "POC Approval",
-      color: "text-warning",
-      bgClass: "bg-warning-light hover:bg-warning-light border-warning/40 dark:border-warning/30",
-    };
-  if (key === WORKFLOW_STEP_KEY.ADMIN_APPROVAL || key.includes(WORKFLOW_STEP_KEY.ADMIN_APPROVAL))
-    return {
-      icon: <Building2 className="h-4 w-4" />,
-      label: "Admin Approval",
-      color: "text-accent",
-      bgClass: "bg-accent-light hover:bg-accent-light border-accent/40 dark:border-accent/30",
-    };
-  if (key === VIEW_STEP_KEY.COMPLETE || key.includes(VIEW_STEP_KEY.COMPLETE))
-    return {
-      icon: <CheckCircle2 className="h-4 w-4" />,
-      label: "Completed",
-      color: "text-success",
-      bgClass: "bg-success-light hover:bg-success-light border-success/40 dark:border-success/30",
-    };
-  // Fallback: clean up snake_case key
-  const fallbackLabel = key
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-  return {
-    icon: <Clock className="h-4 w-4" />,
-    label: fallbackLabel || "Unknown",
-    color: "text-muted",
-    bgClass: "bg-surface-sunken hover:bg-surface-hover border-border",
-  };
-}
-
-// Derive the display label for a step key (used in Waiting On filter)
-function stepKeyToFilterLabel(stepKey: string): string {
-  if (stepKey === "") return "All Status";
-  if (stepKey === VIEW_STEP_KEY.COMPLETE) return "Completed";
-  return getStepDisplay(stepKey).label;
-}
 
 const OVERDUE_HOURS = 24;
 
@@ -158,7 +91,7 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
 
   const isOverdue = filters.status === "OVERDUE";
 
-  const { approvals, total, totalPages, isLoading, mutate } = useApprovals({
+  const { approvals, total, totalPages, stepBreakdown, isLoading, mutate } = useApprovals({
     page: isOverdue ? 1 : page,
     limit: isOverdue ? OVERDUE_LIMIT : 20,
     status: isOverdue ? LEAVE_REQUEST_STATUS.PENDING : filters.status || undefined,
@@ -205,26 +138,20 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
     return items;
   }, [approvals, filters.status, filters.waitingOn, now]);
 
-  // ── Step grouping for top cards ──
-  const stepGroups = useMemo(() => {
-    const groups = new Map<string, { count: number; stepKey: string }>();
-    for (const a of filteredApprovals) {
-      if (a.decision !== LEAVE_APPROVAL_DECISION.PENDING) continue;
-      const key = a.stepKey || VIEW_STEP_KEY.POLICY;
-      const existing = groups.get(key) ?? { count: 0, stepKey: key };
-      existing.count++;
-      groups.set(key, existing);
-    }
-    // Sort by deterministic step order using WORKFLOW_STEP_KEYS constant
-    const stepOrder = [VIEW_STEP_KEY.POLICY, ...WORKFLOW_STEP_KEYS];
-    return Array.from(groups.entries())
-      .map(([, g]) => g)
-      .sort((a, b) => {
-        const aIdx = stepOrder.indexOf(a.stepKey as typeof stepOrder[number]);
-        const bIdx = stepOrder.indexOf(b.stepKey as typeof stepOrder[number]);
-        return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
-      });
-  }, [filteredApprovals]);
+  /*
+   * Which step each request is sitting at, counted by the server across the
+   * whole queue with every filter applied except this one. Counting it from
+   * the page would let a chip rewrite its own number the moment it is
+   * selected — and hide every step it filtered out. Overdue has no
+   * server-side equivalent, so that view alone still counts what it holds.
+   */
+  const stepGroups = useMemo(
+    () =>
+      sortByStepOrder(
+        isOverdue ? countPendingByStep(filteredApprovals) : stepBreakdown,
+      ),
+    [isOverdue, filteredApprovals, stepBreakdown],
+  );
 
   const overdueCount = useMemo(
     () =>
@@ -238,29 +165,19 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
 
   /**
    * What is still undecided in this queue. The API already scopes the queue to
-   * the viewer's role, so a pending item here is one they can act on — this is
-   * deliberately the unfiltered count, since it is the standing state of the
-   * screen rather than a reflection of the filters.
+   * the viewer's role, so a pending item here is one they can act on. Summed
+   * from the step breakdown, which spans the queue rather than the page.
    */
   const pendingForViewer = useMemo(
-    () =>
-      approvals.filter((a) => a.decision === LEAVE_APPROVAL_DECISION.PENDING)
-        .length,
-    [approvals],
+    () => stepGroups.reduce((sum, group) => sum + group.count, 0),
+    [stepGroups],
   );
 
   const hasActiveFilters = Object.values(filters).some((v) => v !== "");
 
-  // Build the set of active step keys for the Waiting On filter options
-  const activeStepKeys = useMemo(() => {
-    const keys = new Set<string>();
-    for (const a of filteredApprovals) {
-      if (a.decision !== LEAVE_APPROVAL_DECISION.PENDING) continue;
-      const key = a.stepKey || VIEW_STEP_KEY.POLICY;
-      keys.add(key);
-    }
-    return keys;
-  }, [filteredApprovals]);
+  // The Waiting On options are the steps the queue actually has work at, so
+  // they come from the same breakdown as the chips.
+  const activeStepKeys = useMemo(() => toWaitingOnStepKeys(stepGroups), [stepGroups]);
 
   return (
     <div className="space-y-5">
@@ -420,7 +337,7 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">All Steps</SelectItem>
-            {Array.from(activeStepKeys).map((key) => (
+            {activeStepKeys.map((key) => (
               <SelectItem key={key} value={key}>
                 {stepKeyToFilterLabel(key)}
               </SelectItem>
