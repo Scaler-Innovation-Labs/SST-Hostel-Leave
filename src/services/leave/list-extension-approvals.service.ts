@@ -3,6 +3,7 @@ import { type LeaveApproval, leaveApprovalRepository } from "@/db/repositories/l
 import type { ListExtensionApprovalsQuery } from "@/dto/extension/list-extension-approvals.dto";
 import type { CurrentUser } from "@/lib/auth/types";
 import { getScopedHostelIds, isStaffScopeRestricted } from "@/services/shared/authorization.service";
+import type { ApprovalStepBreakdownEntry } from "@/types/leave/approval-step-breakdown";
 
 export async function listExtensionApprovals(
   query: ListExtensionApprovalsQuery,
@@ -46,6 +47,7 @@ export async function listExtensionApprovals(
   limit: number;
   totalPages: number;
   stats: { total: number; pending: number; approved: number; rejected: number };
+  stepBreakdown: ApprovalStepBreakdownEntry[];
 }> {
   const hostelIds =
     isStaffScopeRestricted(currentUser) ? getScopedHostelIds(currentUser) : undefined;

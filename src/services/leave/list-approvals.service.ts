@@ -7,6 +7,7 @@ import type { ListApprovalsQuery } from "@/dto/approval/list-approvals.dto";
 import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
 import { getScopedHostelIds, isStaffScopeRestricted, verifyStudentOwnership } from "@/services/shared/authorization.service";
+import type { ApprovalStepBreakdownEntry } from "@/types/leave/approval-step-breakdown";
 
 export async function listApprovals(
   query: ListApprovalsQuery,
@@ -17,6 +18,7 @@ export async function listApprovals(
   page: number;
   limit: number;
   totalPages: number;
+  stepBreakdown: ApprovalStepBreakdownEntry[];
 }> {
   if (query.leaveRequestId) {
     const leave = await leaveRepository.findById(query.leaveRequestId);
@@ -57,6 +59,9 @@ export async function listApprovals(
     leaveTypeId: query.leaveTypeId,
     approverUserId: isPoc && !isChainRequest ? currentUser.id : undefined,
     excludeLeaveStatuses: isChainRequest ? undefined : [LEAVE_REQUEST_STATUS.CANCELLED],
+    // A chain request wants every step of one leave; the queue wants one
+    // card per leave, paginated over leaves.
+    groupByLeaveRequest: !isChainRequest,
     page: query.page,
     limit: query.limit,
   });
