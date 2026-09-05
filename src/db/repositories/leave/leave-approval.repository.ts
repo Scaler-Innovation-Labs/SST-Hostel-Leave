@@ -24,6 +24,7 @@ import {
   workflowVersions,
 } from "@/db";
 import { db } from "@/lib/db";
+import type { ApprovalStepBreakdownEntry } from "@/types/leave/approval-step-breakdown";
 
 type LeaveApprovalDbClient = Pick<
   typeof db,
@@ -45,6 +46,118 @@ type FrozenWorkflowStep = {
   approvalMethod: string | null;
   isRequired?: boolean;
 };
+
+/** How an approval row locates itself against its entity's approval chain. */
+type StepPosition = {
+  entityId: string | null;
+  stepKey: string;
+  stepOrder: number;
+  currentStepKey: string | null;
+};
+
+/** Turns grouped `current_step_key` counts into the queue's waiting-on facet. */
+function toStepBreakdown(
+  rows: Array<{ stepKey: string | null; count: number }>
+): ApprovalStepBreakdownEntry[] {
+  return rows.flatMap((row) =>
+    row.stepKey ? [{ stepKey: row.stepKey, count: Number(row.count ?? 0) }] : []
+  );
+}
+
+/**
+ * Collapses an entity's approval rows to the one the queue card represents:
+ * the row sitting at the entity's current step, else its earliest step.
+ *
+ * `entityIds` carries the page's sort order, so the result comes back in it.
+ */
+function pickCurrentStepRow<TRow>(
+  rows: TRow[],
+  entityIds: string[],
+  position: (row: TRow) => StepPosition
+): TRow[] {
+  const isBefore = (candidate: StepPosition, incumbent: StepPosition): boolean => {
+    const candidateIsCurrent = candidate.currentStepKey === candidate.stepKey;
+    const incumbentIsCurrent = incumbent.currentStepKey === incumbent.stepKey;
+    if (candidateIsCurrent !== incumbentIsCurrent) return candidateIsCurrent;
+    return candidate.stepOrder < incumbent.stepOrder;
+  };
+
+  const chosen = new Map<string, TRow>();
+  for (const row of rows) {
+    const candidate = position(row);
+    if (!candidate.entityId) continue;
+    const incumbent = chosen.get(candidate.entityId);
+    if (!incumbent || isBefore(candidate, position(incumbent))) {
+      chosen.set(candidate.entityId, row);
+    }
+  }
+
+  return entityIds.flatMap((id) => {
+    const row = chosen.get(id);
+    return row ? [row] : [];
+  });
+}
+
+/**
+ * The configured approval chain per workflow, so a queue card can render the
+ * steps that actually exist for its leave type.
+ */
+async function loadWorkflowSteps(
+  workflowIds: string[],
+  dbClient: Pick<typeof db, "select">
+): Promise<
+  Map<
+    string,
+    Array<{
+      stepKey: string;
+      stepOrder: number;
+      approverRoleCode: string | null;
+      isParentApproval: boolean | null;
+      approvalMethod: string | null;
+    }>
+  >
+> {
+  const stepsByWorkflow = new Map<
+    string,
+    Array<{
+      stepKey: string;
+      stepOrder: number;
+      approverRoleCode: string | null;
+      isParentApproval: boolean | null;
+      approvalMethod: string | null;
+    }>
+  >();
+
+  if (workflowIds.length === 0) return stepsByWorkflow;
+
+  const workflowStepRows = await dbClient
+    .select({
+      workflowDefinitionId: workflowSteps.workflowDefinitionId,
+      stepKey: workflowSteps.stepKey,
+      stepOrder: workflowSteps.stepOrder,
+      isParentApproval: workflowSteps.isParentApproval,
+      approvalMethod: workflowSteps.approvalMethod,
+      approverRoleCode: roles.code,
+    })
+    .from(workflowSteps)
+    .leftJoin(roles, eq(workflowSteps.approverRoleId, roles.id))
+    .where(inArray(workflowSteps.workflowDefinitionId, workflowIds))
+    .orderBy(asc(workflowSteps.stepOrder));
+
+  for (const step of workflowStepRows) {
+    const list = stepsByWorkflow.get(step.workflowDefinitionId) ?? [];
+    list.push({
+      stepKey: step.stepKey,
+      stepOrder: step.stepOrder,
+      approverRoleCode: step.approverRoleCode,
+      isParentApproval: step.isParentApproval,
+      approvalMethod: step.approvalMethod,
+    });
+    stepsByWorkflow.set(step.workflowDefinitionId, list);
+  }
+
+  return stepsByWorkflow;
+}
 
 export const leaveApprovalRepository = {
   async createMany(
@@ -98,6 +211,12 @@ export const leaveApprovalRepository = {
       hostelIds?: string[];
       leaveTypeId?: string;
       approverUserId?: string;
+      /**
+       * Queue mode (the default): one row per leave request, paginated over
+       * requests. Pass false to get every matching approval row instead —
+       * the full approval chain of a single leave.
+       */
+      groupByLeaveRequest?: boolean;
       page: number;
       limit: number;
     },
@@ -138,54 +257,65 @@ export const leaveApprovalRepository = {
     page: number;
     limit: number;
     totalPages: number;
+    stepBreakdown: ApprovalStepBreakdownEntry[];
   }> {
-    const conditions: ReturnType<typeof and>[] = [];
+    const groupByLeaveRequest = filters.groupByLeaveRequest ?? true;
+    const offset = (filters.page - 1) * filters.limit;
+
+    // Everything except the waiting-on filter. The step breakdown has to be
+    // counted over this set: counting it over the filtered rows would make
+    // the chips describe their own output.
+    const baseConditions: ReturnType<typeof and>[] = [
+      isNotNull(leaveApprovals.leaveRequestId),
+    ];
 
     if (filters.status) {
-      conditions.push(eq(leaveApprovals.decision, filters.status));
+      baseConditions.push(eq(leaveApprovals.decision, filters.status));
     }
     if (filters.leaveRequestId) {
-      conditions.push(eq(leaveApprovals.leaveRequestId, filters.leaveRequestId));
+      baseConditions.push(eq(leaveApprovals.leaveRequestId, filters.leaveRequestId));
     }
     if (filters.dateFrom) {
-      conditions.push(gte(leaveApprovals.createdAt, filters.dateFrom));
+      baseConditions.push(gte(leaveApprovals.createdAt, filters.dateFrom));
     }
     if (filters.dateTo) {
-      conditions.push(lte(leaveApprovals.createdAt, filters.dateTo));
+      baseConditions.push(lte(leaveApprovals.createdAt, filters.dateTo));
     }
     if (filters.excludeLeaveStatuses?.length) {
-      conditions.push(...filters.excludeLeaveStatuses.map((s) => ne(leaveRequests.status, s)));
+      baseConditions.push(...filters.excludeLeaveStatuses.map((s) => ne(leaveRequests.status, s)));
     }
     if (filters.search) {
       const searchPattern = `%${filters.search}%`;
-      conditions.push(
+      baseConditions.push(
         or(
           like(leaveRequests.requestNumber, searchPattern),
           like(users.fullName, searchPattern)
         )
       );
     }
-    if (filters.waitingOn) {
-      conditions.push(eq(leaveRequests.currentStepKey, filters.waitingOn));
-    }
     if (filters.hostelId) {
-      conditions.push(eq(users.hostelId, filters.hostelId));
+      baseConditions.push(eq(users.hostelId, filters.hostelId));
     }
     if (filters.hostelIds?.length) {
-      conditions.push(inArray(users.hostelId, filters.hostelIds));
+      baseConditions.push(inArray(users.hostelId, filters.hostelIds));
     }
     if (filters.leaveTypeId) {
-      conditions.push(eq(leaveRequests.leaveTypeId, filters.leaveTypeId));
+      baseConditions.push(eq(leaveRequests.leaveTypeId, filters.leaveTypeId));
     }
-
     if (filters.approverUserId) {
-      conditions.push(eq(leaveApprovals.approverUserId, filters.approverUserId));
+      baseConditions.push(eq(leaveApprovals.approverUserId, filters.approverUserId));
     }
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const whereClause = filters.waitingOn
+      ? and(...baseConditions, eq(leaveRequests.currentStepKey, filters.waitingOn))
+      : and(...baseConditions);
 
     const countResult = await dbClient
-      .select({ count: sql<number>`count(DISTINCT ${leaveApprovals.leaveRequestId})` })
+      .select({
+        count: groupByLeaveRequest
+          ? sql<number>`count(DISTINCT ${leaveApprovals.leaveRequestId})`
+          : sql<number>`count(*)`,
+      })
       .from(leaveApprovals)
       .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
@@ -193,9 +323,68 @@ export const leaveApprovalRepository = {
       .where(whereClause);
 
     const total = Number(countResult[0]?.count ?? 0);
-    const totalPages = Math.ceil(total / filters.limit);
+    const totalPages = Math.max(1, Math.ceil(total / filters.limit));
 
-    const rows = await dbClient
+    // A request is waiting on the step it is currently parked at, so count
+    // the requests whose current step is still undecided. Same predicate the
+    // waitingOn filter uses, so a chip's count is what clicking it returns.
+    const breakdownRows = await dbClient
+      .select({
+        stepKey: leaveRequests.currentStepKey,
+        count: sql<number>`count(DISTINCT ${leaveApprovals.leaveRequestId})`,
+      })
+      .from(leaveApprovals)
+      .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(
+        and(
+          ...baseConditions,
+          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+          eq(leaveApprovals.stepKey, leaveRequests.currentStepKey)
+        )
+      )
+      .groupBy(leaveRequests.currentStepKey);
+
+    const stepBreakdown = toStepBreakdown(breakdownRows);
+
+    // The page window belongs on the thing the queue renders — one card per
+    // request. Applying it to approval rows would put a request whose rows
+    // straddle the boundary on both pages and drop another one entirely.
+    let pageLeaveRequestIds: string[] = [];
+
+    if (groupByLeaveRequest) {
+      const pageIdRows = await dbClient
+        .select({ leaveRequestId: leaveApprovals.leaveRequestId })
+        .from(leaveApprovals)
+        .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(whereClause)
+        .groupBy(leaveApprovals.leaveRequestId)
+        // The id breaks ties: timestamps collide often enough that ordering on
+        // them alone lets a request drift between pages as they are fetched.
+        .orderBy(desc(sql`max(${leaveApprovals.createdAt})`), asc(leaveApprovals.leaveRequestId))
+        .limit(filters.limit)
+        .offset(offset);
+
+      pageLeaveRequestIds = pageIdRows.flatMap((row) =>
+        row.leaveRequestId ? [row.leaveRequestId] : []
+      );
+
+      if (pageLeaveRequestIds.length === 0) {
+        return {
+          items: [],
+          total,
+          page: filters.page,
+          limit: filters.limit,
+          totalPages,
+          stepBreakdown,
+        };
+      }
+    }
+
+    const rowsQuery = dbClient
       .select({
         approval: leaveApprovals,
         stepOrder: leaveApprovals.stepOrder,
@@ -234,25 +423,26 @@ export const leaveApprovalRepository = {
       .leftJoin(hostels, eq(users.hostelId, hostels.id))
       .leftJoin(academicGroups, eq(students.academicGroupId, academicGroups.id))
       .leftJoin(departments, eq(academicGroups.departmentId, departments.id))
-      .where(whereClause)
-      .orderBy(desc(leaveApprovals.createdAt))
-      .limit(filters.limit)
-      .offset((filters.page - 1) * filters.limit);
+      .where(
+        groupByLeaveRequest
+          ? and(whereClause, inArray(leaveApprovals.leaveRequestId, pageLeaveRequestIds))
+          : whereClause
+      )
+      .orderBy(desc(leaveApprovals.createdAt));
 
-    const seenReqIds = new Set<string>();
-    const dedupedRows = rows
-      .sort((a, b) => {
-        const aCurrent = a.leaveReqCurrentStepKey === a.approval.stepKey ? 0 : 1;
-        const bCurrent = b.leaveReqCurrentStepKey === b.approval.stepKey ? 0 : 1;
-        if (aCurrent !== bCurrent) return aCurrent - bCurrent;
-        return (a.stepOrder ?? 999) - (b.stepOrder ?? 999);
-      })
-      .filter((row) => {
-        if (!row.leaveReqId) return true;
-        if (seenReqIds.has(row.leaveReqId)) return false;
-        seenReqIds.add(row.leaveReqId);
-        return true;
-      });
+    // Chain mode has no id window to page over, so it pages over rows.
+    const rows = groupByLeaveRequest
+      ? await rowsQuery
+      : await rowsQuery.limit(filters.limit).offset(offset);
+
+    const dedupedRows = groupByLeaveRequest
+      ? pickCurrentStepRow(rows, pageLeaveRequestIds, (row) => ({
+          entityId: row.leaveReqId,
+          stepKey: row.approval.stepKey,
+          stepOrder: row.stepOrder,
+          currentStepKey: row.leaveReqCurrentStepKey,
+        }))
+      : rows;
 
     // Load the configured approval chain for each affected workflow so the UI
     // can render only the steps that actually exist for that leave type.
@@ -264,44 +454,7 @@ export const leaveApprovalRepository = {
       ),
     ];
 
-    const stepsByWorkflow = new Map<
-      string,
-      Array<{
-        stepKey: string;
-        stepOrder: number;
-        approverRoleCode: string | null;
-        isParentApproval: boolean | null;
-        approvalMethod: string | null;
-      }>
-    >();
-
-    if (workflowIds.length > 0) {
-      const workflowStepRows = await dbClient
-        .select({
-          workflowDefinitionId: workflowSteps.workflowDefinitionId,
-          stepKey: workflowSteps.stepKey,
-          stepOrder: workflowSteps.stepOrder,
-          isParentApproval: workflowSteps.isParentApproval,
-          approvalMethod: workflowSteps.approvalMethod,
-          approverRoleCode: roles.code,
-        })
-        .from(workflowSteps)
-        .leftJoin(roles, eq(workflowSteps.approverRoleId, roles.id))
-        .where(inArray(workflowSteps.workflowDefinitionId, workflowIds))
-        .orderBy(asc(workflowSteps.stepOrder));
-
-      for (const step of workflowStepRows) {
-        const list = stepsByWorkflow.get(step.workflowDefinitionId) ?? [];
-        list.push({
-          stepKey: step.stepKey,
-          stepOrder: step.stepOrder,
-          approverRoleCode: step.approverRoleCode,
-          isParentApproval: step.isParentApproval,
-          approvalMethod: step.approvalMethod,
-        });
-        stepsByWorkflow.set(step.workflowDefinitionId, list);
-      }
-    }
+    const stepsByWorkflow = await loadWorkflowSteps(workflowIds, dbClient);
 
     return {
       items: dedupedRows.map((row) => ({
@@ -339,6 +492,7 @@ export const leaveApprovalRepository = {
       page: filters.page,
       limit: filters.limit,
       totalPages,
+      stepBreakdown,
     };
   },
 
@@ -536,9 +690,11 @@ export const leaveApprovalRepository = {
     page: number;
     limit: number;
     totalPages: number;
-    /** Counts of distinct extensions scoped to the same authorization/hostel scope as the list (no status/search filter). */
     stats: { total: number; pending: number; approved: number; rejected: number };
+    stepBreakdown: ApprovalStepBreakdownEntry[];
   }> {
+    const offset = (filters.page - 1) * filters.limit;
+
     const scopeConditions: ReturnType<typeof and>[] = [
       isNotNull(leaveApprovals.leaveExtensionId),
     ];
@@ -550,48 +706,49 @@ export const leaveApprovalRepository = {
       scopeConditions.push(inArray(users.hostelId, filters.hostelIds));
     }
 
-    const conditions = [...scopeConditions];
+    // Everything except the waiting-on filter. The step breakdown has to be
+    // counted over this set: counting it over the filtered rows would make
+    // the chips describe their own output.
+    const baseConditions = [...scopeConditions];
 
     if (filters.status) {
-      conditions.push(eq(leaveExtensions.status, filters.status));
+      baseConditions.push(eq(leaveExtensions.status, filters.status));
     }
     if (filters.search) {
       const searchPattern = `%${filters.search}%`;
-      conditions.push(
+      baseConditions.push(
         or(
           like(leaveRequests.requestNumber, searchPattern),
           like(users.fullName, searchPattern)
         )
       );
     }
-    if (filters.waitingOn) {
-      conditions.push(eq(leaveExtensions.currentStepKey, filters.waitingOn));
-    }
     if (filters.leaveTypeId) {
-      conditions.push(eq(leaveRequests.leaveTypeId, filters.leaveTypeId));
+      baseConditions.push(eq(leaveRequests.leaveTypeId, filters.leaveTypeId));
     }
     if (filters.dateFrom) {
-      conditions.push(gte(leaveApprovals.createdAt, filters.dateFrom));
+      baseConditions.push(gte(leaveApprovals.createdAt, filters.dateFrom));
     }
     if (filters.dateTo) {
-      conditions.push(lte(leaveApprovals.createdAt, filters.dateTo));
+      baseConditions.push(lte(leaveApprovals.createdAt, filters.dateTo));
     }
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
-    const scopeWhereClause = scopeConditions.length > 0 ? and(...scopeConditions) : undefined;
+    const whereClause = filters.waitingOn
+      ? and(...baseConditions, eq(leaveExtensions.currentStepKey, filters.waitingOn))
+      : and(...baseConditions);
+    const scopeWhereClause = and(...scopeConditions);
 
     const countResult = await dbClient
       .select({ count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})` })
       .from(leaveApprovals)
       .innerJoin(leaveExtensions, eq(leaveApprovals.leaveExtensionId, leaveExtensions.id))
       .leftJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
-      .leftJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .where(whereClause);
 
     const total = Number(countResult[0]?.count ?? 0);
-    const totalPages = Math.ceil(total / filters.limit);
+    const totalPages = Math.max(1, Math.ceil(total / filters.limit));
 
     // Stats are distinct-extension counts by extension status, scoped only.
     const statsRows = await dbClient
@@ -614,6 +771,64 @@ export const leaveApprovalRepository = {
       approved: countsByStatus.get(LEAVE_REQUEST_STATUS.APPROVED) ?? 0,
       rejected: countsByStatus.get(LEAVE_REQUEST_STATUS.REJECTED) ?? 0,
     };
+
+    // An extension is waiting on the step it is currently parked at, so count
+    // the extensions whose current step is still undecided. Same predicate the
+    // waitingOn filter uses, so a chip's count is what clicking it returns.
+    const breakdownRows = await dbClient
+      .select({
+        stepKey: leaveExtensions.currentStepKey,
+        count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
+      })
+      .from(leaveApprovals)
+      .innerJoin(leaveExtensions, eq(leaveApprovals.leaveExtensionId, leaveExtensions.id))
+      .leftJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(
+        and(
+          ...baseConditions,
+          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+          eq(leaveApprovals.stepKey, leaveExtensions.currentStepKey)
+        )
+      )
+      .groupBy(leaveExtensions.currentStepKey);
+
+    const stepBreakdown = toStepBreakdown(breakdownRows);
+
+    // The page window belongs on the thing the queue renders — one card per
+    // extension. Applying it to approval rows would put an extension whose
+    // rows straddle the boundary on both pages and drop another one entirely.
+    const pageIdRows = await dbClient
+      .select({ leaveExtensionId: leaveApprovals.leaveExtensionId })
+      .from(leaveApprovals)
+      .innerJoin(leaveExtensions, eq(leaveApprovals.leaveExtensionId, leaveExtensions.id))
+      .leftJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(whereClause)
+      .groupBy(leaveApprovals.leaveExtensionId)
+      // The id breaks ties: timestamps collide often enough that ordering on
+      // them alone lets an extension drift between pages as they are fetched.
+      .orderBy(desc(sql`max(${leaveApprovals.createdAt})`), asc(leaveApprovals.leaveExtensionId))
+      .limit(filters.limit)
+      .offset(offset);
+
+    const pageExtensionIds = pageIdRows.flatMap((row) =>
+      row.leaveExtensionId ? [row.leaveExtensionId] : []
+    );
+
+    if (pageExtensionIds.length === 0) {
+      return {
+        items: [],
+        total,
+        page: filters.page,
+        limit: filters.limit,
+        totalPages,
+        stats,
+        stepBreakdown,
+      };
+    }
 
     const rows = await dbClient
       .select({
@@ -662,27 +877,15 @@ export const leaveApprovalRepository = {
       .leftJoin(academicGroups, eq(students.academicGroupId, academicGroups.id))
       .leftJoin(departments, eq(academicGroups.departmentId, departments.id))
       .leftJoin(parents, eq(leaveApprovals.approverParentId, parents.id))
-      .where(whereClause)
-      .orderBy(desc(leaveApprovals.createdAt))
-      .limit(filters.limit)
-      .offset((filters.page - 1) * filters.limit);
+      .where(and(whereClause, inArray(leaveApprovals.leaveExtensionId, pageExtensionIds)))
+      .orderBy(desc(leaveApprovals.createdAt));
 
-    // One card per extension: prefer the row that matches the extension's
-    // current step (like findByFilters does for leaves), then the lowest step.
-    const seenExtIds = new Set<string>();
-    const dedupedRows = rows
-      .sort((a, b) => {
-        const aCurrent = a.extCurrentStepKey === a.approval.stepKey ? 0 : 1;
-        const bCurrent = b.extCurrentStepKey === b.approval.stepKey ? 0 : 1;
-        if (aCurrent !== bCurrent) return aCurrent - bCurrent;
-        return (a.approval.stepOrder ?? 999) - (b.approval.stepOrder ?? 999);
-      })
-      .filter((row) => {
-        if (!row.extId) return true;
-        if (seenExtIds.has(row.extId)) return false;
-        seenExtIds.add(row.extId);
-        return true;
-      });
+    const dedupedRows = pickCurrentStepRow(rows, pageExtensionIds, (row) => ({
+      entityId: row.extId,
+      stepKey: row.approval.stepKey,
+      stepOrder: row.approval.stepOrder,
+      currentStepKey: row.extCurrentStepKey,
+    }));
 
     // Load the configured approval chain for each affected workflow so the UI
     // can render only the steps that actually exist for that leave type.
@@ -694,44 +897,7 @@ export const leaveApprovalRepository = {
       ),
     ];
 
-    const stepsByWorkflow = new Map<
-      string,
-      Array<{
-        stepKey: string;
-        stepOrder: number;
-        approverRoleCode: string | null;
-        isParentApproval: boolean | null;
-        approvalMethod: string | null;
-      }>
-    >();
-
-    if (workflowIds.length > 0) {
-      const workflowStepRows = await dbClient
-        .select({
-          workflowDefinitionId: workflowSteps.workflowDefinitionId,
-          stepKey: workflowSteps.stepKey,
-          stepOrder: workflowSteps.stepOrder,
-          isParentApproval: workflowSteps.isParentApproval,
-          approvalMethod: workflowSteps.approvalMethod,
-          approverRoleCode: roles.code,
-        })
-        .from(workflowSteps)
-        .leftJoin(roles, eq(workflowSteps.approverRoleId, roles.id))
-        .where(inArray(workflowSteps.workflowDefinitionId, workflowIds))
-        .orderBy(asc(workflowSteps.stepOrder));
-
-      for (const step of workflowStepRows) {
-        const list = stepsByWorkflow.get(step.workflowDefinitionId) ?? [];
-        list.push({
-          stepKey: step.stepKey,
-          stepOrder: step.stepOrder,
-          approverRoleCode: step.approverRoleCode,
-          isParentApproval: step.isParentApproval,
-          approvalMethod: step.approvalMethod,
-        });
-        stepsByWorkflow.set(step.workflowDefinitionId, list);
-      }
-    }
+    const stepsByWorkflow = await loadWorkflowSteps(workflowIds, dbClient);
 
     return {
       items: dedupedRows.map((row) => ({
@@ -780,6 +946,7 @@ export const leaveApprovalRepository = {
       limit: filters.limit,
       totalPages,
       stats,
+      stepBreakdown,
     };
   },
 
