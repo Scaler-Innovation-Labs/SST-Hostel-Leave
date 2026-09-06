@@ -40,26 +40,26 @@ function Masthead({
   return (
     <header
       className={cn(
-        "relative overflow-hidden rounded-2xl bg-scaler-depth p-7 shadow-lg",
+        "relative overflow-hidden rounded-lg bg-scaler-depth px-4 py-3 shadow-sm",
         className
       )}
     >
       {/* One soft light source. Never an animated orb. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-24 -top-32 h-72 w-72 rounded-full bg-white/10 blur-3xl"
+        className="pointer-events-none absolute -left-12 -top-16 h-32 w-32 rounded-full bg-white/10 blur-3xl"
       />
 
-      <div className="relative flex flex-wrap items-start justify-between gap-4">
+      <div className="relative flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="font-mono text-micro uppercase tracking-wider text-white/70">
             {eyebrow}
           </p>
-          <h1 className="mt-2 text-h1 font-semibold tracking-tight text-white">
+          <h1 className="mt-0.5 text-h3 font-semibold tracking-tight text-white">
             {title}
           </h1>
           {description && (
-            <p className="mt-2 max-w-prose text-body text-white/70">
+            <p className="mt-0.5 max-w-prose text-caption text-white/70">
               {description}
             </p>
           )}
@@ -67,7 +67,7 @@ function Masthead({
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           {status && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-caption font-semibold text-white ring-1 ring-inset ring-white/20">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-0.5 text-caption font-semibold text-white ring-1 ring-inset ring-white/20">
               <span
                 aria-hidden
                 className={cn("h-1.5 w-1.5 rounded-full", STATUS_DOT[status.tone])}
