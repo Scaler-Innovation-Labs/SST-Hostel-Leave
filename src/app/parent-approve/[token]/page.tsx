@@ -1,33 +1,9 @@
-import { AlertTriangle, CheckCircle2, Clock } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
 import { ParentApprovalFlow } from "@/components/parent/ParentApprovalFlow";
+import { sha256 } from "@/lib/crypto";
+import { rateLimit } from "@/lib/rate-limiter";
 import { getLeaveDetailsByToken } from "@/services/parent/get-leave-details-by-token.service";
-
-function getErrorState(message: string) {
-  const lower = message.toLowerCase();
-
-  if (lower.includes("expired")) {
-    return {
-      icon: Clock,
-      title: "Link Expired",
-      className: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    };
-  }
-
-  if (lower.includes("already") || lower.includes("processed")) {
-    return {
-      icon: CheckCircle2,
-      title: "Already Responded",
-      className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    };
-  }
-
-  return {
-    icon: AlertTriangle,
-    title: "Invalid Link",
-    className: "bg-destructive/10 text-destructive",
-  };
-}
 
 export default async function ParentApprovePage({
   params,
@@ -37,30 +13,34 @@ export default async function ParentApprovePage({
   const { token } = await params;
 
   let leaveData;
-  let errorMessage: string | null = null;
+  let failed = false;
 
   try {
+    // Same bound as the decision endpoint: unauthenticated token probing
+    // must be rate-limited. The limiter key is the token HASH — the raw
+    // token is a bearer credential and must not be persisted in
+    // rate_limit_entries.
+    await rateLimit(`parent-approve-view:${await sha256(token)}`, 30, 900_000);
     leaveData = await getLeaveDetailsByToken(token);
-  } catch (error) {
-    errorMessage = error instanceof Error ? error.message : "Invalid or expired link";
+  } catch {
+    // Deliberately generic: invalid / expired / already-responded / limited
+    // all render the same state so the page is not a validity oracle. The
+    // service logs the real reason server-side.
+    failed = true;
   }
 
-  if (errorMessage || !leaveData) {
-    const { icon: Icon, title, className } = getErrorState(
-      errorMessage ?? ""
-    );
-
+  if (failed || !leaveData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-md rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
           <div
-            className={`mx-auto mb-5 flex size-16 items-center justify-center rounded-full ${className}`}
+            className="mx-auto mb-5 flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive"
           >
-            <Icon className="size-9" />
+            <AlertTriangle className="size-9" />
           </div>
-          <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Unable to process this approval link</h1>
           <p className="mt-2 text-muted-foreground">
-            {errorMessage ?? "Invalid or expired link"}
+            This link is invalid, expired, or has already been used.
           </p>
           <p className="mt-6 text-sm text-muted-foreground/70">
             If you believe this is a mistake, please contact the school.

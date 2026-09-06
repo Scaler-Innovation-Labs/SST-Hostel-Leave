@@ -35,7 +35,7 @@ vi.mock("@/lib/crypto", () => ({
 }));
 
 import { getLeaveDetailsByToken } from "@/services/parent/get-leave-details-by-token.service";
-import { ConflictError, NotFoundError } from "@/lib/errors";
+import { NotFoundError, ValidationError } from "@/lib/errors";
 
 const MOCK_APPROVAL_LEAVE = {
   id: "AP1",
@@ -81,19 +81,25 @@ describe("getLeaveDetailsByToken service", () => {
     expect(result.parentName).toBe("Parent Name");
   });
 
-  it("throws NotFoundError when token is invalid", async () => {
+  it("throws generic ValidationError when token is invalid", async () => {
     mockFindByParentApprovalToken.mockResolvedValue(null);
 
-    await expect(getLeaveDetailsByToken("bad-token")).rejects.toBeInstanceOf(NotFoundError);
+    const failure = await getLeaveDetailsByToken("bad-token").catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(ValidationError);
+    expect((failure as Error).message).toBe("Unable to process this approval link");
   });
 
-  it("throws ConflictError when approval is expired", async () => {
+  // Oracle hardening: expired / already-processed links surface the same
+  // generic NotFoundError as invalid links.
+  it("throws generic NotFoundError when approval is expired", async () => {
     mockFindByParentApprovalToken.mockResolvedValue({
       ...MOCK_APPROVAL_LEAVE,
       parentApprovalExpiresAt: new Date("2020-01-01"),
     });
 
-    await expect(getLeaveDetailsByToken("expired-token")).rejects.toBeInstanceOf(ConflictError);
+    const failure = await getLeaveDetailsByToken("expired-token").catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(ValidationError);
+    expect((failure as Error).message).toBe("Unable to process this approval link");
   });
 
   it("returns empty leave type when the leave type cannot be resolved", async () => {
@@ -105,12 +111,14 @@ describe("getLeaveDetailsByToken service", () => {
     expect(result.leaveTypeDescription).toBe("");
   });
 
-  it("throws ConflictError when approval already processed", async () => {
+  it("throws generic NotFoundError when approval already processed", async () => {
     mockFindByParentApprovalToken.mockResolvedValue({
       ...MOCK_APPROVAL_LEAVE,
       decision: "APPROVED",
     });
 
-    await expect(getLeaveDetailsByToken("used-token")).rejects.toBeInstanceOf(ConflictError);
+    const failure = await getLeaveDetailsByToken("used-token").catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(ValidationError);
+    expect((failure as Error).message).toBe("Unable to process this approval link");
   });
 });

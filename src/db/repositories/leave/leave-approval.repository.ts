@@ -96,6 +96,8 @@ export const leaveApprovalRepository = {
       hostelId?: string;
       /** Restrict to students whose user belongs to one of these hostels. */
       hostelIds?: string[];
+      /** Restrict to a single student's leave requests. */
+      studentId?: string;
       leaveTypeId?: string;
       approverUserId?: string;
       page: number;
@@ -146,6 +148,9 @@ export const leaveApprovalRepository = {
     }
     if (filters.leaveRequestId) {
       conditions.push(eq(leaveApprovals.leaveRequestId, filters.leaveRequestId));
+    }
+    if (filters.studentId) {
+      conditions.push(eq(leaveRequests.studentId, filters.studentId));
     }
     if (filters.dateFrom) {
       conditions.push(gte(leaveApprovals.createdAt, filters.dateFrom));

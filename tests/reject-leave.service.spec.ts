@@ -101,7 +101,10 @@ describe("rejectLeave service", () => {
       expect.any(Object)
     );
     expect(mockOutboxPublish).toHaveBeenCalledWith(
-      expect.objectContaining({ eventType: "LEAVE_REJECTED" }),
+      expect.objectContaining({
+        eventType: "LEAVE_REJECTED",
+        payload: expect.objectContaining({ comments: "Not approved" }),
+      }),
       expect.any(Object)
     );
   });

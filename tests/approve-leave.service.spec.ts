@@ -249,4 +249,27 @@ describe("approveLeave service", () => {
       expect.any(Object)
     );
   });
+
+  it("passes approver comments into the LEAVE_APPROVED outbox payload", async () => {
+    mockFindById.mockResolvedValue({ id: "L11", status: "PENDING" });
+    mockFindByIdForUpdate.mockResolvedValue({ id: "L11", status: "PENDING", studentId: "S1" });
+    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null }]);
+    mockUpdateDecisionById.mockResolvedValue({ id: "A1", decision: "APPROVED" });
+    mockFindNextByDecision.mockResolvedValue(null);
+    mockUpdateById.mockResolvedValue({ id: "L11", status: "APPROVED" });
+
+    await approveLeave(
+      "L11",
+      { decision: "APPROVED", comments: "Enjoy the trip" },
+      { id: "U1", roles: ["ADMIN"] }
+    );
+
+    expect(mockPublish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "LEAVE_APPROVED",
+        payload: expect.objectContaining({ comments: "Enjoy the trip" }),
+      }),
+      expect.any(Object)
+    );
+  });
 });

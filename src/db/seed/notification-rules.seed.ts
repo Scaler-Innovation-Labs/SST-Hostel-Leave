@@ -37,12 +37,12 @@ type LeaveTypeRuleDraft = {
 // POC alert on LEAVE_SUBMITTED so the POC is notified immediately.
 const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
   {
-    leaveTypeCode: "RE_EXAM",
+    leaveTypeCode: "EXAM_LEAVE",
     rules: [
       {
         // Parent approved → ADMIN step current.
         eventType: NOTIFICATION_EVENT.LEAVE_APPROVAL_REQUIRED,
-        templateCode: "leave_submitted_slack_re_exam",
+        templateCode: "leave_submitted_slack_exam_leave",
         recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.HOSTEL_ADMIN],
         channels: [NOTIFICATION_CHANNEL.SLACK],
         enabled: true,
@@ -50,7 +50,7 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
       },
       {
         eventType: NOTIFICATION_EVENT.LEAVE_APPROVED,
-        templateCode: "leave_approved_email_re_exam",
+        templateCode: "leave_approved_email_exam_leave",
         recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT, NOTIFICATION_RECIPIENT_TYPE.PARENT],
         channels: [NOTIFICATION_CHANNEL.EMAIL],
         enabled: true,
@@ -58,7 +58,7 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
       },
       {
         eventType: NOTIFICATION_EVENT.PARENT_APPROVAL_REQUESTED,
-        templateCode: "parent_approval_requested_sms_re_exam",
+        templateCode: "parent_approval_requested_sms_exam_leave",
         recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.PARENT],
         channels: [NOTIFICATION_CHANNEL.SMS],
         enabled: true,
@@ -243,12 +243,12 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
     ],
   },
   {
-    leaveTypeCode: "MARRIAGE_BEREAVEMENT",
+    leaveTypeCode: "ATTENDANCE_EXCEPTION",
     rules: [
       {
         // Parent approved → POC step current: alert the POC now.
         eventType: NOTIFICATION_EVENT.LEAVE_POC_REVIEW_REQUIRED,
-        templateCode: "leave_submitted_slack_marriage_poc",
+        templateCode: "leave_submitted_slack_attendance_exception_poc",
         recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.POC],
         channels: [NOTIFICATION_CHANNEL.SLACK],
         enabled: true,
@@ -257,7 +257,7 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
       {
         // POC approved → ADMIN step current: alert the hostel's admin(s).
         eventType: NOTIFICATION_EVENT.LEAVE_APPROVAL_REQUIRED,
-        templateCode: "leave_submitted_slack_marriage",
+        templateCode: "leave_submitted_slack_attendance_exception",
         recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.HOSTEL_ADMIN],
         channels: [NOTIFICATION_CHANNEL.SLACK],
         enabled: true,
@@ -265,7 +265,7 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
       },
       {
         eventType: NOTIFICATION_EVENT.LEAVE_APPROVED,
-        templateCode: "leave_approved_email_marriage",
+        templateCode: "leave_approved_email_attendance_exception",
         recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT, NOTIFICATION_RECIPIENT_TYPE.PARENT],
         channels: [NOTIFICATION_CHANNEL.EMAIL],
         enabled: true,
@@ -273,7 +273,7 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
       },
       {
         eventType: NOTIFICATION_EVENT.PARENT_APPROVAL_REQUESTED,
-        templateCode: "parent_approval_requested_sms_marriage",
+        templateCode: "parent_approval_requested_sms_attendance_exception",
         recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.PARENT],
         channels: [NOTIFICATION_CHANNEL.SMS],
         enabled: true,

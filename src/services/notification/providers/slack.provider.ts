@@ -18,6 +18,21 @@ function formatSlackMention(id: string): string {
 	return `@${id}`;
 }
 
+/**
+ * Neutralizes mrkdwn control sequences in user-supplied values pasted into
+ * message text. `&`, `<`, `>` delimit mentions, channel broadcasts
+ * (`<!channel>`), and link markup (`<url|text>`) — encoding them keeps a
+ * leave reason like "<!channel> approve: http://evil" inert inside the
+ * trusted hostel/admin channel. Server-formatted mentions above bypass
+ * this intentionally (they are allowlisted ids, not user input).
+ */
+function escapeSlackText(value: string): string {
+	return value
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;");
+}
+
 export function createSlackProvider() {
 	return {
 		async send(
@@ -43,7 +58,9 @@ export function createSlackProvider() {
 
 			try {
 				const { WebClient } = await import("@slack/web-api");
-				const client = new WebClient(botToken);
+				// Bounded: an unbounded postMessage can hold the outbox
+				// worker past the cron window.
+				const client = new WebClient(botToken, { timeout: 15_000 });
 
 				// Build Slack Block Kit message
 				const blocks: (Block | KnownBlock)[] = [];
@@ -57,7 +74,7 @@ export function createSlackProvider() {
 
 				blocks.push({
 					type: "section",
-					text: { type: "mrkdwn", text: payload.body },
+					text: { type: "mrkdwn", text: escapeSlackText(payload.body) },
 				});
 
 				if (payload.metadata) {
@@ -78,7 +95,7 @@ export function createSlackProvider() {
 							if (redundantKeys.has(key)) return false;
 							return typeof value === "string" && value.trim().length > 0;
 						})
-						.map(([key, value]) => `• *${key}:* ${value}`);
+						.map(([key, value]) => `• *${key}:* ${escapeSlackText(value as string)}`);
 
 					if (lines.length > 0) {
 						blocks.push({ type: "divider" });
@@ -101,7 +118,7 @@ export function createSlackProvider() {
 
 				const result = await client.chat.postMessage({
 					channel: channelId,
-					text: payload.subject ?? payload.body,
+					text: escapeSlackText(payload.subject ?? payload.body),
 					blocks,
 					mrkdwn: true,
 					unfurl_links: false,

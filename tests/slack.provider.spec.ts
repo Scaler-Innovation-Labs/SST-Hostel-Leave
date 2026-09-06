@@ -153,4 +153,25 @@ describe("createSlackProvider", () => {
 		expect(mockPostMessage.mock.calls[0][0].unfurl_links).toBe(false);
 		expect(mockPostMessage.mock.calls[0][0].unfurl_media).toBe(false);
 	});
+
+	it("neutralizes mrkdwn control sequences in user-supplied body and metadata", async () => {
+		await createSlackProvider().send({
+			to: "C123",
+			subject: "Leave update",
+			body: "<!channel> approve now: <http://evil|click>",
+			metadata: { destination: "Goa <http://evil|here>" },
+		});
+
+		const call = mockPostMessage.mock.calls[0][0];
+		const bodyBlock = call.blocks.find(
+			(b: any) => b.type === "section" && b.text?.type === "mrkdwn" && !b.text?.text.includes("• *")
+		);
+		expect(bodyBlock.text.text).toBe(
+			"&lt;!channel&gt; approve now: &lt;http://evil|click&gt;"
+		);
+		expect(call.blocks.some((b: any) =>
+			b.type === "section" && b.text?.text?.includes("Goa &lt;http://evil|here&gt;")
+		)).toBe(true);
+		expect(call.text).not.toContain("<!channel>");
+	});
 });
