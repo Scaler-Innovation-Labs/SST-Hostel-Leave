@@ -31,7 +31,7 @@ const buttonVariants = cva(
       variant: {
         /** The one action that matters on the surface. */
         primary:
-          "bg-accent text-on-fill shadow-glow hover:bg-accent-dark active:bg-accent-dark",
+          "bg-accent text-on-fill shadow-glow hover:bg-accent-dark active:bg-accent-dark dark:hover:text-white dark:active:text-white",
         /** Authority, not identity. Where blue would over-claim. */
         ink: "bg-ink text-surface hover:bg-ink/90",
         /** Everything alongside a primary. Visible 3:1 edge, no fill. */
@@ -41,8 +41,10 @@ const buttonVariants = cva(
         ghost: "text-muted hover:bg-surface-hover hover:text-ink",
         /** Destructive and irreversible. Always behind a confirmation. */
         danger: "bg-danger text-on-fill hover:bg-danger/90",
-        /** On a navy or black band. */
-        onDark: "bg-white text-ink hover:bg-white/90",
+        /** On a navy or black band. The label stays dark in both themes:
+            `text-ink` turns near-white in dark mode and vanishes on the
+            always-white fill. */
+        onDark: "bg-white text-surface-ink hover:bg-white/90",
       },
       size: {
         sm: "h-8 rounded-sm px-3 text-small",

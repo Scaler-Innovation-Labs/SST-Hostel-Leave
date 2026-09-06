@@ -74,9 +74,20 @@ const THRESHOLD: Record<Kind, number | null> = {
   decorative: null,
 };
 
+/** Literals the UI renders that are not theme tokens (scanner-grade white). */
+const LITERALS: Record<string, [number, number, number]> = {
+  white: [255, 255, 255],
+};
+
+function swatch(
+  palette: Record<string, [number, number, number]>,
+  name: string,
+): [number, number, number] {
+  return palette[name] ?? LITERALS[name]!;
+}
+
 /** The pairs the UI actually renders. `on-fill` is the filled-control label. */
-const PAIRS: Array<{ name: string; fg: string; bg: string; kind: Kind }> = [
-  { name: "body text on page", fg: "text", bg: "bg", kind: "text" },
+const PAIRS: Array<{ name: string; fg: string; bg: string; kind: Kind }> = [  { name: "body text on page", fg: "text", bg: "bg", kind: "text" },
   { name: "body text on card", fg: "text", bg: "surface", kind: "text" },
   { name: "muted text on page", fg: "text-muted", bg: "bg", kind: "text" },
   { name: "muted text on card", fg: "text-muted", bg: "surface", kind: "text" },
@@ -99,6 +110,12 @@ const PAIRS: Array<{ name: string; fg: string; bg: string; kind: Kind }> = [
   { name: "label on danger button", fg: "on-fill", bg: "danger", kind: "text" },
   { name: "label on info button", fg: "on-fill", bg: "info", kind: "text" },
   { name: "label on ink button", fg: "surface", bg: "text", kind: "text" },
+  {
+    name: "label on white on-dark button",
+    fg: "surface-ink",
+    bg: "white",
+    kind: "text",
+  },
   { name: "success text on wash", fg: "success", bg: "success-light", kind: "text" },
   { name: "warning text on wash", fg: "warning", bg: "warning-light", kind: "text" },
   { name: "danger text on wash", fg: "danger", bg: "danger-light", kind: "text" },
@@ -118,8 +135,8 @@ describe.each<Theme>(["light", "dark"])("contrast — %s theme", (theme) => {
   const palette = PALETTE[theme];
 
   it.each(PAIRS)("$name ($kind)", ({ fg, bg, kind }) => {
-    const foreground = palette[fg];
-    const background = palette[bg];
+    const foreground = swatch(palette, fg);
+    const background = swatch(palette, bg);
     expect(foreground, `token --sst-${fg} is not defined`).toBeDefined();
     expect(background, `token --sst-${bg} is not defined`).toBeDefined();
 
