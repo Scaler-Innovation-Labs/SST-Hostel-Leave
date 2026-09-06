@@ -5,6 +5,11 @@ import { studentRepository } from "@/db/repositories/student/student.repository"
 import { userRepository } from "@/db/repositories/user/user.repository";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
+import {
+  boundedField,
+  optionalEmail,
+  requiredPhone,
+} from "@/services/shared/bulk-row-validation";
 
 export type BulkParentRow = {
   studentId: string;
@@ -50,15 +55,25 @@ export function normalizeParentRow(
   if (!phone) throw new ValidationError(`Row ${index + 1}: phone is required`);
   if (!relationship) throw new ValidationError(`Row ${index + 1}: relationship is required`);
 
+  // Field bounds: no raw cell reaches a repository unbounded.
+  const boundedStudentEmail = boundedField(studentEmail, "studentEmail", index, 254);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(boundedStudentEmail)) {
+    throw new ValidationError(`Row ${index + 1}: studentEmail is not a valid email`);
+  }
+
   const isPrimary =
     isPrimaryRaw === "true" || isPrimaryRaw === "1" || isPrimaryRaw === "yes";
 
   return {
     studentId: "",
-    name,
-    phone,
-    email,
-    relationship,
+    name: boundedField(name, "name", index, 200),
+    phone: requiredPhone(boundedField(phone, "phone", index, 20), "phone", index),
+    email: optionalEmail(
+      email ? boundedField(email, "email", index, 254) : undefined,
+      "email",
+      index
+    ),
+    relationship: boundedField(relationship, "relationship", index, 50),
     isPrimary,
   };
 }
@@ -99,7 +114,8 @@ export async function bulkCreateParents(
         raw.studentEmail ?? raw["Student Email"] ?? raw.student_email ?? "",
       )
         .trim()
-        .toLowerCase();
+        .toLowerCase()
+        .slice(0, 254);
       normalized.studentId = await resolveStudentId(studentEmail);
 
       const parent = await parentRepository.create({

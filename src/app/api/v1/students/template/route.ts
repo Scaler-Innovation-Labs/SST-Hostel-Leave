@@ -1,5 +1,5 @@
+import ExcelJS from "exceljs";
 import { NextResponse } from "next/server";
-import * as XLSX from "xlsx";
 
 import { TemplateFormatSchema } from "@/dto/shared/template-format.dto";
 import { ApiResponse } from "@/lib/api/response";
@@ -54,10 +54,10 @@ export async function GET(request: Request) {
       });
     }
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([headerRow, exampleRow]);
-    XLSX.utils.book_append_sheet(wb, ws, "Students");
-    const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Students");
+    worksheet.addRows([headerRow, exampleRow]);
+    const buf = await workbook.xlsx.writeBuffer();
 
     return new NextResponse(buf, {
       headers: {
