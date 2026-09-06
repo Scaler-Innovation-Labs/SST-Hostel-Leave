@@ -14,6 +14,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier . --write",
     "typecheck": "tsc --noEmit",
+    "worker:outbox": "tsx scripts/outbox-worker.ts",
+    "publish:outbox": "tsx scripts/publish-outbox.ts",
     "audit:architecture": "bash scripts/audit-architecture.sh",
     "perf": "playwright test --config playwright.config.ts",
     "perf:auth": "npx playwright test performance/auth.setup.ts --project=setup",
@@ -23,6 +25,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1127.0",
     "@aws-sdk/client-ses": "^3.1063.0",
+    "@aws-sdk/client-sqs": "^3.1127.0",
     "@aws-sdk/s3-request-presigner": "^3.1127.0",
     "@clerk/nextjs": "6.39.3",
     "@hookform/resolvers": "^5.4.0",
@@ -87,6 +90,7 @@
     "pg": "^8.22.0",
     "prettier": "^3.5.3",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5",
     "vitest": "^4.1.8"
   },

@@ -73,6 +73,14 @@ export const outboxEvents = pgTable(
     claimedAt: timestamp("claimed_at", {
       withTimezone: true,
     }),
+
+    // SQS publish marker — set after the event reference is accepted by
+    // SQS. NULL means never published. Independent from processing state:
+    // publish retries must not consume the handler retry budget and
+    // handler retries must not republish.
+    publishedAt: timestamp("published_at", {
+      withTimezone: true,
+    }),
   },
   (table) => ({
     statusIndex: index("outbox_events_status_idx").on(
@@ -96,6 +104,12 @@ export const outboxEvents = pgTable(
     statusNextAttemptIdx: index("oe_status_next_attempt_idx").on(
       table.status,
       table.nextAttemptAt
+    ),
+    // For the SQS recovery publisher: find PENDING events never published
+    // (or published long ago but still pending — sent-but-lost coverage).
+    statusPublishedIdx: index("oe_status_published_idx").on(
+      table.status,
+      table.publishedAt
     ),
     // Unique constraint on idempotency key — ensures at-least-once DB insert
     // never creates duplicate outbox rows for the same logical event.
