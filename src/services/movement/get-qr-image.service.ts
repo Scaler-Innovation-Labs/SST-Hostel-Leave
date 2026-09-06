@@ -73,10 +73,11 @@ export async function getQrImage(
   return {
     png,
     contentType: "image/png",
-    // Bearer credential: shared caches (CDN, corporate proxy, mail image
-    // proxy) must never store it, and revocation (invalidate route) must
-    // take effect promptly. Short private cache; the email <img> and the
-    // dashboard revalidate per view.
-    cacheControl: "private, max-age=3600, must-revalidate",
+    // Bearer credential: shared caches (CDN, corporate proxy) must never
+    // store it, and revocation (invalidate route) must take effect in what
+    // the student sees — not just at scan time. No client caching: every
+    // view re-renders from the current pass row, so a revoked pass stops
+    // displaying as valid immediately.
+    cacheControl: "private, no-cache, must-revalidate",
   };
 }
