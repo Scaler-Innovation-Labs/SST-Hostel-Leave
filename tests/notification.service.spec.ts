@@ -349,9 +349,9 @@ describe("notificationService", () => {
   });
 
   it("strips bearer credentials from notification log metadata", async () => {
-    // Parent-approval links embed the raw 64-hex consent token and QR data
-    // URIs encode the raw pass token — neither may be persisted at rest in
-    // notification_logs.metadata.
+    // Parent-approval links embed the raw 64-hex consent token and QR
+    // tokens encode the raw pass token — neither may be persisted at rest
+    // in notification_logs.metadata.
     mockFindActiveByEvent.mockResolvedValue([
       {
         id: "R4b",
@@ -389,7 +389,7 @@ describe("notificationService", () => {
         leaveId: "L8",
         studentName: "Neerasa",
         approvalLink: "https://sst-hostel-leave.vercel.app/parent-approve/abc123def456",
-        qrCodeUrl: "data:image/png;base64,RAWQRDATA",
+        qrToken: "RAWQRTOKEN",
       },
     });
 
@@ -399,7 +399,7 @@ describe("notificationService", () => {
       studentName: "Neerasa",
     });
     expect(logCall.metadata.approvalLink).toBeUndefined();
-    expect(logCall.metadata.qrCodeUrl).toBeUndefined();
+    expect(logCall.metadata.qrToken).toBeUndefined();
   });
 
   it("logs FAILED status when provider fails", async () => {

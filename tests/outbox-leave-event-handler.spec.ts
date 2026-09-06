@@ -357,7 +357,7 @@ describe("handleLeaveEvent", () => {
     expect(context.cc).toBeUndefined();
   });
 
-  it("points the approval email QR at the hosted image route (never a data URI)", async () => {
+  it("keeps the QR out of the approval email (portal-only, never a data URI)", async () => {
     (leaveRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
       studentId: "S1",
       startAt: new Date("2026-06-01"),
@@ -372,17 +372,14 @@ describe("handleLeaveEvent", () => {
       phone: "+1234567890",
       hostelId: "H1",
     });
-    (qrPassRepository.findByLeaveRequestId as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: "QP1",
-      tokenEnc: "v1:unused-iv:unused-ciphertext",
-    });
 
     await handleLeaveEvent(makeEvent("LEAVE_APPROVED"));
 
     const context = mockNotify.mock.calls.find(([type]) => type === "LEAVE_APPROVED")?.[1];
-    expect(context.variables.qrCodeUrl).toContain("/api/v1/qr/QP1/image");
-    expect(context.variables.qrCodeUrl).not.toContain("data:image");
-    expect(context.variables.qrCodeUrl).not.toContain("raw-token");
+    expect(context.variables.qrCodeUrl).toBeUndefined();
+    expect(context.variables.qrDashboardUrl).toContain("/student/dashboard");
+    expect(JSON.stringify(context.variables)).not.toContain("data:image");
+    expect(JSON.stringify(context.variables)).not.toContain("raw-token");
   });
 
   it("does not throw for unmapped event types", async () => {

@@ -11,7 +11,6 @@ import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { hostelRepository } from "@/db/repositories/hostel/hostel.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
-import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
@@ -205,24 +204,14 @@ async function resolveContext(
     ? rawCc.filter((email): email is string => typeof email === "string" && email.trim().length > 0)
     : undefined;
 
-  // Embed the actual scannable pass QR in the approval email. One token per
-  // approved leave — the exact same QR the student sees in the app. The raw
-  // token is fetched from the qr_passes row at render time (it is never
-  // published into outbox payloads, so bearer credentials are not persisted
-  // at rest in the outbox table). The email <img> points at the hosted PNG
-  // route keyed by qrPassId — the token itself never enters a URL or the
-  // email markup (a data: URI would be stripped by Gmail, showing only the
-  // alt text).
+  // The QR pass is deliberately NOT embedded in the approval email. The QR
+  // is a bearer credential: whoever holds the image can present it, and an
+  // inbox (forwarding, screenshots, provider retention) is a poor vault for
+  // it. The student views the exact same pass inside the authenticated app
+  // instead, so stealing the email alone is not enough to obtain the QR.
   if (eventType === OUTBOX_EVENT_TYPE.LEAVE_APPROVED) {
     variables.qrDashboardUrl = `${baseUrl}/student/dashboard`;
     variables.leaveUrl = `${baseUrl}/student/leaves/${leaveId}`;
-
-    const pass = leaveId
-      ? await qrPassRepository.findByLeaveRequestId(leaveId)
-      : null;
-    if (pass?.id) {
-      variables.qrCodeUrl = `${baseUrl}/api/v1/qr/${pass.id}/image`;
-    }
   }
 
   // Staff review links. POC alerts (late-stay on submit, or any POC step

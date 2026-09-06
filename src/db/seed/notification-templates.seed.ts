@@ -14,11 +14,8 @@ type TemplateSeed = {
 
 const QR_SECTION =
   `<br>\n` +
-  `<img src="{{qrCodeUrl}}" alt="QR Code for Leave" style="display:block;margin:16px auto;max-width:200px;height:auto;" />\n` +
-  `<br>\n` +
-  `<strong>Your QR Pass:</strong> Scan this QR code at the hostel gate when entering or exiting. The same QR is available on your <a href="{{qrDashboardUrl}}">Dashboard</a>.\n` +
-  `<br>\n<a href="{{leaveUrl}}">View Leave Details</a>\n` +
-  `<br>\n<small>Your QR pass is valid for the full duration of this leave and becomes invalid automatically once the leave ends.</small>\n\n`;
+  `<strong>Your QR Pass:</strong> Your scannable QR code lives on your <a href="{{qrDashboardUrl}}">Dashboard</a> — open it there when entering or exiting the hostel gate. It is valid for the full duration of this leave and becomes invalid automatically once the leave ends. The QR is never sent by email: anyone holding this message still cannot check in as you.\n` +
+  `<br>\n<a href="{{leaveUrl}}">View Leave Details</a>\n\n`;
 
 const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
   EXAM_LEAVE: [
@@ -31,7 +28,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Dear {{studentName}},\n\n" +
         "Your Leave During Examination for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
-        "Please follow the approved leave dates and observe all hostel rules while you are away. Your QR code for hostel check-out and check-in is attached.\n\n" +
+        "Please follow the approved leave dates and observe all hostel rules while you are away. Your QR code for hostel check-out and check-in is available on your Dashboard.\n\n" +
         "Please note: This approval is for your hostel leave only. It does not grant any exemption from classes, attendance, or other academic requirements you may have during this period. For any leave or exemption from academic requirements, please refer to the Student Policy and follow the process laid out there.\n\n" +
         "We wish you the very best for your examination.\n\n" +
         QR_SECTION +
@@ -107,7 +104,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Dear {{studentName}},\n\n" +
         "Your Long Leave for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
-        "Please follow the approved leave dates and observe all hostel rules during your leave. Your QR code for hostel check-out and check-in is attached.\n\n" +
+        "Please follow the approved leave dates and observe all hostel rules during your leave. Your QR code for hostel check-out and check-in is available on your Dashboard.\n\n" +
         "Please note: This approval covers your hostel leave only. It does not exempt you from any classes, examinations, exam- or class-related requirements, or other academic obligations during this period. For any leave or exemption from academic requirements, please refer to the Student Policy and follow the process laid out there.\n\n" +
         "We wish you a safe journey.\n\n" +
         QR_SECTION +
@@ -171,7 +168,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Dear {{studentName}},\n\n" +
         "Your Late Entry request for {{startDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
-        "You may enter the hostel within the approved time. Please observe all hostel rules. Your QR code for hostel check-in is attached.\n\n" +
+        "You may enter the hostel within the approved time. Please observe all hostel rules. Your QR code for hostel check-in is available on your Dashboard.\n\n" +
         QR_SECTION +
         "Regards,\nHostel Administration\nScaler School of Technology",
     },
@@ -234,7 +231,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Dear {{studentName}},\n\n" +
         "Your request to stay late at college for {{startDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
-        "You may stay on campus as per the approved request. Please observe all hostel rules. If applicable, your QR code for hostel check-in is attached.\n\n" +
+        "You may stay on campus as per the approved request. Please observe all hostel rules. If applicable, your QR code for hostel check-in is available on your Dashboard.\n\n" +
         QR_SECTION +
         "Regards,\nHostel Administration\nScaler School of Technology",
     },
@@ -301,7 +298,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Dear {{studentName}},\n\n" +
         "Your request to stay at a different hostel from {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
-        "You may stay at the approved hostel for the approved period. Please observe all hostel rules. Your QR code for hostel check-in and check-out is attached.\n\n" +
+        "You may stay at the approved hostel for the approved period. Please observe all hostel rules. Your QR code for hostel check-in and check-out is available on your Dashboard.\n\n" +
         QR_SECTION +
         "Regards,\nHostel Administration\nScaler School of Technology",
     },
@@ -363,7 +360,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Dear {{studentName}},\n\n" +
         "Your Holiday Leave for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
-        "Please follow the approved leave dates and observe all hostel rules during your leave. Your QR code for hostel check-out and check-in is attached.\n\n" +
+        "Please follow the approved leave dates and observe all hostel rules during your leave. Your QR code for hostel check-out and check-in is available on your Dashboard.\n\n" +
         "We wish you a safe journey.\n\n" +
         QR_SECTION +
         "Regards,\nHostel Administration\nScaler School of Technology",
@@ -405,7 +402,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Dear {{studentName}},\n\n" +
         "Your Internship Leave for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
-        "Please follow the approved leave dates and observe all hostel rules during your leave. Your QR code for hostel check-out and check-in is attached.\n\n" +
+        "Please follow the approved leave dates and observe all hostel rules during your leave. Your QR code for hostel check-out and check-in is available on your Dashboard.\n\n" +
         "Please note: This approval covers your hostel leave only. It does not grant academic leave or exempt you from any classes, examinations, or academic requirements during your internship. For academic leave or exemptions, please refer to the Student Policy and follow the process laid out there.\n\n" +
         "We wish you the very best for your internship.\n\n" +
         QR_SECTION +
@@ -493,7 +490,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Dear {{studentName}},\n\n" +
         "Your Special Leave for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
-        "Please follow the approved leave dates and observe all hostel rules during your leave. Your QR code for hostel check-out and check-in is attached.\n\n" +
+        "Please follow the approved leave dates and observe all hostel rules during your leave. Your QR code for hostel check-out and check-in is available on your Dashboard.\n\n" +
         "Please note: This approval covers your hostel leave only. It does not exempt you from any classes, examinations, exam- or class-related requirements, or other academic obligations during this period. For any leave or exemption from academic requirements, please refer to the Student Policy and follow the process laid out there.\n\n" +
         QR_SECTION +
         "Regards,\nHostel Administration\nScaler School of Technology",

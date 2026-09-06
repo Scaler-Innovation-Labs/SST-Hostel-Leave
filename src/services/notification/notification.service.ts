@@ -43,12 +43,13 @@ export type NotificationContext = {
 /**
  * Variable keys that carry bearer credentials and must never be persisted
  * into notification_logs.metadata: parent-approval links embed the raw
- * 64-hex consent token, and qrCodeUrl is a QR data-URI encoding the raw
- * pass token. Anything else in context.variables is safe to keep for audit.
+ * 64-hex consent token. (The approval-email QR image URL was removed: the
+ * QR now lives only behind the authenticated app, so no QR credential key
+ * exists in template variables anymore.) Anything else in
+ * context.variables is safe to keep for audit.
  */
 const SENSITIVE_METADATA_KEYS: ReadonlySet<string> = new Set([
 	"approvalLink",
-	"qrCodeUrl",
 	"qrToken",
 ]);
 
@@ -69,7 +70,7 @@ function sanitizeLogMetadata(
 
 /**
  * HTML-escapes a single template variable value. Used for the email HTML
- * body render — template-authored markup (the QR <img>, <a>, <strong> tags)
+ * body render — template-authored markup (<a>, <strong> tags)
  * must survive raw, while user-supplied values (reason, names, URLs) are
  * escaped so a reason like "<script>" or "A & B" cannot inject markup.
  */

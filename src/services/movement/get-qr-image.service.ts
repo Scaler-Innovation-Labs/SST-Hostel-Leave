@@ -1,9 +1,11 @@
 import QRCode from "qrcode";
 
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
+import type { CurrentUser } from "@/lib/auth/types";
 import { NotFoundError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { decryptQrToken } from "@/lib/qr-token-crypto";
+import { verifyStudentOwnership } from "@/services/shared/authorization.service";
 
 export type QrImageResult = {
   png: Buffer;
@@ -12,9 +14,10 @@ export type QrImageResult = {
 };
 
 /**
- * Renders the QR pass PNG for a given pass. Used as the `src` of the QR
- * <img> in approval emails — a hosted URL renders in Gmail, whereas the
- * previous `data:` URI was stripped by Gmail (users saw only the alt text).
+ * Renders the QR pass PNG for a given pass. The QR lives only behind the
+ * authenticated app (student dashboard / leave detail) — it is never sent
+ * by email, so this endpoint requires a session and owner-or-staff
+ * authorization.
  *
  * Credential handling:
  * - The raw token is decrypted from `tokenEnc` in memory ONLY for this
@@ -25,19 +28,23 @@ export type QrImageResult = {
  *
  * Security notes:
  * - The URL carries only the unguessable qrPassId UUID — never the raw
- *   pass token, which stays server-side (the leave-event handler fetches
- *   it from the DB at render time).
- * - This is deliberately public: email clients fetch images without
- *   session cookies. Exposure is equivalent to the old data-URI approach
- *   (anyone holding the email holds the QR); scan-time validation still
- *   enforces the pass validity window and status.
+ *   pass token, which stays server-side.
+ * - Callers must own the pass (the student it was issued to) or hold a
+ *   staff role; email clients and other unauthenticated fetchers get 401.
+ *   Scan-time validation still enforces the pass validity window and
+ *   status independently of this render path.
  */
-export async function getQrImage(qrPassId: string): Promise<QrImageResult> {
+export async function getQrImage(
+  qrPassId: string,
+  currentUser: CurrentUser
+): Promise<QrImageResult> {
   const pass = await qrPassRepository.findById(qrPassId);
 
   if (!pass) {
     throw new NotFoundError("QR pass not found");
   }
+
+  await verifyStudentOwnership(currentUser, pass.studentId);
 
   // The ONLY place the encrypted credential is decrypted: in memory, for
   // this single render. A pass without an envelope cannot render.
