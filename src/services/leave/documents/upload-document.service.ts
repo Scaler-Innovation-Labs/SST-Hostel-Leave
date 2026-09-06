@@ -1,7 +1,7 @@
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveDocumentRepository } from "@/db/repositories/leave/leave-document.repository";
 import type { CurrentUser } from "@/lib/auth/types";
-import { uploadFromBuffer } from "@/lib/cloudinary";
+import { deleteByPublicId, uploadFromBuffer } from "@/lib/cloudinary";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
@@ -17,6 +17,36 @@ const ALLOWED_MIME_TYPES = [
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
 const MAX_DOCUMENT_TYPE_LENGTH = 50;
+
+/**
+ * Magic-byte signatures per allowed MIME type. `file.type` is a
+ * client-supplied multipart header — without this, an HTML/JS polyglot
+ * labeled application/pdf uploads as `raw` and persists behind a public
+ * Cloudinary URL (stored-XSS primitive for the next viewer).
+ */
+const MAGIC_BYTES: Array<{ mime: string; signature: number[] }> = [
+  { mime: "image/jpeg", signature: [0xff, 0xd8, 0xff] },
+  { mime: "image/png", signature: [0x89, 0x50, 0x4e, 0x47] },
+  { mime: "image/gif", signature: [0x47, 0x49, 0x46, 0x38] },
+  { mime: "application/pdf", signature: [0x25, 0x50, 0x44, 0x46] },
+  { mime: "application/msword", signature: [0xd0, 0xcf, 0x11, 0xe0] },
+  // docx is a zip container.
+  {
+    mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    signature: [0x50, 0x4b],
+  },
+];
+
+function assertMagicBytes(buffer: Buffer, mimeType: string): void {
+  const entry = MAGIC_BYTES.find((e) => e.mime === mimeType);
+  if (!entry) {
+    throw new ValidationError("File type not supported. Allowed: JPG, PNG, GIF, PDF, DOC, DOCX");
+  }
+  const matches = entry.signature.every((byte, i) => buffer[i] === byte);
+  if (!matches) {
+    throw new ValidationError("File content does not match its declared type");
+  }
+}
 
 export type UploadDocumentResult = {
   id: string;
@@ -63,6 +93,7 @@ export async function uploadLeaveDocument(
   await assertCanAccessLeave(currentUser, leave);
 
   const buffer = Buffer.from(await file.arrayBuffer());
+  assertMagicBytes(buffer, file.type);
   const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const uniqueId = crypto.randomUUID();
 
@@ -72,20 +103,34 @@ export async function uploadLeaveDocument(
     resourceType: file.type.startsWith("image/") ? "image" : "raw",
   });
 
-  const document = await leaveDocumentRepository.create({
-    leaveRequestId,
-    uploadedBy,
-    documentType: normalizedDocumentType,
-    documentStatus: "ACTIVE",
-    fileName: sanitizedFileName,
-    fileUrl: uploadResult.secureUrl,
-    mimeType: file.type,
-    fileSize: file.size,
-    metadata: {
-      cloudinaryPublicId: uploadResult.publicId,
-      cloudinaryFormat: uploadResult.format,
-    },
-  });
+  // Compensation: the upload above cannot join a DB transaction. If the
+  // row insert fails, delete the orphaned Cloudinary object so a billed,
+  // publicly-addressable file never outlives its record.
+  let document;
+  try {
+    document = await leaveDocumentRepository.create({
+      leaveRequestId,
+      uploadedBy,
+      documentType: normalizedDocumentType,
+      documentStatus: "ACTIVE",
+      fileName: sanitizedFileName,
+      fileUrl: uploadResult.secureUrl,
+      mimeType: file.type,
+      fileSize: file.size,
+      metadata: {
+        cloudinaryPublicId: uploadResult.publicId,
+        cloudinaryFormat: uploadResult.format,
+      },
+    });
+  } catch (error) {
+    await deleteByPublicId(
+      uploadResult.publicId,
+      file.type.startsWith("image/") ? "image" : "raw"
+    ).catch(() => {
+      // Best-effort: the original error is what the caller must see.
+    });
+    throw error;
+  }
 
   return {
     id: document.id,

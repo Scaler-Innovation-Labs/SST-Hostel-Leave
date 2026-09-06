@@ -16,9 +16,9 @@ export async function DELETE(
       ROLES.SUPER_ADMIN,
     ]);
 
-    const { documentId } = await routeContext.params;
+    const { id, documentId } = await routeContext.params;
 
-    await deleteLeaveDocument(documentId, currentUser);
+    await deleteLeaveDocument(documentId, currentUser, id);
 
     return ApiResponse.success({ deleted: true });
   } catch (error) {
