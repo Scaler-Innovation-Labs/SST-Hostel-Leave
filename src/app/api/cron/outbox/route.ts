@@ -1,14 +1,11 @@
 import { ApiResponse } from "@/lib/api/response";
+import { checkCronAuth } from "@/lib/auth/cron-auth";
 import { runRetryOutboxJob } from "@/services/cron/retry-outbox.job";
 
 export async function GET(request: Request) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const cronSecret = process.env.CRON_SECRET;
-
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      return ApiResponse.error("UNAUTHORIZED", "Unauthorized", 401);
-    }
+    const unauthorized = checkCronAuth(request);
+    if (unauthorized) return unauthorized;
 
     // Resets failed events (within attempt budget) and processes pending
     // events in a single run — the separate /api/cron/retry schedule is gone.

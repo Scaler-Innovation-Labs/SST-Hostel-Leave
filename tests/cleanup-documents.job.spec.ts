@@ -23,7 +23,7 @@ vi.mock("@/lib/db", () => {
 
 const mockFindExpiredForRetention = vi.fn().mockResolvedValue([]);
 const mockUpdateStatus = vi.fn();
-const mockDeleteByPublicId = vi.fn().mockResolvedValue(undefined);
+const mockDeleteByPublicId = vi.fn().mockResolvedValue(true);
 const mockAuditRecord = vi.fn().mockResolvedValue({});
 
 vi.mock("@/db/repositories/leave/leave-document.repository", () => ({
@@ -160,5 +160,32 @@ describe("runDocumentRetentionJob", () => {
 
     expect(result.deleted).toBe(101);
     expect(mockFindExpiredForRetention).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the row ACTIVE when Cloudinary reports not-destroyed", async () => {
+    mockDeleteByPublicId.mockResolvedValueOnce(false);
+    mockFindExpiredForRetention.mockResolvedValueOnce([makeDocument()]);
+
+    const result = await runDocumentRetentionJob();
+
+    expect(result.deleted).toBe(0);
+    expect(result.failed).toBe(1);
+    expect(mockUpdateStatus).not.toHaveBeenCalled();
+  });
+
+  it("isolates per-item failures so the rest of the batch still processes", async () => {
+    mockDeleteByPublicId
+      .mockRejectedValueOnce(new Error("CDN timeout"))
+      .mockResolvedValue(true);
+    mockFindExpiredForRetention.mockResolvedValueOnce([
+      makeDocument({ id: "DOC-BAD" }),
+      makeDocument({ id: "DOC-GOOD" }),
+    ]);
+
+    const result = await runDocumentRetentionJob();
+
+    expect(result.deleted).toBe(1);
+    expect(result.failed).toBe(1);
+    expect(mockUpdateStatus).toHaveBeenCalledWith("DOC-GOOD", "DELETED");
   });
 });

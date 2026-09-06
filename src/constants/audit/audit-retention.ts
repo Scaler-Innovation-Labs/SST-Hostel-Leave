@@ -4,11 +4,11 @@
 // =====================================================
 
 /**
- * Retention classes determine how long audit rows are kept and how much
- * data they carry:
+ * Retention classes determine how long audit rows are kept:
  *
  * - CONFIG_MUTATION: policy/workflow/leave-type/reference-data changes.
- *   Full oldData/newData snapshots justified; kept forever (expiresAt NULL).
+ *   Kept forever (expiresAt NULL). What is kept is the record() metadata,
+ *   not full oldData/newData snapshots (those columns are reserved).
  * - STATE_TRANSITION: leave submitted/approved/rejected, QR scans, movement.
  *   Event facts are enough; expires after AUDIT_STATE_TRANSITION_YEARS.
  * - USER_ACTION: login/logout. Minimal facts; expires after

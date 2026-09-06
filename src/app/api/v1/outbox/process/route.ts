@@ -3,6 +3,7 @@ import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
 import { logger } from "@/lib/logger";
+import { rateLimit } from "@/lib/rate-limiter";
 import { processPendingEvents } from "@/services/outbox/outbox-worker.service";
 
 /**
@@ -21,6 +22,10 @@ export async function POST() {
       await requireAuth(),
       [ROLES.SUPER_ADMIN, ROLES.ADMIN],
     );
+
+    // Manual worker trigger fans out provider calls: throttle per admin.
+    // (The scheduled /api/cron/outbox path is secret-gated, not limited.)
+    await rateLimit(`outbox-process:${currentUser.id}`, 10, 60_000);
 
     const result = await processPendingEvents();
 

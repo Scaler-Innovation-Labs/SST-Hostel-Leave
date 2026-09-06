@@ -41,15 +41,17 @@ export const auditLogs = pgTable("audit_logs", {
   action: auditActionEnum("action")
     .notNull(),
 
-  // Retention class determines how long to keep full snapshots:
-  // - "CONFIG_MUTATION" = policy/workflow/leave-type changes (keep full oldData/newData forever)
-  // - "STATE_TRANSITION" = leave submitted/approved/rejected, QR scans (minimal data, expires after 2 years)
-  // - "USER_ACTION" = login/logout (minimal data, expires after 1 year)
+  // Retention class determines what is kept and for how long:
+  // - "CONFIG_MUTATION" = policy/workflow/leave-type changes (keep metadata forever)
+  // - "STATE_TRANSITION" = leave submitted/approved/rejected, QR scans (minimal facts, expires after 2 years)
+  // - "USER_ACTION" = login/logout (minimal facts, expires after 1 year)
   retentionClass: text("retention_class").notNull().default("STATE_TRANSITION"),
 
-  // For CONFIG_MUTATION: full old/new snapshots.
-  // For STATE_TRANSITION: minimal event facts only (step, actor, timestamp).
-  // For USER_ACTION: minimal event facts only.
+  // Reserved columns (oldData/newData snapshots, ipAddress/userAgent) are
+  // intentionally unwritten today: auditService.record persists action +
+  // entity + actor + metadata only. If forensics needs diffs or request
+  // attribution, populate these (plumbing actor request context through
+  // services) rather than overloading metadata.
   oldData: jsonb("old_data"),
 
   newData: jsonb("new_data"),
