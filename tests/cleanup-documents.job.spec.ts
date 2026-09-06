@@ -23,7 +23,7 @@ vi.mock("@/lib/db", () => {
 
 const mockFindExpiredForRetention = vi.fn().mockResolvedValue([]);
 const mockUpdateStatus = vi.fn();
-const mockDeleteByPublicId = vi.fn().mockResolvedValue(true);
+const mockDeleteByKey = vi.fn().mockResolvedValue(true);
 const mockAuditRecord = vi.fn().mockResolvedValue({});
 
 vi.mock("@/db/repositories/leave/leave-document.repository", () => ({
@@ -34,11 +34,12 @@ vi.mock("@/db/repositories/leave/leave-document.repository", () => ({
   },
 }));
 
-vi.mock("@/lib/cloudinary", () => ({
-  deleteByPublicId: (...args: any[]) => mockDeleteByPublicId(...args),
-  extractPublicIdFromUrl: (url: string | null) =>
-    url && url.includes("res.cloudinary.com")
-      ? url.split("/upload/")[1]?.replace(/^v\d+\//, "") ?? null
+vi.mock("@/lib/s3", () => ({
+  deleteByKey: (...args: any[]) => mockDeleteByKey(...args),
+  getS3KeyFromMetadata: (metadata: any) => metadata?.s3Key ?? null,
+  extractKeyFromUrl: (url: string | null) =>
+    url && url.includes(".s3.")
+      ? url.split(".amazonaws.com/")[1] ?? null
       : null,
 }));
 
@@ -55,9 +56,10 @@ function makeDocument(overrides: Partial<Record<string, unknown>> = {}) {
     id: "DOC1",
     leaveRequestId: "LR1",
     fileName: "medical-cert.pdf",
-    fileUrl: "https://res.cloudinary.com/demo/raw/upload/v1/docs/medical-cert.pdf",
+    fileUrl:
+      "https://sst-docs.s3.ap-south-1.amazonaws.com/prefix/leaves/LR1/medical-cert.pdf",
     mimeType: "application/pdf",
-    metadata: { cloudinaryPublicId: "docs/medical-cert" },
+    metadata: { s3Key: "prefix/leaves/LR1/medical-cert.pdf" },
     ...overrides,
   };
 }
@@ -73,57 +75,56 @@ describe("runDocumentRetentionJob", () => {
 
     expect(result.job).toBe("document-retention");
     expect(result.deleted).toBe(0);
-    expect(mockDeleteByPublicId).not.toHaveBeenCalled();
+    expect(mockDeleteByKey).not.toHaveBeenCalled();
     expect(mockUpdateStatus).not.toHaveBeenCalled();
   });
 
-  it("deletes Cloudinary file and soft-deletes DB row for expired documents", async () => {
+  it("deletes S3 object and soft-deletes DB row for expired documents", async () => {
     mockFindExpiredForRetention.mockResolvedValueOnce([makeDocument()]);
 
     const result = await runDocumentRetentionJob();
 
     expect(result.deleted).toBe(1);
-    expect(mockDeleteByPublicId).toHaveBeenCalledWith(
-      "docs/medical-cert",
-      "raw"
+    expect(mockDeleteByKey).toHaveBeenCalledWith(
+      "prefix/leaves/LR1/medical-cert.pdf"
     );
     expect(mockUpdateStatus).toHaveBeenCalledWith("DOC1", "DELETED");
   });
 
-  it("uses image resource type for image mime types", async () => {
+  it("uses s3Key from metadata regardless of mime type", async () => {
     mockFindExpiredForRetention.mockResolvedValueOnce([
       makeDocument({
         mimeType: "image/png",
-        metadata: { cloudinaryPublicId: "images/xray" },
+        metadata: { s3Key: "prefix/leaves/LR1/xray.png" },
       }),
     ]);
 
     await runDocumentRetentionJob();
 
-    expect(mockDeleteByPublicId).toHaveBeenCalledWith("images/xray", "image");
+    expect(mockDeleteByKey).toHaveBeenCalledWith("prefix/leaves/LR1/xray.png");
   });
 
-  it("falls back to extracting public id from URL when metadata is missing", async () => {
+  it("falls back to extracting the key from URL when metadata is missing", async () => {
     mockFindExpiredForRetention.mockResolvedValueOnce([
       makeDocument({ metadata: null }),
     ]);
 
     await runDocumentRetentionJob();
 
-    expect(mockDeleteByPublicId).toHaveBeenCalledWith(expect.any(String), "raw");
+    expect(mockDeleteByKey).toHaveBeenCalledWith(expect.any(String));
   });
 
-  it("soft-deletes even when the document has no extractable public id", async () => {
+  it("soft-deletes even when the document has no extractable S3 key", async () => {
     mockFindExpiredForRetention.mockResolvedValueOnce([
       makeDocument({
-        fileUrl: "https://example.com/not-cloudinary.pdf",
+        fileUrl: "https://example.com/not-s3.pdf",
         metadata: null,
       }),
     ]);
 
     const result = await runDocumentRetentionJob();
 
-    expect(mockDeleteByPublicId).not.toHaveBeenCalled();
+    expect(mockDeleteByKey).not.toHaveBeenCalled();
     expect(result.deleted).toBe(1);
     expect(mockUpdateStatus).toHaveBeenCalledWith("DOC1", "DELETED");
   });
@@ -162,8 +163,8 @@ describe("runDocumentRetentionJob", () => {
     expect(mockFindExpiredForRetention).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps the row ACTIVE when Cloudinary reports not-destroyed", async () => {
-    mockDeleteByPublicId.mockResolvedValueOnce(false);
+  it("keeps the row ACTIVE when S3 reports not-removed", async () => {
+    mockDeleteByKey.mockResolvedValueOnce(false);
     mockFindExpiredForRetention.mockResolvedValueOnce([makeDocument()]);
 
     const result = await runDocumentRetentionJob();
@@ -174,8 +175,8 @@ describe("runDocumentRetentionJob", () => {
   });
 
   it("isolates per-item failures so the rest of the batch still processes", async () => {
-    mockDeleteByPublicId
-      .mockRejectedValueOnce(new Error("CDN timeout"))
+    mockDeleteByKey
+      .mockRejectedValueOnce(new Error("S3 timeout"))
       .mockResolvedValue(true);
     mockFindExpiredForRetention.mockResolvedValueOnce([
       makeDocument({ id: "DOC-BAD" }),

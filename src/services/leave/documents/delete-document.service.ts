@@ -3,8 +3,12 @@ import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveDocumentRepository } from "@/db/repositories/leave/leave-document.repository";
 import type { CurrentUser } from "@/lib/auth/types";
-import { deleteByPublicId, extractPublicIdFromUrl } from "@/lib/cloudinary";
 import { NotFoundError, ValidationError } from "@/lib/errors";
+import {
+  deleteByKey,
+  extractKeyFromUrl,
+  getS3KeyFromMetadata,
+} from "@/lib/s3";
 import { auditService } from "@/services/audit/audit.service";
 import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
@@ -34,17 +38,15 @@ export async function deleteLeaveDocument(
     }
   }
 
-  // Extract public_id from metadata (preferred) or Cloudinary URL (fallback)
-  const publicId =
-    (document.metadata as { cloudinaryPublicId?: string } | null)?.cloudinaryPublicId ??
-    extractPublicIdFromUrl(document.fileUrl);
+  // Extract the S3 object key from metadata (preferred) or file URL (fallback)
+  const objectKey =
+    getS3KeyFromMetadata(document.metadata) ??
+    extractKeyFromUrl(document.fileUrl);
 
-  if (publicId) {
-    // Default to "raw" for documents (PDFs, DOCX) rather than "image"
-    const resourceType = document.mimeType?.startsWith("image/") ? "image" : "raw";
-    // A `false` (not-found/wrong-type) result must surface: silently
+  if (objectKey) {
+    // A `false` (not-removed) result must surface: silently
     // marking DELETED while the file lives on is an orphan by design.
-    const deleted = await deleteByPublicId(publicId, resourceType);
+    const deleted = await deleteByKey(objectKey);
     if (!deleted) {
       throw new ValidationError("Document could not be removed from storage");
     }

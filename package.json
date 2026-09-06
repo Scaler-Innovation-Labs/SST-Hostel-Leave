@@ -21,7 +21,9 @@
     "perf:audit:headed": "npx playwright test performance/audit.spec.ts --headed"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1127.0",
     "@aws-sdk/client-ses": "^3.1063.0",
+    "@aws-sdk/s3-request-presigner": "^3.1127.0",
     "@clerk/nextjs": "6.39.3",
     "@hookform/resolvers": "^5.4.0",
     "@neondatabase/serverless": "^1.1.0",
@@ -33,7 +35,6 @@
     "@vercel/speed-insights": "^2.0.0",
     "@yudiel/react-qr-scanner": "^2.6.0",
     "class-variance-authority": "^0.7.1",
-    "cloudinary": "^2.10.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",

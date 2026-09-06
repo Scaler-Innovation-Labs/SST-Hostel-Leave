@@ -260,10 +260,10 @@ SLACK_BOT_TOKEN=xoxb-your-bot-token
 SLACK_CHANNEL_ID=C1234567890
 SLACK_POC_CHANNEL_ID=
 
-# Cloudinary (document storage)
-CLOUDINARY_CLOUD_NAME=
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
+# S3 (document storage, private bucket + presigned URLs; reuses AWS_* above)
+S3_DOCUMENTS_BUCKET=
+S3_DOCUMENTS_PREFIX=sst-hostel-leave-documents
+S3_PRESIGNED_URL_EXPIRES_IN=3600
 
 # Cron jobs (generate with: openssl rand -base64 32; min 32 chars)
 CRON_SECRET=

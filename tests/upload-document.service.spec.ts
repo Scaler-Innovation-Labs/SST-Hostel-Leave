@@ -18,8 +18,13 @@ vi.mock("@/db/repositories/leave/leave-document.repository", () => ({
   },
 }));
 
-vi.mock("@/lib/cloudinary", () => ({
+vi.mock("@/lib/s3", () => ({
   uploadFromBuffer: (...args: any[]) => mockUploadFromBuffer(...args),
+  deleteByKey: vi.fn().mockResolvedValue(true),
+  getPresignedGetUrl: vi
+    .fn()
+    .mockImplementation(async (key: string) => `https://signed.example/${key}`),
+  getDocumentsPrefix: () => "sst-hostel-leave-documents",
 }));
 
 vi.mock("@/services/shared/authorization.service", () => ({
@@ -46,9 +51,9 @@ beforeEach(() => {
   mockLeaveFindById.mockResolvedValue({ id: "LR1", studentId: "S1" });
   mockAssertCanAccessLeave.mockResolvedValue(undefined);
   mockUploadFromBuffer.mockResolvedValue({
-    secureUrl: "https://res.cloudinary.com/x/raw/upload/doc",
-    publicId: "abc",
-    format: "pdf",
+    url: "https://bucket.s3.ap-south-1.amazonaws.com/prefix/leaves/LR1/abc.pdf",
+    key: "prefix/leaves/LR1/abc.pdf",
+    bytes: 8,
   });
   mockDocCreate.mockImplementation(async (input: any) => ({ id: "D1", ...input }));
 });

@@ -21,9 +21,10 @@ vi.mock("@/services/shared/authorization.service", () => ({
   assertCanAccessLeave: (...args: any[]) => mockAssertCanAccessLeave(...args),
 }));
 
-vi.mock("@/lib/cloudinary", () => ({
-  deleteByPublicId: vi.fn().mockResolvedValue(undefined),
-  extractPublicIdFromUrl: vi.fn().mockReturnValue(null),
+vi.mock("@/lib/s3", () => ({
+  deleteByKey: vi.fn().mockResolvedValue(true),
+  extractKeyFromUrl: vi.fn().mockReturnValue(null),
+  getS3KeyFromMetadata: vi.fn().mockReturnValue(null),
 }));
 
 vi.mock("@/services/audit/audit.service", () => ({

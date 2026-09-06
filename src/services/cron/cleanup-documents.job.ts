@@ -5,11 +5,15 @@ import {
   DOCUMENT_RETENTION_YEARS,
 } from "@/constants/leave/document-retention";
 import { leaveDocumentRepository } from "@/db/repositories/leave/leave-document.repository";
-import { deleteByPublicId, extractPublicIdFromUrl } from "@/lib/cloudinary";
+import {
+  deleteByKey,
+  extractKeyFromUrl,
+  getS3KeyFromMetadata,
+} from "@/lib/s3";
 import { auditService } from "@/services/audit/audit.service";
 
 /**
- * Document retention job: deletes Cloudinary files whose owning leave
+ * Document retention job: deletes S3 objects whose owning leave
  * reached a terminal state more than DOCUMENT_RETENTION_YEARS ago and
  * soft-deletes the DB row so the audit trail survives.
  *
@@ -26,7 +30,7 @@ export async function runDocumentRetentionJob(
   let failedCount = 0;
 
   // Bounded batches: a large first-run backlog must not starve the worker
-  // or hammer Cloudinary rate limits.
+  // or hammer S3 rate limits.
   while (true) {
     const expired = await leaveDocumentRepository.findExpiredForRetention(
       cutoff,
@@ -36,21 +40,16 @@ export async function runDocumentRetentionJob(
     if (expired.length === 0) break;
 
     for (const document of expired) {
-      // Per-item isolation: one Cloudinary/DB failure must not abort the
-      // rest of the batch. A `false` destroy result (not-found/wrong
-      // resource type) keeps the row ACTIVE for a later run instead of
-      // recording a false DELETED.
+      // Per-item isolation: one S3/DB failure must not abort the
+      // rest of the batch. A `false` delete result keeps the row ACTIVE
+      // for a later run instead of recording a false DELETED.
       try {
-        const publicId =
-          (
-            document.metadata as { cloudinaryPublicId?: string } | null
-          )?.cloudinaryPublicId ?? extractPublicIdFromUrl(document.fileUrl);
+        const objectKey =
+          getS3KeyFromMetadata(document.metadata) ??
+          extractKeyFromUrl(document.fileUrl);
 
-        if (publicId) {
-          const resourceType = document.mimeType?.startsWith("image/")
-            ? "image"
-            : "raw";
-          const destroyed = await deleteByPublicId(publicId, resourceType);
+        if (objectKey) {
+          const destroyed = await deleteByKey(objectKey);
           if (!destroyed) {
             failedCount++;
             continue;

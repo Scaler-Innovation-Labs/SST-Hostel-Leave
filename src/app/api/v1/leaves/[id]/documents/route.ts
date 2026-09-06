@@ -40,7 +40,7 @@ export async function POST(
       ROLES.SUPER_ADMIN,
     ]);
 
-    // 10MB Cloudinary uploads per call: throttle per user.
+    // 10MB S3 uploads per call: throttle per user.
     await rateLimit(`documents:${currentUser.id}`, 60, 3_600_000);
 
     const { id } = await routeContext.params;

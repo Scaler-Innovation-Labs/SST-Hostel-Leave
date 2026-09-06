@@ -1,8 +1,12 @@
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveDocumentRepository } from "@/db/repositories/leave/leave-document.repository";
 import type { CurrentUser } from "@/lib/auth/types";
-import { deleteByPublicId, uploadFromBuffer } from "@/lib/cloudinary";
 import { NotFoundError, ValidationError } from "@/lib/errors";
+import {
+  deleteByKey,
+  getPresignedGetUrl,
+  uploadFromBuffer,
+} from "@/lib/s3";
 import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
 const ALLOWED_MIME_TYPES = [
@@ -21,8 +25,8 @@ const MAX_DOCUMENT_TYPE_LENGTH = 50;
 /**
  * Magic-byte signatures per allowed MIME type. `file.type` is a
  * client-supplied multipart header — without this, an HTML/JS polyglot
- * labeled application/pdf uploads as `raw` and persists behind a public
- * Cloudinary URL (stored-XSS primitive for the next viewer).
+ * labeled application/pdf uploads as a document and persists behind a
+ * shareable URL (stored-XSS primitive for the next viewer).
  */
 const MAGIC_BYTES: Array<{ mime: string; signature: number[] }> = [
   { mime: "image/jpeg", signature: [0xff, 0xd8, 0xff] },
@@ -59,7 +63,7 @@ export type UploadDocumentResult = {
   createdAt: Date;
 };
 
-const CLOUDINARY_FOLDER = process.env.CLOUDINARY_DOCUMENTS_FOLDER ?? "sst-hostel-leave-documents";
+const S3_FOLDER = process.env.S3_DOCUMENTS_PREFIX ?? "sst-hostel-leave-documents";
 
 export async function uploadLeaveDocument(
   leaveRequestId: string,
@@ -96,16 +100,19 @@ export async function uploadLeaveDocument(
   assertMagicBytes(buffer, file.type);
   const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const uniqueId = crypto.randomUUID();
+  const extension = sanitizedFileName.includes(".")
+    ? sanitizedFileName.slice(sanitizedFileName.lastIndexOf("."))
+    : "";
+  const objectKey = `${S3_FOLDER}/leaves/${leaveRequestId}/${uniqueId}${extension}`;
 
   const uploadResult = await uploadFromBuffer(buffer, {
-    folder: `${CLOUDINARY_FOLDER}/leaves/${leaveRequestId}`,
-    publicId: uniqueId,
-    resourceType: file.type.startsWith("image/") ? "image" : "raw",
+    key: objectKey,
+    contentType: file.type,
   });
 
   // Compensation: the upload above cannot join a DB transaction. If the
-  // row insert fails, delete the orphaned Cloudinary object so a billed,
-  // publicly-addressable file never outlives its record.
+  // row insert fails, delete the orphaned S3 object so a billed file
+  // never outlives its record.
   let document;
   try {
     document = await leaveDocumentRepository.create({
@@ -114,28 +121,33 @@ export async function uploadLeaveDocument(
       documentType: normalizedDocumentType,
       documentStatus: "ACTIVE",
       fileName: sanitizedFileName,
-      fileUrl: uploadResult.secureUrl,
+      fileUrl: uploadResult.url,
       mimeType: file.type,
       fileSize: file.size,
       metadata: {
-        cloudinaryPublicId: uploadResult.publicId,
-        cloudinaryFormat: uploadResult.format,
+        s3Key: uploadResult.key,
       },
     });
   } catch (error) {
-    await deleteByPublicId(
-      uploadResult.publicId,
-      file.type.startsWith("image/") ? "image" : "raw"
-    ).catch(() => {
+    await deleteByKey(uploadResult.key).catch(() => {
       // Best-effort: the original error is what the caller must see.
     });
     throw error;
   }
 
+  // The bucket is private — hand back a time-limited URL for immediate use.
+  // Later reads re-mint presigned URLs in listLeaveDocuments.
+  let fileUrl = document.fileUrl;
+  try {
+    fileUrl = await getPresignedGetUrl(uploadResult.key);
+  } catch {
+    // Fall back to the canonical URL; the caller can retry the read path.
+  }
+
   return {
     id: document.id,
     fileName: document.fileName,
-    fileUrl: document.fileUrl,
+    fileUrl,
     mimeType: document.mimeType,
     fileSize: document.fileSize,
     documentType: document.documentType,
