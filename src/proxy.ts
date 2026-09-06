@@ -22,11 +22,11 @@ const isParentApproveRoute = createRouteMatcher([
 ]);
 
 /**
- * Webhook routes — accessed by external services (httpSMS, etc.).
- * Authenticated via JWT/webhook signing keys, not Clerk sessions.
+ * Webhook routes — accessed by external services (Clerk via Svix).
+ * Authenticated via webhook signing keys, not Clerk sessions.
  */
 const isWebhookRoute = createRouteMatcher([
-  "/api/v1/webhooks(.*)",
+  "/api/webhooks(.*)",
 ]);
 
 export default clerkMiddleware(
@@ -50,7 +50,7 @@ export default clerkMiddleware(
     }
 
     // ── Webhook routes ──────────────────────────────────────────────
-    // Accessed by external services (httpSMS, etc.) with their own auth.
+    // Accessed by external services (Clerk via Svix) with their own auth.
     if (isWebhookRoute(request)) {
       return NextResponse.next();
     }

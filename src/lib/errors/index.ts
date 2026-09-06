@@ -7,4 +7,5 @@ export { ConfigurationError } from "./configuration-error";
 export { ConflictError } from "./conflict-error";
 export { NotFoundError } from "./not-found-error";
 export { PermissionError } from "./permission-error";
+export { TooManyRequestsError } from "./rate-limit-error";
 export { ValidationError } from "./validation-error";

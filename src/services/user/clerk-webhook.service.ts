@@ -22,12 +22,26 @@ export async function handleClerkWebhookEvent(evt: WebhookEvent): Promise<void> 
         }
       }
 
-      await userRepository.create({
-        clerkId: id,
-        fullName,
-        email: email ?? undefined,
-        profileImageUrl: image_url ?? undefined,
-      });
+      // Concurrent duplicate deliveries race the check-then-insert above.
+      // The clerk_id unique index rejects the loser with 23505 — refetch
+      // the winner instead of surfacing an opaque 500.
+      try {
+        await userRepository.create({
+          clerkId: id,
+          fullName,
+          email: email ?? undefined,
+          profileImageUrl: image_url ?? undefined,
+        });
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          "code" in error &&
+          (error as { code?: unknown }).code === "23505"
+        ) {
+          break;
+        }
+        throw error;
+      }
       break;
     }
 
@@ -36,7 +50,12 @@ export async function handleClerkWebhookEvent(evt: WebhookEvent): Promise<void> 
       const email = email_addresses?.[0]?.email_address ?? null;
       const fullName = [first_name, last_name].filter(Boolean).join(" ") || "Unknown";
 
-      await userRepository.updateProfile(id, {
+      // Repositories key on the internal PK — resolve the Clerk id first,
+      // otherwise profile sync is a silent no-op.
+      const existing = await userRepository.findByClerkId(id);
+      if (!existing) break;
+
+      await userRepository.updateProfile(existing.id, {
         fullName,
         email: email ?? undefined,
         profileImageUrl: image_url ?? undefined,
@@ -46,9 +65,12 @@ export async function handleClerkWebhookEvent(evt: WebhookEvent): Promise<void> 
 
     case "user.deleted": {
       const { id } = evt.data;
-      if (id) {
-        await userRepository.softDelete(id);
-      }
+      if (!id) break;
+      // Same internal-PK resolution: without it deprovisioning silently
+      // no-ops and ex-staff rows stay active.
+      const existing = await userRepository.findByClerkId(id);
+      if (!existing) break;
+      await userRepository.softDelete(existing.id);
       break;
     }
   }

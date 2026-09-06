@@ -4,6 +4,7 @@ import { Webhook } from "svix";
 
 import { ApiResponse } from "@/lib/api/response";
 import { ConfigurationError,ValidationError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 import { handleClerkWebhookEvent } from "@/services/user/clerk-webhook.service";
 
 async function validateRequest(request: Request): Promise<WebhookEvent> {
@@ -33,7 +34,19 @@ async function validateRequest(request: Request): Promise<WebhookEvent> {
 
 export async function POST(request: Request) {
   try {
-    const evt = await validateRequest(request);
+    let evt;
+    try {
+      evt = await validateRequest(request);
+    } catch (error) {
+      // Security signal: forged or misconfigured webhook deliveries.
+      // svix-id is a sender-generated message id, safe to log.
+      const headerPayload = await headers();
+      logger.warn("Clerk webhook verification failed", {
+        svixId: headerPayload.get("svix-id") ?? "missing",
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
 
     await handleClerkWebhookEvent(evt);
 

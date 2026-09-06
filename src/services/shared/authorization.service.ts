@@ -140,6 +140,15 @@ export async function assertCanAccessLeave(
   }
 }
 
+/**
+ * Student-ownership check ONLY: students may access their own resources.
+ *
+ * Staff (ADMIN/POC/SUPER_ADMIN) pass through UNCHECKED by design — the
+ * caller must enforce the staff scope itself (hostelIds filter, or
+ * assertCanAccessLeave for single-resource reads). Do NOT use this as the
+ * sole authorization for a single-resource endpoint served to staff; that
+ * skips the hostel scope (see listQrPasses/listLeaveExtensions fix).
+ */
 export async function verifyStudentOwnership(
   currentUser: CurrentUser,
   resourceStudentId: string,

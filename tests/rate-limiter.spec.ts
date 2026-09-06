@@ -10,7 +10,7 @@ vi.mock("@/db/repositories/rate-limit/rate-limit.repository", () => ({
 }));
 
 import { rateLimit } from "@/lib/rate-limiter";
-import { ValidationError } from "@/lib/errors";
+import { TooManyRequestsError } from "@/lib/errors";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -27,16 +27,19 @@ describe("rateLimit", () => {
     await expect(rateLimit("approve-decision:tok", 10, 900_000)).resolves.toBeUndefined();
   });
 
-  it("throws ValidationError once the limit is exceeded", async () => {
+  it("throws TooManyRequestsError (429) once the limit is exceeded", async () => {
     mockIncrement.mockResolvedValue({
       key: "approve-decision:tok",
       count: 11,
       resetAt: new Date(Date.now() + 300_000),
     });
 
-    await expect(rateLimit("approve-decision:tok", 10, 900_000)).rejects.toBeInstanceOf(
-      ValidationError
+    const failure = await rateLimit("approve-decision:tok", 10, 900_000).catch(
+      (e: unknown) => e
     );
+    expect(failure).toBeInstanceOf(TooManyRequestsError);
+    expect((failure as TooManyRequestsError).statusCode).toBe(429);
+    expect((failure as TooManyRequestsError).retryAfterSeconds).toBeGreaterThan(0);
   });
 
   it("resets the window when the server reports a fresh counter", async () => {

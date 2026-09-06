@@ -1,6 +1,7 @@
 import { ZodError } from "zod";
 
 import { AppError } from "@/lib/errors/app-error";
+import { TooManyRequestsError } from "@/lib/errors/rate-limit-error";
 import { logger } from "@/lib/logger";
 
 export class ApiResponse {
@@ -18,7 +19,7 @@ export class ApiResponse {
     return this.success(data, 201);
   }
 
-  static error(code: string, message: string, status: number = 500) {
+  static error(code: string, message: string, status: number = 500, headers?: Record<string, string>) {
     return Response.json(
       {
         success: false,
@@ -27,11 +28,18 @@ export class ApiResponse {
           message,
         },
       },
-      { status }
+      { status, headers }
     );
   }
 
   static fromError(error: unknown) {
+    if (error instanceof TooManyRequestsError) {
+      // Rate-limit responses carry Retry-After so clients/WAFs can back
+      // off instead of mistaking throttling for a validation failure.
+      return this.error(error.code, error.message, error.statusCode, {
+        "Retry-After": String(error.retryAfterSeconds),
+      });
+    }
     if (error instanceof AppError) {
       return this.error(error.code, error.message, error.statusCode);
     }

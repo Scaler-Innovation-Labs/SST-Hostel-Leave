@@ -1,5 +1,6 @@
 import { rateLimitRepository } from "@/db/repositories/rate-limit/rate-limit.repository";
-import { ValidationError } from "@/lib/errors";
+import { TooManyRequestsError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 
 /**
  * Fixed-window rate limiter backed by PostgreSQL.
@@ -24,8 +25,16 @@ export async function rateLimit(
       1,
       Math.ceil((entry.resetAt.getTime() - Date.now()) / 1000)
     );
-    throw new ValidationError(
+    // Security signal: rate-limit hits on token-gated endpoints indicate
+    // probing. Log the key PREFIX only — keys embed token hashes which
+    // must not enter logs even though they are one-way.
+    logger.warn("Rate limit exceeded", {
+      scope: key.split(":")[0] ?? "unknown",
+      retryAfterSeconds: retryAfter,
+    });
+    throw new TooManyRequestsError(
       `Too many attempts. Please try again in ${retryAfter} seconds.`,
+      retryAfter
     );
   }
 }
