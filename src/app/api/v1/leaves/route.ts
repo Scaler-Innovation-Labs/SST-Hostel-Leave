@@ -1,5 +1,6 @@
 import createLeaveSchema from "@/dto/leave/create-leave.dto";
 import listLeavesSchema from "@/dto/leave/list-leaves.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
   try {
     const currentUser = requireAnyRole(await requireAuth(), [ROLES.STUDENT]);
 
-    const body = await request.json();
+    const body = await readBoundedJson(request);
     const dto = createLeaveSchema.parse(body);
 
     const result = await createLeave(dto, currentUser);

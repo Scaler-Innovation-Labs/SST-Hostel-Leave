@@ -3,10 +3,12 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { type LeaveApproval,leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
+import { studentRepository } from "@/db/repositories/student/student.repository";
 import type { ListApprovalsQuery } from "@/dto/approval/list-approvals.dto";
 import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
-import { getScopedHostelIds, isStaffScopeRestricted, verifyStudentOwnership } from "@/services/shared/authorization.service";
+import { AuthorizationError } from "@/lib/errors";
+import { assertCanAccessLeave, getScopedHostelIds, isStaffScopeRestricted } from "@/services/shared/authorization.service";
 
 export async function listApprovals(
   query: ListApprovalsQuery,
@@ -18,10 +20,25 @@ export async function listApprovals(
   limit: number;
   totalPages: number;
 }> {
+  // Student scope is FORCED (same pattern as listLeaves): without this,
+  // an unfiltered student list call would return every student's
+  // approval-chain metadata. Staff scoping stays hostel-based below.
+  let forcedStudentId: string | undefined;
+  if (currentUser.roles.includes(ROLES.STUDENT)) {
+    const student = await studentRepository.findByUserId(currentUser.id);
+    if (!student) {
+      throw new AuthorizationError("Student profile not found");
+    }
+    forcedStudentId = student.id;
+  }
+
   if (query.leaveRequestId) {
     const leave = await leaveRepository.findById(query.leaveRequestId);
     if (leave) {
-      await verifyStudentOwnership(currentUser, leave.studentId);
+      // Scope-aware (not verifyStudentOwnership): hostel-scoped staff get
+      // 403 cross-hostel instead of a silent empty list, and students are
+      // confined to their own leaves even before the forced filter below.
+      await assertCanAccessLeave(currentUser, leave);
     }
   }
 
@@ -48,6 +65,7 @@ export async function listApprovals(
   return leaveApprovalRepository.findByFilters({
     status: effectiveStatus,
     leaveRequestId: query.leaveRequestId,
+    studentId: forcedStudentId,
     dateFrom: query.dateFrom ? new Date(query.dateFrom) : undefined,
     dateTo: query.dateTo ? new Date(query.dateTo) : undefined,
     search: query.search,

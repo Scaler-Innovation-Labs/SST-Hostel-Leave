@@ -4,6 +4,7 @@ import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
+import { rateLimit } from "@/lib/rate-limiter";
 import { approveExtension } from "@/services/leave/approve-extension.service";
 import { rejectExtension } from "@/services/leave/reject-extension.service";
 
@@ -13,6 +14,8 @@ export async function POST(
 ) {
   try {
     const currentUser = requireAnyRole(await requireAuth(), [ROLES.POC, ROLES.ADMIN, ROLES.SUPER_ADMIN]);
+
+    await rateLimit(`approve:${currentUser.id}`, 60, 60_000);
 
     const body = await request.json();
     const dto = approveLeaveSchema.parse(body);

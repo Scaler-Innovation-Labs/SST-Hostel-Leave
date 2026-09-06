@@ -20,7 +20,9 @@ import { userRepository } from "@/db/repositories/user/user.repository";
 import type { CreateLeaveDto } from "@/dto/leave/create-leave.dto";
 import { getPublicBaseUrl } from "@/lib/base-url";
 import { db } from "@/lib/db";
-import { AuthorizationError, ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
+import { AuthorizationError, ConflictError, NotFoundError,
+ValidationError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 import { resolveApprovalSource } from "@/lib/workflows/resolve-approval-source";
 import { auditService } from "@/services/audit/audit.service";
 import { leaveTypeVersionService } from "@/services/leave/leave-type-version.service";
@@ -86,7 +88,10 @@ export async function createLeave(
 
     const policyTemplateCode = getPolicyRejectionTemplateCode(leaveType.code);
     if (policyTemplateCode) {
-      await notificationService.notify(
+      // Best-effort: the student is informed synchronously via the
+      // ConflictError below. A provider outage here must not fail the
+      // rejection itself — but it must be visible, not silent.
+      const notifyResult = await notificationService.notify(
         NOTIFICATION_EVENT.LEAVE_REJECTED,
         {
           leaveTypeId: leaveType.id,
@@ -106,6 +111,13 @@ export async function createLeave(
           },
         },
       );
+      if (!notifyResult.success) {
+        logger.warn("Policy-rejection notification failed", {
+          studentId: student.id,
+          leaveTypeId: leaveType.id,
+          failures: notifyResult.failures,
+        });
+      }
     }
 
     await leaveRejectionRepository.create({
@@ -350,14 +362,14 @@ export async function createLeave(
 }
 
 const POLICY_REJECTION_TEMPLATES: Record<string, string> = {
-  RE_EXAM: "leave_rejected_email_re_exam_policy",
+  EXAM_LEAVE: "leave_rejected_email_exam_leave_policy",
   LONG_LEAVE: "leave_rejected_email_long_leave_admin",
   LATE_ENTRY: "leave_rejected_email_late_entry_admin",
   LATE_STAY_COLLEGE: "leave_rejected_email_late_stay_admin",
   DIFFERENT_HOSTEL: "leave_rejected_email_diff_hostel_admin",
   HOLIDAY: "leave_rejected_email_holiday_admin",
   INTERNSHIP: "leave_rejected_email_internship_admin",
-  MARRIAGE_BEREAVEMENT: "leave_rejected_email_marriage_policy",
+  ATTENDANCE_EXCEPTION: "leave_rejected_email_attendance_exception_policy",
 };
 
 function getPolicyRejectionTemplateCode(leaveTypeCode: string): string | null {

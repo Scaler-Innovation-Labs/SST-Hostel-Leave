@@ -3,11 +3,18 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const mockFindByFilters = vi.fn();
 const mockFindById = vi.fn();
-const mockVerifyStudentOwnership = vi.fn();
+const mockAssertCanAccessLeave = vi.fn();
+const mockFindStudentByUserId = vi.fn();
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
     findById: (...args: any[]) => mockFindById(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/student/student.repository", () => ({
+  studentRepository: {
+    findByUserId: (...args: any[]) => mockFindStudentByUserId(...args),
   },
 }));
 
@@ -18,7 +25,7 @@ vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
 }));
 
 vi.mock("@/services/shared/authorization.service", () => ({
-  verifyStudentOwnership: (...args: any[]) => mockVerifyStudentOwnership(...args),
+  assertCanAccessLeave: (...args: any[]) => mockAssertCanAccessLeave(...args),
   isStaffScopeRestricted: () => false,
   getScopedHostelIds: () => [],
 }));
@@ -37,7 +44,8 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockFindByFilters.mockResolvedValue(MOCK_RESULT);
   mockFindById.mockResolvedValue(null);
-  mockVerifyStudentOwnership.mockResolvedValue(undefined);
+  mockAssertCanAccessLeave.mockResolvedValue(undefined);
+  mockFindStudentByUserId.mockResolvedValue({ id: "S1" });
 });
 
 describe("listApprovals service", () => {
@@ -58,7 +66,7 @@ describe("listApprovals service", () => {
     );
   });
 
-  it("filters by leaveRequestId and verifies ownership", async () => {
+  it("checks scope-aware access for chain requests", async () => {
     mockFindById.mockResolvedValue({ id: "LR1", studentId: "S1" });
 
     await listApprovals(
@@ -67,15 +75,15 @@ describe("listApprovals service", () => {
     );
 
     expect(mockFindById).toHaveBeenCalledWith("LR1");
-    expect(mockVerifyStudentOwnership).toHaveBeenCalledWith(
+    expect(mockAssertCanAccessLeave).toHaveBeenCalledWith(
       { id: "U1", roles: ["ADMIN"] },
-      "S1"
+      { id: "LR1", studentId: "S1" }
     );
   });
 
-  it("throws when verifyStudentOwnership fails", async () => {
+  it("throws when scope check fails", async () => {
     mockFindById.mockResolvedValue({ id: "LR1", studentId: "S1" });
-    mockVerifyStudentOwnership.mockRejectedValue(new Error("Not authorized"));
+    mockAssertCanAccessLeave.mockRejectedValue(new Error("Not authorized"));
 
     await expect(
       listApprovals(
@@ -83,6 +91,28 @@ describe("listApprovals service", () => {
         { id: "U2", roles: ["STUDENT"] }
       )
     ).rejects.toThrow("Not authorized");
+  });
+
+  it("forces student scope so unfiltered student calls cannot list everyone", async () => {
+    mockFindStudentByUserId.mockResolvedValue({ id: "S9" });
+
+    await listApprovals(
+      { page: 1, limit: 20 },
+      { id: "U9", roles: ["STUDENT"] }
+    );
+
+    expect(mockFindByFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ studentId: "S9" })
+    );
+  });
+
+  it("rejects students without a profile", async () => {
+    mockFindStudentByUserId.mockResolvedValue(null);
+
+    await expect(
+      listApprovals({ page: 1, limit: 20 }, { id: "U9", roles: ["STUDENT"] })
+    ).rejects.toThrow();
+    expect(mockFindByFilters).not.toHaveBeenCalled();
   });
 
   it("scopes to POC user when current user has POC role", async () => {

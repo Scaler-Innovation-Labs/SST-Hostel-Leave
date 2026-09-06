@@ -9,6 +9,8 @@ const mockRequireRole = vi.fn().mockReturnValue({ id: "U1", roles: ["STUDENT"] }
 
 vi.mock("@/lib/db", () => ({ db: { transaction: (cb: any) => cb({}) } }));
 
+vi.mock("@/lib/rate-limiter", () => ({ rateLimit: vi.fn().mockResolvedValue(undefined) }));
+
 vi.mock("@/lib/auth/require-auth", () => ({
   requireAuth: (...args: any[]) => mockRequireAuth(...args),
 }));

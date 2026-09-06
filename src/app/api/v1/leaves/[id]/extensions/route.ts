@@ -1,5 +1,6 @@
 import listLeaveExtensionsSchema from "@/dto/extension/list-leave-extensions.dto";
 import createExtensionSchema from "@/dto/leave/create-extension.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -43,7 +44,7 @@ export async function POST(
       ROLES.SUPER_ADMIN,
     ]);
     const { id } = await routeContext.params;
-    const body = await request.json();
+    const body = await readBoundedJson(request);
     const dto = createExtensionSchema.parse(body);
     const result = await createExtension(id, dto, currentUser);
     return ApiResponse.success(result);

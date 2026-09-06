@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const mockFindById = vi.fn();
 const mockFindByLeaveRequestIdPaginated = vi.fn();
-const mockVerifyStudentOwnership = vi.fn();
+const mockAssertCanAccessLeave = vi.fn();
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
@@ -18,7 +18,7 @@ vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
 }));
 
 vi.mock("@/services/shared/authorization.service", () => ({
-  verifyStudentOwnership: (...args: any[]) => mockVerifyStudentOwnership(...args),
+  assertCanAccessLeave: (...args: any[]) => mockAssertCanAccessLeave(...args),
 }));
 
 import { listLeaveExtensions } from "@/services/leave/list-leave-extensions.service";
@@ -36,7 +36,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockFindById.mockResolvedValue({ id: "LR1", studentId: "S1" });
   mockFindByLeaveRequestIdPaginated.mockResolvedValue(MOCK_RESULT);
-  mockVerifyStudentOwnership.mockResolvedValue(undefined);
+  mockAssertCanAccessLeave.mockResolvedValue(undefined);
 });
 
 describe("listLeaveExtensions service", () => {
@@ -45,7 +45,10 @@ describe("listLeaveExtensions service", () => {
 
     expect(result).toEqual(MOCK_RESULT);
     expect(mockFindById).toHaveBeenCalledWith("LR1");
-    expect(mockVerifyStudentOwnership).toHaveBeenCalledWith({ id: "U1", roles: ["ADMIN"] }, "S1");
+    expect(mockAssertCanAccessLeave).toHaveBeenCalledWith(
+      { id: "U1", roles: ["ADMIN"] },
+      { id: "LR1", studentId: "S1" }
+    );
     expect(mockFindByLeaveRequestIdPaginated).toHaveBeenCalledWith("LR1", 1, 20);
   });
 
