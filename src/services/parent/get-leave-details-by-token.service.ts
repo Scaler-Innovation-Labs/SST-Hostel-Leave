@@ -4,7 +4,8 @@ import { leaveParentApprovalRepository } from "@/db/repositories/leave/leave-par
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository"
 import { parentRepository } from "@/db/repositories/parent/parent.repository"
 import { sha256 } from "@/lib/crypto"
-import { ConflictError, NotFoundError } from "@/lib/errors"
+import { NotFoundError, ValidationError } from "@/lib/errors"
+import { logger } from "@/lib/logger"
 
 export type LeaveDetailsResult = {
   approvalId: string
@@ -44,19 +45,31 @@ export async function getLeaveDetailsByToken(
   const approval =
     await leaveParentApprovalRepository.findByParentApprovalToken(tokenHash)
 
+  // Oracle hardening: invalid / expired / already-responded links all
+  // surface the SAME generic message. The real state is logged server-side
+  // (approval id only — never the raw token) for support triage.
+  // ValidationError carries the message verbatim (NotFoundError would append
+  // "not found"), keeping all three states byte-identical to the caller.
   if (!approval) {
-    throw new NotFoundError("Approval")
+    logger.warn("Parent approval link lookup failed: unknown token hash", {})
+    throw new ValidationError("Unable to process this approval link")
   }
 
   if (
     approval.parentApprovalExpiresAt &&
     new Date(approval.parentApprovalExpiresAt) < new Date()
   ) {
-    throw new ConflictError("Approval link has expired")
+    logger.warn("Parent approval link lookup failed: link expired", {
+      approvalId: approval.id,
+    })
+    throw new ValidationError("Unable to process this approval link")
   }
 
   if (approval.decision !== LEAVE_APPROVAL_DECISION.PENDING) {
-    throw new ConflictError("Approval already processed")
+    logger.warn("Parent approval link lookup failed: already processed", {
+      approvalId: approval.id,
+    })
+    throw new ValidationError("Unable to process this approval link")
   }
 
   const parentId = approval.approverParentId

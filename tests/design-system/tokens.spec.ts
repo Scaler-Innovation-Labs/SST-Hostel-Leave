@@ -29,7 +29,11 @@ const FILES = walk(SRC).filter((file) => !file.startsWith(VENDOR));
 function offenders(pattern: RegExp): string[] {
   return FILES.flatMap((file) => {
     const matches = readFileSync(file, "utf8").match(pattern) ?? [];
-    return matches.map((m) => `${path.relative(SRC, file)}: ${m}`);
+    // path.relative yields backslashes on Windows; the exclusion filters
+    // below are written with forward slashes (matching Linux CI), so
+    // normalize here to keep both platforms honest.
+    const rel = path.relative(SRC, file).replace(/\\/g, "/");
+    return matches.map((m) => `${rel}: ${m}`);
   });
 }
 

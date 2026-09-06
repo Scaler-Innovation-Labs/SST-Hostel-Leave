@@ -4,8 +4,16 @@ type LogLevel = (typeof LOG_LEVELS)[number];
 
 type LogMeta = Record<string, unknown>;
 
-const currentLevel: LogLevel =
-  (process.env.LOG_LEVEL as LogLevel) ?? "info";
+function isLogLevel(value: unknown): value is LogLevel {
+  return (
+    typeof value === "string" &&
+    (LOG_LEVELS as readonly string[]).includes(value)
+  );
+}
+
+const currentLevel: LogLevel = isLogLevel(process.env.LOG_LEVEL)
+  ? process.env.LOG_LEVEL
+  : "info";
 
 function shouldLog(level: LogLevel): boolean {
   return LOG_LEVELS.indexOf(level) >= LOG_LEVELS.indexOf(currentLevel);

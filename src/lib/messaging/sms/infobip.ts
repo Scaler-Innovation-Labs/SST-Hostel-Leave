@@ -73,6 +73,9 @@ export class InfobipSmsProvider implements SmsProvider {
               "Content-Type": "application/json",
               Accept: "application/json",
             },
+            // Bounded: without a deadline a hung socket is retried 4x by
+            // withRetry with no upper bound on total time.
+            signal: AbortSignal.timeout(15_000),
             body: JSON.stringify({
               messages: [
                 {

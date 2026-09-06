@@ -104,6 +104,24 @@ async function handleLeaveDecision(
   dto: ParentDecisionDto,
   tx: DbClient
 ): Promise<ParentDecisionResult> {
+  // Serialize with staff approve/override on the leave row: without the
+  // lock, a concurrent staff decision could interleave — both txs see a
+  // PENDING approval, both advance state, last-writer-wins silently.
+  const lockedLeave = await leaveRepository.findByIdForUpdate(
+    approval.leaveRequestId!,
+    tx
+  );
+
+  if (!lockedLeave) {
+    throw new NotFoundError("LeaveRequest");
+  }
+
+  if (lockedLeave.status !== LEAVE_REQUEST_STATUS.PENDING) {
+    throw new ConflictError(
+      `Leave request is no longer pending (status: ${lockedLeave.status})`
+    );
+  }
+
   if (dto.decision === LEAVE_APPROVAL_DECISION.REJECTED) {
     await leaveRepository.updateById(
       approval.leaveRequestId!,
@@ -116,15 +134,16 @@ async function handleLeaveDecision(
       tx
     );
 
-    await outboxService.publish({
-      eventType: OUTBOX_EVENT_TYPE.LEAVE_REJECTED,
-      aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
-      aggregateId: approval.leaveRequestId!,
-      payload: {
-        leaveRequestId: approval.leaveRequestId,
-        rejectedBy: "PARENT",
-      },
-    }, tx);
+      await outboxService.publish({
+        eventType: OUTBOX_EVENT_TYPE.LEAVE_REJECTED,
+        aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
+        aggregateId: approval.leaveRequestId!,
+        payload: {
+          leaveRequestId: approval.leaveRequestId,
+          rejectedBy: "PARENT",
+          comments: dto.comments ?? "",
+        },
+      }, tx);
   } else {
     const next =
       await leaveApprovalRepository.findNextByEntityAndDecision(
@@ -198,6 +217,7 @@ async function handleLeaveDecision(
         payload: {
           leaveRequestId: approval.leaveRequestId,
           studentId: approvedLeave?.studentId,
+          comments: dto.comments ?? "",
         },
       }, tx);
 
@@ -220,6 +240,23 @@ async function handleExtensionDecision(
 ): Promise<ParentDecisionResult> {
   const extensionId = approval.leaveExtensionId!;
   const leaveRequestId = approval.leaveExtension?.leaveRequestId ?? approval.leaveRequestId ?? "";
+
+  // Same serialization as the leave path: lock the extension row and
+  // require it still be actionable before writing a decision outcome.
+  const lockedExtension = await leaveExtensionRepository.findByIdForUpdate(
+    extensionId,
+    tx
+  );
+
+  if (!lockedExtension) {
+    throw new NotFoundError("LeaveExtension");
+  }
+
+  if (lockedExtension.status !== LEAVE_REQUEST_STATUS.PENDING) {
+    throw new ConflictError(
+      `Leave extension is no longer pending (status: ${lockedExtension.status})`
+    );
+  }
 
   if (dto.decision === LEAVE_APPROVAL_DECISION.REJECTED) {
     await leaveExtensionRepository.updateById(

@@ -188,7 +188,6 @@ async function getStudentStats(userId: string): Promise<StudentDashboardStats> {
     activeQr: activeQr
       ? {
           passId: activeQr.id,
-          token: activeQr.tokenHash.slice(0, 8) + "...",
           expiresAt: activeQr.expiresAt?.toISOString() ?? "",
         }
       : null,

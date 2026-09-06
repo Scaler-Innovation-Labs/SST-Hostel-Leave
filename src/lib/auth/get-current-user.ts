@@ -15,13 +15,18 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   }
 
   const email = clerkUser.emailAddresses[0]?.emailAddress ?? null;
+  // Only a VERIFIED Clerk email may claim a pre-provisioned DB account.
+  // Linking on an unverified address would let anyone registering the
+  // victim's email inherit their roles/scopes (A07).
+  const isEmailVerified =
+    clerkUser.emailAddresses[0]?.verification?.status === "verified";
 
   let dbUser: Awaited<ReturnType<typeof userRepository.findByClerkId>> | null = null;
 
   try {
     dbUser = await userRepository.findByClerkId(clerkUser.id);
 
-    if (!dbUser && email) {
+    if (!dbUser && email && isEmailVerified) {
       dbUser = await userRepository.findByEmail(email);
       if (dbUser) {
         await userRepository.updateClerkId(dbUser.id, clerkUser.id);

@@ -31,6 +31,7 @@ async findByEntity(
   entityId: string,
   dbClient: Pick<typeof db, "select"> = db
 ): Promise<AuditLog[]> {
+  // Bounded: entity histories feed admin UIs, never bulk export.
   return dbClient
     .select()
     .from(auditLogs)
@@ -48,7 +49,8 @@ async findByEntity(
     )
     .orderBy(
       desc(auditLogs.createdAt)
-    );
+    )
+    .limit(500);
 },
 
 /**

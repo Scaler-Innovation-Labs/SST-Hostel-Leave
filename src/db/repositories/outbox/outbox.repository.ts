@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, asc, eq, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 
 import { OUTBOX_STATUS } from "@/constants/outbox/outbox-status";
 import { outboxEvents } from "@/db";
@@ -242,11 +242,24 @@ export const outboxRepository = {
    * goes back to PENDING (with one more attempt counted) so the next worker
    * run picks it up again — previously the event stayed PROCESSING forever
    * and was invisible to both findPending and findFailed.
+   *
+   * Backoff: nextAttemptAt pushes the retry 15min × 2^attempts out (capped
+   * at 4h). claimNext already filters on nextAttemptAt — previously nothing
+   * ever wrote it, so every retry was immediately eligible.
    */
   async releaseForRetry(
     id: string,
-    dbClient: Pick<typeof db, "update"> = db
+    dbClient: Pick<typeof db, "update" | "select"> = db
   ): Promise<OutboxEvent | null> {
+    const current = await dbClient
+      .select({ attemptCount: outboxEvents.attemptCount })
+      .from(outboxEvents)
+      .where(eq(outboxEvents.id, id))
+      .limit(1);
+
+    const attempts = (current[0]?.attemptCount ?? 0) + 1;
+    const backoffMinutes = Math.min(15 * 2 ** Math.min(attempts, 4), 240);
+
     const rows = await dbClient
       .update(outboxEvents)
       .set({
@@ -254,6 +267,7 @@ export const outboxRepository = {
         attemptCount: sql`COALESCE(${outboxEvents.attemptCount}, 0) + 1`,
         claimedAt: null,
         leaseExpiresAt: null,
+        nextAttemptAt: new Date(Date.now() + backoffMinutes * 60_000),
       })
       .where(
         and(
@@ -264,6 +278,71 @@ export const outboxRepository = {
       .returning();
 
     return rows[0] ?? null;
+  },
+
+  /**
+   * Retention purge candidates: PROCESSED rows whose delivery completed
+   * before `cutoff`. PENDING / PROCESSING / FAILED rows are never
+   * candidates — they may still be needed for delivery or retry.
+   *
+   * `processedAt` is the primary clock (set by markProcessed). Legacy rows
+   * with NULL processedAt fall back to createdAt so they cannot accumulate
+   * forever. Only ids are selected — payloads (which may carry bearer
+   * approval links) are never loaded into memory by the purge path.
+   */
+  async findProcessedBefore(
+    cutoff: Date,
+    limit: number = 500,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<Array<Pick<OutboxEvent, "id">>> {
+    const rows = await dbClient
+      .select({ id: outboxEvents.id })
+      .from(outboxEvents)
+      .where(
+        and(
+          eq(outboxEvents.status, OUTBOX_STATUS.PROCESSED),
+          or(
+            and(
+              isNotNull(outboxEvents.processedAt),
+              lt(outboxEvents.processedAt, cutoff)
+            ),
+            and(
+              isNull(outboxEvents.processedAt),
+              lt(outboxEvents.createdAt, cutoff)
+            )
+          )
+        )
+      )
+      .orderBy(asc(outboxEvents.processedAt))
+      .limit(limit);
+
+    return rows;
+  },
+
+  /**
+   * Deletes the given rows only if they are still PROCESSED. The status is
+   * re-checked here (not just in the finder) so a concurrent state change
+   * can never cause deletion of a row that left PROCESSED. PROCESSED is
+   * terminal in every other transition (markForRetry/releaseForRetry only
+   * accept FAILED/PROCESSING), so this guard is strictly defense-in-depth.
+   */
+  async deleteByIdsIfProcessed(
+    ids: string[],
+    dbClient: Pick<typeof db, "delete"> = db
+  ): Promise<number> {
+    if (ids.length === 0) return 0;
+
+    const rows = await dbClient
+      .delete(outboxEvents)
+      .where(
+        and(
+          inArray(outboxEvents.id, ids),
+          eq(outboxEvents.status, OUTBOX_STATUS.PROCESSED)
+        )
+      )
+      .returning({ id: outboxEvents.id });
+
+    return rows.length;
   },
 
   /**

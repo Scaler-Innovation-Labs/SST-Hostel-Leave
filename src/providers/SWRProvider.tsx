@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { SWRConfig } from "swr";
+import { useAuth } from "@clerk/nextjs";
+import { type ReactNode,useEffect, useRef } from "react";
+import { SWRConfig, useSWRConfig } from "swr";
 
 type SWRProviderProps = {
   children: ReactNode;
@@ -31,7 +32,34 @@ export function SWRProvider({ children }: SWRProviderProps) {
         keepPreviousData: true, // Keep showing old data while fetching new
       }}
     >
+      <IdentityCacheClearer />
       {children}
     </SWRConfig>
   );
+}
+
+/**
+ * The provider lives in the root layout, so its cache survives sign-out
+ * and account switches within one browser session. Role-scoped lists
+ * (approvals, movements, dashboard stats) from the previous identity
+ * would otherwise render for the next one until remount. Clear on
+ * identity change — never on first load.
+ */
+function IdentityCacheClearer(): ReactNode {
+  const { userId } = useAuth();
+  const { mutate } = useSWRConfig();
+  const previousUserId = useRef<string | null | undefined>(userId);
+
+  useEffect(() => {
+    if (previousUserId.current && previousUserId.current !== userId) {
+      void mutate(
+        () => true,
+        undefined,
+        { revalidate: false }
+      );
+    }
+    previousUserId.current = userId;
+  }, [userId, mutate]);
+
+  return null;
 }

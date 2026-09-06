@@ -1,41 +1,21 @@
 "use client";
 
 import { Loader2 } from "lucide-react";
-import QRCode from "qrcode";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { cn } from "@/lib/utils";
 
 type QrCodeDisplayProps = {
-  token: string;
+  /** Hosted PNG URL (same bytes as the approval email): /api/v1/qr/{passId}/image */
+  imageUrl: string;
   size?: number;
   className?: string;
+  onError?: () => void;
 }
 
-export function QrCodeDisplay({ token, size = 200, className }: QrCodeDisplayProps) {
-  const [dataUrl, setDataUrl] = useState<string | null>(null);
+export function QrCodeDisplay({ imageUrl, size = 200, className, onError }: QrCodeDisplayProps) {
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    QRCode.toDataURL(token, {
-      width: size,
-      margin: 2,
-      color: {
-        dark: "#000000",
-        light: "#ffffff",
-      },
-    })
-      .then((url) => {
-        if (!cancelled) setDataUrl(url);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Failed to generate QR");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [token, size]);
 
   if (error) {
     return (
@@ -45,24 +25,26 @@ export function QrCodeDisplay({ token, size = 200, className }: QrCodeDisplayPro
     );
   }
 
-  if (!dataUrl) {
-    return (
-      <div className="flex items-center justify-center" style={{ width: size, height: size }}>
-        <Loader2 className="h-6 w-6 animate-spin text-muted" />
-      </div>
-    );
-  }
-
   return (
     <div className={cn("inline-block rounded-xl bg-white p-3 shadow-sm", className)}>
+      {!loaded && (
+        <div className="flex items-center justify-center" style={{ width: size, height: size }}>
+          <Loader2 className="h-6 w-6 animate-spin text-muted" />
+        </div>
+      )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={dataUrl}
+        src={imageUrl}
         alt="QR Code"
         width={size}
         height={size}
         className="block"
-        style={{ imageRendering: "pixelated" }}
+        style={{ imageRendering: "pixelated", display: loaded ? "block" : "none" }}
+        onLoad={() => setLoaded(true)}
+        onError={() => {
+          setError("Failed to load QR");
+          onError?.();
+        }}
       />
     </div>
   );

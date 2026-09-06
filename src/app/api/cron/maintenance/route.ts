@@ -1,14 +1,11 @@
 import { ApiResponse } from "@/lib/api/response";
+import { checkCronAuth } from "@/lib/auth/cron-auth";
 import { runExpireLeavesJob } from "@/services/cron/expire-leaves.job";
 
 export async function GET(request: Request) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const cronSecret = process.env.CRON_SECRET;
-
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-      return ApiResponse.error("UNAUTHORIZED", "Unauthorized", 401);
-    }
+    const unauthorized = checkCronAuth(request);
+    if (unauthorized) return unauthorized;
 
     // Single lifecycle pass (contract §3): auto-complete non-QR leaves (T16),
     // expire never-scanned QR leaves (T6), then atomically mark open sessions

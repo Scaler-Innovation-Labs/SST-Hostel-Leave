@@ -33,7 +33,7 @@ describe("GET /api/v1/admin/config", () => {
       email: { configured: true, apiKey: true, fromEmail: true },
       sms: { configured: true, apiKey: true, senderId: true },
       slack: { configured: false, botToken: false, channelId: false },
-      system: { baseUrl: true, appUrl: true, authSecret: true },
+      system: { baseUrl: true, appUrl: true },
     });
 
     const res = await GET();

@@ -10,7 +10,6 @@ import { QR_STATUS } from "@/constants/movement/qr-status";
 import { Button, Refusal, TECH_LABEL } from "@/design-system/sst";
 import { QrPassDialog } from "@/features/dashboard/components/QrPassDialog";
 import { useQrPasses } from "@/hooks/use-qr-passes";
-import { useQrToken } from "@/hooks/use-qr-token";
 import { generateQr } from "@/lib/api/movement-api";
 import { formatDateTime } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
@@ -45,26 +44,26 @@ function ScanRow({ label, at }: { label: string; at: string | null }) {
 /**
  * The gate pass for this leave.
  *
- * A pass is authorization, not history: one token per leave, served by the
- * API. Generating never destroys a working pass — the service is idempotent
- * for an active one and only re-issues a broken pass, so the emailed QR and
- * the one here stay the same code.
+ * A pass is authorization, not history: one QR per leave, rendered
+ * server-side from the encrypted credential — the exact same bytes as the
+ * approval email. The raw token never reaches the browser. Generating never
+ * destroys a working pass — the service is idempotent for an active one and
+ * only repairs a broken pass, so the emailed QR and the one here stay the
+ * same code.
  */
 export function LeaveQrPass({ leaveId }: { leaveId: string }) {
   const [generating, setGenerating] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [passOpen, setPassOpen] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
   const { qrPasses, mutate } = useQrPasses(leaveId);
-  const { storeToken, getToken } = useQrToken();
 
   const activePass = qrPasses.find((pass) => pass.status === QR_STATUS.ACTIVE);
   const latestPass = qrPasses[0] ?? null;
-  const token = activePass
-    ? (activePass.token ?? getToken(activePass.id) ?? null)
-    : null;
-  // sessionStorage is only a fallback for passes issued before raw tokens
-  // were stored server-side.
-  const needsRepair = Boolean(activePass && !token);
+  const qrImageUrl = activePass ? `/api/v1/qr/${activePass.id}/image` : null;
+  // The pass exists but its QR could not be rendered — repairable once on
+  // the server without invalidating anything.
+  const needsRepair = Boolean(activePass && (!qrImageUrl || imageFailed));
 
   async function handleGenerate() {
     if (!leaveId) return;
@@ -73,13 +72,10 @@ export function LeaveQrPass({ leaveId }: { leaveId: string }) {
     try {
       const result = (await generateQr(leaveId, "LEAVE_EXIT")) as {
         passId: string;
-        token: string;
       } | null;
-      if (result?.passId && result?.token) {
-        storeToken(result.passId, result.token, leaveId);
+      if (result?.passId) {
+        setImageFailed(false);
         toast.success("Gate pass ready");
-      } else if (result?.passId) {
-        toast.success("Gate pass is already active");
       }
     } catch (error) {
       const message =
@@ -120,7 +116,7 @@ export function LeaveQrPass({ leaveId }: { leaveId: string }) {
       icon={QrCode}
       defaultOpen={Boolean(activePass || latestPass)}
     >
-      {activePass && token ? (
+      {activePass && qrImageUrl && !imageFailed ? (
         <>
           <div className="flex flex-col items-center gap-4 rounded-xl border border-border bg-surface-sunken p-4 sm:flex-row sm:items-start">
             <button
@@ -133,7 +129,7 @@ export function LeaveQrPass({ leaveId }: { leaveId: string }) {
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               )}
             >
-              <QrCodeDisplay token={token} size={160} />
+              <QrCodeDisplay imageUrl={qrImageUrl} size={160} onError={() => setImageFailed(true)} />
             </button>
 
             <div className="min-w-0 flex-1">
@@ -160,7 +156,7 @@ export function LeaveQrPass({ leaveId }: { leaveId: string }) {
           <QrPassDialog
             open={passOpen}
             onOpenChange={setPassOpen}
-            token={token}
+            imageUrl={qrImageUrl}
             validFor={
               activePass.expiresAt
                 ? `Valid until ${formatDateTime(activePass.expiresAt)}.`
@@ -170,9 +166,9 @@ export function LeaveQrPass({ leaveId }: { leaveId: string }) {
         </>
       ) : needsRepair ? (
         <Refusal
-          what="This pass was issued before codes were stored on the server"
-          why="It's still valid — the code just isn't cached on this device."
-          whatNow="Fetch it once and the same pass stays good for this leave."
+          what="QR image unavailable"
+          why="Your pass exists but its QR could not be rendered."
+          whatNow="Repair it once on the server — the same QR stays valid for this leave."
           action={
             <Button
               size="sm"

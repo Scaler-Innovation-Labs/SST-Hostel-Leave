@@ -2,7 +2,7 @@ import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { type LeaveExtension,leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import type { CurrentUser } from "@/lib/auth/types";
 import { NotFoundError } from "@/lib/errors";
-import { verifyStudentOwnership } from "@/services/shared/authorization.service";
+import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
 export async function listLeaveExtensions(
   leaveRequestId: string,
@@ -14,7 +14,9 @@ export async function listLeaveExtensions(
     throw new NotFoundError("LeaveRequest");
   }
 
-  await verifyStudentOwnership(currentUser, leave.studentId);
+  // Scope-aware: students see only their own leaves; hostel-scoped
+  // ADMIN/POC see only leaves in their hostels.
+  await assertCanAccessLeave(currentUser, leave);
 
   return leaveExtensionRepository.findByLeaveRequestIdPaginated(leaveRequestId, query.page, query.limit);
 }

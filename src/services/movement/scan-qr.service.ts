@@ -339,6 +339,27 @@ export async function scanQrPass(
 				throw new ConflictError("QR pass is no longer active");
 			}
 
+			// Serialize with expire/cancel on the leave row (mirrors the
+			// RETURN path): without the lock, an expiry racing an exit
+			// could leave an exit movement on a non-approved leave.
+			const exitLeave = await leaveRepository.findByIdForUpdate(
+				pass.leaveRequestId,
+				tx
+			);
+
+			if (!exitLeave) {
+				throw new NotFoundError("LeaveRequest");
+			}
+
+			if (
+				exitLeave.status !== LEAVE_REQUEST_STATUS.APPROVED &&
+				exitLeave.status !== LEAVE_REQUEST_STATUS.OVERDUE
+			) {
+				throw new ConflictError(
+					`Cannot exit on leave in ${exitLeave.status} status`
+				);
+			}
+
 			const student = await studentRepository.findById(pass.studentId, tx);
 
 			if (!student) {
@@ -359,7 +380,12 @@ export async function scanQrPass(
 				scanResult: "SUCCESS",
 			}, tx);
 
-			await qrPassRepository.markAsFirstScanned(pass.id, tx);
+			// Guarded transition: null means a concurrent scan/invalidate
+			// won the race after our re-read — fail, don't double-exit.
+			const firstScanned = await qrPassRepository.markAsFirstScanned(pass.id, tx);
+			if (!firstScanned) {
+				throw new ConflictError("QR pass was concurrently scanned or invalidated");
+			}
 
 			const movementEvent = await recordMovement({
 				studentId: pass.studentId,
@@ -456,7 +482,12 @@ export async function scanQrPass(
 				scanResult: "SUCCESS",
 			}, tx);
 
-			await qrPassRepository.markAsClosed(pass.id, tx);
+			// Guarded transition: null means a concurrent return/invalidate
+			// closed the pass after our re-read — fail, don't double-enter.
+			const closed = await qrPassRepository.markAsClosed(pass.id, tx);
+			if (!closed) {
+				throw new ConflictError("QR pass was concurrently returned or invalidated");
+			}
 
 			const movementEvent = await recordMovement({
 				studentId: pass.studentId,

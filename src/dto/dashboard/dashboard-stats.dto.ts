@@ -31,9 +31,12 @@ export type StudentDashboardStats = {
     status: string;
   } | null;
   currentLocation: string;
+  /**
+   * The ACTIVE pass of the current leave. The QR renders server-side via
+   * /api/v1/qr/{passId}/image — no credential material is exposed here.
+   */
   activeQr: {
     passId: string;
-    token: string;
     expiresAt: string;
   } | null;
   approvalProgress: ApprovalStep[] | null;

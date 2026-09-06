@@ -31,8 +31,8 @@ export const qrPassRepository = {
 			qrType: QrType;
 			validFrom?: Date | null;
 			expiresAt: Date | null;
-			/** New raw pass token — replaces the old one (only used to repair legacy passes). */
-			token?: string;
+			/** Encrypted pass token envelope — replaces the old one (only used to repair/re-issue passes). */
+			tokenEnc?: string;
 		},
 		dbClient: QrPassDbClient = db
 	): Promise<QrPass> {
@@ -48,8 +48,8 @@ export const qrPassRepository = {
 			invalidatedAt: null,
 		};
 
-		if (input.token) {
-			setData.token = input.token;
+		if (input.tokenEnc !== undefined) {
+			setData.tokenEnc = input.tokenEnc;
 		}
 
 		const rows = await dbClient
@@ -146,36 +146,58 @@ export const qrPassRepository = {
 		return rows[0] ?? null;
 	},
 
-	async markAsFirstScanned(
-		id: string,
-		dbClient: Pick<typeof db, "update"> = db
-	): Promise<QrPass | null> {
-		const rows = await dbClient
-			.update(qrPasses)
-			.set({
-				firstScanAt: new Date(),
-			})
-			.where(eq(qrPasses.id, id))
-			.returning();
+  /**
+   * Guarded first-scan transition: succeeds only from ACTIVE with no prior
+   * scan. Returns null when a concurrent scan/invalidate won the race —
+   * callers must treat null as a conflict, never as success. The guard
+   * (not just the in-tx re-read) is what serializes simultaneous taps.
+   */
+  async markAsFirstScanned(
+    id: string,
+    dbClient: Pick<typeof db, "update"> = db
+  ): Promise<QrPass | null> {
+    const rows = await dbClient
+      .update(qrPasses)
+      .set({
+        firstScanAt: new Date(),
+      })
+      .where(
+        and(
+          eq(qrPasses.id, id),
+          eq(qrPasses.status, QR_STATUS.ACTIVE),
+          isNull(qrPasses.firstScanAt)
+        )
+      )
+      .returning();
 
-		return rows[0] ?? null;
-	},
+    return rows[0] ?? null;
+  },
 
-	async markAsClosed(
-		id: string,
-		dbClient: Pick<typeof db, "update"> = db
-	): Promise<QrPass | null> {
-		const rows = await dbClient
-			.update(qrPasses)
-			.set({
-				closedAt: new Date(),
-				status: QR_STATUS.USED,
-			})
-			.where(eq(qrPasses.id, id))
-			.returning();
+  /**
+   * Guarded close transition: succeeds only from ACTIVE. Concurrent
+   * close/invalidate yields null — scan paths throw, idempotent manual
+   * paths may ignore it.
+   */
+  async markAsClosed(
+    id: string,
+    dbClient: Pick<typeof db, "update"> = db
+  ): Promise<QrPass | null> {
+    const rows = await dbClient
+      .update(qrPasses)
+      .set({
+        closedAt: new Date(),
+        status: QR_STATUS.USED,
+      })
+      .where(
+        and(
+          eq(qrPasses.id, id),
+          eq(qrPasses.status, QR_STATUS.ACTIVE)
+        )
+      )
+      .returning();
 
-		return rows[0] ?? null;
-	},
+    return rows[0] ?? null;
+  },
 
 	async invalidate(
 		id: string,
@@ -313,8 +335,8 @@ export const qrPassRepository = {
       conditions.push(inArray(users.hostelId, opts.hostelIds));
     }
 
-    // Explicit columns only: the live DB predates migrate-0010 and has no
-    // qr_passes.token, so selecting the whole table would fail there.
+    // Explicit columns only: credential columns (token_enc) are never
+    // selected into bulk read-models.
     const rows = await dbClient
       .select({
         id: qrPasses.id,

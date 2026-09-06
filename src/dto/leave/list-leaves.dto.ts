@@ -9,10 +9,10 @@ export const listLeavesSchema = z.object({
   hostelId: z.string().uuid().optional(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
-  search: z.string().optional(),
+  search: z.string().trim().max(100).optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
-  sortBy: sortSchema.shape.sortBy,
+  sortBy: z.enum(["startAt", "endAt", "status", "requestNumber", "createdAt"]).optional(),
   sortOrder: sortSchema.shape.sortOrder,
 });
 

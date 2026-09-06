@@ -6,6 +6,7 @@ import { QR_STATUS } from "@/constants/movement/qr-status";
 import { getQrExpiryFromLeaveEnd } from "@/constants/movement/qr-window";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
@@ -16,6 +17,7 @@ import type { CurrentUser } from "@/lib/auth/types";
 import { sha256, toHex } from "@/lib/crypto";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
+import { encryptQrToken } from "@/lib/qr-token-crypto";
 import { getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
 import { auditService } from "@/services/audit/audit.service";
 import {
@@ -126,7 +128,10 @@ export async function approveLeave(
           leaveId,
           studentId: leaveInTx.studentId,
           decision: LEAVE_APPROVAL_DECISION.REJECTED,
-          rejectedBy: "ADMIN",
+          // POC-step rejections use the POC wording ("declined by {POC Name}");
+          // everything else keeps the admin wording.
+          rejectedBy: current.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL ? "POC" : "ADMIN",
+          comments: dto.comments ?? "",
         },
       }, tx);
 
@@ -212,6 +217,9 @@ export async function approveLeave(
       crypto.getRandomValues(raw);
       const token = toHex(raw);
       const tokenHash = await sha256(token);
+      // The raw token is NEVER persisted in plaintext — only the hash (gate
+      // scans) and the encrypted envelope (QR rendering) reach the database.
+      const tokenEnc = await encryptQrToken(token);
       const qrType = leaveType.qrMode === "RETURN_ONLY" ? "LEAVE_RETURN" : "LEAVE_EXIT";
 
       const pass = await qrPassRepository.create({
@@ -219,7 +227,7 @@ export async function approveLeave(
         studentId: leaveInTx.studentId,
         qrType,
         tokenHash,
-        token,
+        tokenEnc,
         status: QR_STATUS.ACTIVE,
         // Contract §2: the pass is window-gated — usable for exit only from
         // the leave start until the leave end (+ return grace).
@@ -248,6 +256,7 @@ export async function approveLeave(
         leaveId,
         studentId: leaveInTx.studentId,
         decision: LEAVE_APPROVAL_DECISION.APPROVED,
+        comments: dto.comments ?? "",
         ccEmails: dto.ccEmails ?? [],
       },
     }, tx);

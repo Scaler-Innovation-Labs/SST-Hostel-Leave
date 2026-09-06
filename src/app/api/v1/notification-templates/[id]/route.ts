@@ -1,4 +1,5 @@
 import { saveNotificationTemplateSchema } from "@/dto/notification/save-notification-template.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -21,7 +22,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
     const { id } = await params;
-    const dto = saveNotificationTemplateSchema.partial().parse(await request.json());
+    const dto = saveNotificationTemplateSchema.partial().parse(await readBoundedJson(request));
     return ApiResponse.success(await updateNotificationTemplate(id, dto, currentUser.id));
   } catch (error) {
     return ApiResponse.fromError(error);

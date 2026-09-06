@@ -18,7 +18,6 @@ export type ConfigStatus = {
   system: {
     baseUrl: boolean
     appUrl: boolean
-    authSecret: boolean
   }
 }
 
@@ -36,7 +35,6 @@ export function getConfigStatus(): ConfigStatus {
   const slackPocChannelId = !!process.env.SLACK_POC_CHANNEL_ID
   const baseUrl = !!process.env.NEXT_PUBLIC_BASE_URL
   const appUrl = !!process.env.NEXT_PUBLIC_APP_URL
-  const authSecret = !!process.env.AUTH_SECRET
 
   return {
     email: {
@@ -58,7 +56,6 @@ export function getConfigStatus(): ConfigStatus {
     system: {
       baseUrl,
       appUrl,
-      authSecret,
     },
   }
 }

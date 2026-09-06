@@ -8,6 +8,7 @@ import {
 import { getRejectionTemplateCode } from "@/constants/notification/rejection-template-code";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
+import { hostelRepository } from "@/db/repositories/hostel/hostel.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
@@ -140,6 +141,61 @@ async function resolveContext(
   if (payload.decision) variables.decision = String(payload.decision);
   if (studentRollNumber) variables.rollNumber = studentRollNumber;
 
+  // Reviewer comments for decision emails. `payload.comments` carries the
+  // comments of the decision being announced (approver on APPROVED, rejector
+  // on REJECTED) — kept separate from `reason`, which is the student's own
+  // leave reason. Templates embed {{reviewCommentsSection}}, pre-rendered
+  // here because the template engine has no conditionals: empty when the
+  // reviewer left no comments, so the line vanishes from the email.
+  const rawComments =
+    typeof payload.comments === "string" ? payload.comments.trim() : "";
+  if (rawComments) variables.reviewComments = rawComments;
+  variables.reviewCommentsSection = rawComments
+    ? `Reviewer comments: "${rawComments}"\n\n`
+    : "";
+
+  // Communication-kit placeholders. submittedForm carries per-type fields
+  // (destination hostel, expected entry time, POC name); the hostel row
+  // supplies the campus/hostel name for warden alerts.
+  const submittedForm = (leave?.submittedForm ?? {}) as Record<string, unknown>;
+  const formString = (key: string): string | undefined => {
+    const value = submittedForm[key];
+    return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+  };
+
+  let hostelName: string | undefined;
+  if (hostelId) {
+    const hostel = await hostelRepository.findById(hostelId);
+    if (hostel?.name) hostelName = hostel.name;
+  }
+
+  const requestedHostel =
+    formString("destinationHostel") ??
+    formString("hostelName") ??
+    (typeof payload.hostelName === "string" ? payload.hostelName : undefined);
+  if (requestedHostel && !variables.hostelName) variables.hostelName = requestedHostel;
+  if (hostelName && !variables.hostelName) variables.hostelName = hostelName;
+  // {Campus} in warden alerts: the student's hostel name is the closest
+  // stored value (there is no separate campus entity).
+  if (hostelName && !variables.campus) variables.campus = hostelName;
+
+  const pocName =
+    formString("pocName") ??
+    (typeof payload.pocName === "string" ? payload.pocName : undefined);
+  if (pocName && !variables.pocName) variables.pocName = pocName;
+  if (!variables.pocName) variables.pocName = "POC";
+
+  const expectedEntryTime =
+    formString("expectedEntryTime") ??
+    formString("expected_entry_time") ??
+    formString("entryTime");
+  if (expectedEntryTime && !variables.expectedEntryTime) {
+    variables.expectedEntryTime = expectedEntryTime;
+  }
+  if (!variables.expectedEntryTime && leave) {
+    variables.expectedEntryTime = formatShortDate(leave.endAt);
+  }
+
   const baseUrl = getPublicBaseUrl();
 
   // CC recipients supplied at approval time (e.g. extra recipients on the
@@ -226,12 +282,16 @@ export async function handleLeaveEvent(
   if (notificationType && eventType !== OUTBOX_EVENT_TYPE.PARENT_APPROVAL_REQUIRED) {
     const context = await resolveContext(eventType, payload);
 
-    // Rejections pick their template explicitly (parent vs admin wording);
-    // every other event is dispatched through the configured rules.
+    // Rejections pick their template explicitly (parent vs POC vs admin
+    // wording); every other event is dispatched through the configured rules.
     let templateCode: string | undefined;
     if (notificationType === NOTIFICATION_EVENT.LEAVE_REJECTED) {
-      const rejectedBy: "PARENT" | "ADMIN" =
-        payload.rejectedBy === "PARENT" ? "PARENT" : "ADMIN";
+      const rejectedBy: "PARENT" | "POC" | "ADMIN" =
+        payload.rejectedBy === "PARENT"
+          ? "PARENT"
+          : payload.rejectedBy === "POC"
+            ? "POC"
+            : "ADMIN";
       templateCode =
         getRejectionTemplateCode(context.leaveTypeCode ?? "", rejectedBy) ??
         undefined;

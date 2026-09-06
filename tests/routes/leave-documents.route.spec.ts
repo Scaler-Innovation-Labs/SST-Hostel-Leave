@@ -42,6 +42,10 @@ describe("DELETE /api/v1/leaves/[id]/documents/[documentId]", () => {
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
     expect(body.data).toEqual({ deleted: true });
-    expect(mockDeleteDocument).toHaveBeenCalledWith(DOC_ID, { id: "U1", roles: ["STUDENT"] });
+    expect(mockDeleteDocument).toHaveBeenCalledWith(
+      DOC_ID,
+      { id: "U1", roles: ["STUDENT"] },
+      LEAVE_ID
+    );
   });
 });

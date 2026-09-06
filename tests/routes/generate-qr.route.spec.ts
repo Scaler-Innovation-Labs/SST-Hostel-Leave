@@ -9,6 +9,10 @@ vi.mock("@/lib/db/transaction", () => ({
   transaction: (cb: any) => cb({}),
 }));
 
+vi.mock("@/lib/rate-limiter", () => ({
+  rateLimit: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("@/lib/auth/require-auth", () => ({
   requireAuth: (...args: any[]) => mockRequireAuth(...args),
 }));
@@ -27,7 +31,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockRequireAuth.mockResolvedValue({ id: "U1", roles: ["STUDENT"] });
   mockRequireRole.mockReturnValue({ id: "U1", roles: ["STUDENT"] });
-  mockGenerateQrPass.mockResolvedValue({ passId: "QP1", token: "new-token", qrType: "LEAVE_EXIT" });
+  mockGenerateQrPass.mockResolvedValue({ passId: "QP1", tokenHash: "hash", qrType: "LEAVE_EXIT" });
 });
 
 describe("POST /api/v1/movements/generate-qr", () => {
@@ -41,7 +45,9 @@ describe("POST /api/v1/movements/generate-qr", () => {
     const body = await res.json();
 
     expect(res.status).toBe(201);
-    expect(body.data.token).toBe("new-token");
+    expect(body.data.passId).toBe("QP1");
+    // The raw token never leaves the server — the app renders the hosted image.
+    expect(body.data).not.toHaveProperty("token");
     expect(mockGenerateQrPass).toHaveBeenCalledWith(
       expect.objectContaining({ leaveRequestId: "550e8400-e29b-41d4-a716-446655440000", userId: "U1" })
     );

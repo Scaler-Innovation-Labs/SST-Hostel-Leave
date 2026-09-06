@@ -47,6 +47,10 @@ jobs:
       - name: Architecture audit
         run: pnpm audit:architecture
 
+      - name: Dependency audit (fail on high/critical)
+        run: pnpm audit --audit-level high
+        working-directory: ./my-app
+
       - name: Test
         run: pnpm test
 

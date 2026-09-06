@@ -9,4 +9,5 @@ export { DeliveryError } from "./delivery-error";
 export { NotFoundError } from "./not-found-error";
 export { PermissionError } from "./permission-error";
 export { PersistenceError } from "./persistence-error";
+export { TooManyRequestsError } from "./rate-limit-error";
 export { ValidationError } from "./validation-error";

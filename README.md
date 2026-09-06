@@ -232,9 +232,6 @@ See `.env.example` for the full list with comments.
 # Database
 DATABASE_URL=postgresql://user:password@host:5432/dbname
 
-# Next.js auth secret
-AUTH_SECRET=
-
 # Clerk (authentication)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 CLERK_SECRET_KEY=
@@ -246,6 +243,8 @@ AWS_REGION=ap-south-1
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 SES_FROM_EMAIL=
+EMAIL_SERVICE_URL=
+EMAIL_SERVICE_API_KEY=
 RESEND_API_KEY=
 
 # SMS (Infobip)
@@ -266,26 +265,30 @@ CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
 
-# Cron jobs
+# Cron jobs (generate with: openssl rand -base64 32; min 32 chars)
 CRON_SECRET=
+
+# QR token encryption (AES-256-GCM, 64 hex chars; openssl rand -hex 32)
+QR_TOKEN_ENC_KEY=
+QR_TOKEN_ENC_ACTIVE_KEY_ID=k1
 
 # App settings
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 NEXT_PUBLIC_APP_URL=http://localhost:3000
-LOG_LEVEL=debug
+LOG_LEVEL=info
 ```
 
 ---
 
 # Cron Jobs
 
-Defined in `vercel.json`:
+Defined in `vercel.json` (all daily; all Bearer `CRON_SECRET` gated):
 
 | Endpoint             | Schedule    | Purpose                                        |
 | -------------------- | ----------- | ---------------------------------------------- |
-| `/api/cron/outbox`   | every 5 min | Deliver pending outbox events (retry-safe)     |
-| `/api/cron/cleanup`  | every 6 hrs | QR pass expiry invalidation + audit logging    |
-| `/api/cron/maintenance` | daily 03:00 | Maintenance: rate-limit pruning, reconciliation |
+| `/api/cron/outbox`   | daily 05:00 | Deliver pending outbox events (retry-safe)     |
+| `/api/cron/cleanup`  | daily 04:00 | QR expiry, document/audit/outbox retention purge |
+| `/api/cron/maintenance` | daily 03:00 | Leave expiry, overdue marking, auto-complete |
 
 ---
 

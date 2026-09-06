@@ -9,6 +9,12 @@ import { ROLES } from "@/lib/auth/roles";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, ValidationError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
+import {
+  boundedField,
+  optionalEmail,
+  optionalUuid,
+  requiredPhone,
+} from "@/services/shared/bulk-row-validation";
 
 export type BulkStudentResult = {
   rollNumber: string;
@@ -62,23 +68,59 @@ export function normalizeStudentRow(
   if (!parentPhone) throw new ValidationError(`Row ${index + 1}: parentPhone is required`);
   if (!parentRelationship) throw new ValidationError(`Row ${index + 1}: parentRelationship is required`);
 
+  // Field bounds: no raw cell reaches a repository unbounded.
+  const boundedRollNumber = boundedField(rollNumber, "rollNumber", index, 50);
+  const boundedFullName = boundedField(fullName, "fullName", index, 200);
+  const boundedAcademicGroupId = boundedField(academicGroupId, "academicGroupId", index, 100);
+  if (
+    !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+      boundedAcademicGroupId
+    )
+  ) {
+    throw new ValidationError(`Row ${index + 1}: academicGroupId must be a UUID`);
+  }
+  const boundedParentName = boundedField(parentName, "parentName", index, 200);
+  const boundedParentPhone = requiredPhone(
+    boundedField(parentPhone, "parentPhone", index, 20),
+    "parentPhone",
+    index
+  );
+  const boundedParentRelationship = boundedField(parentRelationship, "parentRelationship", index, 50);
+  const boundedEmail = optionalEmail(
+    email ? boundedField(email, "email", index, 254) : undefined,
+    "email",
+    index
+  );
+  const boundedPhone = phone
+    ? requiredPhone(boundedField(phone, "phone", index, 20), "phone", index)
+    : null;
+  const boundedParentEmail = optionalEmail(
+    parentEmail ? boundedField(parentEmail, "parentEmail", index, 254) : undefined,
+    "parentEmail",
+    index
+  );
+  const boundedRoomNumber = roomNumber
+    ? boundedField(roomNumber, "roomNumber", index, 20)
+    : null;
+  const boundedHostelId = optionalUuid(hostelId, "hostelId", index);
+
   const gender = ["MALE", "FEMALE", "OTHER"].includes(genderRaw)
     ? (genderRaw as "MALE" | "FEMALE" | "OTHER")
     : null;
 
   return {
-    rollNumber,
-    fullName,
-    academicGroupId,
-    email,
-    phone,
+    rollNumber: boundedRollNumber,
+    fullName: boundedFullName,
+    academicGroupId: boundedAcademicGroupId,
+    email: boundedEmail,
+    phone: boundedPhone,
     gender,
-    roomNumber,
-    hostelId,
-    parentName,
-    parentPhone,
-    parentEmail,
-    parentRelationship,
+    roomNumber: boundedRoomNumber,
+    hostelId: boundedHostelId,
+    parentName: boundedParentName,
+    parentPhone: boundedParentPhone,
+    parentEmail: boundedParentEmail,
+    parentRelationship: boundedParentRelationship,
   };
 }
 
@@ -100,7 +142,7 @@ export async function bulkCreateStudents(
       const row = normalizeStudentRow(raw, i);
       rollNumber = row.rollNumber;
 
-      const student = await transaction(async (tx) => {
+      await transaction(async (tx) => {
         const existing = await studentRepository.findByRollNumber(row.rollNumber, tx);
         if (existing) {
           throw new ConflictError("Roll number already exists");
@@ -148,18 +190,21 @@ export async function bulkCreateStudents(
           await userRoleRepository.create(user.id, roleRow.id, tx);
         }
 
+        // Inside the transaction: a crash between commit and a post-tx
+        // audit write would leave a student with no creation record.
+        if (actorUserId) {
+          await auditService.record(
+            AUDIT_ACTION.CREATE,
+            AUDIT_ENTITY_TYPE.STUDENT,
+            createdStudent.id,
+            actorUserId,
+            { rollNumber: row.rollNumber, fullName: row.fullName },
+            tx,
+          );
+        }
+
         return createdStudent;
       });
-
-      if (actorUserId) {
-        await auditService.record(
-          AUDIT_ACTION.CREATE,
-          AUDIT_ENTITY_TYPE.STUDENT,
-          student.id,
-          actorUserId,
-          { rollNumber: row.rollNumber ?? rollNumber, fullName: row.fullName ?? "" },
-        );
-      }
 
       results.push({ rollNumber, success: true });
     } catch (err) {

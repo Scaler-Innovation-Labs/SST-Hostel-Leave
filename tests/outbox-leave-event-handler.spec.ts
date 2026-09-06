@@ -46,6 +46,12 @@ vi.mock("@/db/repositories/parent/parent.repository", () => ({
   },
 }));
 
+vi.mock("@/db/repositories/hostel/hostel.repository", () => ({
+  hostelRepository: {
+    findById: vi.fn(),
+  },
+}));
+
 const mockGenerateParentApproval = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@/services/parent/generate-parent-approval.service", () => ({
@@ -55,6 +61,7 @@ vi.mock("@/services/parent/generate-parent-approval.service", () => ({
 import { handleLeaveEvent } from "@/services/outbox/handlers/leave-event.handler";
 import { generateParentApproval } from "@/services/parent/generate-parent-approval.service";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { hostelRepository } from "@/db/repositories/hostel/hostel.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
@@ -64,6 +71,7 @@ beforeEach(() => {
   mockNotify.mockResolvedValue({ success: true, failures: [] });
   // Default: all repositories return null (no data resolved)
   (leaveRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+  (hostelRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
   (studentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
   (userRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
   (qrPassRepository.findByLeaveRequestId as ReturnType<typeof vi.fn>).mockResolvedValue(null);
@@ -108,6 +116,23 @@ describe("handleLeaveEvent", () => {
     await handleLeaveEvent(makeEvent("LEAVE_REJECTED"));
 
     expect(mockNotify).toHaveBeenCalledWith("LEAVE_REJECTED", expect.any(Object));
+  });
+
+  it("surfaces reviewer comments as a section in decision notifications", async () => {
+    await handleLeaveEvent(makeEvent("LEAVE_REJECTED", { comments: "  Too short notice  " }));
+
+    const context = mockNotify.mock.calls.find(([type]) => type === "LEAVE_REJECTED")?.[1];
+    expect(context).toBeDefined();
+    expect(context.variables.reviewComments).toBe("Too short notice");
+    expect(context.variables.reviewCommentsSection).toContain("Too short notice");
+  });
+
+  it("leaves the comments section empty when the reviewer wrote nothing", async () => {
+    await handleLeaveEvent(makeEvent("LEAVE_APPROVED"));
+
+    const context = mockNotify.mock.calls.find(([type]) => type === "LEAVE_APPROVED")?.[1];
+    expect(context).toBeDefined();
+    expect(context.variables.reviewCommentsSection).toBe("");
   });
 
   it("maps LEAVE_CANCELLED to LEAVE_CANCELLED notification", async () => {
@@ -349,7 +374,7 @@ describe("handleLeaveEvent", () => {
     });
     (qrPassRepository.findByLeaveRequestId as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: "QP1",
-      token: "raw-token-must-stay-server-side",
+      tokenEnc: "v1:unused-iv:unused-ciphertext",
     });
 
     await handleLeaveEvent(makeEvent("LEAVE_APPROVED"));

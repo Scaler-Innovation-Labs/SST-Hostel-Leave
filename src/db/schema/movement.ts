@@ -67,10 +67,12 @@ export const qrPasses = pgTable("qr_passes", {
     .notNull()
     .unique(),
 
-  // Raw pass token — stored so the student app and the approval email can
-  // render the SAME QR (one token per approved leave). `tokenHash` stays the
-  // lookup key for gate scans.
-  token: text("token"),
+  // AES-256-GCM envelope (`v1:<keyId>:<iv>:<ciphertext>`; legacy rows
+  // `v1:<iv>:<ciphertext>`) holding the raw pass
+  // token. Decrypted ONLY at QR-image render time (get-qr-image.service);
+  // gate scans authenticate via `tokenHash` and never need this column.
+  // The plaintext `token` column was removed by migrate-0027.
+  tokenEnc: text("token_enc"),
 
   status: qrStatusEnum("status").notNull(),
 

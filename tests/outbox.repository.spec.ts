@@ -26,6 +26,7 @@ vi.mock("@/lib/db", () => ({
           orderBy: vi.fn().mockReturnValue({
             limit: vi.fn().mockResolvedValue([]),
           }),
+          limit: vi.fn().mockResolvedValue([]),
         }),
       }),
     }),
@@ -67,6 +68,8 @@ describe("outboxRepository", () => {
     expect(setArgs.status).toBe("PENDING");
     expect(setArgs.claimedAt).toBeNull();
     expect(setArgs.attemptCount).toBeDefined();
+    // Backoff is scheduled so the retry is not immediately eligible.
+    expect(setArgs.nextAttemptAt).toBeInstanceOf(Date);
     const sqlText = (setArgs.attemptCount.queryChunks ?? [])
       .map((c: unknown) => {
         const raw = (c as { value?: unknown[] })?.value;

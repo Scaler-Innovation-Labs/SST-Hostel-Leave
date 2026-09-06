@@ -21,56 +21,60 @@ const QR_SECTION =
   `<br>\n<small>Your QR pass is valid for the full duration of this leave and becomes invalid automatically once the leave ends.</small>\n\n`;
 
 const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
-  RE_EXAM: [
+  EXAM_LEAVE: [
     {
-      code: "leave_approved_email_re_exam",
+      code: "leave_approved_email_exam_leave",
       eventKey: NOTIFICATION_EVENT.LEAVE_APPROVED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Re-Exam Leave Request Approved",
+      subject: "Leave During Examination Approved",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Re-Exam Leave request submitted for the period from {{startDate}} to {{endDate}}, for the reason \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
-        "You are requested to adhere to the approved leave schedule and comply with all hostel rules and regulations during your leave period.\n\n" +
-        "We wish you all the best for your examination.\n\n" +
+        "Your Leave During Examination for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "Please follow the approved leave dates and observe all hostel rules while you are away. Your QR code for hostel check-out and check-in is attached.\n\n" +
+        "Please note: This approval is for your hostel leave only. It does not grant any exemption from classes, attendance, or other academic requirements you may have during this period. For any leave or exemption from academic requirements, please refer to the Student Policy and follow the process laid out there.\n\n" +
+        "We wish you the very best for your examination.\n\n" +
         QR_SECTION +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
-      code: "leave_rejected_email_re_exam_policy",
+      code: "leave_rejected_email_exam_leave_policy",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Re-Exam Leave Request Rejected",
+      subject: "Leave During Examination Request Rejected",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Re-Exam Leave request for the period from {{startDate}} to {{endDate}} has been rejected as it does not comply with the hostel leave policy for re-examination leaves.\n\n" +
-        "If you believe this decision was made in error or require further clarification, kindly contact the Hostel Administration.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your Leave During Examination request for {{startDate}} to {{endDate}} could not be approved, as the requested dates do not match the approved examination schedule under the hostel leave policy.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "If you believe this is an error or need any clarification, please contact the Hostel Administration.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
-      code: "leave_rejected_email_re_exam_parent",
+      code: "leave_rejected_email_exam_leave_parent",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Re-Exam Leave Request Rejected",
+      subject: "Leave During Examination Request Declined by Parent/Guardian",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Re-Exam Leave request submitted for the period from {{startDate}} to {{endDate}}, for the reason \"{{reason}}\", has been rejected by your parent/guardian.\n\n" +
-        "If you require any clarification regarding the decision, kindly coordinate with your parent/guardian directly.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your Leave During Examination request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been declined by your parent/guardian.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please speak with your parent/guardian directly.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
-      code: "leave_rejected_email_re_exam_admin",
+      code: "leave_rejected_email_exam_leave_admin",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Re-Exam Leave Request Rejected",
+      subject: "Leave During Examination Request Rejected",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Re-Exam Leave request for the period from {{startDate}} to {{endDate}}, submitted for the reason \"{{reason}}\", has been reviewed by the Hostel Administration.\n\n" +
-        "We regret to inform you that your request has not been approved by the Hostel Warden.\n\n" +
-        "If you require any clarification regarding this decision, kindly reach out to your respective Hostel Warden.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your Leave During Examination request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been reviewed by the Hostel Administration and has not been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please reach out to your Hostel Warden.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
-      code: "parent_approval_requested_sms_re_exam",
+      code: "parent_approval_requested_sms_exam_leave",
       eventKey: NOTIFICATION_EVENT.PARENT_APPROVAL_REQUESTED,
       channel: NOTIFICATION_CHANNEL.SMS,
       subject: null,
@@ -79,13 +83,13 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
     },
 
     {
-      code: "leave_submitted_slack_re_exam",
+      code: "leave_submitted_slack_exam_leave",
       eventKey: NOTIFICATION_EVENT.LEAVE_SUBMITTED,
       channel: NOTIFICATION_CHANNEL.SLACK,
       subject: null,
       templateBody:
         "Dear Hostel Warden,\n\n" +
-        "A new Re-Exam Leave request has been submitted by {{studentName}} ({{rollNumber}}).\n" +
+        "A new Leave During Examination request has been submitted by {{studentName}} ({{rollNumber}}).\n" +
         "Leave Duration: {{startDate}} to {{endDate}}\n" +
         "Reason: {{reason}}\n\n" +
         "Kindly review the request and approve or reject it using the link below:\n" +
@@ -98,25 +102,28 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       code: "leave_approved_email_long_leave",
       eventKey: NOTIFICATION_EVENT.LEAVE_APPROVED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Long Leave Request Approved",
+      subject: "Long Leave Approved",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Long Leave request submitted for the period from {{startDate}} to {{endDate}}, for the reason \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
-        "You are requested to adhere to the approved leave schedule and ensure compliance with all hostel rules and regulations during your leave period.\n\n" +
+        "Your Long Leave for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "Please follow the approved leave dates and observe all hostel rules during your leave. Your QR code for hostel check-out and check-in is attached.\n\n" +
+        "Please note: This approval covers your hostel leave only. It does not exempt you from any classes, examinations, exam- or class-related requirements, or other academic obligations during this period. For any leave or exemption from academic requirements, please refer to the Student Policy and follow the process laid out there.\n\n" +
         "We wish you a safe journey.\n\n" +
         QR_SECTION +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "leave_rejected_email_long_leave_parent",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Long Leave Request Rejected",
+      subject: "Long Leave Request Declined by Parent/Guardian",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Long Leave request submitted for the period from {{startDate}} to {{endDate}}, for the reason \"{{reason}}\", has been rejected by your parent/guardian.\n\n" +
-        "If you require any clarification regarding the decision, kindly coordinate with your parent/guardian directly.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your Long Leave request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been declined by your parent/guardian.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please speak with your parent/guardian directly.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "leave_rejected_email_long_leave_admin",
@@ -125,10 +132,10 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       subject: "Long Leave Request Rejected",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Long Leave request for the period from {{startDate}} to {{endDate}}, submitted for the reason \"{{reason}}\", has been reviewed by the Hostel Administration.\n\n" +
-        "We regret to inform you that your Long Leave request has not been approved by the Hostel Warden.\n\n" +
-        "For any clarification regarding this decision, please reach out to your respective Hostel Warden.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your Long Leave request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been reviewed by the Hostel Administration and has not been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please reach out to your Hostel Warden.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "parent_approval_requested_sms_long_leave",
@@ -145,11 +152,11 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SLACK,
       subject: null,
       templateBody:
-        "Dear Hostel Warden,\n\n" +
+        "Dear {{campus}} Hostel Warden,\n\n" +
         "A new Long Leave request has been submitted by {{studentName}} ({{rollNumber}}).\n" +
         "Leave Duration: {{startDate}} to {{endDate}}\n" +
         "Reason: {{reason}}\n\n" +
-        "Kindly review the request and approve or reject it using the link below:\n" +
+        "Please review and approve or reject it using the link below:\n" +
         "{{approvalLink}}",
     },
   ],
@@ -159,24 +166,26 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       code: "leave_approved_email_late_entry",
       eventKey: NOTIFICATION_EVENT.LEAVE_APPROVED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Late Entry Request Approved",
+      subject: "Late Entry Approved",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Late Entry request for {{startDate}}, submitted for the reason \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
-        "You may enter the hostel within the approved time. Kindly ensure that you comply with all hostel rules and regulations.\n\n" +
+        "Your Late Entry request for {{startDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "You may enter the hostel within the approved time. Please observe all hostel rules. Your QR code for hostel check-in is attached.\n\n" +
         QR_SECTION +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "leave_rejected_email_late_entry_parent",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Late Entry Request Rejected",
+      subject: "Late Entry Request Declined by Parent/Guardian",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Late Entry request for {{startDate}}, submitted for the reason \"{{reason}}\", has been rejected by your parent/guardian.\n\n" +
-        "If you require any clarification regarding the decision, kindly coordinate with your parent/guardian directly.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your Late Entry request for {{startDate}}, submitted for \"{{reason}}\", has been declined by your parent/guardian.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please speak with your parent/guardian directly.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "leave_rejected_email_late_entry_admin",
@@ -185,10 +194,10 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       subject: "Late Entry Request Rejected",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Late Entry request for {{startDate}}, submitted for the reason \"{{reason}}\", has been reviewed by the Hostel Administration.\n\n" +
-        "We regret to inform you that your request has not been approved by the Hostel Warden.\n\n" +
-        "For any clarification regarding this decision, please reach out to your respective Hostel Warden.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your Late Entry request for {{startDate}}, submitted for \"{{reason}}\", has been reviewed by the Hostel Administration and has not been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please reach out to your Hostel Warden.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "parent_approval_requested_sms_late_entry",
@@ -205,11 +214,12 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SLACK,
       subject: null,
       templateBody:
-        "Dear Hostel Warden,\n\n" +
+        "Dear {{campus}} Hostel Warden,\n\n" +
         "A new Late Entry request has been submitted by {{studentName}} ({{rollNumber}}).\n" +
         "Date: {{startDate}}\n" +
+        "Expected Entry Time: {{expectedEntryTime}}\n" +
         "Reason: {{reason}}\n\n" +
-        "Kindly review the request and approve or reject it using the link below:\n" +
+        "Please review and approve or reject it using the link below:\n" +
         "{{approvalLink}}",
     },
   ],
@@ -219,36 +229,38 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       code: "leave_approved_email_late_stay",
       eventKey: NOTIFICATION_EVENT.LEAVE_APPROVED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Late Stay Request Approved",
+      subject: "Late Stay at College Approved",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your request to stay late at college for {{startDate}}, submitted for the reason \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
-        "You may stay on campus as per the approved request. Kindly ensure that you comply with all hostel rules and regulations.\n\n" +
+        "Your request to stay late at college for {{startDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "You may stay on campus as per the approved request. Please observe all hostel rules. If applicable, your QR code for hostel check-in is attached.\n\n" +
         QR_SECTION +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "leave_rejected_email_late_stay_poc",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Late Stay Request Rejected",
+      subject: "Late Stay Request Declined",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your request to stay late at college for {{startDate}}, submitted for the reason \"{{reason}}\", has been rejected by the POC.\n\n" +
-        "If you require any clarification regarding the decision, kindly coordinate directly with the concerned POC.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your request to stay late at college for {{startDate}}, submitted for \"{{reason}}\", has been declined by {{pocName}}.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please coordinate directly with the concerned POC.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "leave_rejected_email_late_stay_admin",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Late Stay Request Rejected",
+      subject: "Late Stay at College Request Rejected",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your request to stay late at college for {{startDate}}, submitted for the reason \"{{reason}}\", has been reviewed by the Hostel Administration.\n\n" +
-        "We regret to inform you that your request has not been approved by the Hostel Warden.\n\n" +
-        "For any clarification regarding this decision, please reach out to your respective Hostel Warden.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your request to stay late at college for {{startDate}}, submitted for \"{{reason}}\", has been reviewed by the Hostel Administration and has not been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please reach out to your Hostel Warden.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "leave_submitted_slack_late_stay_poc",
@@ -256,11 +268,11 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SLACK,
       subject: null,
       templateBody:
-        "Dear POC,\n\n" +
+        "Dear {{pocName}},\n\n" +
         "{{studentName}} ({{rollNumber}}) has requested permission to stay late at college.\n" +
         "Date/Duration: {{startDate}}\n" +
         "Reason: {{reason}}\n\n" +
-        "Kindly review the request and submit your approval or rejection using the link below:\n" +
+        "Please review and submit your approval or rejection using the link below:\n" +
         "{{approvalLink}}",
     },
     {
@@ -269,12 +281,12 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SLACK,
       subject: null,
       templateBody:
-        "Dear Hostel Warden,\n\n" +
+        "Dear {{campus}} Hostel Warden,\n\n" +
         "A Late Stay at College request approved by the POC is awaiting your review.\n" +
         "Student: {{studentName}} ({{rollNumber}})\n" +
         "Date/Duration: {{startDate}}\n" +
         "Reason: {{reason}}\n\n" +
-        "Kindly review the request and approve or reject it using the link below:\n" +
+        "Please review and approve or reject it using the link below:\n" +
         "{{approvalLink}}",
     },
   ],
@@ -284,24 +296,26 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       code: "leave_approved_email_diff_hostel",
       eventKey: NOTIFICATION_EVENT.LEAVE_APPROVED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Different Hostel Request Approved",
+      subject: "Stay at Different Hostel Approved",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your request to stay at a different hostel from {{startDate}} to {{endDate}}, submitted for the reason \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
-        "You may stay at the approved hostel during the approved period. Kindly ensure that you comply with all hostel rules and regulations.\n\n" +
+        "Your request to stay at a different hostel from {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "You may stay at the approved hostel for the approved period. Please observe all hostel rules. Your QR code for hostel check-in and check-out is attached.\n\n" +
         QR_SECTION +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "leave_rejected_email_diff_hostel_parent",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Different Hostel Request Rejected",
+      subject: "Different Hostel Request Declined by Parent/Guardian",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your request to stay at a different hostel from {{startDate}} to {{endDate}}, submitted for the reason \"{{reason}}\", has been rejected by your parent/guardian.\n\n" +
-        "If you require any clarification regarding the decision, kindly coordinate with your parent/guardian directly.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your request to stay at a different hostel from {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been declined by your parent/guardian.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please speak with your parent/guardian directly.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "leave_rejected_email_diff_hostel_admin",
@@ -310,10 +324,10 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       subject: "Different Hostel Request Rejected",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your request to stay at a different hostel from {{startDate}} to {{endDate}}, submitted for the reason \"{{reason}}\", has been reviewed by the Hostel Administration.\n\n" +
-        "We regret to inform you that your request has not been approved by the Hostel Warden.\n\n" +
-        "For any clarification regarding this decision, please reach out to your respective Hostel Warden.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your request to stay at a different hostel from {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been reviewed by the Hostel Administration and has not been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please reach out to your Hostel Warden.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "parent_approval_requested_sms_diff_hostel",
@@ -329,11 +343,12 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SLACK,
       subject: null,
       templateBody:
-        "Dear Hostel Warden,\n\n" +
+        "Dear {{campus}} Hostel Warden,\n\n" +
         "A new request to stay at a different hostel has been submitted by {{studentName}} ({{rollNumber}}).\n" +
         "Duration: {{startDate}} to {{endDate}}\n" +
+        "Requested Hostel: {{hostelName}}\n" +
         "Reason: {{reason}}\n\n" +
-        "Kindly review the request and approve or reject it using the link below:\n" +
+        "Please review and approve or reject it using the link below:\n" +
         "{{approvalLink}}",
     },
   ],
@@ -343,14 +358,15 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       code: "leave_approved_email_holiday",
       eventKey: NOTIFICATION_EVENT.LEAVE_APPROVED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Holiday Leave Request Approved",
+      subject: "Holiday Leave Approved",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Holiday Leave request submitted for the period from {{startDate}} to {{endDate}}, for the reason \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
-        "You are requested to adhere to the approved leave schedule and ensure compliance with all hostel rules and regulations during your leave period.\n\n" +
+        "Your Holiday Leave for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "Please follow the approved leave dates and observe all hostel rules during your leave. Your QR code for hostel check-out and check-in is attached.\n\n" +
         "We wish you a safe journey.\n\n" +
         QR_SECTION +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "leave_rejected_email_holiday_admin",
@@ -359,10 +375,10 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       subject: "Holiday Leave Request Rejected",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Holiday Leave request for the period from {{startDate}} to {{endDate}}, submitted for the reason \"{{reason}}\", has been reviewed by the Hostel Administration.\n\n" +
-        "We regret to inform you that your Holiday Leave request has not been approved by the Hostel Warden.\n\n" +
-        "For any clarification regarding this decision, please reach out to your respective Hostel Warden.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your Holiday Leave request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been reviewed by the Hostel Administration and has not been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please reach out to your Hostel Warden.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "leave_submitted_slack_holiday",
@@ -370,11 +386,11 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SLACK,
       subject: null,
       templateBody:
-        "Dear Hostel Warden,\n\n" +
+        "Dear {{campus}} Hostel Warden,\n\n" +
         "A new Holiday Leave request has been submitted by {{studentName}} ({{rollNumber}}).\n" +
         "Leave Duration: {{startDate}} to {{endDate}}\n" +
         "Reason: {{reason}}\n\n" +
-        "Kindly review the request and approve or reject it using the link below:\n" +
+        "Please review and approve or reject it using the link below:\n" +
         "{{approvalLink}}",
     },
   ],
@@ -384,36 +400,40 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       code: "leave_approved_email_internship",
       eventKey: NOTIFICATION_EVENT.LEAVE_APPROVED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Internship Leave Request Approved",
+      subject: "Internship Hostel Leave Approved",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Internship Leave request submitted for the period from {{startDate}} to {{endDate}}, for the reason \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
-        "You are requested to adhere to the approved leave schedule and ensure compliance with all hostel rules and regulations during your leave period.\n\n" +
-        "We wish you all the best for your internship.\n\n" +
+        "Your Internship Leave for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "Please follow the approved leave dates and observe all hostel rules during your leave. Your QR code for hostel check-out and check-in is attached.\n\n" +
+        "Please note: This approval covers your hostel leave only. It does not grant academic leave or exempt you from any classes, examinations, or academic requirements during your internship. For academic leave or exemptions, please refer to the Student Policy and follow the process laid out there.\n\n" +
+        "We wish you the very best for your internship.\n\n" +
         QR_SECTION +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "leave_rejected_email_internship_parent",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Internship Leave Request Rejected",
+      subject: "Internship Leave Request Declined by Parent/Guardian",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Internship Leave request submitted for the period from {{startDate}} to {{endDate}}, for the reason \"{{reason}}\", has been rejected by your parent/guardian.\n\n" +
-        "If you require any clarification regarding the decision, kindly coordinate with your parent/guardian directly.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your Internship Leave request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been declined by your parent/guardian.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please speak with your parent/guardian directly.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "leave_rejected_email_internship_poc",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Internship Leave Request Rejected",
+      subject: "Internship Leave Request Declined",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Internship Leave request submitted for the period from {{startDate}} to {{endDate}}, for the reason \"{{reason}}\", has been rejected by the POC.\n\n" +
-        "If you require any clarification regarding the decision, kindly coordinate directly with the concerned POC.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your Internship Leave request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been declined by {{pocName}}.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please coordinate directly with the concerned POC.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "leave_rejected_email_internship_admin",
@@ -422,10 +442,10 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       subject: "Internship Leave Request Rejected",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Internship Leave request for the period from {{startDate}} to {{endDate}}, submitted for the reason \"{{reason}}\", has been reviewed by the Hostel Administration.\n\n" +
-        "We regret to inform you that your Internship Leave request has not been approved by the Hostel Warden.\n\n" +
-        "For any clarification regarding this decision, please reach out to your respective Hostel Warden.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your Internship Leave request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been reviewed by the Hostel Administration and has not been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please reach out to your Hostel Warden.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
       code: "parent_approval_requested_sms_internship",
@@ -441,11 +461,11 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SLACK,
       subject: null,
       templateBody:
-        "Dear POC,\n\n" +
+        "Dear {{pocName}},\n\n" +
         "{{studentName}} ({{rollNumber}}) has applied for Internship Leave.\n" +
         "Leave Duration: {{startDate}} to {{endDate}}\n" +
         "Reason: {{reason}}\n\n" +
-        "Kindly review the request and approve or reject it using the link below:\n" +
+        "Please review and approve or reject it using the link below:\n" +
         "{{approvalLink}}",
     },
     {
@@ -454,64 +474,68 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SLACK,
       subject: null,
       templateBody:
-        "Dear Hostel Warden,\n\n" +
+        "Dear {{campus}} Hostel Warden,\n\n" +
         "A new Internship Leave request has been submitted by {{studentName}} ({{rollNumber}}).\n" +
         "Leave Duration: {{startDate}} to {{endDate}}\n" +
         "Reason: {{reason}}\n\n" +
-        "Kindly review the request and approve or reject it using the link below:\n" +
+        "Please review and approve or reject it using the link below:\n" +
         "{{approvalLink}}",
     },
   ],
 
-  MARRIAGE_BEREAVEMENT: [
+  ATTENDANCE_EXCEPTION: [
     {
-      code: "leave_approved_email_marriage",
+      code: "leave_approved_email_attendance_exception",
       eventKey: NOTIFICATION_EVENT.LEAVE_APPROVED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Special Leave Request Approved",
+      subject: "Special Leave Approved",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Special Leave request submitted for the period from {{startDate}} to {{endDate}}, for the reason \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
-        "You are requested to adhere to the approved leave schedule and ensure compliance with all hostel rules and regulations during your leave period.\n\n" +
+        "Your Special Leave for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "Please follow the approved leave dates and observe all hostel rules during your leave. Your QR code for hostel check-out and check-in is attached.\n\n" +
+        "Please note: This approval covers your hostel leave only. It does not exempt you from any classes, examinations, exam- or class-related requirements, or other academic obligations during this period. For any leave or exemption from academic requirements, please refer to the Student Policy and follow the process laid out there.\n\n" +
         QR_SECTION +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
-      code: "leave_rejected_email_marriage_policy",
+      code: "leave_rejected_email_attendance_exception_policy",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
       subject: "Special Leave Request Rejected",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Special Leave request for the period from {{startDate}} to {{endDate}} has been rejected due to policy violation or missing/invalid supporting documents.\n\n" +
-        "If you believe this decision was made in error or require further clarification, kindly contact the Hostel Administration.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your Special Leave request for {{startDate}} to {{endDate}} could not be approved, as a policy requirement was not met or the required supporting documents were missing or invalid.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "If you believe this is an error or need any clarification, please contact the Hostel Administration.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
-      code: "leave_rejected_email_marriage_parent",
+      code: "leave_rejected_email_attendance_exception_parent",
+      eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
+      channel: NOTIFICATION_CHANNEL.EMAIL,
+      subject: "Special Leave Request Declined by Parent/Guardian",
+      templateBody:
+        "Dear {{studentName}},\n\n" +
+        "Your Special Leave request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been declined by your parent/guardian.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please speak with your parent/guardian directly.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
+    },
+    {
+      code: "leave_rejected_email_attendance_exception_admin",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
       subject: "Special Leave Request Rejected",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Special Leave request submitted for the period from {{startDate}} to {{endDate}}, for the reason \"{{reason}}\", has been rejected by your parent/guardian.\n\n" +
-        "If you require any clarification regarding the decision, kindly coordinate with your parent/guardian directly.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
+        "Your Special Leave request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been reviewed by the Hostel Administration and has not been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please reach out to your Hostel Warden.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
     },
     {
-      code: "leave_rejected_email_marriage_admin",
-      eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
-      channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Special Leave Request Rejected",
-      templateBody:
-        "Dear {{studentName}},\n\n" +
-        "This is to inform you that your Special Leave request for the period from {{startDate}} to {{endDate}}, submitted for the reason \"{{reason}}\", has been reviewed by the Hostel Administration.\n\n" +
-        "We regret to inform you that your Special Leave request has not been approved by the Hostel Warden.\n\n" +
-        "For any clarification regarding this decision, please reach out to your respective Hostel Warden.\n\n" +
-        "Thank you.\nRegards,\nHostel Administration\nScaler School of Technology",
-    },
-    {
-      code: "parent_approval_requested_sms_marriage",
+      code: "parent_approval_requested_sms_attendance_exception",
       eventKey: NOTIFICATION_EVENT.PARENT_APPROVAL_REQUESTED,
       channel: NOTIFICATION_CHANNEL.SMS,
       subject: null,
@@ -519,7 +543,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Dear Parent,{{StudentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
     },
     {
-      code: "leave_submitted_slack_marriage_poc",
+      code: "leave_submitted_slack_attendance_exception_poc",
       eventKey: NOTIFICATION_EVENT.LEAVE_POC_REVIEW_REQUIRED,
       channel: NOTIFICATION_CHANNEL.SLACK,
       subject: null,
@@ -533,16 +557,16 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "{{approvalLink}}",
     },
     {
-      code: "leave_submitted_slack_marriage",
+      code: "leave_submitted_slack_attendance_exception",
       eventKey: NOTIFICATION_EVENT.LEAVE_SUBMITTED,
       channel: NOTIFICATION_CHANNEL.SLACK,
       subject: null,
       templateBody:
-        "Dear Hostel Warden,\n\n" +
+        "Dear {{campus}} Hostel Warden,\n\n" +
         "A new Special Leave ({{leaveCategory}}) request has been submitted by {{studentName}} ({{rollNumber}}).\n" +
         "Leave Duration: {{startDate}} to {{endDate}}\n" +
         "Reason: {{reason}}\n\n" +
-        "Kindly review the request and approve or reject it using the link below:\n" +
+        "Please review and approve or reject it using the link below:\n" +
         "{{approvalLink}}",
     },
   ],

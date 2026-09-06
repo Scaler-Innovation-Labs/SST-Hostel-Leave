@@ -4,6 +4,7 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
@@ -109,8 +110,11 @@ export async function rejectLeave(
         leaveId,
         studentId: leaveInTx.studentId,
         decision: LEAVE_APPROVAL_DECISION.REJECTED,
-        rejectedBy: "ADMIN",
+        // POC-step rejections use the POC wording ("declined by {POC Name}");
+        // everything else keeps the admin wording.
+        rejectedBy: current.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL ? "POC" : "ADMIN",
         reason: dto.comments ?? "",
+        comments: dto.comments ?? "",
       },
     }, tx);
 

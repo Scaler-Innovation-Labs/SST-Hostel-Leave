@@ -18,7 +18,15 @@ function getOrCreatePool(): Pool {
 		if (!databaseUrl) {
 			throw new ConfigurationError("DATABASE_URL is not set");
 		}
-		globalForDb.pool = new Pool({ connectionString: databaseUrl });
+		// Bounded for serverless bursts (Vercel): a capped pool with
+		// timeouts fails fast with a retriable error instead of hanging
+		// until the platform kills the invocation.
+		globalForDb.pool = new Pool({
+			connectionString: databaseUrl,
+			max: 10,
+			idleTimeoutMillis: 30_000,
+			connectionTimeoutMillis: 10_000,
+		});
 		globalForDb.pool.on("error", (err: unknown) => {
 			logger.error("[db] Pool error", {
 				error: err instanceof Error ? err.message : String(err),

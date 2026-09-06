@@ -37,16 +37,29 @@ export class SstEmailProvider implements EmailProvider {
 
     const toAddresses = Array.from(new Set(Array.isArray(payload.to) ? payload.to : [payload.to]))
 
+    function escapeHtml(value: string): string {
+      return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
     function announcementContent(): Record<string, unknown> {
-      const descriptionHtml = (payload.html ?? payload.text ?? "").split("\n").map((l) => `<p>${l}</p>`).join("")
+      // payload.html/text can carry attacker-controlled values (leave reason,
+      // student names). Escape before embedding into the announcement HTML
+      // template — the raw-HTML path above is only for trusted template markup.
+      const source = payload.html ?? payload.text ?? "";
+      const descriptionHtml = source.split("\n").map((l) => `<p>${escapeHtml(l)}</p>`).join("")
       return {
         templateId: "announcement",
         variables: {
-          title: payload.subject,
+          title: escapeHtml(payload.subject),
           authorName: "SST Hostel Leave",
-          dashboardUrl: process.env.NEXT_PUBLIC_BASE_URL ?? "https://sst-dashboard.com",
+          dashboardUrl: process.env.NEXT_PUBLIC_BASE_URL ?? "https://sst-hostel-leave.vercel.app",
           descriptionHtml,
-          category: payload.template ? payload.template.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) : "Notification",
+          category: payload.template ? escapeHtml(payload.template.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())) : "Notification",
         },
       }
     }
@@ -55,6 +68,9 @@ export class SstEmailProvider implements EmailProvider {
       const response = await fetch(`${this.baseUrl}/v1/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-API-Key": this.apiKey },
+        // Bounded per attempt; aborts surface as errors and retry/fallback
+        // paths below stay intact.
+        signal: AbortSignal.timeout(15_000),
         body: JSON.stringify({
           to: toAddresses,
           subject: payload.subject,

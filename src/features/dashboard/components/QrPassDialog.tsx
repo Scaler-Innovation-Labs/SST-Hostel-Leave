@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 type QrPassDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  token: string;
+  /** Hosted PNG URL (same bytes as the approval email): /api/v1/qr/{passId}/image */
+  imageUrl: string;
   /** Shown under the code so the holder knows how long it is good for. */
   validFor?: string;
 };
@@ -24,7 +25,7 @@ type QrPassDialogProps = {
 export function QrPassDialog({
   open,
   onOpenChange,
-  token,
+  imageUrl,
   validFor,
 }: QrPassDialogProps) {
   return (
@@ -49,7 +50,7 @@ export function QrPassDialog({
           </DialogPrimitive.Title>
 
           <div className="rounded-2xl bg-white p-8">
-            <QrCodeDisplay token={token} size={320} />
+            <QrCodeDisplay imageUrl={imageUrl} size={320} />
           </div>
 
           <DialogPrimitive.Description className="text-body text-white/70">

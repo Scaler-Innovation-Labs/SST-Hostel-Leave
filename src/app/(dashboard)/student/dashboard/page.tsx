@@ -39,7 +39,6 @@ import { QrPassDialog } from "@/features/dashboard/components/QrPassDialog";
 import { useDashboardStats } from "@/features/dashboard/hooks/use-dashboard-stats";
 import { useLeaves } from "@/features/leaves/hooks/use-leaves";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { useQrToken } from "@/hooks/use-qr-token";
 import { generateQr } from "@/lib/api/movement-api";
 import {
   formatDate,
@@ -84,10 +83,10 @@ export default function StudentDashboardPage() {
     mutate: retryStats,
   } = useDashboardStats();
   const { leaves, isLoading: leavesLoading } = useLeaves({ page: 1, limit: 5 });
-  const { getTokenByLeaveId, storeToken } = useQrToken();
-  const [qrTokenReady, setQrTokenReady] = useState(false);
+  const [qrEnsuring, setQrEnsuring] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
   const [passOpen, setPassOpen] = useState(false);
+  const [qrImageFailed, setQrImageFailed] = useState(false);
 
   const s = stats as StudentDashboardStats | null;
   const activeLeave = s?.activeLeave ?? null;
@@ -99,35 +98,39 @@ export default function StudentDashboardPage() {
   const approvalProgress = s?.approvalProgress ?? null;
   const recentActivity = s?.recentActivity ?? [];
 
-  const qrToken = activeLeave?.id ? getTokenByLeaveId(activeLeave.id) : null;
-  const needsToken = !!(activeQr && activeLeave?.id && !qrToken);
+  // The QR renders server-side from the encrypted credential — the same
+  // bytes as the approval email. The raw token never reaches the browser.
+  const qrImageUrl = activeQr ? `/api/v1/qr/${activeQr.passId}/image` : null;
+  // Ensure a pass exists for the current leave (legacy leaves predate
+  // approval-time creation), or repair one whose credential cannot render.
+  const needsEnsure = !!((!activeQr && activeLeave?.id) || (activeQr && qrImageFailed)) && !qrError;
 
   useEffect(() => {
-    if (!needsToken || !activeLeave?.id || !userId || qrTokenReady || qrError)
-      return;
+    if (!needsEnsure || !activeLeave?.id || !userId || qrEnsuring) return;
     let cancelled = false;
 
     (async () => {
+      // Contract §7: never destroy a working pass. generateQr is idempotent
+      // for an ACTIVE pass — it returns the SAME pass id so the emailed QR
+      // and the app QR stay consistent. Only a broken (invalidated,
+      // never-used) pass is re-issued, and that happens inside the service.
+      setQrEnsuring(true);
       try {
-        // Contract §7: never destroy a working pass. generateQr is idempotent
-        // for an ACTIVE pass — it returns the SAME stored token so the emailed
-        // QR and the app QR stay consistent. Only a broken (invalidated,
-        // never-used) pass is re-issued, and that happens inside the service.
         const result = (await generateQr(activeLeave.id, "LEAVE_EXIT")) as {
           passId: string;
-          token: string;
         } | null;
-        if (!cancelled && result?.passId && result?.token) {
-          storeToken(result.passId, result.token, activeLeave.id);
-          setQrTokenReady(true);
+        if (!cancelled && result?.passId) {
+          setQrImageFailed(false);
+          await retryStats();
         }
-        if (!cancelled) await retryStats();
       } catch (err) {
         if (!cancelled) {
           setQrError(
             err instanceof Error ? err.message : "The pass didn't load"
           );
         }
+      } finally {
+        if (!cancelled) setQrEnsuring(false);
       }
     })();
 
@@ -135,17 +138,16 @@ export default function StudentDashboardPage() {
       cancelled = true;
     };
   }, [
-    needsToken,
+    needsEnsure,
     activeLeave?.id,
     userId,
-    qrTokenReady,
+    qrEnsuring,
     qrError,
     retryStats,
-    storeToken,
   ]);
 
-  const hasQr = !!(activeQr && (qrToken || qrTokenReady));
-  const loadingQr = needsToken && !qrError;
+  const hasQr = !!activeQr;
+  const loadingQr = needsEnsure && qrEnsuring && !qrError;
   const nextPendingStep = approvalProgress?.find(
     (step) => step.decision === "PENDING"
   );
@@ -276,7 +278,7 @@ export default function StudentDashboardPage() {
                             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                           )}
                         >
-                          <QrCodeDisplay token={qrToken ?? ""} size={140} />
+                          <QrCodeDisplay imageUrl={qrImageUrl!} size={140} onError={() => setQrImageFailed(true)} />
                           <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl bg-surface-ink/0 transition-colors duration-fast ease-standard group-hover:bg-surface-ink/40">
                             <Maximize2
                               className="h-5 w-5 text-white opacity-0 transition-opacity duration-fast ease-standard group-hover:opacity-100"
@@ -436,7 +438,7 @@ export default function StudentDashboardPage() {
         <QrPassDialog
           open={passOpen}
           onOpenChange={setPassOpen}
-          token={qrToken ?? ""}
+          imageUrl={qrImageUrl!}
           validFor={
             activeQr?.expiresAt
               ? `Valid for ${formatTimeRemaining(activeQr.expiresAt)}.`

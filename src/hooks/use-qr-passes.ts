@@ -8,8 +8,6 @@ export type QrPass = {
   id: string;
   status: string;
   qrType: string;
-  /** The single stable pass token — served so the student can re-display the same QR. */
-  token: string | null;
   expiresAt: string | null;
   generatedAt: string | null;
   firstScanAt: string | null;

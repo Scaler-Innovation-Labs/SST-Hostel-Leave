@@ -175,21 +175,38 @@ export async function createExtension(
         tx
       );
 
-    const createdExtension =
-      await leaveExtensionRepository.create(
-        {
-          leaveRequestId,
-          extensionNumber,
-          currentEndAt: leaveInTx.endAt,
-          requestedEndAt: requestedEnd,
-          reason: dto.reason,
-          status: LEAVE_REQUEST_STATUS.PENDING,
-          submittedForm: dto.submittedForm ?? null,
-          policyResult: policyResultSummary,
-          submittedAt: new Date(),
-        },
-        tx
-      );
+    // MAX+1 has no gap lock: two concurrent creates compute the same
+    // number and the unique index rejects the loser. Translate the opaque
+    // 23505 into a 409 so the client retries instead of seeing a 500.
+    let createdExtension;
+    try {
+      createdExtension =
+        await leaveExtensionRepository.create(
+          {
+            leaveRequestId,
+            extensionNumber,
+            currentEndAt: leaveInTx.endAt,
+            requestedEndAt: requestedEnd,
+            reason: dto.reason,
+            status: LEAVE_REQUEST_STATUS.PENDING,
+            submittedForm: dto.submittedForm ?? null,
+            policyResult: policyResultSummary,
+            submittedAt: new Date(),
+          },
+          tx
+        );
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        "code" in error &&
+        (error as { code?: unknown }).code === "23505"
+      ) {
+        throw new ConflictError(
+          "An extension with this number was just created. Please retry."
+        );
+      }
+      throw error;
+    }
 
     const { steps: approvalSteps } =
       await workflowEngine.resolve(

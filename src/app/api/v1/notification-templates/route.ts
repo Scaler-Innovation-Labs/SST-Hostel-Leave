@@ -1,4 +1,5 @@
 import { saveNotificationTemplateSchema } from "@/dto/notification/save-notification-template.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
   try {
     const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
-    const body = await request.json();
+    const body = await readBoundedJson(request);
     const dto = saveNotificationTemplateSchema.parse(body);
 
     const template = await saveNotificationTemplate(dto, currentUser.id);

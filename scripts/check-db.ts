@@ -49,6 +49,8 @@ async function main() {
     const res = await client.query(`SELECT count(*)::int AS n FROM ${table}`);
     console.log(`  ${table}: ${res.rows[0]?.n ?? 0}`);
   }
+  const ag = await client.query("SELECT id, department_id, batch_year, group_code, name FROM academic_groups ORDER BY batch_year, group_code");
+  console.log("  academic_groups detail:", JSON.stringify(ag.rows, null, 2));
 
   await client.end();
 }

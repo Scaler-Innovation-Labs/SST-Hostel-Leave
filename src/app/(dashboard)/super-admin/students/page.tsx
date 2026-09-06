@@ -5,12 +5,12 @@ import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
-import * as XLSX from "xlsx";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Pagination } from "@/components/shared/Pagination";
 import { Button } from "@/components/ui/button";
 import { fetcher } from "@/lib/api/fetcher";
+import { parseBulkExcel } from "@/utils/excel";
 
 type StudentItem = {
   student: {
@@ -309,6 +309,13 @@ export default function SuperAdminStudentsPage() {
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !bulkSection) return;
+    // Client-side pre-checks mirror the server bounds (5MB / 2000 rows):
+    // fail fast in the browser instead of uploading a payload the API rejects.
+    if (file.size > 5_000_000) {
+      setBulkResults([{ success: false, error: "File exceeds the 5MB upload limit" }]);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     setBulkLoading(true);
     setBulkResults(null);
     try {
@@ -316,11 +323,7 @@ export default function SuperAdminStudentsPage() {
 
       if (file.name.endsWith(".xlsx") || file.name.endsWith(".xls")) {
         const buf = await file.arrayBuffer();
-        const wb = XLSX.read(buf, { type: "array" });
-        const sheetName = wb.SheetNames[0];
-        if (!sheetName) throw new Error("Excel file has no sheets");
-        const ws = wb.Sheets[sheetName]!;
-        rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws);
+        rows = await parseBulkExcel(buf);
       } else {
         const text = await file.text();
         const endpoint = bulkSection === "parents" ? "/api/v1/parents/bulk" : "/api/v1/students/bulk";

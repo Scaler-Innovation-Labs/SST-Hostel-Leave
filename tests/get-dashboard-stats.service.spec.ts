@@ -170,7 +170,9 @@ describe("getDashboardStats", () => {
 
     expect(result.activeQr).not.toBeNull();
     expect(result.activeQr.passId).toBe("QP1");
-    expect(result.activeQr.token).toBe("abcdef12...");
+    // No credential material is exposed on the dashboard payload.
+    expect(result.activeQr).not.toHaveProperty("token");
+    expect(result.activeQr.expiresAt).toBeTruthy();
   });
 
   it("keeps activeLeave null for future leaves and exposes the earliest as upcomingLeave", async () => {

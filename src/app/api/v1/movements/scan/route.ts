@@ -3,6 +3,7 @@ import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
+import { rateLimit } from "@/lib/rate-limiter";
 import { scanQrPass } from "@/services/movement/scan-qr.service";
 
 export async function POST(request: Request) {
@@ -13,6 +14,9 @@ export async function POST(request: Request) {
       ROLES.ADMIN,
       ROLES.SUPER_ADMIN,
     ]);
+
+    // Gate-DoS / token-probing bound: scans are human-paced.
+    await rateLimit(`scan:${currentUser.id}`, 120, 60_000);
 
     const body = await request.json();
     const dto = scanQrSchema.parse(body);

@@ -18,11 +18,12 @@ import { auditService } from "@/services/audit/audit.service";
  */
 export async function runDocumentRetentionJob(
   currentUser: { id: string } = { id: "SYSTEM" }
-): Promise<{ job: string; deleted: number; cutoff: string }> {
+): Promise<{ job: string; deleted: number; failed: number; cutoff: string }> {
   const cutoff = new Date();
   cutoff.setFullYear(cutoff.getFullYear() - DOCUMENT_RETENTION_YEARS);
 
   let deletedCount = 0;
+  let failedCount = 0;
 
   // Bounded batches: a large first-run backlog must not starve the worker
   // or hammer Cloudinary rate limits.
@@ -35,34 +36,46 @@ export async function runDocumentRetentionJob(
     if (expired.length === 0) break;
 
     for (const document of expired) {
-      const publicId =
-        (
-          document.metadata as { cloudinaryPublicId?: string } | null
-        )?.cloudinaryPublicId ?? extractPublicIdFromUrl(document.fileUrl);
+      // Per-item isolation: one Cloudinary/DB failure must not abort the
+      // rest of the batch. A `false` destroy result (not-found/wrong
+      // resource type) keeps the row ACTIVE for a later run instead of
+      // recording a false DELETED.
+      try {
+        const publicId =
+          (
+            document.metadata as { cloudinaryPublicId?: string } | null
+          )?.cloudinaryPublicId ?? extractPublicIdFromUrl(document.fileUrl);
 
-      if (publicId) {
-        const resourceType = document.mimeType?.startsWith("image/")
-          ? "image"
-          : "raw";
-        await deleteByPublicId(publicId, resourceType);
-      }
-
-      await leaveDocumentRepository.updateStatus(document.id, "DELETED");
-
-      await auditService.record(
-        AUDIT_ACTION.DELETE,
-        AUDIT_ENTITY_TYPE.LEAVE_REQUEST,
-        document.leaveRequestId ?? document.id,
-        currentUser.id,
-        {
-          action: "DOCUMENT_RETENTION_DELETED",
-          documentId: document.id,
-          fileName: document.fileName,
-          retentionYears: DOCUMENT_RETENTION_YEARS,
+        if (publicId) {
+          const resourceType = document.mimeType?.startsWith("image/")
+            ? "image"
+            : "raw";
+          const destroyed = await deleteByPublicId(publicId, resourceType);
+          if (!destroyed) {
+            failedCount++;
+            continue;
+          }
         }
-      );
 
-      deletedCount++;
+        await leaveDocumentRepository.updateStatus(document.id, "DELETED");
+
+        await auditService.record(
+          AUDIT_ACTION.DELETE,
+          AUDIT_ENTITY_TYPE.LEAVE_REQUEST,
+          document.leaveRequestId ?? document.id,
+          currentUser.id,
+          {
+            action: "DOCUMENT_RETENTION_DELETED",
+            documentId: document.id,
+            fileName: document.fileName,
+            retentionYears: DOCUMENT_RETENTION_YEARS,
+          }
+        );
+
+        deletedCount++;
+      } catch {
+        failedCount++;
+      }
     }
 
     if (expired.length < DOCUMENT_RETENTION_BATCH_SIZE) break;
@@ -71,6 +84,7 @@ export async function runDocumentRetentionJob(
   return {
     job: "document-retention",
     deleted: deletedCount,
+    failed: failedCount,
     cutoff: cutoff.toISOString(),
   };
 }

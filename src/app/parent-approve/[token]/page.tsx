@@ -1,54 +1,9 @@
-import { CalendarX, CheckCircle2, ShieldAlert } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
 import { ParentApprovalFlow } from "@/components/parent/ParentApprovalFlow";
+import { sha256 } from "@/lib/crypto";
+import { rateLimit } from "@/lib/rate-limiter";
 import { getLeaveDetailsByToken } from "@/services/parent/get-leave-details-by-token.service";
-
-/**
- * Why the link didn't open — in a parent's terms, not the system's.
- *
- * Each case answers what happened, why, and what to do about it. A parent who
- * followed a link from a text message has no way to act on "Invalid token".
- */
-function explainFailure(message: string) {
-  const lower = message.toLowerCase();
-
-  if (lower.includes("expired")) {
-    return {
-      Icon: CalendarX,
-      tone: "warning" as const,
-      title: "This link has expired",
-      why: "Approval links are only valid for a limited time, so they can't be reused later by anyone else.",
-      whatNow:
-        "Ask your child to resubmit their leave request. You'll get a fresh link straight away.",
-    };
-  }
-
-  if (lower.includes("already") || lower.includes("processed")) {
-    return {
-      Icon: CheckCircle2,
-      tone: "success" as const,
-      title: "You've already answered this one",
-      why: "This request has your decision recorded, so the link has been used.",
-      whatNow:
-        "There's nothing more to do. Your child can see the outcome in their leave history.",
-    };
-  }
-
-  return {
-    Icon: ShieldAlert,
-    tone: "danger" as const,
-    title: "This link isn't valid",
-    why: "It may have been copied incompletely, or it belongs to a request that has since been withdrawn.",
-    whatNow:
-      "Open the link directly from the message you received. If it still fails, contact the hostel office.",
-  };
-}
-
-const TONE = {
-  warning: "bg-warning-light text-warning ring-warning/20",
-  success: "bg-success-light text-success ring-success/20",
-  danger: "bg-danger-light text-danger ring-danger/20",
-};
 
 export default async function ParentApprovePage({
   params,
@@ -58,31 +13,38 @@ export default async function ParentApprovePage({
   const { token } = await params;
 
   let leaveData;
-  let errorMessage: string | null = null;
+  let failed = false;
 
   try {
+    // Same bound as the decision endpoint: unauthenticated token probing
+    // must be rate-limited. The limiter key is the token HASH — the raw
+    // token is a bearer credential and must not be persisted in
+    // rate_limit_entries.
+    await rateLimit(`parent-approve-view:${await sha256(token)}`, 30, 900_000);
     leaveData = await getLeaveDetailsByToken(token);
-  } catch (error) {
-    errorMessage =
-      error instanceof Error ? error.message : "This link isn't valid";
+  } catch {
+    // Deliberately generic: invalid / expired / already-responded / limited
+    // all render the same state so the page is not a validity oracle. The
+    // service logs the real reason server-side.
+    failed = true;
   }
 
-  if (errorMessage || !leaveData) {
-    const { Icon, tone, title, why, whatNow } = explainFailure(
-      errorMessage ?? ""
-    );
-
+  if (failed || !leaveData) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-bg p-4">
+      <div className="min-h-screen flex items-center justify-center bg-bg p-4">
         <div className="w-full max-w-md rounded-2xl border border-border bg-surface p-8 text-center shadow-raised">
-          <span
-            className={`mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full ring-1 ring-inset ${TONE[tone]}`}
+          <div
+            className="mx-auto mb-5 flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive"
           >
-            <Icon className="h-7 w-7" aria-hidden />
-          </span>
-          <h1 className="text-h2 text-ink">{title}</h1>
-          <p className="mt-3 text-body text-muted">{why}</p>
-          <p className="mt-3 text-body text-muted">{whatNow}</p>
+            <AlertTriangle className="size-9" />
+          </div>
+          <h1 className="text-h2 text-ink">Unable to process this approval link</h1>
+          <p className="mt-2 text-muted">
+            This link is invalid, expired, or has already been used.
+          </p>
+          <p className="mt-6 text-small text-muted/70">
+            If you believe this is a mistake, please contact the school.
+          </p>
         </div>
       </div>
     );

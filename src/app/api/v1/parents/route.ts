@@ -10,9 +10,9 @@ export async function GET(request: Request) {
     requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
     const url = new URL(request.url);
-    const { page, limit } = ListParentsSchema.parse(Object.fromEntries(url.searchParams));
-    const search = url.searchParams.get("search") ?? undefined;
-    const studentId = url.searchParams.get("studentId") ?? undefined;
+    const { page, limit, search, studentId } = ListParentsSchema.parse(
+      Object.fromEntries(url.searchParams)
+    );
 
     const result = await parentManagementService.list({ search, studentId, page, limit });
 
