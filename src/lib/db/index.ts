@@ -1,5 +1,5 @@
-import { Pool } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-serverless";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 
 import * as schema from "@/db";
 import { ConfigurationError } from "@/lib/errors";
@@ -12,6 +12,17 @@ const globalForDb = globalThis as typeof globalThis & {
 	db?: DbClient;
 };
 
+function sanitizeConnectionString(raw: string): {
+	url: string;
+	ssl: boolean;
+} {
+	const parsed = new URL(raw);
+	const ssl = parsed.searchParams.get("sslmode") === "require";
+	parsed.searchParams.delete("sslmode");
+	parsed.searchParams.delete("channel_binding");
+	return { url: parsed.toString(), ssl };
+}
+
 function getOrCreatePool(): Pool {
 	if (!globalForDb.pool) {
 		const databaseUrl = process.env.DATABASE_URL;
@@ -21,11 +32,19 @@ function getOrCreatePool(): Pool {
 		// Bounded for serverless bursts (Vercel): a capped pool with
 		// timeouts fails fast with a retriable error instead of hanging
 		// until the platform kills the invocation.
+		//
+		// TLS interop: this pg build treats `sslmode=require` in the URL as
+		// verify-full, which self-managed RDS/PgBouncer endpoints (self-signed
+		// certs) cannot satisfy — the explicit option below would be ignored.
+		// So `sslmode`/`channel_binding` (Neon-only) are stripped from the URL
+		// and TLS-without-CA-verification is configured explicitly instead.
+		const { url, ssl } = sanitizeConnectionString(databaseUrl);
 		globalForDb.pool = new Pool({
-			connectionString: databaseUrl,
+			connectionString: url,
 			max: 10,
 			idleTimeoutMillis: 30_000,
 			connectionTimeoutMillis: 10_000,
+			...(ssl ? { ssl: { rejectUnauthorized: false } } : {}),
 		});
 		globalForDb.pool.on("error", (err: unknown) => {
 			logger.error("[db] Pool error", {

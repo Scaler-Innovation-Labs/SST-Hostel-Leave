@@ -39,8 +39,16 @@ LIMIT 200;
 `;
 
 async function main() {
-  const { Pool } = await import("@neondatabase/serverless");
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const { Pool } = await import("pg");
+  const raw = process.env.DATABASE_URL ?? "";
+  const parsed = new URL(raw);
+  const ssl = parsed.searchParams.get("sslmode") === "require";
+  parsed.searchParams.delete("sslmode");
+  parsed.searchParams.delete("channel_binding");
+  const pool = new Pool({
+    connectionString: parsed.toString(),
+    ...(ssl ? { ssl: { rejectUnauthorized: false } } : {}),
+  });
 
   for (const [label, query] of [
     ["COUNT (badge)", COUNT_SQL],
