@@ -13,6 +13,7 @@ import { studentRepository } from "@/db/repositories/student/student.repository"
 import { sha256, toHex } from "@/lib/crypto";
 import { db } from "@/lib/db";
 import { AuthorizationError, NotFoundError, ValidationError } from "@/lib/errors";
+import { encryptQrToken } from "@/lib/qr-token-crypto";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 
@@ -24,7 +25,6 @@ export type GenerateQrInput = {
 
 export type QrPassResult = {
 	passId: string;
-	token: string;
 	tokenHash: string;
 	qrType: string;
 	expiresAt: Date | null;
@@ -47,7 +47,7 @@ export async function generateQrPass(
 	return await db.transaction(async (tx) => {
 		// Row-lock the leave so two concurrent generate calls for the same
 		// leave serialize: the second blocks until the first commits, then
-		// sees the existing pass and returns its stored token instead of
+		// sees the existing pass and returns it instead of
 		// racing to create a duplicate (which the unique index would reject
 		// with an opaque 500).
 		const leaveRequest = await leaveRepository.findByIdForUpdate(
@@ -104,8 +104,29 @@ export async function generateQrPass(
 		const expiresAt = getQrExpiryFromLeaveEnd(leaveRequest.endAt);
 		const now = new Date();
 
+		if (
+			existingPass?.status === QR_STATUS.ACTIVE &&
+			existingPass.tokenEnc
+		) {
+			// One QR pass per leave: an ACTIVE pass is returned as-is so
+			// the student sees the exact same QR again (rendered from the
+			// stored credential via the image endpoint). No new credential
+			// is minted here, so this path needs no encryption key.
+			return {
+				passId: existingPass.id,
+				tokenHash: existingPass.tokenHash,
+				qrType: existingPass.qrType,
+				expiresAt: existingPass.expiresAt,
+			};
+		}
+
+		// Minted only when a credential is actually (re)created below: the
+		// raw token is NEVER persisted in plaintext and NEVER returned —
+		// only the hash (gate scans) and the encrypted envelope (QR rendering
+		// via /api/v1/qr/{passId}/image) reach the database.
 		const token = generateToken();
 		const tokenHash = await sha256(token);
+		const tokenEnc = await encryptQrToken(token);
 
 		// Contract §7 invariant: a student may have at most ONE currently
 		// usable-for-exit pass. Future approved leaves hold ACTIVE passes
@@ -114,7 +135,7 @@ export async function generateQrPass(
 		// create the ambiguity the contract forbids.
 		//
 		// Only checked when we are about to mint/refresh a credential; the
-		// "return the stored token" path below never creates a second usable
+		// "return the existing pass" path below never creates a second usable
 		// pass.
 		if (
 			!existingPass ||
@@ -135,28 +156,13 @@ export async function generateQrPass(
 		}
 
 		if (existingPass) {
-			if (
-				existingPass.status === QR_STATUS.ACTIVE &&
-				existingPass.token
-			) {
-				// One QR pass (and one stable token) per leave: an ACTIVE pass
-				// simply returns its stored token so the student can display
-				// the exact same QR again.
-				return {
-					passId: existingPass.id,
-					token: existingPass.token,
-					tokenHash: existingPass.tokenHash,
-					qrType: existingPass.qrType,
-					expiresAt: existingPass.expiresAt,
-				};
-			}
-
 			if (existingPass.status === QR_STATUS.ACTIVE) {
-				// Legacy pass (no stored raw token) — write the token once so it
-				// can be rendered again. This is a repair, not a re-issue.
+				// Legacy pass (no stored credential) — write the encrypted
+				// token once so it can be rendered again. This is a repair,
+				// not a re-issue.
 				const pass = await qrPassRepository.regenerate(
 					existingPass.id,
-					{ tokenHash, qrType: input.qrType, validFrom, expiresAt, token },
+					{ tokenHash, qrType: input.qrType, validFrom, expiresAt, tokenEnc },
 					tx
 				);
 
@@ -168,7 +174,7 @@ export async function generateQrPass(
 					{
 						qrType: input.qrType,
 						leaveRequestId: input.leaveRequestId,
-						reason: "legacy pass repair (missing raw token)",
+						reason: "legacy pass repair (missing encrypted token)",
 					},
 					tx
 				);
@@ -187,7 +193,6 @@ export async function generateQrPass(
 
 				return {
 					passId: pass.id,
-					token,
 					tokenHash,
 					qrType: pass.qrType,
 					expiresAt: pass.expiresAt,
@@ -206,7 +211,7 @@ export async function generateQrPass(
 				// good.
 				const pass = await qrPassRepository.regenerate(
 					existingPass.id,
-					{ tokenHash, qrType: input.qrType, validFrom, expiresAt, token },
+					{ tokenHash, qrType: input.qrType, validFrom, expiresAt, tokenEnc },
 					tx
 				);
 
@@ -237,7 +242,6 @@ export async function generateQrPass(
 
 				return {
 					passId: pass.id,
-					token,
 					tokenHash,
 					qrType: pass.qrType,
 					expiresAt: pass.expiresAt,
@@ -246,7 +250,6 @@ export async function generateQrPass(
 
 			return {
 				passId: existingPass.id,
-				token: "",
 				tokenHash: existingPass.tokenHash,
 				qrType: existingPass.qrType,
 				expiresAt: existingPass.expiresAt,
@@ -258,7 +261,7 @@ export async function generateQrPass(
 			studentId: student.id,
 			qrType: input.qrType,
 			tokenHash,
-			token,
+			tokenEnc,
 			status: QR_STATUS.ACTIVE,
 			validFrom,
 			expiresAt,
@@ -290,7 +293,6 @@ export async function generateQrPass(
 
 		return {
 			passId: pass.id,
-			token,
 			tokenHash,
 			qrType: pass.qrType,
 			expiresAt: pass.expiresAt,

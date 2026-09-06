@@ -3,11 +3,14 @@ import { ApiResponse } from "@/lib/api/response";
 import { requireRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
+import { rateLimit } from "@/lib/rate-limiter";
 import { generateQrPass } from "@/services/movement/generate-qr.service";
 
 export async function POST(request: Request) {
   try {
     const currentUser = requireRole(await requireAuth(), ROLES.STUDENT);
+
+    await rateLimit(`generate-qr:${currentUser.id}`, 30, 60_000);
 
     const body = await request.json();
     const dto = generateQrSchema.parse(body);

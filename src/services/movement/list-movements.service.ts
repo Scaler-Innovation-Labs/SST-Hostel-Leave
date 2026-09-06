@@ -1,8 +1,11 @@
 import type { MovementEvent } from "@/constants/movement/movement-event";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { movementEventRepository, type MovementEventRow } from "@/db/repositories/movement/movement-event.repository";
+import { studentRepository } from "@/db/repositories/student/student.repository";
 import type { ListMovementsQuery } from "@/dto/movement/list-movements.dto";
+import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
+import { AuthorizationError } from "@/lib/errors";
 import { getScopedHostelIds, isStaffScopeRestricted, verifyStudentOwnership } from "@/services/shared/authorization.service";
 
 export async function listMovements(
@@ -15,6 +18,17 @@ export async function listMovements(
   limit: number;
   totalPages: number;
 }> {
+  // Student scope is FORCED (same pattern as listLeaves): without this,
+  // an unfiltered student list call would return everyone's movement
+  // history. Staff scoping stays hostel-based below.
+  if (currentUser.roles.includes(ROLES.STUDENT)) {
+    const student = await studentRepository.findByUserId(currentUser.id);
+    if (!student) {
+      throw new AuthorizationError("Student profile not found");
+    }
+    query.studentId = student.id;
+  }
+
   // Ownership check: a STUDENT may only see their own movements. The
   // studentId filter is the direct attack surface — without a leaveRequestId
   // a student could pass any studentId and read another student's history.

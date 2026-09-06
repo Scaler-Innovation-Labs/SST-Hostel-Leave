@@ -12,6 +12,8 @@ const mockRequireRole = vi.fn().mockReturnValue({ id: "U1", roles: ["STUDENT"] }
 
 vi.mock("@/lib/db", () => ({ db: { transaction: (cb: any) => cb({}) } }));
 
+vi.mock("@/lib/rate-limiter", () => ({ rateLimit: vi.fn().mockResolvedValue(undefined) }));
+
 vi.mock("@/lib/auth/require-auth", () => ({
   requireAuth: (...args: any[]) => mockRequireAuth(...args),
 }));
@@ -55,7 +57,7 @@ beforeEach(() => {
   mockRequireAuth.mockResolvedValue({ id: "U1", roles: ["ADMIN"] });
   mockRequireAnyRole.mockReturnValue({ id: "U1", roles: ["ADMIN"] });
   mockRequireRole.mockReturnValue({ id: "U1", roles: ["STUDENT"] });
-  mockGenerateQr.mockResolvedValue({ id: "QP1", token: "t" });
+  mockGenerateQr.mockResolvedValue({ passId: "QP1", tokenHash: "hash" });
   mockInvalidateQr.mockResolvedValue({ id: "QP1", status: "INVALIDATED" });
   mockManualReturn.mockResolvedValue({ success: true });
   mockMarkOverdue.mockResolvedValue({ success: true });
