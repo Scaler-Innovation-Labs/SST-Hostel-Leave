@@ -48,7 +48,6 @@ import { DocumentList } from "@/features/leaves/components/DocumentList";
 import { useLeave } from "@/features/leaves/hooks/use-leaves";
 import { useMovement } from "@/hooks/use-movement";
 import { useQrPasses } from "@/hooks/use-qr-passes";
-import { useQrToken } from "@/hooks/use-qr-token";
 import { cancelLeave, getQuestionsUrl } from "@/lib/api/leave-api";
 import { generateQr } from "@/lib/api/movement-api";
 import { formatDateTime, getDurationLabel } from "@/lib/date-utils";
@@ -458,32 +457,29 @@ function QRPassSection({ leaveId }: { leaveId: string }) {
   const [generating, setGenerating] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
   const [fullscreenQr, setFullscreenQr] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
   const { qrPasses, mutate } = useQrPasses(leaveId);
-  const { storeToken, getToken } = useQrToken();
 
   const activePass = qrPasses.find((p) => p.status === QR_STATUS.ACTIVE);
   const latestPass = qrPasses[0] ?? null;
-  // One token per leave, served by the API — the same QR is always shown.
-  // sessionStorage is only a fallback for passes from before raw tokens were
-  // stored server-side.
-  const qrToken = activePass ? (activePass.token ?? getToken(activePass.id) ?? null) : null;
-  const needsLegacyRepair = !!activePass && !activePass.token && !getToken(activePass.id);
+  // One QR per leave, rendered server-side from the encrypted credential —
+  // the exact same bytes as the approval email. The raw token never reaches
+  // the browser.
+  const qrImageUrl = activePass ? `/api/v1/qr/${activePass.id}/image` : null;
 
   const refresh = () => { mutate(); };
 
-  // Only reachable when no pass exists (legacy) or a legacy pass needs its
-  // stored token written once. Never invalidates or re-issues an active pass.
+  // Only reachable when no pass exists (legacy) or the stored credential
+  // needs a server-side repair. Never invalidates or re-issues an active pass.
   const handleGenerate = async () => {
     if (!leaveId) return;
     setGenerating(true);
     setQrError(null);
     try {
-      const result = (await generateQr(leaveId, "LEAVE_EXIT")) as { passId: string; token: string } | null;
-      if (result?.passId && result?.token) {
-        storeToken(result.passId, result.token, leaveId);
+      const result = (await generateQr(leaveId, "LEAVE_EXIT")) as { passId: string } | null;
+      if (result?.passId) {
+        setImageFailed(false);
         toast.success("QR pass ready");
-      } else if (result?.passId) {
-        toast.success("QR pass already active");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to load QR pass";
@@ -508,12 +504,12 @@ function QRPassSection({ leaveId }: { leaveId: string }) {
   return (
     <CollapsibleSection title="QR Pass" icon={QrCode} defaultOpen={!!activePass || !!latestPass}>
       {activePass ? (
-        qrToken ? (
+        qrImageUrl && !imageFailed ? (
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
             <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
               {/* QR Code */}
               <button type="button" onClick={() => setFullscreenQr(true)} className="shrink-0 cursor-pointer">
-                <QrCodeDisplay token={qrToken} size={160} />
+                <QrCodeDisplay imageUrl={qrImageUrl} size={160} onError={() => setImageFailed(true)} />
               </button>
 
               {/* Status info */}
@@ -557,17 +553,17 @@ function QRPassSection({ leaveId }: { leaveId: string }) {
               </div>
             </div>
           </div>
-        ) : needsLegacyRepair ? (
+        ) : (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-5">
             <div className="flex flex-col items-center gap-3 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/10">
                 <AlertTriangle className="h-7 w-7 text-amber-500" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-amber-600">QR pass created before this upgrade</p>
+                <p className="text-sm font-semibold text-amber-600">QR image unavailable</p>
                 <p className="mx-auto mt-1 max-w-sm text-xs text-muted-foreground">
-                  Your pass was created before QR codes were stored on the server. Tap below once to retrieve it —
-                  the same QR stays valid for this leave.
+                  Your pass exists but its QR could not be rendered. Tap below once to repair it on the
+                  server — the same QR stays valid for this leave.
                 </p>
               </div>
               <Button onClick={handleGenerate} disabled={generating} size="sm" className="gap-2">
@@ -586,7 +582,7 @@ function QRPassSection({ leaveId }: { leaveId: string }) {
               {qrError && <div className="w-full rounded-lg bg-destructive/10 p-3 text-sm text-destructive">{qrError}</div>}
             </div>
           </div>
-        ) : null
+        )
       ) : latestPass && latestPassConfig ? (
         <div className="rounded-xl border border-border p-4">
           <div className="flex items-center gap-3">
@@ -630,13 +626,13 @@ function QRPassSection({ leaveId }: { leaveId: string }) {
       )}
 
       {/* Fullscreen QR overlay */}
-      {fullscreenQr && qrToken && (
+      {fullscreenQr && qrImageUrl && !imageFailed && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
           onClick={() => setFullscreenQr(false)}
         >
           <div className="rounded-2xl bg-white p-8 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <QrCodeDisplay token={qrToken} size={320} />
+            <QrCodeDisplay imageUrl={qrImageUrl} size={320} />
           </div>
         </div>
       )}

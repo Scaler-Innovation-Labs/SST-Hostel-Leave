@@ -208,7 +208,6 @@ export default function SuperAdminSettingsPage() {
             {[
               { label: "NEXT_PUBLIC_BASE_URL", configured: status.system.baseUrl, desc: "Public base URL for links in notifications" },
               { label: "NEXT_PUBLIC_APP_URL", configured: status.system.appUrl, desc: "Application URL for API calls" },
-              { label: "AUTH_SECRET", configured: status.system.authSecret, desc: "JWT signing secret for parent authentication" },
             ].map((item) => (
               <div key={item.label} className="flex items-center justify-between border-b border-border/50 pb-3 last:border-0 last:pb-0">
                 <div>
@@ -255,7 +254,6 @@ export default function SuperAdminSettingsPage() {
                   ["SLACK_CHANNEL_ID", "Slack", "Slack channel ID to post to"],
                   ["NEXT_PUBLIC_BASE_URL", "Notifications", "Public URL for notification links"],
                   ["NEXT_PUBLIC_APP_URL", "API", "Internal URL for API-to-API calls"],
-                  ["AUTH_SECRET", "Parent Auth", "JWT secret for parent OTP tokens"],
                   ["DATABASE_URL", "Core", "PostgreSQL connection string"],
                   ["NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY", "Auth", "Clerk publishable key"],
                   ["CLERK_SECRET_KEY", "Auth", "Clerk secret key"],

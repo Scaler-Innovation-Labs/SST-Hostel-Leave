@@ -22,7 +22,6 @@ export type ConfigStatus = {
   system: {
     baseUrl: boolean;
     appUrl: boolean;
-    authSecret: boolean;
   };
 };
 
