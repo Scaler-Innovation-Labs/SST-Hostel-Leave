@@ -71,10 +71,10 @@ export async function seedPolicies(): Promise<void> {
       config: { type: "MAX_DAYS", maxDays: 180 },
     },
     {
-      name: "Marriage Bereavement Max Days",
+      name: "Attendance Exception Max Days",
       policyType: "LIMIT",
       priority: 100,
-      leaveTypeCode: "MARRIAGE_BEREAVEMENT",
+      leaveTypeCode: "ATTENDANCE_EXCEPTION",
       config: { type: "MAX_DAYS", maxDays: 10 },
     },
 

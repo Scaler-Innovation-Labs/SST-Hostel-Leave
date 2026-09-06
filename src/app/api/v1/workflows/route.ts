@@ -1,5 +1,6 @@
 import listWorkflowsSchema from "@/dto/workflow/list-workflows.dto";
 import saveWorkflowSchema from "@/dto/workflow/save-workflow.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
-    const dto = saveWorkflowSchema.parse(await request.json());
+    const dto = saveWorkflowSchema.parse(await readBoundedJson(request));
     return ApiResponse.created(await createWorkflow(dto, currentUser.id));
   } catch (error) {
     return ApiResponse.fromError(error);

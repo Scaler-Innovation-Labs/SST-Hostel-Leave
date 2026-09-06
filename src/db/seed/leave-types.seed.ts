@@ -32,11 +32,11 @@ type LeaveTypeSeed = {
 
 const LEAVE_TYPES: LeaveTypeSeed[] = [
   {
-    code: "RE_EXAM",
-    name: "Re Exam",
+    code: "EXAM_LEAVE",
+    name: "Warden Approval for Examination",
     category: LEAVE_CATEGORY.HOSTEL,
     color: "#4f46e5",
-    workflowCode: "RE_EXAM",
+    workflowCode: "EXAM_LEAVE",
     qrMode: "NONE",
     allowExtensions: false,
     formFields: [
@@ -130,11 +130,11 @@ const LEAVE_TYPES: LeaveTypeSeed[] = [
     ],
   },
   {
-    code: "MARRIAGE_BEREAVEMENT",
-    name: "Marriage / Relative Expired",
+    code: "ATTENDANCE_EXCEPTION",
+    name: "Warden Approval for Attendance Exception",
     category: LEAVE_CATEGORY.HOSTEL,
     color: "#78716c",
-    workflowCode: "MARRIAGE_BEREAVEMENT",
+    workflowCode: "ATTENDANCE_EXCEPTION",
     qrMode: "NONE",
     allowExtensions: false,
     formFields: [

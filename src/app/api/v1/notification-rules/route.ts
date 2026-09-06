@@ -1,4 +1,5 @@
 import saveNotificationRuleSchema from "@/dto/notification/save-notification-rule.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -20,7 +21,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
-    const dto = saveNotificationRuleSchema.parse(await request.json());
+    const dto = saveNotificationRuleSchema.parse(await readBoundedJson(request));
     return ApiResponse.success(await createNotificationRule(null, dto, currentUser.id));
   } catch (error) {
     return ApiResponse.fromError(error);

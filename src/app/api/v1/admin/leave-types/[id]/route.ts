@@ -1,4 +1,5 @@
 import { createLeaveTypeSchema } from "@/dto/leave/save-leave-type.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -24,7 +25,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
     const { id } = await params;
-    const dto = createLeaveTypeSchema.parse(await request.json());
+    const dto = createLeaveTypeSchema.parse(await readBoundedJson(request));
 
     const leaveType = await updateLeaveType(id, dto, currentUser.id);
 

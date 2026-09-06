@@ -21,22 +21,22 @@ type WorkflowStep = {
 };
 
 const WORKFLOW_DEFS: WorkflowDef[] = [
-  { code: "RE_EXAM", name: "Re Exam Workflow" },
+  { code: "EXAM_LEAVE", name: "Warden Approval for Examination Workflow" },
   { code: "LONG_LEAVE", name: "Long Leave Workflow" },
   { code: "LATE_ENTRY", name: "Late Entry Workflow" },
   { code: "LATE_STAY_COLLEGE", name: "Late Stay At College Workflow" },
   { code: "DIFFERENT_HOSTEL", name: "Staying At Different Hostel Workflow" },
   { code: "HOLIDAY", name: "Holidays Workflow" },
   { code: "INTERNSHIP", name: "Internship Workflow" },
-  { code: "MARRIAGE_BEREAVEMENT", name: "Marriage / Relative Expired Workflow" },
+  { code: "ATTENDANCE_EXCEPTION", name: "Warden Approval for Attendance Exception Workflow" },
 ];
 
 const WORKFLOW_STEPS: WorkflowStep[] = [
   // ==========================
-  // RE EXAM
+  // EXAM LEAVE
   // ==========================
-  { workflowCode: "RE_EXAM", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_LINK" },
-  { workflowCode: "RE_EXAM", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 2, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
+  { workflowCode: "EXAM_LEAVE", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_LINK" },
+  { workflowCode: "EXAM_LEAVE", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 2, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
 
   // ==========================
   // LONG LEAVE
@@ -75,11 +75,11 @@ const WORKFLOW_STEPS: WorkflowStep[] = [
   { workflowCode: "INTERNSHIP", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 3, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
 
   // ==========================
-  // MARRIAGE BEREAVEMENT
+  // ATTENDANCE EXCEPTION
   // ==========================
-  { workflowCode: "MARRIAGE_BEREAVEMENT", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_LINK" },
-  { workflowCode: "MARRIAGE_BEREAVEMENT", stepKey: WORKFLOW_STEP_KEY.POC_APPROVAL, stepOrder: 2, approverRoleCode: "POC", approvalMethod: "PORTAL" },
-  { workflowCode: "MARRIAGE_BEREAVEMENT", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 3, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
+  { workflowCode: "ATTENDANCE_EXCEPTION", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_LINK" },
+  { workflowCode: "ATTENDANCE_EXCEPTION", stepKey: WORKFLOW_STEP_KEY.POC_APPROVAL, stepOrder: 2, approverRoleCode: "POC", approvalMethod: "PORTAL" },
+  { workflowCode: "ATTENDANCE_EXCEPTION", stepKey: WORKFLOW_STEP_KEY.ADMIN_APPROVAL, stepOrder: 3, approverRoleCode: "ADMIN", approvalMethod: "PORTAL" },
 ];
 
 export async function seedWorkflows(
