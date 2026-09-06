@@ -72,9 +72,9 @@ function buildSubmittedForm(leaveTypeCode: string): Record<string, unknown> {
         internshipStart: iso(nextMonth),
         internshipEnd: iso(new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)),
       };
-    case "MARRIAGE_BEREAVEMENT":
+    case "ATTENDANCE_EXCEPTION":
       return { relation: "Sister", reason: "Sister's wedding" };
-    case "RE_EXAM":
+    case "EXAM_LEAVE":
       return { subject: "Mathematics", examDate: iso(nextMonth), examHall: "Block A - Hall 3" };
     case "LONG_LEAVE":
       return { destination: "Hyderabad", reason: "Family function at home" };

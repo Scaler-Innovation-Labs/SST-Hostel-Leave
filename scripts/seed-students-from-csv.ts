@@ -132,6 +132,13 @@ async function main() {
   // Pre-load existing users by email to match across runs and avoid FK violations
   const existingUsers = await db.select({ id: users.id, email: users.email, phone: users.phone, fullName: users.fullName, hostelId: users.hostelId, gender: users.gender, isActive: users.isActive }).from(users);
   const userByEmail = new Map(existingUsers.map((u) => [u.email!.toLowerCase(), u]));
+  // users.phone is unique: track which email holds each phone so a genuine
+  // duplicate never aborts a bulk insert (a user's own phone is kept)
+  const phoneOwner = new Map(
+    existingUsers
+      .filter((u) => u.phone && u.email)
+      .map((u) => [u.phone as string, u.email!.toLowerCase()]),
+  );
 
   const roleRows = await db.select({ id: roles.id, code: roles.code }).from(roles);
   const studentRoleId = roleRows.find((r) => r.code === ROLES.STUDENT)?.id;
@@ -177,6 +184,7 @@ async function main() {
 
   const personalOnly: string[] = [];
   let usersReused = 0;
+  let phonesNulled = 0;
 
   for (const item of roster.values()) {
     const rollNumber = deriveRollNumber(item.email);
@@ -195,8 +203,16 @@ async function main() {
     const hostelId = p ? hostelFor(p["My Hostel:"] ?? "") : null;
     const roomNumber = (p?.["Room Number"] ?? "").trim() || null;
 
-    const phone = p ? normPhone(p["Personal Mobile Number"] ?? "") : null;
-    // Note: phone uniqueness is handled by DB constraints; if collision skip setting phone
+    let phone = p ? normPhone(p["Personal Mobile Number"] ?? "") : null;
+    if (phone) {
+      const owner = phoneOwner.get(phone);
+      if (owner !== undefined && owner !== item.email) {
+        phone = null;
+        phonesNulled++;
+      } else {
+        phoneOwner.set(phone, item.email);
+      }
+    }
 
     const deptId = deptByCode.get(item.program)!;
     const groupKey = `${deptId}|${batchYear}|${item.section ?? ""}`;
@@ -268,7 +284,7 @@ async function main() {
   }
 
   // ── Bulk execute ──
-  const counts = { usersInserted: 0, usersUpdated: 0, studentsInserted: 0, studentsUpdated: 0, parentsInserted: 0, rolesInserted: 0, phonesNulled: 0 };
+  const counts = { usersInserted: 0, usersUpdated: 0, studentsInserted: 0, studentsUpdated: 0, parentsInserted: 0, rolesInserted: 0, phonesNulled };
 
   if (usersToInsert.length > 0) {
     const result = await db.insert(users).values(usersToInsert).onConflictDoNothing({ target: users.email }).returning({ id: users.id });

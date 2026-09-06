@@ -195,7 +195,7 @@ function buildSubmittedForm(leaveTypeCode: string): Record<string, unknown> {
   const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
   switch (leaveTypeCode) {
-    case "RE_EXAM":
+    case "EXAM_LEAVE":
       return { subject: "Mathematics", examDate: iso(nextMonth), examHall: "Block A - Hall 3" };
     case "LONG_LEAVE":
       return { destination: "Hyderabad", reason: "Family function at home" };
@@ -215,7 +215,7 @@ function buildSubmittedForm(leaveTypeCode: string): Record<string, unknown> {
         internshipStart: iso(nextMonth),
         internshipEnd: iso(new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)),
       };
-    case "MARRIAGE_BEREAVEMENT":
+    case "ATTENDANCE_EXCEPTION":
       return { relation: "Sister", reason: "Sister's wedding" };
     default:
       return { reason: "Dummy leave request" };
@@ -920,7 +920,8 @@ async function main() {
         studentId: student.id,
         qrType: QR_TYPE.LEAVE_EXIT,
         tokenHash: `dummy-th-${randomUUID().replace(/-/g, "")}`,
-        token: `dummy-tk-${randomUUID().replace(/-/g, "")}`,
+        // No tokenEnc: dummy passes never render a QR image (their hashes
+        // are fixtures for overdue/scan-log flows, not real credentials).
         status: QR_STATUS.ACTIVE,
         generatedAt: createdAt,
         expiresAt: daysFromNow(20),
