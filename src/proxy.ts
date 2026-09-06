@@ -21,14 +21,6 @@ const isParentApproveRoute = createRouteMatcher([
   "/api/parent-approve(.*)",
 ]);
 
-/**
- * Webhook routes — accessed by external services (Clerk via Svix).
- * Authenticated via webhook signing keys, not Clerk sessions.
- */
-const isWebhookRoute = createRouteMatcher([
-  "/api/webhooks(.*)",
-]);
-
 export default clerkMiddleware(
   async (auth, request: NextRequest) => {
     const pathname = request.nextUrl.pathname;
@@ -49,14 +41,10 @@ export default clerkMiddleware(
       return NextResponse.next();
     }
 
-    // ── Webhook routes ──────────────────────────────────────────────
-    // Accessed by external services (Clerk via Svix) with their own auth.
-    if (isWebhookRoute(request)) {
-      return NextResponse.next();
-    }
-
     // ── Clerk-authenticated routes ──────────────────────────────────
     // Protect student, admin, POC, super-admin dashboards
+    // NOTE: every unauthenticated exemption above must correspond to a
+    // real, intentional route. Do not add open matchers for future use.
     if (isAuthenticatedRoute(request)) {
       await auth.protect();
     }
