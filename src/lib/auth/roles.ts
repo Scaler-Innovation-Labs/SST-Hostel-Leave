@@ -15,7 +15,7 @@ export function isRole(value: string): value is Role {
   return ROLE_VALUES.includes(value);
 }
 
-const ROLE_HIERARCHY: Record<Role, number> = {
+export const ROLE_HIERARCHY: Record<Role, number> = {
   GUARD: 0,
   STUDENT: 0,
   POC: 1,

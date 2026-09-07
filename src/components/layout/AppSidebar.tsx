@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
 
+import { RoleSwitcher } from "@/components/layout/RoleSwitcher";
 import { Logo } from "@/components/shared/Logo";
 import type { NavigationGroup } from "@/constants/navigation";
 import { cn } from "@/lib/utils";
@@ -12,7 +13,7 @@ import { cn } from "@/lib/utils";
 type AppSidebarProps = {
   groups: NavigationGroup[];
   logoHref: string;
-  /** Shown in the foot in the mono label — which console you are in. */
+  /** Foot label fallback — the switcher replaces it for multi-role users. */
   roleLabel: string;
   /** Keyed by href, so a live count rides at the end of its own row. */
   badges?: Record<string, React.ReactNode>;
@@ -185,9 +186,7 @@ export function AppSidebar({
         )}
       >
         {!collapsed && (
-          <span className="min-w-0 flex-1 truncate font-mono text-micro uppercase tracking-wider text-muted">
-            {roleLabel}
-          </span>
+          <RoleSwitcher fallbackLabel={roleLabel} />
         )}
         <button
           type="button"
