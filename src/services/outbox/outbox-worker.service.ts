@@ -78,9 +78,15 @@ export async function processPendingEvents(): Promise<{
     const handler = getHandler(eventRow.eventType);
 
     if (!handler) {
+      // Unknown event types are permanent configuration errors, not
+      // transient delivery failures: consume the whole retry budget so the
+      // row lands FAILED and stays there. Otherwise the retry job (which
+      // resets FAILED rows with remaining budget) would loop it
+      // FAILED → PENDING → FAILED on every drain run forever.
       await outboxRepository.markFailed(
         eventRow.id,
-        `No handler for event type: ${eventRow.eventType}`
+        `No handler for event type: ${eventRow.eventType}`,
+        MAX_RETRIES
       );
       failed++;
       continue;
