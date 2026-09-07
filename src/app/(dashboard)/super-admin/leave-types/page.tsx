@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye, Plus, Save, Trash2 } from "lucide-react";
+import { Eye, Plus, QrCode, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import useSWR from "swr";
 
@@ -10,6 +10,7 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { LEAVE_TYPE_COLOR_PALETTE } from "@/constants/leave/leave-category";
+import { QR_MODE, QR_MODES } from "@/constants/leave/qr-mode";
 import { LEAVE_WORKFLOW_MODE } from "@/constants/leave/workflow-mode";
 import { fetcher } from "@/lib/api/fetcher";
 
@@ -39,6 +40,7 @@ type LeaveType = {
   description: string | null;
   workflowMode: string;
   defaultWorkflowId: string | null;
+  qrMode: string;
   allowExtensions: boolean;
   maxExtensionCount: number | null;
   isActive: boolean;
@@ -56,6 +58,7 @@ type Draft = {
   description: string;
   workflowMode: string;
   defaultWorkflowId: string | null;
+  qrMode: string;
   allowExtensions: boolean;
   maxExtensionCount: string;
   isActive: boolean;
@@ -72,6 +75,7 @@ const EMPTY_DRAFT: Draft = {
   description: "",
   workflowMode: LEAVE_WORKFLOW_MODE.HOSTEL,
   defaultWorkflowId: null,
+  qrMode: QR_MODE.BOTH,
   allowExtensions: false,
   maxExtensionCount: "",
   isActive: true,
@@ -93,6 +97,22 @@ const CATEGORY_LABELS: Record<string, string> = {
   NIGHT_OUT: "Night Out",
   ACADEMIC: "Academic",
   HOSTEL: "Hostel",
+};
+
+const QR_MODE_LABELS: Record<string, string> = {
+  [QR_MODE.NONE]: "No QR",
+  [QR_MODE.EXIT_ONLY]: "Exit only",
+  [QR_MODE.RETURN_ONLY]: "Return only",
+  [QR_MODE.BOTH]: "Exit + Return",
+  [QR_MODE.OPTIONAL]: "Optional",
+};
+
+const QR_MODE_DESCRIPTIONS: Record<string, string> = {
+  [QR_MODE.NONE]: "No QR pass is issued. The leave grants permission only, with no gate movement.",
+  [QR_MODE.EXIT_ONLY]: "A QR pass is issued for exiting campus. No return scan is required.",
+  [QR_MODE.RETURN_ONLY]: "A QR pass is issued for returning to campus. No exit scan is required.",
+  [QR_MODE.BOTH]: "QR passes cover both exit and return scans at the gate.",
+  [QR_MODE.OPTIONAL]: "A QR pass may be issued, but gate scans are not strictly enforced.",
 };
 
 export default function LeaveTypesPage() {
@@ -154,6 +174,7 @@ export default function LeaveTypesPage() {
       description: lt.description ?? "",
       workflowMode: lt.workflowMode,
       defaultWorkflowId: lt.defaultWorkflowId,
+      qrMode: lt.qrMode ?? QR_MODE.BOTH,
       allowExtensions: lt.allowExtensions,
       maxExtensionCount: lt.maxExtensionCount != null ? String(lt.maxExtensionCount) : "",
       isActive: lt.isActive,
@@ -293,6 +314,7 @@ export default function LeaveTypesPage() {
                 <p className="mt-1 text-caption text-muted">
                   {lt.formSchema.fields.length} form fields
                   {lt.allowExtensions ? ` · ${lt.maxExtensionCount ?? "?"} max extensions` : " · No extensions"}
+                  {` · QR: ${QR_MODE_LABELS[lt.qrMode] ?? lt.qrMode ?? QR_MODE_LABELS[QR_MODE.BOTH]}`}
                 </p>
               </button>
               );
@@ -469,7 +491,34 @@ export default function LeaveTypesPage() {
             </div>
           </div>
 
-          {/* ── Section 3: Dynamic Form Builder ── */}
+          {/* ── Section 3: QR Flow ── */}
+          <div>
+            <p className="mb-3 flex items-center gap-1.5 text-caption font-medium text-muted uppercase tracking-wider">
+              <QrCode className="size-3" />
+              QR Flow
+            </p>
+            <div className="rounded-lg border bg-surface-sunken/10 p-4">
+              <label className="block text-body">
+                <span className="mb-1 block font-medium">QR mode</span>
+                <select
+                  value={draft.qrMode}
+                  onChange={(e) => setDraft({ ...draft, qrMode: e.target.value })}
+                  className="h-9 w-full rounded-lg border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+                >
+                  {QR_MODES.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {QR_MODE_LABELS[mode] ?? mode}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="mt-2 text-caption text-muted">
+                {QR_MODE_DESCRIPTIONS[draft.qrMode] ?? ""}
+              </p>
+            </div>
+          </div>
+
+          {/* ── Section 4: Dynamic Form Builder ── */}
           <div>
             <p className="mb-3 text-caption font-medium text-muted uppercase tracking-wider">
               Form Builder
@@ -482,7 +531,7 @@ export default function LeaveTypesPage() {
             </div>
           </div>
 
-          {/* ── Section 4: Required Documents ── */}
+          {/* ── Section 5: Required Documents ── */}
           <div>
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
@@ -602,7 +651,7 @@ export default function LeaveTypesPage() {
             </div>
           </div>
 
-          {/* ── Section 5: Preview ── */}
+          {/* ── Section 6: Preview ── */}
           <div>
             <p className="mb-3 flex items-center gap-1.5 text-caption font-medium text-muted uppercase tracking-wider">
               <Eye className="size-3" />

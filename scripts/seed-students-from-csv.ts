@@ -174,7 +174,7 @@ async function main() {
   };
 
   // ── Build batches ──
-  const usersToInsert: Array<{ fullName: string; email: string; phone: string | null; hostelId: string | null; gender: "MALE" | "FEMALE" | null; isActive: boolean }> = [];
+  const usersToInsert: Array<{ id: string; fullName: string; email: string; phone: string | null; hostelId: string | null; gender: "MALE" | "FEMALE" | null; isActive: boolean }> = [];
   const usersToUpdate: Array<{ id: string; fullName: string; hostelId: string | null; gender: "MALE" | "FEMALE" | null; isActive: boolean; phone: string | null }> = [];
   const studentInserts: Array<{ userId: string; academicGroupId: string; rollNumber: string; roomNumber: string | null; currentLocationState: string; metadata: object }> = [];
   const studentUpdates: Array<{ id: string; roomNumber: string | null; metadata: object }> = [];
@@ -243,7 +243,7 @@ async function main() {
       }
     } else {
       userId = crypto.randomUUID();
-      usersToInsert.push({ fullName, email: item.email, phone, hostelId, gender: gender as "MALE" | "FEMALE" | null, isActive: true });
+      usersToInsert.push({ id: userId, fullName, email: item.email, phone, hostelId, gender: gender as "MALE" | "FEMALE" | null, isActive: true });
       userByEmail.set(item.email, { id: userId, email: item.email, phone, fullName, hostelId, gender: gender as "MALE" | "FEMALE" | "OTHER" | null, isActive: true });
     }
 
