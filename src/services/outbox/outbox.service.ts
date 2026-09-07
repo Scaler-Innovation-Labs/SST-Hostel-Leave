@@ -4,7 +4,6 @@ import type {
 import type {
   OutboxEventType,
 } from "@/constants/outbox/event-types";
-import { OUTBOX_IMMEDIATE_DELAY_MS } from "@/constants/outbox/outbox-publish";
 import { OUTBOX_STATUS } from "@/constants/outbox/outbox-status";
 import {
   type OutboxEvent,
@@ -12,8 +11,6 @@ import {
 } from "@/db/repositories/outbox/outbox.repository";
 import type { db } from "@/lib/db";
 import { ValidationError } from "@/lib/errors";
-
-import { publishOutboxEvent } from "./outbox-publisher.service";
 
 export type PublishEventInput = {
   eventType: OutboxEventType;
@@ -50,6 +47,10 @@ function validateEvent(
   }
 }
 
+// Writes the outbox event row inside the caller's transaction. The row IS the
+// delivery mechanism: the outbox worker (see outbox-worker.service.ts) drains
+// PENDING rows straight from the DB on a short interval, so recording the row
+// is all a caller needs to do — there is no separate publish step.
 export const outboxService = {
   async publish(
     input: PublishEventInput,
@@ -69,8 +70,6 @@ export const outboxService = {
       },
       dbClient
     );
-
-    kickImmediatePublish(created ? [created] : []);
 
     return created;
   },
@@ -96,56 +95,6 @@ export const outboxService = {
       dbClient
     );
 
-    kickImmediatePublish(created);
-
     return created;
   },
 };
-
-/**
- * Best-effort post-commit SQS attempt (near-instant path; the recovery
- * publisher remains the durability guarantee).
- *
- * Fire-and-forget by design: it never throws and never blocks the caller.
- * After a short delay (so the business transaction usually commits
- * first) each row is re-read — an invisible row means "uncommitted or
- * gone", and the attempt is skipped silently for the recovery publisher
- * to deliver later. `published_at` is stamped only after a successful
- * send, so a skipped/failed attempt is indistinguishable from "never
- * tried". No-op when no queue is configured (Stage 1 state).
- */
-function kickImmediatePublish(events: Array<OutboxEvent | null>): void {
-  if (!process.env.OUTBOX_QUEUE_URL) return;
-  const ids = events
-    .map((event) => event?.id)
-    .filter((id): id is string => id !== undefined);
-  if (ids.length === 0) return;
-  void attemptImmediatePublish(ids).catch(() => {
-    // Recovery publisher owns every failure mode here.
-  });
-}
-
-async function attemptImmediatePublish(ids: string[]): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, OUTBOX_IMMEDIATE_DELAY_MS));
-
-  for (const id of ids) {
-    try {
-      const current = await outboxRepository.findById(id);
-      if (
-        !current ||
-        current.status !== OUTBOX_STATUS.PENDING ||
-        current.publishedAt
-      ) {
-        continue;
-      }
-      await publishOutboxEvent({
-        id: current.id,
-        eventType: current.eventType,
-      });
-      await outboxRepository.markPublished(current.id);
-    } catch {
-      // Skipped silently — the recovery publisher delivers it later.
-    }
-  }
-}
-
