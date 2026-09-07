@@ -23,8 +23,17 @@ const LABEL_CLASSES =
  * static label; users with several consoles get a switcher that navigates
  * between them. Switching is navigation only — authorization everywhere
  * keeps using the full assigned role set.
+ *
+ * `compact` renders a header-sized trigger for shells without a sidebar
+ * (e.g. the guard field shell) instead of the full-width footer trigger.
  */
-export function RoleSwitcher({ fallbackLabel }: { fallbackLabel: string }) {
+export function RoleSwitcher({
+  fallbackLabel,
+  compact = false,
+}: {
+  fallbackLabel: string;
+  compact?: boolean;
+}) {
   const { roles, activeRole, isLoading, switchRole } = useActiveRole();
   const [switching, setSwitching] = useState(false);
 
@@ -54,7 +63,10 @@ export function RoleSwitcher({ fallbackLabel }: { fallbackLabel: string }) {
           disabled={switching}
           aria-label={`Switch console, current: ${active.label}`}
           className={cn(
-            "flex min-w-0 flex-1 items-center gap-1 rounded-md text-left",
+            "items-center gap-1 rounded-md text-left",
+            compact
+              ? "inline-flex max-w-44 shrink-0 px-2 py-1"
+              : "flex min-w-0 flex-1",
             "transition-colors duration-fast ease-standard hover:bg-surface-hover",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
             "disabled:opacity-60"

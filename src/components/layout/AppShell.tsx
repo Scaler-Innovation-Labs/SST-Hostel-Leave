@@ -6,6 +6,7 @@ import * as React from "react";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { CommandPalette } from "@/components/layout/CommandPalette";
 import { ProfileMenu } from "@/components/layout/ProfileMenu";
+import { RoleSwitcher } from "@/components/layout/RoleSwitcher";
 import { StudentBottomNav } from "@/components/layout/StudentBottomNav";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Topbar } from "@/components/layout/Topbar";
@@ -150,9 +151,7 @@ export function FieldShell({
     <DensityProvider density="guard">
       <div className="flex min-h-screen flex-col bg-bg">
         <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
-          <span className="font-mono text-micro uppercase tracking-wider text-muted">
-            {roleLabel}
-          </span>
+          <RoleSwitcher fallbackLabel={roleLabel} compact />
           {/* Deliberately thin: nothing here competes with the scanner. */}
           <div className="ml-auto flex shrink-0 items-center gap-1">
             <SignedIn>
