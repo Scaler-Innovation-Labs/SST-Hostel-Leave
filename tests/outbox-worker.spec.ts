@@ -33,7 +33,7 @@ vi.mock("@/services/outbox/handlers/notification-event.handler", () => ({
   handleNotificationEvent: vi.fn(),
 }));
 
-import { processPendingEvents } from "@/services/outbox/outbox-worker.service";
+import { MAX_RETRIES, processPendingEvents } from "@/services/outbox/outbox-worker.service";
 
 import { handleLeaveEvent as mockHandleLeaveEvent } from "@/services/outbox/handlers/leave-event.handler";
 import { handleMovementEvent as mockHandleMovementEvent } from "@/services/outbox/handlers/movement-event.handler";
@@ -71,7 +71,7 @@ describe("processPendingEvents", () => {
     const result = await processPendingEvents();
 
     expect(result).toEqual({ processed: 1, failed: 0, skipped: 0 });
-    // claimNext returns claimed events directly � no separate lock step
+    // claimNext returns claimed events directly � no separate lock step
     expect(mockMarkProcessed).toHaveBeenCalledWith("OE1");
   });
 
@@ -122,7 +122,26 @@ describe("processPendingEvents", () => {
     const result = await processPendingEvents();
 
     expect(result).toEqual({ processed: 0, failed: 1, skipped: 0 });
-    expect(mockMarkFailed).toHaveBeenCalledWith("OE1", "No handler for event type: UNKNOWN_EVENT");
+    expect(mockMarkFailed).toHaveBeenCalledWith("OE1", "No handler for event type: UNKNOWN_EVENT", MAX_RETRIES);
+  });
+
+  it("consumes the retry budget for unknown event types so they cannot loop", async () => {
+    // Regression: an unknown type used to land FAILED with its attempt
+    // budget intact, so the retry job reset it to PENDING and the worker
+    // re-failed it on every drain run forever. Consuming the full budget
+    // excludes the row from findFailed(limit, MAX_RETRIES), breaking the
+    // FAILED → PENDING → FAILED cycle after a single pass.
+    const event = makeEvent({ eventType: "UNKNOWN_EVENT" });
+    mockClaimNext.mockResolvedValue([{ ...event, status: "PROCESSING" }]);
+
+    await processPendingEvents();
+
+    expect(mockMarkFailed).toHaveBeenCalledWith(
+      "OE1",
+      "No handler for event type: UNKNOWN_EVENT",
+      MAX_RETRIES
+    );
+    expect(mockReleaseForRetry).not.toHaveBeenCalled();
   });
 
   it("processes zero events when claimNext returns empty", async () => {

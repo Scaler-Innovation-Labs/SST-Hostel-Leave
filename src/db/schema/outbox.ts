@@ -74,10 +74,9 @@ export const outboxEvents = pgTable(
       withTimezone: true,
     }),
 
-    // SQS publish marker — set after the event reference is accepted by
-    // SQS. NULL means never published. Independent from processing state:
-    // publish retries must not consume the handler retry budget and
-    // handler retries must not republish.
+    // Legacy delivery marker from the old SQS transport (kept nullable for
+    // historic rows). The worker now drains PENDING rows straight from the
+    // DB, so nothing sets or reads this on the write path anymore.
     publishedAt: timestamp("published_at", {
       withTimezone: true,
     }),
@@ -105,8 +104,8 @@ export const outboxEvents = pgTable(
       table.status,
       table.nextAttemptAt
     ),
-    // For the SQS recovery publisher: find PENDING events never published
-    // (or published long ago but still pending — sent-but-lost coverage).
+    // Legacy index from the SQS transport; retained to avoid a prod index
+    // drop. Not used by the DB-poll claim loop.
     statusPublishedIdx: index("oe_status_published_idx").on(
       table.status,
       table.publishedAt

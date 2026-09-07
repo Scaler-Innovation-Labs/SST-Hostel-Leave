@@ -24,7 +24,8 @@ export async function POST() {
     );
 
     // Manual worker trigger fans out provider calls: throttle per admin.
-    // (The scheduled /api/cron/outbox path is secret-gated, not limited.)
+    // (The always-on worker host drains the outbox on its own interval; this
+    // endpoint is just an on-demand nudge for admins/testing.)
     await rateLimit(`outbox-process:${currentUser.id}`, 10, 60_000);
 
     const result = await processPendingEvents();

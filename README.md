@@ -80,7 +80,7 @@ The platform is designed as a configurable workflow engine rather than a hardcod
 ## Reliability & Operations
 
 - **Outbox pattern** for event-driven notification/audit delivery (DB-backed, no Redis)
-- Vercel Cron jobs for outbox delivery, QR cleanup, and daily maintenance
+- Vercel Cron jobs for QR cleanup and daily maintenance
 - Audit logging on every state change; rate limiting
 - Bounded batch processing for cron jobs
 
@@ -118,7 +118,7 @@ Each domain owns its schema, repositories, services, and business rules. Cross-d
 
 ## Event Pipeline
 
-State changes publish events into an `outbox_events` table inside the same transaction. A cron-driven worker delivers them (notifications, QR scans, leave lifecycle events) with retries and crash recovery (`claimed_at` requeue).
+State changes publish events into an `outbox_events` table inside the same transaction — the row IS the delivery mechanism, there is no separate publish step or message broker. A worker host drains PENDING rows straight from Postgres on a short interval (`pnpm outbox:drain`, systemd timer), claiming batches atomically (`FOR UPDATE SKIP LOCKED`), delivering them (notifications, QR scans, leave lifecycle events) with bounded retries, exponential backoff, and crash recovery (stale `PROCESSING` leases are requeued).
 
 ---
 
@@ -178,7 +178,7 @@ State changes publish events into an `outbox_events` table inside the same trans
 | Chat              | Slack Bot API                                     |
 | File Storage      | Cloudinary                                        |
 | QR                | qrcode + @yudiel/react-qr-scanner                 |
-| Background Jobs   | Outbox pattern + Vercel Cron (no Redis)           |
+| Background Jobs   | Outbox pattern + DB-polled worker, no broker (no Redis, no SQS) |
 | Tests             | Vitest + Testing Library                          |
 | Lint / Format     | ESLint 9, Prettier, husky, commitlint, lint-staged|
 | Package Manager   | pnpm                                              |
@@ -286,9 +286,31 @@ Defined in `vercel.json` (all daily; all Bearer `CRON_SECRET` gated):
 
 | Endpoint             | Schedule    | Purpose                                        |
 | -------------------- | ----------- | ---------------------------------------------- |
-| `/api/cron/outbox`   | daily 05:00 | Deliver pending outbox events (retry-safe)     |
 | `/api/cron/cleanup`  | daily 04:00 | QR expiry, document/audit/outbox retention purge |
 | `/api/cron/maintenance` | daily 03:00 | Leave expiry, overdue marking, auto-complete |
+
+---
+
+# Outbox Worker (DB-polled)
+
+Outbox delivery does **not** run on Vercel Cron and uses no message broker.
+A worker host drains the `outbox_events` table directly:
+
+- **Invoke:** systemd timer running `pnpm outbox:drain` (short interval —
+  the exact frequency lives in the timer unit on the worker host).
+- **Manual drain:** run `pnpm outbox:drain` from the repo root; safe to run
+  any time, concurrent runs split work via `SKIP LOCKED`.
+- **What one pass does:** requeues `PROCESSING` rows whose lease expired
+  (crashed runs), resets `FAILED` rows that still have retry budget, then
+  claims up to 50 `PENDING` rows and delivers them.
+- **Retries:** transient failures requeue with exponential backoff
+  (15min × 2ⁿ, capped at 4h, max 5 attempts); exhausted rows stay `FAILED`
+  permanently. Unknown event types fail terminally on first sight.
+- **Crash safety:** a killed run leaves rows `PROCESSING` with a 5-minute
+  lease; the next pass requeues them after the 15-minute stale grace. No
+  event can get permanently stuck as long as the timer keeps firing.
+- **Inspecting failures:** query `outbox_events` by status, e.g.
+  `scripts/check-outbox.ts` for pending/processing/failed counts.
 
 ---
 
