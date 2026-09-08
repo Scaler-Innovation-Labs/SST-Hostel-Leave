@@ -32,12 +32,12 @@ vi.mock("@/services/parent/parent-management.service", () => ({
 import { POST } from "@/app/api/v1/parents/route";
 import { PUT, DELETE } from "@/app/api/v1/parents/[id]/route";
 
-const PARENT = { id: "P1", studentId: "S1", name: "Parent One", phone: "+1234567890", relationship: "FATHER", isPrimary: true };
+const PARENT = { id: "P1", studentId: "S1", name: "Parent One", phone: "+919876543210", relationship: "FATHER", isPrimary: true };
 
 const VALID_BODY = {
   studentId: "550e8400-e29b-41d4-a716-446655440000",
   name: "Parent One",
-  phone: "+1234567890",
+  phone: "+919876543210",
   relationship: "FATHER",
   isPrimary: true,
 };

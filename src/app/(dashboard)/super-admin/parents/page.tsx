@@ -10,6 +10,7 @@ import { Pagination } from "@/components/shared/Pagination";
 import { Button } from "@/components/ui/button";
 import { fetcher } from "@/lib/api/fetcher";
 import { parseBulkExcel } from "@/utils/excel";
+import { isValidPhoneNumber, PHONE_VALIDATION_MESSAGE } from "@/utils/phone";
 
 type ParentItem = {
   id: string;
@@ -108,6 +109,10 @@ export default function SuperAdminParentsPage() {
   const handleSave = async () => {
     if (!draft.name || !draft.phone || !draft.relationship) return;
     if (!draft.id && !draft.studentId) return;
+    if (!isValidPhoneNumber(draft.phone)) {
+      toast.error(PHONE_VALIDATION_MESSAGE);
+      return;
+    }
     setSaving(draft.id ?? "new");
     try {
       if (draft.id) {

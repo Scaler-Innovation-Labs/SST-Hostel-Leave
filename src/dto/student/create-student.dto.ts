@@ -1,9 +1,11 @@
 import { z } from "zod";
 
+import { optionalBlankPhoneField, requiredPhoneField } from "@/dto/shared/phone.dto";
+
 export const createStudentSchema = z.object({
   fullName: z.string().min(1).max(200),
   email: z.string().email().optional().or(z.literal("")),
-  phone: z.string().min(10).max(15).optional().or(z.literal("")),
+  phone: optionalBlankPhoneField(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional().nullable(),
   rollNumber: z.string().min(1).max(50),
   academicGroupId: z.string().uuid(),
@@ -13,7 +15,7 @@ export const createStudentSchema = z.object({
   // parent from the start — leaves that need parent approval never stall
   // on a missing parent record.
   parentName: z.string().min(1).max(200),
-  parentPhone: z.string().min(10).max(15),
+  parentPhone: requiredPhoneField(),
   parentEmail: z.string().email().optional().or(z.literal("")),
   parentRelationship: z.string().min(1).max(100),
 });

@@ -1,4 +1,9 @@
 import { ValidationError } from "@/lib/errors";
+import {
+  INDIAN_MOBILE_PATTERN,
+  normalizePhoneNumber,
+  PHONE_VALIDATION_MESSAGE,
+} from "@/utils/phone";
 
 /**
  * Field-level bounds for bulk-upload rows (students/parents).
@@ -16,7 +21,6 @@ import { ValidationError } from "@/lib/errors";
  * beginning with `=`, `+`, `-`, `@` must be prefixed with `'` at export time.
  */
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE_PATTERN = /^[+\d][\d\s-]{5,18}$/;
 const UUID_PATTERN =
   /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
@@ -51,10 +55,11 @@ export function requiredPhone(
   field: string,
   rowIndex: number
 ): string {
-  if (!PHONE_PATTERN.test(value)) {
-    throw new ValidationError(`Row ${rowIndex + 1}: ${field} is not a valid phone number`);
+  const normalized = normalizePhoneNumber(value);
+  if (!INDIAN_MOBILE_PATTERN.test(normalized)) {
+    throw new ValidationError(`Row ${rowIndex + 1}: ${field} — ${PHONE_VALIDATION_MESSAGE}`);
   }
-  return value;
+  return normalized;
 }
 
 export function optionalUuid(

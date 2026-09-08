@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { optionalBlankPhoneField } from "@/dto/shared/phone.dto";
 import { ROLES } from "@/lib/auth/roles";
 
 export const userRoleScopeSchema = z.object({
@@ -13,7 +14,7 @@ export type UserRoleScopeAssignment = z.infer<typeof userRoleScopeSchema>;
 export const createUserSchema = z.object({
   fullName: z.string().min(1, "Full name is required").max(200),
   email: z.string().email().optional().or(z.literal("")),
-  phone: z.string().min(10).max(15).optional().or(z.literal("")),
+  phone: optionalBlankPhoneField(),
   slackId: z.string().trim().max(64).optional().or(z.literal("")),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   hostelId: z.string().uuid().optional().or(z.literal("")),

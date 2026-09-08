@@ -32,8 +32,8 @@ vi.mock("@/services/audit/audit.service", () => ({
 import { bulkCreateParents } from "@/services/parent/bulk-create-parents.service";
 
 const VALID_ROWS = [
-  { studentEmail: "s1@example.com", name: "Parent One", phone: "+1234567890", relationship: "FATHER", isPrimary: "true" },
-  { studentEmail: "s2@example.com", name: "Parent Two", phone: "+0987654321", relationship: "MOTHER", isPrimary: false, email: "parent@example.com" },
+  { studentEmail: "s1@example.com", name: "Parent One", phone: "+919876543210", relationship: "FATHER", isPrimary: "true" },
+  { studentEmail: "s2@example.com", name: "Parent Two", phone: "+919876543211", relationship: "MOTHER", isPrimary: false, email: "parent@example.com" },
 ];
 
 beforeEach(() => {

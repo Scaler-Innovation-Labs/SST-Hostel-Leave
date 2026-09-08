@@ -41,7 +41,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Your Leave During Examination for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
         "Please follow the approved leave dates and observe all hostel rules while you are away.\n\n" +
-        "Please note: This approval covers the Warden verification component only. For the remaining steps of your re-exam exemption process, please refer to the Student Policy and submit your request via this form: https://docs.google.com/forms/d/e/1FAIpQLScPUfow-KEoG8auclaYeb8F4E5_tgTALOFdwA-1jPk0jlHSzA/viewform\n\n" +
+        "<strong>Please note:</strong> This approval covers the Warden verification component only. For the remaining steps of your re-exam exemption process, please refer to the Student Policy and submit your request via this form: <a href=\"https://docs.google.com/forms/d/e/1FAIpQLScPUfow-KEoG8auclaYeb8F4E5_tgTALOFdwA-1jPk0jlHSzA/viewform\">https://docs.google.com/forms/d/e/1FAIpQLScPUfow-KEoG8auclaYeb8F4E5_tgTALOFdwA-1jPk0jlHSzA/viewform</a>\n\n" +
         "We wish you the very best for your examination.\n\n" +
         qrSectionFor("EXAM_LEAVE") +
         "Regards,\nHostel Administration\nScaler School of Technology",
@@ -117,7 +117,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Your Long Leave for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
         "Please follow the approved leave dates and observe all hostel rules during your leave.\n\n" +
-        "Please note: This approval covers your hostel leave only. It does not exempt you from any classes, examinations, exam- or class-related requirements, or other academic obligations during this period. For any leave or exemption from academic requirements, please refer to the Student Policy and follow the process laid out there.\n\n" +
+        "<strong>Please note:</strong> This approval covers your hostel leave only. It does not exempt you from any classes, examinations, exam- or class-related requirements, or other academic obligations during this period. For any leave or exemption from academic requirements, please refer to the Student Policy and follow the process laid out there.\n\n" +
         "We wish you a safe journey.\n\n" +
         qrSectionFor("LONG_LEAVE") +
         "Regards,\nHostel Administration\nScaler School of Technology",
@@ -415,7 +415,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Your Internship Leave for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
         "Please follow the approved leave dates and observe all hostel rules during your leave.\n\n" +
-        "Please note: This approval covers your hostel leave only. It does not grant academic leave or exempt you from any classes, examinations, or academic requirements during your internship. For academic leave or exemptions, please refer to the Student Policy and follow the process laid out there.\n\n" +
+        "<strong>Please note:</strong> This approval covers your hostel leave only. It does not grant academic leave or exempt you from any classes, examinations, or academic requirements during your internship. For academic leave or exemptions, please refer to the Student Policy and follow the process laid out there.\n\n" +
         "We wish you the very best for your internship.\n\n" +
         qrSectionFor("INTERNSHIP") +
         "Regards,\nHostel Administration\nScaler School of Technology",
@@ -503,7 +503,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
         "Your Special Leave for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
         "Please follow the approved leave dates and observe all hostel rules during your leave.\n\n" +
-        "Please note: This approval covers the Warden verification component only. For the remaining steps of your attendance exemption process, please refer to the Student Policy and submit your request via this form: https://docs.google.com/forms/d/1YWPF5AbXSV8D50WjpCcsP8l5AvV1ZAnXsnYAugM86aA/viewform?ts=67b573db&edit_requested=true#responses\n\n" +
+        "<strong>Please note:</strong> This approval covers the Warden verification component only. For the remaining steps of your attendance exemption process, please refer to the Student Policy and submit your request via this form: <a href=\"https://docs.google.com/forms/d/1YWPF5AbXSV8D50WjpCcsP8l5AvV1ZAnXsnYAugM86aA/viewform?ts=67b573db&edit_requested=true#responses\">https://docs.google.com/forms/d/1YWPF5AbXSV8D50WjpCcsP8l5AvV1ZAnXsnYAugM86aA/viewform?ts=67b573db&edit_requested=true#responses</a>\n\n" +
         qrSectionFor("ATTENDANCE_EXCEPTION") +
         "Regards,\nHostel Administration\nScaler School of Technology",
     },
