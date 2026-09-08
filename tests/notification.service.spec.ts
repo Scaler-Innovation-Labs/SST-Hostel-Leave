@@ -82,6 +82,7 @@ vi.mock("@/services/notification/providers/slack.provider", () => ({
   }),
 }));
 
+import { logger } from "@/lib/logger";
 import { notificationService } from "@/services/notification/notification.service";
 
 beforeEach(() => {
@@ -904,5 +905,47 @@ describe("notificationService", () => {
     });
 
     expect(mockLogCreate).not.toHaveBeenCalled();
+  });
+
+  it("warns when rules match but no recipients resolve", async () => {
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R3",
+        leaveTypeId: null,
+        eventType: "LEAVE_APPROVAL_REQUIRED",
+        templateId: "T14",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        recipients: [{ recipientType: "ADMIN" }],
+        channels: [{ channel: "SLACK" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
+      {
+        id: "T14",
+        eventKey: "LEAVE_APPROVAL_REQUIRED",
+        channel: "SLACK",
+        templateBody: "Dear Warden, {{approvalLink}}",
+        isActive: true,
+      },
+    ]);
+    mockFindUserIdsByRoleCode.mockResolvedValue([]);
+    const warnSpy = vi.spyOn(logger, "warn").mockImplementation(() => {});
+
+    const result = await notificationService.notify("LEAVE_APPROVAL_REQUIRED", {
+      leaveRequestId: "L15",
+      variables: { leaveId: "L15" },
+    });
+
+    // Still success (a config gap must not retry forever), but observable.
+    expect(result.success).toBe(true);
+    expect(mockLogCreate).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      "Notification rules matched but no recipients resolved",
+      expect.objectContaining({ eventType: "LEAVE_APPROVAL_REQUIRED" })
+    );
+    warnSpy.mockRestore();
   });
 });

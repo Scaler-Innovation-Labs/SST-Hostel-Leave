@@ -17,6 +17,7 @@ import { studentRepository } from "@/db/repositories/student/student.repository"
 import { userRepository } from "@/db/repositories/user/user.repository";
 import { ROLES } from "@/lib/auth/roles";
 import { DeliveryError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 
 import { createEmailProvider } from "./providers/email.provider";
 import { createInAppProvider } from "./providers/in-app.provider";
@@ -438,6 +439,12 @@ export const notificationService = {
 			const templates = await notificationTemplateRepository.findByIds(templateIds);
 			const templateById = new Map(templates.map((t) => [t.id, t]));
 
+			// Rules matched but nobody resolves (e.g. a hostel-scoped role
+			// with no user covering the leave's hostel) must stay visible:
+			// the outbox marks the event PROCESSED either way, so log it
+			// instead of failing (a config gap would otherwise retry forever).
+			let resolvedContactCount = 0;
+
 			for (const rule of rules) {
 				const template = templateById.get(rule.templateId);
 				if (!template) continue;
@@ -453,6 +460,7 @@ export const notificationService = {
 						allContacts.push({ type: rType, ...c });
 					}
 				}
+				resolvedContactCount += allContacts.length;
 
 				for (const channel of resolvedChannels) {
 					// For email: batch all recipients into one send (student + parent get the same email)
@@ -552,6 +560,15 @@ export const notificationService = {
 						}
 					}
 				}
+			}
+
+			if (resolvedContactCount === 0) {
+				logger.warn("Notification rules matched but no recipients resolved", {
+					eventType,
+					leaveTypeId: context.leaveTypeId ?? null,
+					leaveRequestId: context.leaveRequestId ?? null,
+					hostelId: context.hostelId ?? null,
+				});
 			}
 		} catch (error) {
 			const msg = `Notification failed for ${eventType}: ${error instanceof Error ? error.message : String(error)}`;
