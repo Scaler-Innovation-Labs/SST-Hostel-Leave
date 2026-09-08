@@ -277,7 +277,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SLACK,
       subject: null,
       templateBody:
-        "Dear {{pocName}},\n\n" +
+        "Hello,\n\n" +
         "{{studentName}} ({{rollNumber}}) has requested permission to stay late at college.\n" +
         "Date/Duration: {{startDate}}\n" +
         "Reason: {{reason}}\n\n" +
@@ -470,7 +470,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       channel: NOTIFICATION_CHANNEL.SLACK,
       subject: null,
       templateBody:
-        "Dear {{pocName}},\n\n" +
+        "Hello,\n\n" +
         "{{studentName}} ({{rollNumber}}) has applied for Internship Leave.\n" +
         "Leave Duration: {{startDate}} to {{endDate}}\n" +
         "Reason: {{reason}}\n\n" +

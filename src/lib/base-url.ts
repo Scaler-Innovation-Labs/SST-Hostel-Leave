@@ -8,6 +8,6 @@
 export function getPublicBaseUrl(): string {
 	return (
 		process.env.NEXT_PUBLIC_BASE_URL ??
-		"https://sst-hostel-leave.vercel.app"
+		"https://leave.sst-dashboard.com"
 	).replace(/\/+$/, "");
 }

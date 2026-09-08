@@ -79,7 +79,10 @@ export function createSlackProvider() {
 
 				if (payload.metadata) {
 					// Fields that already appear in the message body — showing them
-					// again as metadata just adds noise.
+					// again as metadata just adds noise. Render-context internals
+					// (taxonomy codes, duplicate dates, host/poc details the body
+					// already names) are likewise never user-facing: dumping them
+					// leaks internal variable names into staff channels.
 					const redundantKeys = new Set([
 						"leaveId",
 						"approvalLink",
@@ -88,6 +91,14 @@ export function createSlackProvider() {
 						"reason",
 						"startDate",
 						"endDate",
+						"dates",
+						"requestNumber",
+						"leaveCategory",
+						"leaveTypeName",
+						"hostelName",
+						"campus",
+						"pocName",
+						"expectedEntryTime",
 					]);
 
 					const lines = Object.entries(payload.metadata)

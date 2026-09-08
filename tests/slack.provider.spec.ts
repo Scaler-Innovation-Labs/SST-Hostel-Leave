@@ -117,7 +117,7 @@ describe("createSlackProvider", () => {
 			subject: "Leave update",
 			body: "Body with student info and link.",
 			metadata: {
-				requestNumber: "LR-123",
+				department: "CSE",
 				dates: "20 Oct 2026",
 				reason: "Family event",
 				leaveId: "abc-123",
@@ -126,6 +126,9 @@ describe("createSlackProvider", () => {
 				rollNumber: "24BCS10005",
 				startDate: "20 Oct 2026",
 				endDate: "20 Oct 2026",
+				leaveCategory: "HOSTEL",
+				hostelName: "Velankani",
+				pocName: "POC",
 				empty: "   ",
 			},
 		});
@@ -138,9 +141,26 @@ describe("createSlackProvider", () => {
 			(b: any) => b.type === "section" && b.text?.text.includes("• *")
 		);
 		expect(bulletBlock).toBeDefined();
-		expect(bulletBlock.text.text).toBe(
-			"• *requestNumber:* LR-123\n• *dates:* 20 Oct 2026"
-		);
+		expect(bulletBlock.text.text).toBe("• *department:* CSE");
+	});
+
+	it("omits the metadata block when only internal keys remain", async () => {
+		await createSlackProvider().send({
+			to: "C123",
+			subject: "Leave update",
+			body: "Body with student info and link.",
+			metadata: {
+				dates: "20 Oct 2026",
+				leaveCategory: "HOSTEL",
+				hostelName: "Velankani",
+			},
+		});
+
+		const { blocks } = mockPostMessage.mock.calls[0][0];
+		expect(blocks.some((b: any) => b.type === "divider")).toBe(false);
+		expect(
+			blocks.some((b: any) => b.type === "section" && b.text?.text.includes("• *"))
+		).toBe(false);
 	});
 
 	it("disables link unfurls", async () => {
