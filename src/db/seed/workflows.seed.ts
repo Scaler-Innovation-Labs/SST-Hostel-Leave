@@ -4,7 +4,9 @@ import {
   workflowDefinitions,
   workflowSteps,
 } from "@/db";
+import { workflowVersionRepository } from "@/db/repositories/workflow/workflow-version.repository";
 import type { db } from "@/lib/db";
+import { workflowVersionService } from "@/services/workflow/workflow-version.service";
 
 type WorkflowDef = {
   code: string;
@@ -131,4 +133,25 @@ export async function seedWorkflows(
     .insert(workflowSteps)
     .values(steps)
     .onConflictDoNothing();
+
+  // Seeds insert rows directly, bypassing the save service that snapshots
+  // versions — so snapshot v1 here for every definition that has none.
+  // Without this, leave creation fails with a missing WorkflowVersion.
+  const allDefinitions = await database
+    .select({ id: workflowDefinitions.id })
+    .from(workflowDefinitions);
+  for (const definition of allDefinitions) {
+    const existing =
+      await workflowVersionRepository.findLatestByWorkflowDefinitionId(
+        definition.id,
+        database
+      );
+    if (!existing) {
+      await workflowVersionService.createVersion(
+        definition.id,
+        null,
+        database
+      );
+    }
+  }
 }

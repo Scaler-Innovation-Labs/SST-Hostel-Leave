@@ -3,7 +3,9 @@ import {
   leaveTypes,
   workflowDefinitions,
 } from "@/db";
+import { leaveTypeVersionRepository } from "@/db/repositories/leave/leave-type-version.repository";
 import type { db } from "@/lib/db";
+import { leaveTypeVersionService } from "@/services/leave/leave-type-version.service";
 
 type LeaveTypeSeed = {
   code: string;
@@ -179,4 +181,21 @@ export async function seedLeaveTypes(
       }))
     )
     .onConflictDoNothing();
+
+  // Seeds insert rows directly, bypassing the create/update services that
+  // snapshot versions — so snapshot v1 here for every type that has none.
+  // Without this, leave creation fails with a missing LeaveTypeVersion.
+  const allTypes = await database
+    .select({ id: leaveTypes.id })
+    .from(leaveTypes);
+  for (const type of allTypes) {
+    const existing =
+      await leaveTypeVersionRepository.findLatestByLeaveTypeId(
+        type.id,
+        database
+      );
+    if (!existing) {
+      await leaveTypeVersionService.createVersion(type.id, null, database);
+    }
+  }
 }
