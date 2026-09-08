@@ -21,7 +21,25 @@ type TemplateSeed = {
  * block at all.
  */
 const LEAVE_LINK_SECTION =
-  `<br>\n<a href="{{leaveUrl}}">View Leave Details</a>\n\n`;
+  "View Leave Details: {{leaveUrl}}\n\n";
+
+function formatEmailTemplateBody(body: string): string {
+  const paragraphs = body.split("\n\n");
+  return paragraphs
+    .map((p) => {
+      const lines = p.split("\n").filter((l) => l.trim().length > 0);
+      if (lines.length === 0) return "";
+      return `<p>${lines.join("<br>")}</p>`;
+    })
+    .filter((p) => p.length > 0)
+    .join("\n");
+}
+
+function formatTemplateBody(template: TemplateSeed): string {
+  return template.channel === NOTIFICATION_CHANNEL.EMAIL
+    ? formatEmailTemplateBody(template.templateBody)
+    : template.templateBody;
+}
 
 const NO_QR_FLOW = new Set(["EXAM_LEAVE", "ATTENDANCE_EXCEPTION"]);
 
@@ -581,7 +599,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
   ],
 };
 
-export { LEAVE_TYPE_TEMPLATES };
+export { GLOBAL_TEMPLATES,LEAVE_TYPE_TEMPLATES };
 
 // Global templates apply to every leave type (leave_type_id = NULL). OVERDUE
 // alerts go to the student only: the student checked out but has not returned
@@ -620,13 +638,13 @@ export async function seedNotificationTemplates() {
         channel: template.channel as "EMAIL" | "SMS" | "SLACK",
         leaveTypeId,
         subject: template.subject,
-        templateBody: template.templateBody,
+        templateBody: formatTemplateBody(template),
         isActive: true,
       }).onConflictDoUpdate({
         target: notificationTemplates.code,
         set: {
           subject: template.subject,
-          templateBody: template.templateBody,
+          templateBody: formatTemplateBody(template),
           leaveTypeId,
           isActive: true,
           updatedAt: new Date(),
@@ -643,13 +661,13 @@ export async function seedNotificationTemplates() {
       channel: template.channel as "EMAIL" | "SMS" | "SLACK",
       leaveTypeId: null,
       subject: template.subject,
-      templateBody: template.templateBody,
+      templateBody: formatTemplateBody(template),
       isActive: true,
     }).onConflictDoUpdate({
       target: notificationTemplates.code,
       set: {
         subject: template.subject,
-        templateBody: template.templateBody,
+        templateBody: formatTemplateBody(template),
         leaveTypeId: null,
         isActive: true,
         updatedAt: new Date(),
