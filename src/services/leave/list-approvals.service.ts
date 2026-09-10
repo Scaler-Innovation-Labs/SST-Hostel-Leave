@@ -1,7 +1,7 @@
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import {
-  LEAVE_REQUEST_STATUSES,
   LEAVE_REQUEST_STATUS,
+  LEAVE_REQUEST_STATUSES,
   type LeaveRequestStatus,
 } from "@/constants/leave/leave-status";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
@@ -129,11 +129,11 @@ export async function listApprovals(
     hostelIds,
     leaveTypeId: query.leaveTypeId,
     approverUserId: isPocOnly && !isChainRequest ? currentUser.id : undefined,
-    // Super-admins see all statuses including CANCELLED for full oversight.
-    // Other staff roles exclude CANCELLED to keep the queue focused on actionable items.
+    // Admin queues provide full oversight, including CANCELLED requests. A
+    // POC-only queue remains focused on actionable work by hiding them.
     excludeLeaveStatuses: query.status
       ? undefined
-      : !currentUser.roles.includes(ROLES.SUPER_ADMIN)
+      : isPocOnly
         ? [LEAVE_REQUEST_STATUS.CANCELLED]
         : undefined,
     // A chain request wants every step of one leave; the queue wants one

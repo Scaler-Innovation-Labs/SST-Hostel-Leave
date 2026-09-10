@@ -13,7 +13,9 @@ export function useUsers(params?: {
 }) {
   const url = getUsersUrl(params);
 
-  const { data, error, isLoading, mutate } = useSWR(url, fetcher);
+  const { data, error, isLoading, mutate } = useSWR(url, fetcher, {
+    revalidateOnMount: true,
+  });
 
   return {
     data: data as {
@@ -50,7 +52,9 @@ export function useUsers(params?: {
 export function useUser(id: string) {
   const url = id ? getUserUrl(id) : null;
 
-  const { data, error, isLoading, mutate } = useSWR(url, fetcher);
+  const { data, error, isLoading, mutate } = useSWR(url, fetcher, {
+    revalidateOnMount: true,
+  });
 
   return {
     user: data as {

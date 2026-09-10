@@ -61,7 +61,7 @@ describe("listApprovals service", () => {
         page: 1,
         limit: 20,
         approverUserId: undefined,
-        excludeLeaveStatuses: ["CANCELLED"],
+        excludeLeaveStatuses: undefined,
       })
     );
   });
@@ -133,7 +133,7 @@ describe("listApprovals service", () => {
     );
 
     expect(mockFindByFilters).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "PENDING" })
+      expect.objectContaining({ leaveStatus: "PENDING" })
     );
   });
 

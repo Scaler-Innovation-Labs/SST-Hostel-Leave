@@ -27,7 +27,7 @@ export function SWRProvider({ children }: SWRProviderProps) {
         fetcher: globalFetcher,
         revalidateOnFocus: false,
         revalidateIfStale: false,
-        revalidateOnMount: false,
+        revalidateOnMount: true,
         dedupingInterval: 10_000,
         errorRetryCount: 2,
         keepPreviousData: true,

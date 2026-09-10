@@ -39,6 +39,14 @@ import { parseLeaveFormSchema } from "@/lib/leave-form-schema";
 const REASON_LIMIT = 1000;
 const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024;
 const DOCUMENT_ACCEPT = ".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx";
+const ALLOWED_DOCUMENT_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
 
 type PocUser = {
   id: string;
@@ -116,6 +124,13 @@ export default function NewLeavePage() {
     setSubmitError(null);
 
     try {
+      const missingRequiredDocument = requiredDocuments.find(
+        (document) => document.required && !selectedDocuments[document.code],
+      );
+      if (missingRequiredDocument) {
+        throw new Error(`Upload the required document: ${missingRequiredDocument.label}`);
+      }
+
       if (needsPoc && !data.pocId) {
         throw new Error(
           "This leave type needs a point of contact. Pick the staff member who has agreed to be yours."
@@ -302,6 +317,11 @@ export default function NewLeavePage() {
                           if (!file) return;
                           if (file.size > MAX_DOCUMENT_SIZE) {
                             setSubmitError(`${document.label} must be smaller than 10MB.`);
+                            event.target.value = "";
+                            return;
+                          }
+                          if (!ALLOWED_DOCUMENT_TYPES.has(file.type)) {
+                            setSubmitError(`${document.label} must be a JPG, PNG, GIF, PDF, DOC, or DOCX file.`);
                             event.target.value = "";
                             return;
                           }
