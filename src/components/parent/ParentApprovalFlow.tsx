@@ -311,6 +311,7 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
           <div className="flex flex-col gap-3 border-t border-border bg-surface-sunken/40 px-6 py-5 sm:flex-row">
             <Button
               size="lg"
+              variant="success"
               className="flex-1"
               onClick={() => handleDecision(LEAVE_APPROVAL_DECISION.APPROVED)}
               disabled={submitting}

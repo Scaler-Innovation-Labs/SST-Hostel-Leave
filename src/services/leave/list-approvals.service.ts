@@ -76,7 +76,7 @@ export async function listApprovals(
     hostelIds,
     leaveTypeId: query.leaveTypeId,
     approverUserId: isPoc && !isChainRequest ? currentUser.id : undefined,
-    excludeLeaveStatuses: isChainRequest ? undefined : [LEAVE_REQUEST_STATUS.CANCELLED],
+    excludeLeaveStatuses: query.status ? undefined : [LEAVE_REQUEST_STATUS.CANCELLED],
     // A chain request wants every step of one leave; the queue wants one
     // card per leave, paginated over leaves.
     groupByLeaveRequest: !isChainRequest,

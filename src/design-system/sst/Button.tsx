@@ -39,6 +39,8 @@ const buttonVariants = cva(
           "bg-transparent text-ink border border-border-strong hover:bg-surface-hover hover:border-ink",
         /** Tertiary — toolbars, dismissals. */
         ghost: "text-muted hover:bg-surface-hover hover:text-ink",
+        /** Success and positive actions. */
+        success: "bg-success text-on-fill hover:bg-success-dark active:bg-success-dark",
         /** Destructive and irreversible. Always behind a confirmation. */
         danger: "bg-danger text-on-fill hover:bg-danger/90",
         /** On a navy or black band. The label stays dark in both themes:

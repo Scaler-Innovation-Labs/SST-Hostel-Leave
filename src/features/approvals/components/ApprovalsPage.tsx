@@ -358,6 +358,7 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
             <SelectItem value={LEAVE_REQUEST_STATUS.PENDING}>Pending</SelectItem>
             <SelectItem value={LEAVE_REQUEST_STATUS.APPROVED}>Approved</SelectItem>
             <SelectItem value={LEAVE_REQUEST_STATUS.REJECTED}>Rejected</SelectItem>
+            <SelectItem value={LEAVE_REQUEST_STATUS.CANCELLED}>Cancelled</SelectItem>
             <SelectItem value="OVERDUE">Overdue</SelectItem>
           </SelectContent>
         </Select>
