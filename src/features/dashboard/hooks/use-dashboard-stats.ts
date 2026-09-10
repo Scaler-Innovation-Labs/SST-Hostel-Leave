@@ -8,6 +8,9 @@ import { getDashboardStatsUrl } from "@/lib/api/dashboard-api";
 export function useDashboardStats(status?: string) {
   const { data, error, isLoading, mutate } = useSWR<{ data: DashboardStats }>(getDashboardStatsUrl(status), {
     refreshInterval: 60_000,
+    dedupingInterval: 10_000,
+    revalidateIfStale: false,
+    revalidateOnMount: true,
     keepPreviousData: true,
   });
 

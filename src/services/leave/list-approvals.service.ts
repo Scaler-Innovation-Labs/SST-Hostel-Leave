@@ -1,21 +1,60 @@
-import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
-import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import {
+  LEAVE_REQUEST_STATUSES,
+  LEAVE_REQUEST_STATUS,
+  type LeaveRequestStatus,
+} from "@/constants/leave/leave-status";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
-import { type LeaveApproval,leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
+import {
+  type LeaveApproval,
+  leaveApprovalRepository,
+} from "@/db/repositories/leave/leave-approval.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import type { ListApprovalsQuery } from "@/dto/approval/list-approvals.dto";
 import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
 import { AuthorizationError } from "@/lib/errors";
-import { assertCanAccessLeave, getScopedHostelIds, isStaffScopeRestricted } from "@/services/shared/authorization.service";
+import {
+  assertCanAccessLeave,
+  getScopedHostelIds,
+  isStaffScopeRestricted,
+} from "@/services/shared/authorization.service";
 import type { ApprovalStepBreakdownEntry } from "@/types/leave/approval-step-breakdown";
 
 export async function listApprovals(
   query: ListApprovalsQuery,
-  currentUser: CurrentUser
+  currentUser: CurrentUser,
 ): Promise<{
-  items: Array<LeaveApproval & { approverRoleCode: string | null; leaveRequest: { id: string; status: string; startAt: Date; endAt: Date; reason: string; requestNumber: string; submittedForm?: Record<string, unknown> | null; currentStepKey?: string | null; currentStepOrder?: number | null; policyResult?: Record<string, unknown> | null } | null; studentName: string | null; studentRollNumber: string | null; roomNumber: string | null; hostelName: string | null; departmentName: string | null; leaveTypeName: string | null; workflowSteps?: Array<{ stepKey: string; stepOrder: number; approverRoleCode: string | null; isParentApproval: boolean | null; approvalMethod: string | null }> }>;
+  items: Array<
+    LeaveApproval & {
+      approverRoleCode: string | null;
+      leaveRequest: {
+        id: string;
+        status: string;
+        startAt: Date;
+        endAt: Date;
+        reason: string;
+        requestNumber: string;
+        submittedForm?: Record<string, unknown> | null;
+        currentStepKey?: string | null;
+        currentStepOrder?: number | null;
+        policyResult?: Record<string, unknown> | null;
+      } | null;
+      studentName: string | null;
+      studentRollNumber: string | null;
+      roomNumber: string | null;
+      hostelName: string | null;
+      departmentName: string | null;
+      leaveTypeName: string | null;
+      workflowSteps?: Array<{
+        stepKey: string;
+        stepOrder: number;
+        approverRoleCode: string | null;
+        isParentApproval: boolean | null;
+        approvalMethod: string | null;
+      }>;
+    }
+  >;
   total: number;
   page: number;
   limit: number;
@@ -44,7 +83,13 @@ export async function listApprovals(
     }
   }
 
-  const isPoc = currentUser.roles.includes(ROLES.POC);
+  // Staff can hold multiple roles. An ADMIN or SUPER_ADMIN who also has POC
+  // membership must retain the broader staff queue instead of being narrowed
+  // to leave rows explicitly assigned to them as a POC.
+  const isPocOnly =
+    currentUser.roles.includes(ROLES.POC) &&
+    !currentUser.roles.includes(ROLES.ADMIN) &&
+    !currentUser.roles.includes(ROLES.SUPER_ADMIN);
 
   // When a specific leave is requested (approval chain / detail view), return
   // the FULL chain — every step including parent rows and already-decided
@@ -55,17 +100,25 @@ export async function listApprovals(
 
   // Staff visibility: HOSTEL-scoped roles see only approvals for students
   // in their hostels. No scopes = unrestricted (ALL).
-  const hostelIds =
-    isStaffScopeRestricted(currentUser) ? getScopedHostelIds(currentUser) : undefined;
+  const hostelIds = isStaffScopeRestricted(currentUser)
+    ? getScopedHostelIds(currentUser)
+    : undefined;
 
   // A POC queue is an action queue: default to only their pending approvals,
   // so items the POC already acted on drop out of the dashboard list.
-  const effectiveStatus =
-    query.status as LeaveApprovalDecision | undefined ??
-    (isPoc && !isChainRequest ? LEAVE_APPROVAL_DECISION.PENDING : undefined);
+  const requestedLeaveStatus = LEAVE_REQUEST_STATUSES.includes(
+    query.status as LeaveRequestStatus,
+  )
+    ? (query.status as LeaveRequestStatus)
+    : undefined;
+  const effectiveApprovalStatus =
+    isPocOnly && !isChainRequest && !requestedLeaveStatus
+      ? LEAVE_APPROVAL_DECISION.PENDING
+      : undefined;
 
   return leaveApprovalRepository.findByFilters({
-    status: effectiveStatus,
+    status: effectiveApprovalStatus,
+    leaveStatus: requestedLeaveStatus,
     leaveRequestId: query.leaveRequestId,
     studentId: forcedStudentId,
     dateFrom: query.dateFrom ? new Date(query.dateFrom) : undefined,
@@ -75,8 +128,14 @@ export async function listApprovals(
     hostelId: query.hostelId,
     hostelIds,
     leaveTypeId: query.leaveTypeId,
-    approverUserId: isPoc && !isChainRequest ? currentUser.id : undefined,
-    excludeLeaveStatuses: query.status ? undefined : [LEAVE_REQUEST_STATUS.CANCELLED],
+    approverUserId: isPocOnly && !isChainRequest ? currentUser.id : undefined,
+    // Super-admins see all statuses including CANCELLED for full oversight.
+    // Other staff roles exclude CANCELLED to keep the queue focused on actionable items.
+    excludeLeaveStatuses: query.status
+      ? undefined
+      : !currentUser.roles.includes(ROLES.SUPER_ADMIN)
+        ? [LEAVE_REQUEST_STATUS.CANCELLED]
+        : undefined,
     // A chain request wants every step of one leave; the queue wants one
     // card per leave, paginated over leaves.
     groupByLeaveRequest: !isChainRequest,

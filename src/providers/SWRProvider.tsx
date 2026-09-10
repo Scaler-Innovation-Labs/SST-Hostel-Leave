@@ -25,11 +25,12 @@ export function SWRProvider({ children }: SWRProviderProps) {
     <SWRConfig
       value={{
         fetcher: globalFetcher,
-        revalidateOnFocus: false, // Don't refetch on window focus for performance
-        revalidateIfStale: false, // Only revalidate on mount or manual trigger
-        dedupingInterval: 5000, // Dedupe requests within 5s window
-        errorRetryCount: 2, // Retry failed requests twice
-        keepPreviousData: true, // Keep showing old data while fetching new
+        revalidateOnFocus: false,
+        revalidateIfStale: false,
+        revalidateOnMount: false,
+        dedupingInterval: 10_000,
+        errorRetryCount: 2,
+        keepPreviousData: true,
       }}
     >
       <IdentityCacheClearer />

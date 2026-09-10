@@ -1,11 +1,28 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, asc, desc, eq, gt, gte, inArray, isNotNull, like, lte, ne, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  isNotNull,
+  like,
+  lte,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 
 import type { LeaveApprovalSource } from "@/constants/leave/approval-source";
 import { LEAVE_APPROVAL_SOURCE } from "@/constants/leave/approval-source";
 import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
-import { LEAVE_REQUEST_STATUS, type LeaveRequestStatus } from "@/constants/leave/leave-status";
+import {
+  LEAVE_REQUEST_STATUS,
+  type LeaveRequestStatus,
+} from "@/constants/leave/leave-status";
 import {
   academicGroups,
   departments,
@@ -26,16 +43,11 @@ import {
 import { db } from "@/lib/db";
 import type { ApprovalStepBreakdownEntry } from "@/types/leave/approval-step-breakdown";
 
-type LeaveApprovalDbClient = Pick<
-  typeof db,
-  "insert" | "select" | "update"
->;
+type LeaveApprovalDbClient = Pick<typeof db, "insert" | "select" | "update">;
 
 export type LeaveApproval = InferSelectModel<typeof leaveApprovals>;
 
-export type NewLeaveApproval = InferInsertModel<
-  typeof leaveApprovals
->;
+export type NewLeaveApproval = InferInsertModel<typeof leaveApprovals>;
 
 /** Shape of a frozen workflow step inside workflow_versions.steps. */
 type FrozenWorkflowStep = {
@@ -57,10 +69,12 @@ type StepPosition = {
 
 /** Turns grouped `current_step_key` counts into the queue's waiting-on facet. */
 function toStepBreakdown(
-  rows: Array<{ stepKey: string | null; count: number }>
+  rows: Array<{ stepKey: string | null; count: number }>,
 ): ApprovalStepBreakdownEntry[] {
   return rows.flatMap((row) =>
-    row.stepKey ? [{ stepKey: row.stepKey, count: Number(row.count ?? 0) }] : []
+    row.stepKey
+      ? [{ stepKey: row.stepKey, count: Number(row.count ?? 0) }]
+      : [],
   );
 }
 
@@ -73,9 +87,12 @@ function toStepBreakdown(
 function pickCurrentStepRow<TRow>(
   rows: TRow[],
   entityIds: string[],
-  position: (row: TRow) => StepPosition
+  position: (row: TRow) => StepPosition,
 ): TRow[] {
-  const isBefore = (candidate: StepPosition, incumbent: StepPosition): boolean => {
+  const isBefore = (
+    candidate: StepPosition,
+    incumbent: StepPosition,
+  ): boolean => {
     const candidateIsCurrent = candidate.currentStepKey === candidate.stepKey;
     const incumbentIsCurrent = incumbent.currentStepKey === incumbent.stepKey;
     if (candidateIsCurrent !== incumbentIsCurrent) return candidateIsCurrent;
@@ -104,7 +121,7 @@ function pickCurrentStepRow<TRow>(
  */
 async function loadWorkflowSteps(
   workflowIds: string[],
-  dbClient: Pick<typeof db, "select">
+  dbClient: Pick<typeof db, "select">,
 ): Promise<
   Map<
     string,
@@ -162,7 +179,7 @@ async function loadWorkflowSteps(
 export const leaveApprovalRepository = {
   async createMany(
     inputs: NewLeaveApproval[],
-    dbClient: LeaveApprovalDbClient = db
+    dbClient: LeaveApprovalDbClient = db,
   ): Promise<LeaveApproval[]> {
     if (inputs.length === 0) {
       return [];
@@ -178,7 +195,7 @@ export const leaveApprovalRepository = {
 
   async autoApprove(
     id: string,
-    dbClient: Pick<typeof db, "update"> = db
+    dbClient: Pick<typeof db, "update"> = db,
   ): Promise<LeaveApproval | null> {
     const rows = await dbClient
       .update(leaveApprovals)
@@ -190,8 +207,8 @@ export const leaveApprovalRepository = {
       .where(
         and(
           eq(leaveApprovals.id, id),
-          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING)
-        )
+          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+        ),
       )
       .returning();
     return rows[0] ?? null;
@@ -200,6 +217,8 @@ export const leaveApprovalRepository = {
   async findByFilters(
     filters: {
       status?: LeaveApprovalDecision;
+      /** Filter by the leave request lifecycle status shown on queue cards. */
+      leaveStatus?: LeaveRequestStatus;
       leaveRequestId?: string;
       dateFrom?: Date;
       dateTo?: Date;
@@ -222,7 +241,7 @@ export const leaveApprovalRepository = {
       page: number;
       limit: number;
     },
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
   ): Promise<{
     items: Array<
       LeaveApproval & {
@@ -274,8 +293,13 @@ export const leaveApprovalRepository = {
     if (filters.status) {
       baseConditions.push(eq(leaveApprovals.decision, filters.status));
     }
+    if (filters.leaveStatus) {
+      baseConditions.push(eq(leaveRequests.status, filters.leaveStatus));
+    }
     if (filters.leaveRequestId) {
-      baseConditions.push(eq(leaveApprovals.leaveRequestId, filters.leaveRequestId));
+      baseConditions.push(
+        eq(leaveApprovals.leaveRequestId, filters.leaveRequestId),
+      );
     }
     if (filters.studentId) {
       baseConditions.push(eq(leaveRequests.studentId, filters.studentId));
@@ -287,15 +311,17 @@ export const leaveApprovalRepository = {
       baseConditions.push(lte(leaveApprovals.createdAt, filters.dateTo));
     }
     if (filters.excludeLeaveStatuses?.length) {
-      baseConditions.push(...filters.excludeLeaveStatuses.map((s) => ne(leaveRequests.status, s)));
+      baseConditions.push(
+        ...filters.excludeLeaveStatuses.map((s) => ne(leaveRequests.status, s)),
+      );
     }
     if (filters.search) {
       const searchPattern = `%${filters.search}%`;
       baseConditions.push(
         or(
           like(leaveRequests.requestNumber, searchPattern),
-          like(users.fullName, searchPattern)
-        )
+          like(users.fullName, searchPattern),
+        ),
       );
     }
     if (filters.hostelId) {
@@ -308,11 +334,16 @@ export const leaveApprovalRepository = {
       baseConditions.push(eq(leaveRequests.leaveTypeId, filters.leaveTypeId));
     }
     if (filters.approverUserId) {
-      baseConditions.push(eq(leaveApprovals.approverUserId, filters.approverUserId));
+      baseConditions.push(
+        eq(leaveApprovals.approverUserId, filters.approverUserId),
+      );
     }
 
     const whereClause = filters.waitingOn
-      ? and(...baseConditions, eq(leaveRequests.currentStepKey, filters.waitingOn))
+      ? and(
+          ...baseConditions,
+          eq(leaveRequests.currentStepKey, filters.waitingOn),
+        )
       : and(...baseConditions);
 
     const countResult = await dbClient
@@ -322,7 +353,10 @@ export const leaveApprovalRepository = {
           : sql<number>`count(*)`,
       })
       .from(leaveApprovals)
-      .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+      .leftJoin(
+        leaveRequests,
+        eq(leaveApprovals.leaveRequestId, leaveRequests.id),
+      )
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .where(whereClause);
@@ -339,15 +373,18 @@ export const leaveApprovalRepository = {
         count: sql<number>`count(DISTINCT ${leaveApprovals.leaveRequestId})`,
       })
       .from(leaveApprovals)
-      .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+      .leftJoin(
+        leaveRequests,
+        eq(leaveApprovals.leaveRequestId, leaveRequests.id),
+      )
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .where(
         and(
           ...baseConditions,
           eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
-          eq(leaveApprovals.stepKey, leaveRequests.currentStepKey)
-        )
+          eq(leaveApprovals.stepKey, leaveRequests.currentStepKey),
+        ),
       )
       .groupBy(leaveRequests.currentStepKey);
 
@@ -362,19 +399,25 @@ export const leaveApprovalRepository = {
       const pageIdRows = await dbClient
         .select({ leaveRequestId: leaveApprovals.leaveRequestId })
         .from(leaveApprovals)
-        .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+        .leftJoin(
+          leaveRequests,
+          eq(leaveApprovals.leaveRequestId, leaveRequests.id),
+        )
         .leftJoin(students, eq(leaveRequests.studentId, students.id))
         .leftJoin(users, eq(students.userId, users.id))
         .where(whereClause)
         .groupBy(leaveApprovals.leaveRequestId)
         // The id breaks ties: timestamps collide often enough that ordering on
         // them alone lets a request drift between pages as they are fetched.
-        .orderBy(desc(sql`max(${leaveApprovals.createdAt})`), asc(leaveApprovals.leaveRequestId))
+        .orderBy(
+          desc(sql`max(${leaveApprovals.createdAt})`),
+          asc(leaveApprovals.leaveRequestId),
+        )
         .limit(filters.limit)
         .offset(offset);
 
       pageLeaveRequestIds = pageIdRows.flatMap((row) =>
-        row.leaveRequestId ? [row.leaveRequestId] : []
+        row.leaveRequestId ? [row.leaveRequestId] : [],
       );
 
       if (pageLeaveRequestIds.length === 0) {
@@ -418,11 +461,23 @@ export const leaveApprovalRepository = {
       })
       .from(leaveApprovals)
       .leftJoin(roles, eq(leaveApprovals.approverRoleId, roles.id))
-      .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+      .leftJoin(
+        leaveRequests,
+        eq(leaveApprovals.leaveRequestId, leaveRequests.id),
+      )
       .leftJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
-      .leftJoin(leaveConfigurationContexts, eq(leaveRequests.id, leaveConfigurationContexts.leaveRequestId))
-      .leftJoin(leaveTypeVersions, eq(leaveConfigurationContexts.leaveTypeVersionId, leaveTypeVersions.id))
-      .leftJoin(workflowVersions, eq(leaveConfigurationContexts.workflowVersionId, workflowVersions.id))
+      .leftJoin(
+        leaveConfigurationContexts,
+        eq(leaveRequests.id, leaveConfigurationContexts.leaveRequestId),
+      )
+      .leftJoin(
+        leaveTypeVersions,
+        eq(leaveConfigurationContexts.leaveTypeVersionId, leaveTypeVersions.id),
+      )
+      .leftJoin(
+        workflowVersions,
+        eq(leaveConfigurationContexts.workflowVersionId, workflowVersions.id),
+      )
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .leftJoin(hostels, eq(users.hostelId, hostels.id))
@@ -430,8 +485,11 @@ export const leaveApprovalRepository = {
       .leftJoin(departments, eq(academicGroups.departmentId, departments.id))
       .where(
         groupByLeaveRequest
-          ? and(whereClause, inArray(leaveApprovals.leaveRequestId, pageLeaveRequestIds))
-          : whereClause
+          ? and(
+              whereClause,
+              inArray(leaveApprovals.leaveRequestId, pageLeaveRequestIds),
+            )
+          : whereClause,
       )
       .orderBy(desc(leaveApprovals.createdAt));
 
@@ -455,7 +513,7 @@ export const leaveApprovalRepository = {
       ...new Set(
         dedupedRows
           .map((row) => row.leaveTypeDefaultWorkflowId)
-          .filter((id): id is string => !!id)
+          .filter((id): id is string => !!id),
       ),
     ];
 
@@ -470,7 +528,8 @@ export const leaveApprovalRepository = {
         // workflow for legacy leaves without a context.
         workflowSteps:
           (row.execWorkflowSteps as FrozenWorkflowStep[] | null) ??
-          stepsByWorkflow.get(row.leaveTypeDefaultWorkflowId ?? "") ?? [],
+          stepsByWorkflow.get(row.leaveTypeDefaultWorkflowId ?? "") ??
+          [],
         leaveRequest: row.leaveReqId
           ? {
               id: row.leaveReqId,
@@ -479,10 +538,14 @@ export const leaveApprovalRepository = {
               endAt: row.leaveReqEndAt!,
               reason: row.leaveReqReason ?? "",
               requestNumber: row.leaveReqNumber ?? "",
-              submittedForm: row.leaveReqSubmittedForm as Record<string, unknown> | null ?? null,
+              submittedForm:
+                (row.leaveReqSubmittedForm as Record<string, unknown> | null) ??
+                null,
               currentStepKey: row.leaveReqCurrentStepKey ?? null,
               currentStepOrder: row.leaveReqCurrentStepOrder ?? null,
-              policyResult: row.leaveReqPolicyResult as Record<string, unknown> | null ?? null,
+              policyResult:
+                (row.leaveReqPolicyResult as Record<string, unknown> | null) ??
+                null,
             }
           : null,
         studentName: row.studentName,
@@ -491,7 +554,11 @@ export const leaveApprovalRepository = {
         hostelName: row.hostelName,
         departmentName: row.departmentName,
         leaveTypeName: row.execLeaveTypeName ?? row.leaveTypeName,
-        leaveTypeUiConfig: (row.execUiConfig ?? row.leaveTypeUiConfig) as Record<string, unknown> | null ?? null,
+        leaveTypeUiConfig:
+          ((row.execUiConfig ?? row.leaveTypeUiConfig) as Record<
+            string,
+            unknown
+          > | null) ?? null,
       })),
       total,
       page: filters.page,
@@ -503,9 +570,11 @@ export const leaveApprovalRepository = {
 
   async findByEntityAndDecision(
     entityId: string,
-    column: typeof leaveApprovals.leaveRequestId | typeof leaveApprovals.leaveExtensionId,
+    column:
+      | typeof leaveApprovals.leaveRequestId
+      | typeof leaveApprovals.leaveExtensionId,
     decision: LeaveApprovalDecision,
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
   ): Promise<
     Array<
       LeaveApproval & {
@@ -519,22 +588,8 @@ export const leaveApprovalRepository = {
         roleCode: roles.code,
       })
       .from(leaveApprovals)
-      .leftJoin(
-        roles,
-        eq(
-          leaveApprovals.approverRoleId,
-          roles.id
-        )
-      )
-      .where(
-        and(
-          eq(column, entityId),
-          eq(
-            leaveApprovals.decision,
-            decision
-          )
-        )
-      )
+      .leftJoin(roles, eq(leaveApprovals.approverRoleId, roles.id))
+      .where(and(eq(column, entityId), eq(leaveApprovals.decision, decision)))
       .orderBy(leaveApprovals.stepOrder);
 
     return rows.map((row) => ({
@@ -545,10 +600,12 @@ export const leaveApprovalRepository = {
 
   async findNextByEntityAndDecision(
     entityId: string,
-    column: typeof leaveApprovals.leaveRequestId | typeof leaveApprovals.leaveExtensionId,
+    column:
+      | typeof leaveApprovals.leaveRequestId
+      | typeof leaveApprovals.leaveExtensionId,
     currentStepOrder: number,
     decision: LeaveApprovalDecision,
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
   ): Promise<LeaveApproval | null> {
     const rows = await dbClient
       .select()
@@ -556,15 +613,9 @@ export const leaveApprovalRepository = {
       .where(
         and(
           eq(column, entityId),
-          gt(
-            leaveApprovals.stepOrder,
-            currentStepOrder
-          ),
-          eq(
-            leaveApprovals.decision,
-            decision
-          )
-        )
+          gt(leaveApprovals.stepOrder, currentStepOrder),
+          eq(leaveApprovals.decision, decision),
+        ),
       )
       .orderBy(leaveApprovals.stepOrder)
       .limit(1);
@@ -576,7 +627,7 @@ export const leaveApprovalRepository = {
     leaveRequestId: string,
     decision: LeaveApprovalDecision,
     actedAt: Date,
-    dbClient: Pick<typeof db, "update"> = db
+    dbClient: Pick<typeof db, "update"> = db,
   ): Promise<LeaveApproval[]> {
     const rows = await dbClient
       .update(leaveApprovals)
@@ -587,8 +638,8 @@ export const leaveApprovalRepository = {
       .where(
         and(
           eq(leaveApprovals.leaveRequestId, leaveRequestId),
-          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING)
-        )
+          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+        ),
       )
       .returning();
 
@@ -624,17 +675,11 @@ export const leaveApprovalRepository = {
       .update(leaveApprovals)
       .set(setData)
       .where(
-  and(
-    eq(
-      leaveApprovals.id,
-      id
-    ),
-    eq(
-      leaveApprovals.decision,
-      LEAVE_APPROVAL_DECISION.PENDING
-    )
-  )
-)
+        and(
+          eq(leaveApprovals.id, id),
+          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+        ),
+      )
       .returning();
 
     return rows[0] ?? null;
@@ -656,7 +701,7 @@ export const leaveApprovalRepository = {
       page: number;
       limit: number;
     },
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
   ): Promise<{
     items: Array<
       LeaveApproval & {
@@ -695,7 +740,12 @@ export const leaveApprovalRepository = {
     page: number;
     limit: number;
     totalPages: number;
-    stats: { total: number; pending: number; approved: number; rejected: number };
+    stats: {
+      total: number;
+      pending: number;
+      approved: number;
+      rejected: number;
+    };
     stepBreakdown: ApprovalStepBreakdownEntry[];
   }> {
     const offset = (filters.page - 1) * filters.limit;
@@ -724,8 +774,8 @@ export const leaveApprovalRepository = {
       baseConditions.push(
         or(
           like(leaveRequests.requestNumber, searchPattern),
-          like(users.fullName, searchPattern)
-        )
+          like(users.fullName, searchPattern),
+        ),
       );
     }
     if (filters.leaveTypeId) {
@@ -739,15 +789,26 @@ export const leaveApprovalRepository = {
     }
 
     const whereClause = filters.waitingOn
-      ? and(...baseConditions, eq(leaveExtensions.currentStepKey, filters.waitingOn))
+      ? and(
+          ...baseConditions,
+          eq(leaveExtensions.currentStepKey, filters.waitingOn),
+        )
       : and(...baseConditions);
     const scopeWhereClause = and(...scopeConditions);
 
     const countResult = await dbClient
-      .select({ count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})` })
+      .select({
+        count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
+      })
       .from(leaveApprovals)
-      .innerJoin(leaveExtensions, eq(leaveApprovals.leaveExtensionId, leaveExtensions.id))
-      .leftJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
+      .innerJoin(
+        leaveExtensions,
+        eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+      )
+      .leftJoin(
+        leaveRequests,
+        eq(leaveExtensions.leaveRequestId, leaveRequests.id),
+      )
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .where(whereClause);
@@ -757,19 +818,31 @@ export const leaveApprovalRepository = {
 
     // Stats are distinct-extension counts by extension status, scoped only.
     const statsRows = await dbClient
-      .select({ status: leaveExtensions.status, count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})` })
+      .select({
+        status: leaveExtensions.status,
+        count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
+      })
       .from(leaveApprovals)
-      .innerJoin(leaveExtensions, eq(leaveApprovals.leaveExtensionId, leaveExtensions.id))
-      .leftJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
+      .innerJoin(
+        leaveExtensions,
+        eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+      )
+      .leftJoin(
+        leaveRequests,
+        eq(leaveExtensions.leaveRequestId, leaveRequests.id),
+      )
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .where(scopeWhereClause)
       .groupBy(leaveExtensions.status);
 
     const countsByStatus = new Map(
-      statsRows.map((row) => [row.status, Number(row.count ?? 0)])
+      statsRows.map((row) => [row.status, Number(row.count ?? 0)]),
     );
-    const statsTotal = [...countsByStatus.values()].reduce((sum, c) => sum + c, 0);
+    const statsTotal = [...countsByStatus.values()].reduce(
+      (sum, c) => sum + c,
+      0,
+    );
     const stats = {
       total: statsTotal,
       pending: countsByStatus.get(LEAVE_REQUEST_STATUS.PENDING) ?? 0,
@@ -786,16 +859,22 @@ export const leaveApprovalRepository = {
         count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
       })
       .from(leaveApprovals)
-      .innerJoin(leaveExtensions, eq(leaveApprovals.leaveExtensionId, leaveExtensions.id))
-      .leftJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
+      .innerJoin(
+        leaveExtensions,
+        eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+      )
+      .leftJoin(
+        leaveRequests,
+        eq(leaveExtensions.leaveRequestId, leaveRequests.id),
+      )
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .where(
         and(
           ...baseConditions,
           eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
-          eq(leaveApprovals.stepKey, leaveExtensions.currentStepKey)
-        )
+          eq(leaveApprovals.stepKey, leaveExtensions.currentStepKey),
+        ),
       )
       .groupBy(leaveExtensions.currentStepKey);
 
@@ -807,20 +886,29 @@ export const leaveApprovalRepository = {
     const pageIdRows = await dbClient
       .select({ leaveExtensionId: leaveApprovals.leaveExtensionId })
       .from(leaveApprovals)
-      .innerJoin(leaveExtensions, eq(leaveApprovals.leaveExtensionId, leaveExtensions.id))
-      .leftJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
+      .innerJoin(
+        leaveExtensions,
+        eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+      )
+      .leftJoin(
+        leaveRequests,
+        eq(leaveExtensions.leaveRequestId, leaveRequests.id),
+      )
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .where(whereClause)
       .groupBy(leaveApprovals.leaveExtensionId)
       // The id breaks ties: timestamps collide often enough that ordering on
       // them alone lets an extension drift between pages as they are fetched.
-      .orderBy(desc(sql`max(${leaveApprovals.createdAt})`), asc(leaveApprovals.leaveExtensionId))
+      .orderBy(
+        desc(sql`max(${leaveApprovals.createdAt})`),
+        asc(leaveApprovals.leaveExtensionId),
+      )
       .limit(filters.limit)
       .offset(offset);
 
     const pageExtensionIds = pageIdRows.flatMap((row) =>
-      row.leaveExtensionId ? [row.leaveExtensionId] : []
+      row.leaveExtensionId ? [row.leaveExtensionId] : [],
     );
 
     if (pageExtensionIds.length === 0) {
@@ -870,19 +958,39 @@ export const leaveApprovalRepository = {
       })
       .from(leaveApprovals)
       .leftJoin(roles, eq(leaveApprovals.approverRoleId, roles.id))
-      .innerJoin(leaveExtensions, eq(leaveApprovals.leaveExtensionId, leaveExtensions.id))
-      .leftJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
+      .innerJoin(
+        leaveExtensions,
+        eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+      )
+      .leftJoin(
+        leaveRequests,
+        eq(leaveExtensions.leaveRequestId, leaveRequests.id),
+      )
       .leftJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
-      .leftJoin(leaveConfigurationContexts, eq(leaveRequests.id, leaveConfigurationContexts.leaveRequestId))
-      .leftJoin(leaveTypeVersions, eq(leaveConfigurationContexts.leaveTypeVersionId, leaveTypeVersions.id))
-      .leftJoin(workflowVersions, eq(leaveConfigurationContexts.workflowVersionId, workflowVersions.id))
+      .leftJoin(
+        leaveConfigurationContexts,
+        eq(leaveRequests.id, leaveConfigurationContexts.leaveRequestId),
+      )
+      .leftJoin(
+        leaveTypeVersions,
+        eq(leaveConfigurationContexts.leaveTypeVersionId, leaveTypeVersions.id),
+      )
+      .leftJoin(
+        workflowVersions,
+        eq(leaveConfigurationContexts.workflowVersionId, workflowVersions.id),
+      )
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .leftJoin(hostels, eq(users.hostelId, hostels.id))
       .leftJoin(academicGroups, eq(students.academicGroupId, academicGroups.id))
       .leftJoin(departments, eq(academicGroups.departmentId, departments.id))
       .leftJoin(parents, eq(leaveApprovals.approverParentId, parents.id))
-      .where(and(whereClause, inArray(leaveApprovals.leaveExtensionId, pageExtensionIds)))
+      .where(
+        and(
+          whereClause,
+          inArray(leaveApprovals.leaveExtensionId, pageExtensionIds),
+        ),
+      )
       .orderBy(desc(leaveApprovals.createdAt));
 
     const dedupedRows = pickCurrentStepRow(rows, pageExtensionIds, (row) => ({
@@ -898,7 +1006,7 @@ export const leaveApprovalRepository = {
       ...new Set(
         dedupedRows
           .map((row) => row.leaveTypeDefaultWorkflowId)
-          .filter((id): id is string => !!id)
+          .filter((id): id is string => !!id),
       ),
     ];
 
@@ -912,10 +1020,14 @@ export const leaveApprovalRepository = {
         // to the live workflow for legacy leaves without a context.
         workflowSteps:
           (row.execWorkflowSteps as FrozenWorkflowStep[] | null) ??
-          stepsByWorkflow.get(row.leaveTypeDefaultWorkflowId ?? "") ?? [],
+          stepsByWorkflow.get(row.leaveTypeDefaultWorkflowId ?? "") ??
+          [],
         leaveTypeName: row.execLeaveTypeName ?? row.leaveTypeName,
         leaveTypeUiConfig:
-          (row.execUiConfig ?? row.leaveTypeUiConfig) as Record<string, unknown> | null ?? null,
+          ((row.execUiConfig ?? row.leaveTypeUiConfig) as Record<
+            string,
+            unknown
+          > | null) ?? null,
         roomNumber: row.roomNumber,
         hostelName: row.hostelName,
         departmentName: row.departmentName,
@@ -959,7 +1071,7 @@ export const leaveApprovalRepository = {
 
   async findById(
     id: string,
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
   ): Promise<LeaveApproval | null> {
     const rows = await dbClient
       .select()
@@ -974,7 +1086,7 @@ export const leaveApprovalRepository = {
 
   async findByLeaveRequestId(
     leaveRequestId: string,
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
   ): Promise<LeaveApproval[]> {
     return await dbClient
       .select()
@@ -982,7 +1094,6 @@ export const leaveApprovalRepository = {
       .where(eq(leaveApprovals.leaveRequestId, leaveRequestId))
       .orderBy(leaveApprovals.stepOrder);
   },
-
 };
 
 export default leaveApprovalRepository;

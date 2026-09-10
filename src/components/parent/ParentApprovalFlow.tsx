@@ -308,7 +308,7 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
           </div>
 
           {/* Actions */}
-          <div className="flex flex-col gap-3 border-t border-border bg-surface-sunken/40 px-6 py-5 sm:flex-row">
+          <div className="flex flex-col gap-5 border-t border-border bg-surface-sunken/40 px-6 py-5 sm:flex-row">
             <Button
               size="lg"
               variant="success"
