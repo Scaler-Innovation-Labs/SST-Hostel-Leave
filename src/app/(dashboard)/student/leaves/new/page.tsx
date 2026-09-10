@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarPlus, FileText, Info, UserCheck } from "lucide-react";
+import { CalendarPlus, FileText, Info, Upload, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -32,11 +32,13 @@ import {
   useLeaveTypes,
 } from "@/features/leaves/hooks/use-leaves";
 import { fetcher } from "@/lib/api/fetcher";
-import { createLeave } from "@/lib/api/leave-api";
+import { createLeave, uploadLeaveDocument } from "@/lib/api/leave-api";
 import { formatDateRange } from "@/lib/date-utils";
 import { parseLeaveFormSchema } from "@/lib/leave-form-schema";
 
 const REASON_LIMIT = 1000;
+const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024;
+const DOCUMENT_ACCEPT = ".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx";
 
 type PocUser = {
   id: string;
@@ -60,6 +62,7 @@ export default function NewLeavePage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPocNotice, setShowPocNotice] = useState(false);
   const [previousWasLateStay, setPreviousWasLateStay] = useState(false);
+  const [selectedDocuments, setSelectedDocuments] = useState<Record<string, File>>({});
 
   const {
     register,
@@ -83,6 +86,10 @@ export default function NewLeavePage() {
   const typeDescription = selectedLeaveType?.description ?? undefined;
   const needsPoc = selectedLeaveType?.requiresPoc ?? false;
   const dynamicSchema = parseLeaveFormSchema(selectedLeaveType?.formSchema);
+  const configuredDocuments = selectedLeaveType?.requiredDocuments;
+  const requiredDocuments = Array.isArray(configuredDocuments)
+    ? configuredDocuments
+    : (configuredDocuments?.documents ?? []);
 
   const { data: pocData, isLoading: pocLoading } = useSWR<PocUser[]>(
     needsPoc ? "/api/v1/users/pocs" : null,
@@ -122,6 +129,14 @@ export default function NewLeavePage() {
       };
 
       const result = (await createLeave(payload)) as { id?: string };
+
+      if (result.id) {
+        await Promise.all(
+          Object.entries(selectedDocuments).map(([documentType, file]) =>
+            uploadLeaveDocument(result.id!, file, documentType),
+          ),
+        );
+      }
 
       toast.success("Leave request submitted");
       router.push(
@@ -255,6 +270,51 @@ export default function NewLeavePage() {
                 <p className="mt-0.5 text-body font-medium text-ink">
                   {formatDateRange(startAt, endAt)}
                 </p>
+              </div>
+            )}
+
+            {requiredDocuments.length > 0 && (
+              <div className="space-y-3 rounded-lg border border-border bg-surface-sunken p-4">
+                <div>
+                  <p className="text-body font-medium text-ink">Documents</p>
+                  <p className="mt-1 text-caption text-muted">
+                    Add the documents configured for this leave type. They will be uploaded with your request.
+                  </p>
+                </div>
+                {requiredDocuments.map((document) => {
+                  const selectedFile = selectedDocuments[document.code];
+                  return (
+                    <label key={document.code} className="block rounded-md border border-border bg-surface p-3">
+                      <span className="flex items-center gap-2 text-body font-medium text-ink">
+                        <Upload className="h-4 w-4 text-accent" aria-hidden />
+                        {document.label}
+                        {document.required && <span className="text-danger">*</span>}
+                      </span>
+                      <span className="mt-1 block text-caption text-muted">
+                        {selectedFile ? selectedFile.name : "Choose a JPG, PNG, GIF, PDF, DOC, or DOCX file (max 10MB)."}
+                      </span>
+                      <input
+                        type="file"
+                        accept={DOCUMENT_ACCEPT}
+                        className="mt-3 block w-full text-caption text-muted file:mr-3 file:rounded-md file:border-0 file:bg-accent file:px-3 file:py-1.5 file:text-caption file:font-medium file:text-white"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > MAX_DOCUMENT_SIZE) {
+                            setSubmitError(`${document.label} must be smaller than 10MB.`);
+                            event.target.value = "";
+                            return;
+                          }
+                          setSubmitError(null);
+                          setSelectedDocuments((current) => ({
+                            ...current,
+                            [document.code]: file,
+                          }));
+                        }}
+                      />
+                    </label>
+                  );
+                })}
               </div>
             )}
           </div>

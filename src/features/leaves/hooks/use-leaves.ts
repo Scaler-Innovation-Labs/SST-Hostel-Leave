@@ -3,7 +3,7 @@
 import useSWR from "swr";
 
 import type { ListLeavesQuery } from "@/dto/leave/list-leaves.dto";
-import { getLeavesUrl,getLeaveUrl } from "@/lib/api/leave-api";
+import { getLeavesUrl, getLeaveUrl } from "@/lib/api/leave-api";
 
 export type RawLeaveItem = {
   leave: {
@@ -20,10 +20,29 @@ export type RawLeaveItem = {
     currentStepOrder?: number | null;
     policyResult?: Record<string, unknown> | null;
   };
-  leaveType: { name: string; uiConfig?: Record<string, unknown> | null } | null;
+  leaveType: {
+    name: string;
+    uiConfig?: Record<string, unknown> | null;
+    requiredDocuments?:
+      RequiredDocument[] | { documents: RequiredDocument[] } | null;
+  } | null;
   student: { rollNumber: string } | null;
   user: { fullName: string; email?: string; phone?: string } | null;
 };
+
+export type RequiredDocument = {
+  code: string;
+  label: string;
+  required: boolean;
+};
+
+function normalizeRequiredDocuments(
+  value:
+    RequiredDocument[] | { documents: RequiredDocument[] } | null | undefined,
+): RequiredDocument[] {
+  if (Array.isArray(value)) return value;
+  return value?.documents ?? [];
+}
 
 function flattenLeaveItem(item: RawLeaveItem) {
   return {
@@ -35,20 +54,34 @@ function flattenLeaveItem(item: RawLeaveItem) {
     createdAt: item.leave.createdAt,
     requestNumber: item.leave.requestNumber,
     submittedAt: item.leave.submittedAt ?? item.leave.createdAt,
-    submittedForm: (item.leave.submittedForm as Record<string, unknown> | null) ?? null,
+    submittedForm:
+      (item.leave.submittedForm as Record<string, unknown> | null) ?? null,
     currentStepKey: item.leave.currentStepKey ?? null,
     currentStepOrder: item.leave.currentStepOrder ?? null,
-    destination: (item.leave.submittedForm as Record<string, unknown> | null)?.destination as string | undefined,
+    destination: (item.leave.submittedForm as Record<string, unknown> | null)
+      ?.destination as string | undefined,
     leaveTypeName: item.leaveType?.name,
     leaveTypeUiConfig:
-      (item.leaveType?.uiConfig as Record<string, unknown> | null | undefined) ?? null,
+      (item.leaveType?.uiConfig as
+        Record<string, unknown> | null | undefined) ?? null,
+    requiredDocuments: normalizeRequiredDocuments(
+      item.leaveType?.requiredDocuments,
+    ),
     studentFirstName: item.user?.fullName?.split(" ")[0],
     studentLastName: item.user?.fullName?.split(" ").slice(1).join(" "),
     userFullName: item.user?.fullName ?? null,
     userEmail: item.user?.email ?? null,
     userPhone: item.user?.phone ?? null,
     studentRollNumber: item.student?.rollNumber ?? null,
-    policyResult: item.leave.policyResult as { checks?: Array<{ key: string; label: string; passed: boolean; message?: string }>; restrictions?: string[] } | null,
+    policyResult: item.leave.policyResult as {
+      checks?: Array<{
+        key: string;
+        label: string;
+        passed: boolean;
+        message?: string;
+      }>;
+      restrictions?: string[];
+    } | null,
   };
 }
 
@@ -79,6 +112,7 @@ export function useLeave(id: string | undefined) {
   // calls after cancel/extension keep it fresh without background polling.
   const { data, error, isLoading, mutate } = useSWR(
     id ? getLeaveUrl(id) : null,
+    { revalidateOnMount: true },
   );
 
   const raw = data?.data as RawLeaveItem | undefined;
@@ -107,10 +141,24 @@ export type LeaveTypeOption = {
   isActive: boolean;
   requiresPoc?: boolean;
   formSchema?: { fields: Array<Record<string, unknown>> };
+  requiredDocuments?: Array<{
+    code: string;
+    label: string;
+    required: boolean;
+    acceptedTypes?: string[];
+  }> | { documents: Array<{
+    code: string;
+    label: string;
+    required: boolean;
+    acceptedTypes?: string[];
+  }> } | null;
 };
 
 export function useLeaveTypes() {
-  const { data, error, isLoading } = useSWR<{ data: LeaveTypeOption[] }>("/api/v1/leave-types");
+  const { data, error, isLoading } = useSWR<{ data: LeaveTypeOption[] }>(
+    "/api/v1/leave-types",
+    { revalidateOnMount: true },
+  );
 
   return {
     leaveTypes: data?.data ?? ([] as LeaveTypeOption[]),

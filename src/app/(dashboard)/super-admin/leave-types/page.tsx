@@ -45,7 +45,8 @@ type LeaveType = {
   maxExtensionCount: number | null;
   isActive: boolean;
   formSchema: { fields: Array<FormField> };
-  requiredDocuments: RequiredDocument[] | { documents: RequiredDocument[] } | null;
+  requiredDocuments:
+    RequiredDocument[] | { documents: RequiredDocument[] } | null;
   policyConfig: Record<string, unknown> | null;
   version: number;
 };
@@ -83,8 +84,21 @@ const EMPTY_DRAFT: Draft = {
   color: LEAVE_TYPE_COLOR_PALETTE[0],
   formSchema: {
     fields: [
-      { key: "destination", label: "Destination", type: "text", required: true, maxLength: 200 },
-      { key: "reason", label: "Reason", type: "textarea", required: true, minLength: 10, maxLength: 500 },
+      {
+        key: "destination",
+        label: "Destination",
+        type: "text",
+        required: true,
+        maxLength: 200,
+      },
+      {
+        key: "reason",
+        label: "Reason",
+        type: "textarea",
+        required: true,
+        minLength: 10,
+        maxLength: 500,
+      },
     ],
   },
   requiredDocuments: [],
@@ -108,24 +122,31 @@ const QR_MODE_LABELS: Record<string, string> = {
 };
 
 const QR_MODE_DESCRIPTIONS: Record<string, string> = {
-  [QR_MODE.NONE]: "No QR pass is issued. The leave grants permission only, with no gate movement.",
-  [QR_MODE.EXIT_ONLY]: "A QR pass is issued for exiting campus. No return scan is required.",
-  [QR_MODE.RETURN_ONLY]: "A QR pass is issued for returning to campus. No exit scan is required.",
+  [QR_MODE.NONE]:
+    "No QR pass is issued. The leave grants permission only, with no gate movement.",
+  [QR_MODE.EXIT_ONLY]:
+    "A QR pass is issued for exiting campus. No return scan is required.",
+  [QR_MODE.RETURN_ONLY]:
+    "A QR pass is issued for returning to campus. No exit scan is required.",
   [QR_MODE.BOTH]: "QR passes cover both exit and return scans at the gate.",
-  [QR_MODE.OPTIONAL]: "A QR pass may be issued, but gate scans are not strictly enforced.",
+  [QR_MODE.OPTIONAL]:
+    "A QR pass may be issued, but gate scans are not strictly enforced.",
 };
 
 export default function LeaveTypesPage() {
-  const { data: workflowsResponse } = useSWR<{ items: Array<{ id: string; name: string; code: string }> }>(
-    "/api/v1/workflows?limit=100",
-    fetcher,
-  );
+  const { data: workflowsResponse } = useSWR<{
+    items: Array<{ id: string; name: string; code: string }>;
+  }>("/api/v1/workflows?limit=100", fetcher, { revalidateOnMount: true });
   const workflows = workflowsResponse?.items ?? [];
 
-  const { data: leaveTypes, isLoading, error, mutate } = useSWR<LeaveType[]>(
-    "/api/v1/admin/leave-types",
-    fetcher,
-  );
+  const {
+    data: leaveTypes,
+    isLoading,
+    error,
+    mutate,
+  } = useSWR<LeaveType[]>("/api/v1/admin/leave-types", fetcher, {
+    revalidateOnMount: true,
+  });
 
   const isError = !!error;
 
@@ -139,8 +160,14 @@ export default function LeaveTypesPage() {
     let rawFields: Array<Record<string, unknown>> = [];
     if (Array.isArray(rawSchema)) {
       rawFields = rawSchema;
-    } else if (rawSchema && typeof rawSchema === "object" && Array.isArray((rawSchema as Record<string, unknown>).fields)) {
-      rawFields = (rawSchema as Record<string, unknown>).fields as Array<Record<string, unknown>>;
+    } else if (
+      rawSchema &&
+      typeof rawSchema === "object" &&
+      Array.isArray((rawSchema as Record<string, unknown>).fields)
+    ) {
+      rawFields = (rawSchema as Record<string, unknown>).fields as Array<
+        Record<string, unknown>
+      >;
     }
 
     const normalizedFields: FormField[] = rawFields.map((f, i) => ({
@@ -156,15 +183,21 @@ export default function LeaveTypesPage() {
 
     const rawDocuments = Array.isArray(lt.requiredDocuments)
       ? lt.requiredDocuments
-      : lt.requiredDocuments?.documents ?? [];
-    const normalizedDocuments: RequiredDocument[] = rawDocuments.map((document) => ({
-      code: document.code ?? "",
-      label: document.label ?? "",
-      required: document.required ?? true,
-      acceptedTypes: document.acceptedTypes ?? [],
-    }));
+      : (lt.requiredDocuments?.documents ?? []);
+    const normalizedDocuments: RequiredDocument[] = rawDocuments.map(
+      (document) => ({
+        code: document.code ?? "",
+        label: document.label ?? "",
+        required: document.required ?? true,
+        acceptedTypes: document.acceptedTypes ?? [],
+      }),
+    );
 
-    const uiConfig = (lt as Record<string, unknown>).uiConfig as Record<string, unknown> | null ?? {};
+    const uiConfig =
+      ((lt as Record<string, unknown>).uiConfig as Record<
+        string,
+        unknown
+      > | null) ?? {};
 
     setDraft({
       id: lt.id,
@@ -176,10 +209,14 @@ export default function LeaveTypesPage() {
       defaultWorkflowId: lt.defaultWorkflowId,
       qrMode: lt.qrMode ?? QR_MODE.BOTH,
       allowExtensions: lt.allowExtensions,
-      maxExtensionCount: lt.maxExtensionCount != null ? String(lt.maxExtensionCount) : "",
+      maxExtensionCount:
+        lt.maxExtensionCount != null ? String(lt.maxExtensionCount) : "",
       isActive: lt.isActive,
       isSpecial: (uiConfig.isSpecial as boolean) ?? false,
-      color: typeof uiConfig.color === "string" ? uiConfig.color : LEAVE_TYPE_COLOR_PALETTE[0],
+      color:
+        typeof uiConfig.color === "string"
+          ? uiConfig.color
+          : LEAVE_TYPE_COLOR_PALETTE[0],
       formSchema: { fields: normalizedFields },
       requiredDocuments: normalizedDocuments,
     });
@@ -197,18 +234,15 @@ export default function LeaveTypesPage() {
       return;
     }
 
-    if (draft.formSchema.fields.length === 0) {
-      setMessage("At least one form field is required.");
-      return;
-    }
-
     setSaving(true);
     setMessage(null);
 
     try {
       const body = {
         ...draft,
-        maxExtensionCount: draft.maxExtensionCount ? Number(draft.maxExtensionCount) : null,
+        maxExtensionCount: draft.maxExtensionCount
+          ? Number(draft.maxExtensionCount)
+          : null,
         description: draft.description || null,
         requiredDocuments: draft.requiredDocuments,
         uiConfig: { isSpecial: draft.isSpecial, color: draft.color },
@@ -234,7 +268,11 @@ export default function LeaveTypesPage() {
       setDraft(EMPTY_DRAFT);
       setMessage("Leave type saved.");
     } catch (saveError) {
-      setMessage(saveError instanceof Error ? saveError.message : "Failed to save leave type");
+      setMessage(
+        saveError instanceof Error
+          ? saveError.message
+          : "Failed to save leave type",
+      );
     } finally {
       setSaving(false);
     }
@@ -242,7 +280,10 @@ export default function LeaveTypesPage() {
 
   if (isError) {
     return (
-      <ErrorState message={error?.message ?? "Failed to load leave types"} onRetry={() => mutate()} />
+      <ErrorState
+        message={error?.message ?? "Failed to load leave types"}
+        onRetry={() => mutate()}
+      />
     );
   }
 
@@ -267,56 +308,63 @@ export default function LeaveTypesPage() {
             <LoadingState count={4} />
           ) : (
             leaveTypes?.map((lt) => {
-              const ltUiConfig = (lt as Record<string, unknown>).uiConfig as Record<string, boolean | string> | null;
+              const ltUiConfig = (lt as Record<string, unknown>)
+                .uiConfig as Record<string, boolean | string> | null;
               const isSpecial = ltUiConfig?.isSpecial === true;
-              const color = typeof ltUiConfig?.color === "string" ? ltUiConfig.color : null;
+              const color =
+                typeof ltUiConfig?.color === "string" ? ltUiConfig.color : null;
 
               return (
-              <button
-                key={lt.id}
-                onClick={() => edit(lt)}
-                className={`w-full rounded-xl border bg-surface p-4 text-left transition-all hover:border-accent ${
-                  draft.id === lt.id ? "border-accent ring-1 ring-accent" : ""
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2 font-medium">
-                      {color && (
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-                      )}
-                      {lt.name}
-                    </span>
-                    <p className="mt-0.5 font-mono text-caption text-muted">
-                      {lt.code} · v{lt.version}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className="rounded-sm border border-border bg-surface-sunken px-1.5 py-0.5 text-micro font-medium text-muted">
-                      {CATEGORY_LABELS[lt.category] ?? lt.category}
-                    </span>
-                    {isSpecial && (
-                      <span className="rounded-sm bg-warning-light px-2 py-0.5 text-micro font-medium text-warning">
-                        Special
+                <button
+                  key={lt.id}
+                  onClick={() => edit(lt)}
+                  className={`w-full rounded-xl border bg-surface p-4 text-left transition-all hover:border-accent ${
+                    draft.id === lt.id ? "border-accent ring-1 ring-accent" : ""
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2 font-medium">
+                        {color && (
+                          <span
+                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: color }}
+                          />
+                        )}
+                        {lt.name}
                       </span>
-                    )}
-                    <span
-                      className={`rounded-sm px-2 py-0.5 text-micro font-medium ${
-                        lt.isActive
-                          ? "bg-success-light text-success"
-                          : "bg-surface-sunken text-muted"
-                      }`}
-                    >
-                      {lt.isActive ? "Active" : "Inactive"}
-                    </span>
+                      <p className="mt-0.5 font-mono text-caption text-muted">
+                        {lt.code} · v{lt.version}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="rounded-sm border border-border bg-surface-sunken px-1.5 py-0.5 text-micro font-medium text-muted">
+                        {CATEGORY_LABELS[lt.category] ?? lt.category}
+                      </span>
+                      {isSpecial && (
+                        <span className="rounded-sm bg-warning-light px-2 py-0.5 text-micro font-medium text-warning">
+                          Special
+                        </span>
+                      )}
+                      <span
+                        className={`rounded-sm px-2 py-0.5 text-micro font-medium ${
+                          lt.isActive
+                            ? "bg-success-light text-success"
+                            : "bg-surface-sunken text-muted"
+                        }`}
+                      >
+                        {lt.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <p className="mt-1 text-caption text-muted">
-                  {lt.formSchema.fields.length} form fields
-                  {lt.allowExtensions ? ` · ${lt.maxExtensionCount ?? "?"} max extensions` : " · No extensions"}
-                  {` · QR: ${QR_MODE_LABELS[lt.qrMode] ?? lt.qrMode ?? QR_MODE_LABELS[QR_MODE.BOTH]}`}
-                </p>
-              </button>
+                  <p className="mt-1 text-caption text-muted">
+                    {lt.formSchema.fields.length} form fields
+                    {lt.allowExtensions
+                      ? ` · ${lt.maxExtensionCount ?? "?"} max extensions`
+                      : " · No extensions"}
+                    {` · QR: ${QR_MODE_LABELS[lt.qrMode] ?? lt.qrMode ?? QR_MODE_LABELS[QR_MODE.BOTH]}`}
+                  </p>
+                </button>
               );
             })
           )}
@@ -324,7 +372,9 @@ export default function LeaveTypesPage() {
 
         {/* Editor */}
         <section className="space-y-6 rounded-2xl border bg-surface p-5">
-          <h3 className="font-semibold">{draft.id ? "Edit Leave Type" : "New Leave Type"}</h3>
+          <h3 className="font-semibold">
+            {draft.id ? "Edit Leave Type" : "New Leave Type"}
+          </h3>
 
           {/* ── Section 1: Basic Information ── */}
           <div>
@@ -346,7 +396,12 @@ export default function LeaveTypesPage() {
                 <input
                   value={draft.code}
                   onChange={(e) =>
-                    setDraft({ ...draft, code: e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "_") })
+                    setDraft({
+                      ...draft,
+                      code: e.target.value
+                        .toUpperCase()
+                        .replace(/[^A-Z0-9_]/g, "_"),
+                    })
                   }
                   placeholder="HOME_PASS"
                   className="h-9 w-full rounded-lg border bg-bg px-3 font-mono text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
@@ -359,11 +414,15 @@ export default function LeaveTypesPage() {
                 <span className="mb-1 block font-medium">Category</span>
                 <select
                   value={draft.category}
-                  onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+                  onChange={(e) =>
+                    setDraft({ ...draft, category: e.target.value })
+                  }
                   className="h-9 w-full rounded-lg border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 >
                   {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -371,7 +430,12 @@ export default function LeaveTypesPage() {
                 <span className="mb-1 block font-medium">Status</span>
                 <select
                   value={draft.isActive ? "active" : "inactive"}
-                  onChange={(e) => setDraft({ ...draft, isActive: e.target.value === "active" })}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      isActive: e.target.value === "active",
+                    })
+                  }
                   className="h-9 w-full rounded-lg border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 >
                   <option value="active">Active</option>
@@ -385,7 +449,9 @@ export default function LeaveTypesPage() {
               <span className="mb-1 block font-medium">Description</span>
               <textarea
                 value={draft.description}
-                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, description: e.target.value })
+                }
                 rows={2}
                 className="w-full rounded-lg border bg-bg p-2 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
               />
@@ -396,20 +462,26 @@ export default function LeaveTypesPage() {
                 <input
                   type="checkbox"
                   checked={draft.allowExtensions}
-                  onChange={(e) => setDraft({ ...draft, allowExtensions: e.target.checked })}
+                  onChange={(e) =>
+                    setDraft({ ...draft, allowExtensions: e.target.checked })
+                  }
                   className="rounded"
                 />
                 Allow extensions
               </label>
               {draft.allowExtensions && (
                 <label className="block text-body">
-                  <span className="mb-1 block font-medium">Max extension count</span>
+                  <span className="mb-1 block font-medium">
+                    Max extension count
+                  </span>
                   <input
                     type="number"
                     min={1}
                     max={100}
                     value={draft.maxExtensionCount}
-                    onChange={(e) => setDraft({ ...draft, maxExtensionCount: e.target.value })}
+                    onChange={(e) =>
+                      setDraft({ ...draft, maxExtensionCount: e.target.value })
+                    }
                     className="h-9 w-32 rounded-lg border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                   />
                 </label>
@@ -421,7 +493,9 @@ export default function LeaveTypesPage() {
                 <input
                   type="checkbox"
                   checked={draft.isSpecial}
-                  onChange={(e) => setDraft({ ...draft, isSpecial: e.target.checked })}
+                  onChange={(e) =>
+                    setDraft({ ...draft, isSpecial: e.target.checked })
+                  }
                   className="rounded"
                 />
                 <span>
@@ -430,7 +504,8 @@ export default function LeaveTypesPage() {
               </label>
               {draft.isSpecial && (
                 <p className="text-caption text-muted">
-                  Admin will be required to confirm document verification before approving this leave type.
+                  Admin will be required to confirm document verification before
+                  approving this leave type.
                 </p>
               )}
             </div>
@@ -446,7 +521,9 @@ export default function LeaveTypesPage() {
                       aria-label={`Select color ${swatch}`}
                       onClick={() => setDraft({ ...draft, color: swatch })}
                       className={`h-6 w-6 rounded-full border-2 transition-colors duration-fast ease-standard ${
-                        draft.color === swatch ? "border-accent ring-2 ring-accent/30" : "border-transparent"
+                        draft.color === swatch
+                          ? "border-accent ring-2 ring-accent/30"
+                          : "border-transparent"
                       }`}
                       style={{ backgroundColor: swatch }}
                     />
@@ -466,18 +543,29 @@ export default function LeaveTypesPage() {
                 <span className="mb-1 block font-medium">Workflow Mode</span>
                 <select
                   value={draft.workflowMode}
-                  onChange={(e) => setDraft({ ...draft, workflowMode: e.target.value })}
+                  onChange={(e) =>
+                    setDraft({ ...draft, workflowMode: e.target.value })
+                  }
                   className="h-9 w-full rounded-lg border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 >
-                  <option value={LEAVE_WORKFLOW_MODE.HOSTEL}>Hostel Default</option>
-                  <option value={LEAVE_WORKFLOW_MODE.ACADEMIC}>Leave-Type Specific</option>
+                  <option value={LEAVE_WORKFLOW_MODE.HOSTEL}>
+                    Hostel Default
+                  </option>
+                  <option value={LEAVE_WORKFLOW_MODE.ACADEMIC}>
+                    Leave-Type Specific
+                  </option>
                 </select>
               </label>
               <label className="block text-body">
                 <span className="mb-1 block font-medium">Default Workflow</span>
                 <select
                   value={draft.defaultWorkflowId ?? ""}
-                  onChange={(e) => setDraft({ ...draft, defaultWorkflowId: e.target.value || null })}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      defaultWorkflowId: e.target.value || null,
+                    })
+                  }
                   className="h-9 w-full rounded-lg border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 >
                   <option value="">No default</option>
@@ -502,7 +590,9 @@ export default function LeaveTypesPage() {
                 <span className="mb-1 block font-medium">QR mode</span>
                 <select
                   value={draft.qrMode}
-                  onChange={(e) => setDraft({ ...draft, qrMode: e.target.value })}
+                  onChange={(e) =>
+                    setDraft({ ...draft, qrMode: e.target.value })
+                  }
                   className="h-9 w-full rounded-lg border bg-bg px-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                 >
                   {QR_MODES.map((mode) => (
@@ -525,8 +615,26 @@ export default function LeaveTypesPage() {
             </p>
             <div className="rounded-lg border bg-surface-sunken/10 p-4">
               <DynamicFormBuilder
-                schema={draft.formSchema as { fields: Array<{ key: string; label: string; type: string; required?: boolean; placeholder?: string; options?: string[]; minLength?: number; maxLength?: number }> }}
-                onChange={(schema) => setDraft({ ...draft, formSchema: schema as { fields: Array<FormField> } })}
+                schema={
+                  draft.formSchema as {
+                    fields: Array<{
+                      key: string;
+                      label: string;
+                      type: string;
+                      required?: boolean;
+                      placeholder?: string;
+                      options?: string[];
+                      minLength?: number;
+                      maxLength?: number;
+                    }>;
+                  }
+                }
+                onChange={(schema) =>
+                  setDraft({
+                    ...draft,
+                    formSchema: schema as { fields: Array<FormField> },
+                  })
+                }
               />
             </div>
           </div>
@@ -539,7 +647,8 @@ export default function LeaveTypesPage() {
                   Required Documents
                 </p>
                 <p className="mt-1 text-caption text-muted">
-                  Ask students to upload supporting documents for this leave type.
+                  Ask students to upload supporting documents for this leave
+                  type.
                 </p>
               </div>
               <Button
@@ -551,7 +660,12 @@ export default function LeaveTypesPage() {
                     ...draft,
                     requiredDocuments: [
                       ...draft.requiredDocuments,
-                      { code: "", label: "", required: true, acceptedTypes: [] },
+                      {
+                        code: "",
+                        label: "",
+                        required: true,
+                        acceptedTypes: [],
+                      },
                     ],
                   })
                 }
@@ -567,17 +681,26 @@ export default function LeaveTypesPage() {
                 </p>
               ) : (
                 draft.requiredDocuments.map((document, index) => (
-                  <div key={`${document.code}-${index}`} className="rounded-lg border bg-bg p-3">
+                  <div
+                    key={`${document.code}-${index}`}
+                    className="rounded-lg border bg-bg p-3"
+                  >
                     <div className="grid gap-3 sm:grid-cols-2">
                       <label className="block text-body">
-                        <span className="mb-1 block font-medium">Document code</span>
+                        <span className="mb-1 block font-medium">
+                          Document code
+                        </span>
                         <input
                           value={document.code}
                           onChange={(event) => {
-                            const requiredDocuments = [...draft.requiredDocuments];
+                            const requiredDocuments = [
+                              ...draft.requiredDocuments,
+                            ];
                             requiredDocuments[index] = {
                               ...document,
-                              code: event.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, "_"),
+                              code: event.target.value
+                                .toUpperCase()
+                                .replace(/[^A-Z0-9_]/g, "_"),
                             };
                             setDraft({ ...draft, requiredDocuments });
                           }}
@@ -586,12 +709,19 @@ export default function LeaveTypesPage() {
                         />
                       </label>
                       <label className="block text-body">
-                        <span className="mb-1 block font-medium">Display label</span>
+                        <span className="mb-1 block font-medium">
+                          Display label
+                        </span>
                         <input
                           value={document.label}
                           onChange={(event) => {
-                            const requiredDocuments = [...draft.requiredDocuments];
-                            requiredDocuments[index] = { ...document, label: event.target.value };
+                            const requiredDocuments = [
+                              ...draft.requiredDocuments,
+                            ];
+                            requiredDocuments[index] = {
+                              ...document,
+                              label: event.target.value,
+                            };
                             setDraft({ ...draft, requiredDocuments });
                           }}
                           placeholder="Medical certificate"
@@ -601,7 +731,9 @@ export default function LeaveTypesPage() {
                     </div>
                     <div className="mt-3 flex flex-wrap items-end gap-3">
                       <label className="block min-w-56 flex-1 text-body">
-                        <span className="mb-1 block font-medium">Accepted file types</span>
+                        <span className="mb-1 block font-medium">
+                          Accepted file types
+                        </span>
                         <input
                           value={document.acceptedTypes?.join(", ") ?? ""}
                           onChange={(event) => {
@@ -609,8 +741,13 @@ export default function LeaveTypesPage() {
                               .split(",")
                               .map((type) => type.trim().toUpperCase())
                               .filter(Boolean);
-                            const requiredDocuments = [...draft.requiredDocuments];
-                            requiredDocuments[index] = { ...document, acceptedTypes };
+                            const requiredDocuments = [
+                              ...draft.requiredDocuments,
+                            ];
+                            requiredDocuments[index] = {
+                              ...document,
+                              acceptedTypes,
+                            };
                             setDraft({ ...draft, requiredDocuments });
                           }}
                           placeholder="PDF, JPG, PNG"
@@ -622,8 +759,13 @@ export default function LeaveTypesPage() {
                           type="checkbox"
                           checked={document.required}
                           onChange={(event) => {
-                            const requiredDocuments = [...draft.requiredDocuments];
-                            requiredDocuments[index] = { ...document, required: event.target.checked };
+                            const requiredDocuments = [
+                              ...draft.requiredDocuments,
+                            ];
+                            requiredDocuments[index] = {
+                              ...document,
+                              required: event.target.checked,
+                            };
                             setDraft({ ...draft, requiredDocuments });
                           }}
                           className="rounded"
@@ -638,7 +780,9 @@ export default function LeaveTypesPage() {
                         onClick={() =>
                           setDraft({
                             ...draft,
-                            requiredDocuments: draft.requiredDocuments.filter((_, itemIndex) => itemIndex !== index),
+                            requiredDocuments: draft.requiredDocuments.filter(
+                              (_, itemIndex) => itemIndex !== index,
+                            ),
                           })
                         }
                       >
@@ -659,19 +803,26 @@ export default function LeaveTypesPage() {
             </p>
             <div className="rounded-lg border bg-bg p-4">
               {draft.formSchema.fields.length === 0 ? (
-                <p className="text-caption text-muted">No form fields configured.</p>
+                <p className="text-caption text-muted">
+                  No form fields configured.
+                </p>
               ) : (
                 <div className="space-y-3">
                   {draft.formSchema.fields.map((field) => (
                     <div key={field.key}>
                       <label className="mb-1 block text-caption font-medium text-ink">
                         {field.label}
-                        {field.required && <span className="ml-0.5 text-danger">*</span>}
+                        {field.required && (
+                          <span className="ml-0.5 text-danger">*</span>
+                        )}
                       </label>
                       {field.type === "textarea" ? (
                         <textarea
                           readOnly
-                          placeholder={field.placeholder ?? `Enter ${(field.label ?? '').toLowerCase()}...`}
+                          placeholder={
+                            field.placeholder ??
+                            `Enter ${(field.label ?? "").toLowerCase()}...`
+                          }
                           className="w-full rounded-md border bg-surface-sunken/30 px-3 py-2 text-caption text-muted outline-none"
                           rows={3}
                         />
@@ -680,7 +831,10 @@ export default function LeaveTypesPage() {
                           disabled
                           className="h-8 w-full rounded-md border bg-surface-sunken/30 px-3 text-caption text-muted outline-none"
                         >
-                          <option>{field.placeholder ?? `Select ${(field.label ?? '').toLowerCase()}...`}</option>
+                          <option>
+                            {field.placeholder ??
+                              `Select ${(field.label ?? "").toLowerCase()}...`}
+                          </option>
                           {field.options?.map((opt) => (
                             <option key={opt}>{opt}</option>
                           ))}
@@ -688,7 +842,10 @@ export default function LeaveTypesPage() {
                       ) : (
                         <input
                           readOnly
-                          placeholder={field.placeholder ?? `Enter ${(field.label ?? '').toLowerCase()}...`}
+                          placeholder={
+                            field.placeholder ??
+                            `Enter ${(field.label ?? "").toLowerCase()}...`
+                          }
                           className="h-8 w-full rounded-md border bg-surface-sunken/30 px-3 text-caption text-muted outline-none"
                         />
                       )}
@@ -716,9 +873,16 @@ export default function LeaveTypesPage() {
           )}
 
           <div className="flex justify-end border-t border-border pt-4">
-            <Button onClick={submit} disabled={saving || !draft.name.trim() || !draft.code.trim()}>
+            <Button
+              onClick={submit}
+              disabled={saving || !draft.name.trim() || !draft.code.trim()}
+            >
               <Save className="size-4" />
-              {saving ? "Saving..." : draft.id ? "Update leave type" : "Create leave type"}
+              {saving
+                ? "Saving..."
+                : draft.id
+                  ? "Update leave type"
+                  : "Create leave type"}
             </Button>
           </div>
         </section>

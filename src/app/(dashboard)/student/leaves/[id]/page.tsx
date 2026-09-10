@@ -49,7 +49,7 @@ export default function StudentLeaveDetailPage() {
       toast.error(
         error instanceof Error
           ? error.message
-          : "We couldn't cancel this request"
+          : "We couldn't cancel this request",
       );
     } finally {
       setCancelling(false);
@@ -157,11 +157,11 @@ export default function StudentLeaveDetailPage() {
 
       <DocumentList
         leaveId={id}
-        requiredDocument={
-          leave.leaveTypeName?.toUpperCase().includes("MEDICAL")
-            ? { type: "MEDICAL_CERTIFICATE", label: "Medical certificate" }
-            : undefined
-        }
+        canUpload={isPending}
+        canDelete={isPending}
+        requiredDocuments={leave.requiredDocuments
+          .filter((document) => document.required)
+          .map((document) => ({ type: document.code, label: document.label }))}
       />
 
       <LeaveExtensionsList leaveId={id} />

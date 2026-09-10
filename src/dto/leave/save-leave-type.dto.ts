@@ -4,7 +4,16 @@ import { LEAVE_CATEGORIES } from "@/constants/leave/leave-category";
 import { QR_MODES } from "@/constants/leave/qr-mode";
 import { LEAVE_WORKFLOW_MODES } from "@/constants/leave/workflow-mode";
 
-const LEAVE_FORM_FIELD_TYPES = ["text", "textarea", "tel", "email", "number", "select", "checkbox", "date"] as const;
+const LEAVE_FORM_FIELD_TYPES = [
+  "text",
+  "textarea",
+  "tel",
+  "email",
+  "number",
+  "select",
+  "checkbox",
+  "date",
+] as const;
 
 const formFieldSchema = z.object({
   key: z.string().min(1).max(100),
@@ -25,7 +34,11 @@ const requiredDocumentSchema = z.object({
 });
 
 const leaveTypeBaseSchema = z.object({
-  code: z.string().min(2).max(50).transform((v) => v.toUpperCase().replace(/\s+/g, "_")),
+  code: z
+    .string()
+    .min(2)
+    .max(50)
+    .transform((v) => v.toUpperCase().replace(/\s+/g, "_")),
   name: z.string().min(2).max(200),
   category: z.enum(LEAVE_CATEGORIES),
   description: z.string().max(1000).optional().nullable(),
@@ -36,19 +49,30 @@ const leaveTypeBaseSchema = z.object({
   maxExtensionCount: z.number().int().min(0).max(100).optional().nullable(),
   isActive: z.boolean().default(true),
   formSchema: z.object({
-    fields: z.array(formFieldSchema).min(1, "At least one form field is required"),
+    // Some leave types need no type-specific information beyond the common
+    // reason and dates, so an empty dynamic form is a valid configuration.
+    fields: z.array(formFieldSchema),
   }),
   requiredDocuments: z.array(requiredDocumentSchema).optional().nullable(),
   notificationConfig: z.record(z.string(), z.unknown()).optional().nullable(),
   uiConfig: z.record(z.string(), z.unknown()).optional().nullable(),
   useGlobalNotificationRules: z.boolean().optional().default(true),
-  policyConfig: z.record(z.string(), z.unknown()).optional().nullable().default({}),
+  policyConfig: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .nullable()
+    .default({}),
   metadata: z.record(z.string(), z.unknown()).optional().nullable(),
 });
 
 export const createLeaveTypeSchema = leaveTypeBaseSchema.refine(
-  (data) => !data.allowExtensions || (data.maxExtensionCount != null && data.maxExtensionCount > 0),
-  { message: "maxExtensionCount is required when extensions are allowed", path: ["maxExtensionCount"] },
+  (data) =>
+    !data.allowExtensions ||
+    (data.maxExtensionCount != null && data.maxExtensionCount > 0),
+  {
+    message: "maxExtensionCount is required when extensions are allowed",
+    path: ["maxExtensionCount"],
+  },
 );
 
 export const saveLeaveTypeSchema = leaveTypeBaseSchema;

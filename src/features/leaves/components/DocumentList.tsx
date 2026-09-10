@@ -10,12 +10,13 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { Button } from "@/components/ui/button";
 import { DocumentUpload } from "@/features/leaves/components/DocumentUpload";
-import { type DocumentItem,useDocuments } from "@/hooks/use-documents";
+import { type DocumentItem, useDocuments } from "@/hooks/use-documents";
 import { deleteLeaveDocument } from "@/lib/api/leave-api";
 
 function getFileIcon(mimeType: string | null) {
   if (!mimeType) return <FileText className="h-5 w-5" />;
-  if (mimeType.startsWith("image/")) return <Image aria-label="Image document" className="h-5 w-5" />;
+  if (mimeType.startsWith("image/"))
+    return <Image aria-label="Image document" className="h-5 w-5" />;
   return <FileText className="h-5 w-5" />;
 }
 
@@ -29,14 +30,21 @@ function formatFileSize(bytes: number | null): string {
 type DocumentListProps = {
   leaveId: string;
   canDelete?: boolean;
-  requiredDocument?: {
+  canUpload?: boolean;
+  requiredDocuments?: Array<{
     type: string;
     label: string;
-  };
+  }>;
 };
 
-export function DocumentList({ leaveId, canDelete = false, requiredDocument }: DocumentListProps) {
-  const { documents, isLoading, isError, error, mutate } = useDocuments(leaveId);
+export function DocumentList({
+  leaveId,
+  canDelete = false,
+  canUpload = false,
+  requiredDocuments = [],
+}: DocumentListProps) {
+  const { documents, isLoading, isError, error, mutate } =
+    useDocuments(leaveId);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
@@ -55,28 +63,61 @@ export function DocumentList({ leaveId, canDelete = false, requiredDocument }: D
     }
   };
 
-  if (isLoading) return <CollapsibleSection title="Documents" icon={FileText}><LoadingState count={2} /></CollapsibleSection>;
-  if (isError) return <CollapsibleSection title="Documents" icon={FileText}><ErrorState message={error?.message ?? "Failed to load documents"} onRetry={() => mutate()} /></CollapsibleSection>;
-  const hasRequiredDocument = requiredDocument
-    ? documents.some((document) => document.documentType === requiredDocument.type)
-    : true;
-
-  if (documents.length === 0 && !requiredDocument) return null;
-
+  if (isLoading)
+    return (
+      <CollapsibleSection title="Documents" icon={FileText}>
+        <LoadingState count={2} />
+      </CollapsibleSection>
+    );
+  if (isError)
+    return (
+      <CollapsibleSection title="Documents" icon={FileText}>
+        <ErrorState
+          message={error?.message ?? "Failed to load documents"}
+          onRetry={() => mutate()}
+        />
+      </CollapsibleSection>
+    );
   return (
     <CollapsibleSection title="Documents" icon={FileText}>
       <div className="space-y-2">
-        {requiredDocument && !hasRequiredDocument && (
-          <div className="rounded-xl border border-warning/30 bg-warning-light p-4">
-            <p className="text-body font-medium">{requiredDocument.label} required</p>
+        {requiredDocuments.map((requiredDocument) =>
+          !documents.some(
+            (document) => document.documentType === requiredDocument.type,
+          ) ? (
+            <div className="rounded-xl border border-warning/30 bg-warning-light p-4">
+              <p className="text-body font-medium">
+                {requiredDocument.label} required
+              </p>
+              <p className="mt-1 text-caption text-muted">
+                Upload this document so it can be reviewed with your leave
+                request.
+              </p>
+              {canUpload && (
+                <div className="mt-4">
+                  <DocumentUpload
+                    leaveId={leaveId}
+                    documentType={requiredDocument.type}
+                    documentLabel={requiredDocument.label}
+                    onUploadSuccess={() => mutate()}
+                  />
+                </div>
+              )}
+            </div>
+          ) : null,
+        )}
+
+        {canUpload && (
+          <div className="rounded-xl border border-border bg-surface p-4">
+            <p className="text-body font-medium">Supporting document</p>
             <p className="mt-1 text-caption text-muted">
-              Upload this document so it can be reviewed with your leave request.
+              Add any other document that will help reviewers assess this
+              request.
             </p>
             <div className="mt-4">
               <DocumentUpload
                 leaveId={leaveId}
-                documentType={requiredDocument.type}
-                documentLabel={requiredDocument.label}
+                documentLabel="supporting document"
                 onUploadSuccess={() => mutate()}
               />
             </div>
@@ -103,7 +144,8 @@ export function DocumentList({ leaveId, canDelete = false, requiredDocument }: D
               </a>
               <p className="text-caption text-muted">
                 {formatFileSize(doc.fileSize)}
-                {doc.mimeType && ` · ${doc.mimeType.split("/")[1]?.toUpperCase() ?? ""}`}
+                {doc.mimeType &&
+                  ` · ${doc.mimeType.split("/")[1]?.toUpperCase() ?? ""}`}
               </p>
             </div>
 
@@ -123,7 +165,9 @@ export function DocumentList({ leaveId, canDelete = false, requiredDocument }: D
 
         <ConfirmationDialog
           open={!!confirmDeleteId}
-          onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}
+          onOpenChange={(open) => {
+            if (!open) setConfirmDeleteId(null);
+          }}
           title="Delete this document?"
           consequence="The file is removed permanently and cannot be recovered. If it was required for this leave type, you'll need to upload a replacement."
           confirmLabel="Delete document"
