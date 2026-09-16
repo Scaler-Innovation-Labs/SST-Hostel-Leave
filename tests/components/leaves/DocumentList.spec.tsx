@@ -52,7 +52,7 @@ describe("DocumentList", () => {
     expect(screen.getByText((content) => content.includes("Failed to load"))).toBeInTheDocument();
   });
 
-  it("renders nothing when no documents (empty state returns null)", () => {
+  it("renders the documents section with no cards when no documents", () => {
     vi.mocked(useDocuments).mockReturnValue({
       documents: [],
       isLoading: false,
@@ -62,7 +62,8 @@ describe("DocumentList", () => {
     });
 
     const { container } = render(<DocumentList leaveId="leave-1" />);
-    expect(container.firstChild).toBeNull();
+    expect(screen.getByText("Documents")).toBeInTheDocument();
+    expect(container.querySelectorAll("a[download]").length).toBe(0);
   });
 
   it("renders document cards", () => {

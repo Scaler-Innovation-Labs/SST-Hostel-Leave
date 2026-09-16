@@ -16,6 +16,7 @@ export async function GET(request: Request) {
       ROLES.POC,
       ROLES.ADMIN,
       ROLES.SUPER_ADMIN,
+      ROLES.GUARD,
     ]);
 
     const url = new URL(request.url);

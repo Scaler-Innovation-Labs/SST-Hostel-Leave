@@ -52,11 +52,16 @@ vi.mock("@/services/outbox/outbox.service", () => ({
   },
 }));
 
+import { systemActor } from "@/constants/audit/actor";
 import {
   markOverdueSingleLeave,
   markOverdueLeaves,
 } from "@/services/leave/mark-overdue-leave.service";
 import { ConflictError } from "@/lib/errors";
+
+// A scheduled pass acts with no logged-in user: the audit trail stores a NULL
+// actor id and labels the run through the actor descriptor instead.
+const SYSTEM_ACTOR = systemActor("expire-leaves");
 
 const APPROVED_LEAVE = {
   id: "L1",
@@ -82,7 +87,7 @@ describe("markOverdueSingleLeave service", () => {
       currentLocationState: "OUTSIDE_HOSTEL",
     });
 
-    const result = await markOverdueSingleLeave("L1", { id: "SYSTEM" });
+    const result = await markOverdueSingleLeave("L1", SYSTEM_ACTOR);
 
     expect(result.newStatus).toBe("OVERDUE");
     expect(mockUpdateById).toHaveBeenCalledWith(
@@ -111,7 +116,7 @@ describe("markOverdueSingleLeave service", () => {
       currentLocationState: "CHECKED_OUT",
     });
 
-    await markOverdueSingleLeave("L1", { id: "SYSTEM" });
+    await markOverdueSingleLeave("L1", SYSTEM_ACTOR);
 
     expect(mockRecordMovement).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -129,7 +134,7 @@ describe("markOverdueSingleLeave service", () => {
       currentLocationState: "IN_HOSTEL",
     });
 
-    await markOverdueSingleLeave("L1", { id: "SYSTEM" });
+    await markOverdueSingleLeave("L1", SYSTEM_ACTOR);
 
     expect(mockRecordMovement).not.toHaveBeenCalled();
   });
@@ -138,7 +143,7 @@ describe("markOverdueSingleLeave service", () => {
     mockFindById.mockResolvedValue({ id: "L2", status: "PENDING" });
 
     await expect(
-      markOverdueSingleLeave("L2", { id: "SYSTEM" })
+      markOverdueSingleLeave("L2", SYSTEM_ACTOR)
     ).rejects.toBeInstanceOf(ConflictError);
   });
 
@@ -152,7 +157,7 @@ describe("markOverdueSingleLeave service", () => {
 
     const { outboxService } = await import("@/services/outbox/outbox.service");
 
-    await markOverdueSingleLeave("L1", { id: "SYSTEM" });
+    await markOverdueSingleLeave("L1", SYSTEM_ACTOR);
 
     expect(outboxService.publish).toHaveBeenCalledWith(
       expect.objectContaining({ eventType: "LEAVE_OVERDUE" }),
@@ -178,7 +183,7 @@ describe("markOverdueLeaves service", () => {
       currentLocationState: "OUTSIDE_HOSTEL",
     });
 
-    const result = await markOverdueLeaves({ id: "SYSTEM" });
+    const result = await markOverdueLeaves(SYSTEM_ACTOR);
 
     expect(result.total).toBe(2);
     expect(result.overdue).toBe(2);
@@ -188,7 +193,7 @@ describe("markOverdueLeaves service", () => {
   it("returns empty result when nothing is due", async () => {
     mockFindOverdueLeaves.mockResolvedValue([]);
 
-    const result = await markOverdueLeaves({ id: "SYSTEM" });
+    const result = await markOverdueLeaves(SYSTEM_ACTOR);
 
     expect(result).toEqual({
       total: 0,

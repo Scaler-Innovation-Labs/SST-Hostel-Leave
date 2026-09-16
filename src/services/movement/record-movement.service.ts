@@ -1,3 +1,4 @@
+import type { ActingRef } from "@/constants/audit/actor";
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import type { MovementState } from "@/constants/movement";
@@ -15,7 +16,7 @@ import {
   getNextState,
   type MovementAction,
 } from "@/lib/workflows/movement-state-machine";
-import { auditService } from "@/services/audit/audit.service";
+import { type AuditActor,auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 
 export type RecordMovementInput = {
@@ -28,7 +29,13 @@ export type RecordMovementInput = {
   movementMethod: MovementMethod;
   isManualOverride?: boolean;
   overrideReason?: string;
-  recordedBy?: string;
+  recordedBy?: string | null;
+  /**
+   * Acting identity for the audit trail. A scheduled pass passes one of
+   * these and has no `recordedBy`; interactive paths identify the operator
+   * through `recordedBy` instead.
+   */
+  actor?: ActingRef;
   occurredAt?: Date;
   metadata?: Record<string, unknown>;
   dbClient?: DbClient;
@@ -66,6 +73,11 @@ export async function recordMovement(
       `Invalid movement transition: ${input.fromState} + ${input.eventType} should transition to ${expectedToState}, not ${input.toState}`
     );
   }
+
+  // An explicit actor wins: a scheduled pass carries one and has no user id.
+  // Otherwise the operator identified by `recordedBy` is the actor. Either
+  // way the trail gets a uuid user id, or NULL + an actor descriptor.
+  const auditActor: AuditActor = input.actor ?? input.recordedBy ?? null;
 
   const exec = async (client: DbClient) => {
     // Row-lock the student so two concurrent scans (e.g. double-tap at the
@@ -115,7 +127,7 @@ export async function recordMovement(
       AUDIT_ACTION.CREATE,
       AUDIT_ENTITY_TYPE.MOVEMENT_EVENT,
       event.id,
-      input.recordedBy ?? null,
+      auditActor,
       {
         eventType: input.eventType,
         fromState: input.fromState,

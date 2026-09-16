@@ -374,7 +374,6 @@ export default function NewLeavePage() {
                 {pocUsers.map((poc) => (
                   <option key={poc.id} value={poc.id}>
                     {poc.fullName}
-                    {poc.email ? ` — ${poc.email}` : ""}
                   </option>
                 ))}
               </Select>

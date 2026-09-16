@@ -11,6 +11,7 @@ export async function POST(request: Request) {
     const currentUser = requireAnyRole(await requireAuth(), [
       ROLES.ADMIN,
       ROLES.SUPER_ADMIN,
+      ROLES.GUARD,
     ]);
 
     await rateLimit(`movement-write:${currentUser.id}`, 60, 60_000);
@@ -20,6 +21,7 @@ export async function POST(request: Request) {
 
     const result = await manualCheckout({
       studentId: dto.studentId,
+      leaveRequestId: dto.leaveRequestId,
       currentUser,
       reason: dto.reason,
     });

@@ -53,6 +53,12 @@ vi.mock("@/services/outbox/outbox.service", () => ({
 }));
 
 vi.mock("@/lib/auth/authorization", () => ({
+  requireAnyRole: (user: any, roles: string[]) => {
+    if (!roles.some((role) => user?.roles?.includes(role))) {
+      throw new AuthorizationError();
+    }
+    return user;
+  },
   requireRole: (user: any, role: string) => {
     if (!user?.roles?.includes(role)) {
       throw new AuthorizationError();
@@ -92,9 +98,9 @@ beforeEach(() => {
 });
 
 describe("superadminOverrideLeave", () => {
-  it("rejects a non-super-admin caller", async () => {
+  it("rejects a caller without an admin role", async () => {
     await expect(
-      superadminOverrideLeave("L1", "ALL", ADMIN, "forcing")
+      superadminOverrideLeave("L1", "ALL", { id: "U3", roles: ["POC"] }, "forcing")
     ).rejects.toBeInstanceOf(AuthorizationError);
     expect(mockFindByIdForUpdate).not.toHaveBeenCalled();
   });

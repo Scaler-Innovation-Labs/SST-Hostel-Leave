@@ -606,6 +606,19 @@ export { GLOBAL_TEMPLATES,LEAVE_TYPE_TEMPLATES };
 // by the leave end date, and is asked to extend the leave.
 const GLOBAL_TEMPLATES: TemplateSeed[] = [
   {
+    code: "leave_question_email_student",
+    eventKey: NOTIFICATION_EVENT.LEAVE_QUESTION_ASKED,
+    channel: NOTIFICATION_CHANNEL.EMAIL,
+    subject: "A question was asked about your leave request",
+    templateBody:
+      "Dear {{studentName}},\n\n" +
+      "{{askedByName}} has asked the following question about your leave request:\n\n" +
+      "{{question}}\n\n" +
+      "Please sign in and answer it so your request can continue to be reviewed.\n\n" +
+      "View Leave Details: {{leaveUrl}}\n\n" +
+      "Regards,\nHostel Administration\nScaler School of Technology",
+  },
+  {
     code: "leave_overdue_email_student",
     eventKey: NOTIFICATION_EVENT.LEAVE_OVERDUE,
     channel: NOTIFICATION_CHANNEL.EMAIL,

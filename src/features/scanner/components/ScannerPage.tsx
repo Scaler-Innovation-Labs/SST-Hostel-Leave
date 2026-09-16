@@ -11,6 +11,7 @@ import {
   User,
   XCircle,
 } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { QrScanner } from "@/components/qr/QrScanner";
@@ -179,6 +180,10 @@ export function ScannerPage() {
             : { label: "No connection", tone: "danger" }
         }
       />
+
+      <Button asChild variant="outline" size="guard" block>
+        <Link href="/guard/manual-movement">Manual check-in / check-out</Link>
+      </Button>
 
       <div className="mx-auto max-w-2xl space-y-6">
         {/*

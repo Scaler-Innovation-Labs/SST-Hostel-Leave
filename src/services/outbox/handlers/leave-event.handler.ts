@@ -40,6 +40,7 @@ const LEAVE_EVENT_TO_NOTIFICATION: Record<string, NotificationEvent> = {
   // Fires when a later workflow step becomes current (e.g. admin review
   // after POC approval). Rules decide who gets notified per leave type.
   LEAVE_APPROVAL_REQUIRED: NOTIFICATION_EVENT.LEAVE_APPROVAL_REQUIRED,
+  LEAVE_QUESTION_ASKED: NOTIFICATION_EVENT.LEAVE_QUESTION_ASKED,
 };
 
 type ResolvedContext = {
@@ -118,6 +119,9 @@ async function resolveContext(
   };
 
   if (leaveId) variables.leaveId = leaveId;
+  if (eventType === OUTBOX_EVENT_TYPE.LEAVE_QUESTION_ASKED && leaveId) {
+    variables.leaveUrl = `${getPublicBaseUrl()}/student/leaves/${leaveId}`;
+  }
   if (studentName) variables.studentName = studentName;
   if (payload.requestNumber) variables.requestNumber = String(payload.requestNumber);
 

@@ -1,3 +1,4 @@
+import type { ActingRef } from "@/constants/audit/actor";
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { QR_STATUS } from "@/constants/movement/qr-status";
@@ -28,7 +29,7 @@ const BATCH_SIZE = 100;
 
 export async function expireSingleLeave(
   leaveId: string,
-  currentUser: { id: string }
+  currentUser: ActingRef
 ): Promise<ExpireSingleResult> {
   const leave = await leaveRepository.findById(leaveId);
 
@@ -85,7 +86,7 @@ export async function expireSingleLeave(
       AUDIT_ACTION.UPDATE,
       AUDIT_ENTITY_TYPE.LEAVE_REQUEST,
       leaveId,
-      currentUser.id,
+      currentUser,
       {
         oldStatus: leaveInTx.status,
         newStatus: nextState,
@@ -114,7 +115,7 @@ export async function expireSingleLeave(
 }
 
 export async function expireOverdueLeaves(
-  currentUser: { id: string }
+  currentUser: ActingRef
 ): Promise<ExpireBatchResult> {
   const now = new Date();
 

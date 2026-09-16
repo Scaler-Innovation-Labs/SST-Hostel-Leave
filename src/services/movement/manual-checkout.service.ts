@@ -1,6 +1,8 @@
+import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
 import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
+import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import type { CurrentUser } from "@/lib/auth/types";
 import { transaction } from "@/lib/db/transaction";
@@ -34,6 +36,16 @@ export async function manualCheckout(
   // Hostel-scope guard: a scoped ADMIN must only mutate students in their
   // own hostel; SUPER_ADMIN is unrestricted.
   await assertCanAccessStudent(input.currentUser, input.studentId);
+
+  if (input.leaveRequestId) {
+    const leave = await leaveRepository.findById(input.leaveRequestId);
+    if (!leave || leave.studentId !== input.studentId) {
+      throw new NotFoundError("Approved leave");
+    }
+    if (leave.status !== LEAVE_REQUEST_STATUS.APPROVED) {
+      throw new ConflictError("Leave is not approved for checkout");
+    }
+  }
 
   const currentState = student.currentLocationState;
 

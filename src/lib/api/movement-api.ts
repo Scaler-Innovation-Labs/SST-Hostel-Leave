@@ -60,11 +60,11 @@ export type ManualMovementResult = {
   newState: string;
 };
 
-export async function manualCheckout(studentId: string, reason?: string): Promise<ManualMovementResult> {
+export async function manualCheckout(studentId: string, reason?: string, leaveRequestId?: string): Promise<ManualMovementResult> {
   const res = await fetch(`${BASE}/movements/manual-checkout`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ studentId, reason }),
+    body: JSON.stringify({ studentId, reason, leaveRequestId }),
   });
   const json: ApiResponse = await res.json();
   if (!res.ok || !json.success) {

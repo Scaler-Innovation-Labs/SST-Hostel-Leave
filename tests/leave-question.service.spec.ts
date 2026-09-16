@@ -8,6 +8,7 @@ const mockQuestionCreate = vi.fn();
 const mockQuestionFindById = vi.fn();
 const mockQuestionUpdateAnswer = vi.fn();
 const mockQuestionFindByLeaveRequestId = vi.fn();
+const mockOutboxPublish = vi.fn();
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
@@ -33,6 +34,12 @@ vi.mock("@/db/repositories/leave/leave-question.repository", () => ({
     findById: (...args: any[]) => mockQuestionFindById(...args),
     updateAnswer: (...args: any[]) => mockQuestionUpdateAnswer(...args),
     findByLeaveRequestId: (...args: any[]) => mockQuestionFindByLeaveRequestId(...args),
+  },
+}));
+
+vi.mock("@/services/outbox/outbox.service", () => ({
+  outboxService: {
+    publish: (...args: any[]) => mockOutboxPublish(...args),
   },
 }));
 
@@ -72,6 +79,7 @@ beforeEach(() => {
   mockQuestionFindById.mockResolvedValue(MOCK_QUESTION);
   mockQuestionUpdateAnswer.mockResolvedValue(MOCK_ANSWERED);
   mockQuestionFindByLeaveRequestId.mockResolvedValue({ items: [MOCK_QUESTION], total: 1 });
+  mockOutboxPublish.mockResolvedValue({ id: "OUTBOX1" });
 });
 
 describe("askQuestion service", () => {

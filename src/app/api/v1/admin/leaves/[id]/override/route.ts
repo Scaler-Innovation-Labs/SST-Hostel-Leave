@@ -7,10 +7,8 @@ import { superadminOverrideLeave } from "@/services/leave/superadmin-override.se
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    // Super-admin only: this endpoint can force through a leave the parent
-    // explicitly rejected or never saw, so it must never be reachable by a
-    // hostel-scoped ADMIN.
     const currentUser = requireAnyRole(await requireAuth(), [
+      ROLES.ADMIN,
       ROLES.SUPER_ADMIN,
     ]);
 

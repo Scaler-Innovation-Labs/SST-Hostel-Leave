@@ -1,3 +1,4 @@
+import type { ActingRef } from "@/constants/audit/actor";
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
@@ -28,7 +29,7 @@ const BATCH_SIZE = 100;
  * approved to widen the window, and completing it would orphan the request.
  */
 export async function autoCompleteNonQrLeaves(
-  currentUser: { id: string }
+  currentUser: ActingRef
 ): Promise<AutoCompleteBatchResult> {
   const now = new Date();
 
@@ -77,7 +78,7 @@ export async function autoCompleteNonQrLeaves(
 
 async function completeNonQrLeave(
   leaveId: string,
-  currentUser: { id: string }
+  currentUser: ActingRef
 ): Promise<"completed" | "skipped"> {
   return await transaction(async (tx) => {
     const leaveInTx = await leaveRepository.findByIdForUpdate(leaveId, tx);
@@ -115,7 +116,7 @@ async function completeNonQrLeave(
       AUDIT_ACTION.UPDATE,
       AUDIT_ENTITY_TYPE.LEAVE_REQUEST,
       leaveId,
-      currentUser.id,
+      currentUser,
       {
         oldStatus: LEAVE_REQUEST_STATUS.APPROVED,
         newStatus: LEAVE_REQUEST_STATUS.COMPLETED,

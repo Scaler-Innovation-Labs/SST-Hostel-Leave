@@ -1,3 +1,7 @@
+import {
+  type ActingRef,
+  actorDescriptor,
+} from "@/constants/audit/actor";
 import type {
   AuditAction,
 } from "@/constants/audit/audit-action";
@@ -20,12 +24,44 @@ import { AuthorizationError } from "@/lib/errors";
 type AuditServiceDbClient = Pick<typeof db, "insert">;
 type AuditSelectDbClient = Pick<typeof db, "select">;
 
+/**
+ * The actor of an audited write: a `users.id`, nothing, or an `ActingRef`.
+ *
+ * `audit_logs.actor_user_id` is a uuid with a foreign key to `users`, so the
+ * only values it can hold are a real user id or NULL. Automated work (cron
+ * passes) and off-platform actors (a parent approving over SMS) have no user
+ * account, so they resolve to NULL and carry an actor descriptor in metadata
+ * instead — see `actorDescriptor`.
+ */
+export type AuditActor = string | null | ActingRef;
+
+/** Only a user id or NULL can be stored in the uuid FK column. */
+function resolveActorUserId(actor: AuditActor): string | null {
+  if (actor === null || typeof actor === "string") {
+    return actor;
+  }
+
+  return actor.id;
+}
+
+/** A described actor explains itself in metadata, not in the FK column. */
+function withActorDescriptor(
+  actor: AuditActor,
+  metadata: Record<string, unknown>
+): Record<string, unknown> {
+  if (actor === null || typeof actor === "string") {
+    return metadata;
+  }
+
+  return { ...actorDescriptor(actor), ...metadata };
+}
+
 export const auditService = {
   async record(
     action: AuditAction,
     entityType: AuditEntityType,
     entityId: string,
-    actorUserId: string | null,
+    actor: AuditActor,
     metadata: Record<string, unknown>,
     dbClient: AuditServiceDbClient = db
   ) {
@@ -39,8 +75,8 @@ export const auditService = {
         action,
         entityType,
         entityId,
-        actorUserId,
-        metadata,
+        actorUserId: resolveActorUserId(actor),
+        metadata: withActorDescriptor(actor, metadata),
         retentionClass,
         expiresAt: resolveAuditExpiresAt(retentionClass),
       },

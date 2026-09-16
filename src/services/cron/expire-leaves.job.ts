@@ -1,8 +1,12 @@
+import { systemActor } from "@/constants/audit/actor";
 import { type AutoCompleteBatchResult, autoCompleteNonQrLeaves } from "@/services/leave/auto-complete-non-qr.service";
 import { type ExpireBatchResult, expireOverdueLeaves } from "@/services/leave/expire-leave.service";
 import { type MarkOverdueBatchResult, markOverdueLeaves } from "@/services/leave/mark-overdue-leave.service";
 
-const SYSTEM_USER = { id: "SYSTEM" };
+// Scheduled pass: no logged-in user caused these transitions, so the actor
+// carries a null id plus the job name (recorded as an actor descriptor in
+// the audit metadata instead of the uuid FK column).
+const SYSTEM_USER = systemActor("expire-leaves");
 
 export type ExpireLeavesJobResult = {
   job: "expire-leaves";

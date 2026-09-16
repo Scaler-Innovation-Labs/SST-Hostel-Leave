@@ -1,3 +1,4 @@
+import { ACTOR_TYPE, AUDIT_TRIGGER } from "@/constants/audit/actor";
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
@@ -67,6 +68,10 @@ export async function generateParentApproval(
       approvalStep.id,
       null,
       {
+        // Off-platform actor: the parent token is minted for a parent who has
+        // no user account, so the descriptor carries who this trail is about.
+        actorType: ACTOR_TYPE.PARENT,
+        trigger: AUDIT_TRIGGER.SMS,
         leaveRequestId: context.leaveRequestId,
         leaveExtensionId: context.leaveExtensionId,
         action: "PARENT_APPROVAL_TOKEN_GENERATED",

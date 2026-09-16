@@ -20,6 +20,7 @@ vi.mock("@/lib/db/transaction", () => ({
 const mockStudentFindById = vi.fn();
 const mockStudentFindByIdWithRelations = vi.fn();
 const mockRecordMovement = vi.fn();
+const mockLeaveFindById = vi.fn();
 
 vi.mock("@/db/repositories/student/student.repository", () => ({
   studentRepository: {
@@ -32,6 +33,12 @@ vi.mock("@/services/movement/record-movement.service", () => ({
   recordMovement: (...args: any[]) => mockRecordMovement(...args),
 }));
 
+vi.mock("@/db/repositories/leave/leave.repository", () => ({
+  leaveRepository: {
+    findById: (...args: any[]) => mockLeaveFindById(...args),
+  },
+}));
+
 import { manualCheckout } from "@/services/movement/manual-checkout.service";
 import { AuthorizationError, ConflictError, NotFoundError } from "@/lib/errors";
 
@@ -40,6 +47,7 @@ const SUPER_ADMIN_USER = { id: "U1", roles: ["SUPER_ADMIN"] };
 beforeEach(() => {
   vi.resetAllMocks();
   mockRecordMovement.mockResolvedValue({ id: "ME1" });
+  mockLeaveFindById.mockResolvedValue({ id: "LR1", studentId: "S1", status: "APPROVED" });
   mockStudentFindByIdWithRelations.mockResolvedValue(null);
 });
 

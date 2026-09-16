@@ -1,3 +1,4 @@
+import { ACTOR_TYPE, AUDIT_TRIGGER } from "@/constants/audit/actor";
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_APPROVAL_SOURCE } from "@/constants/leave/approval-source";
@@ -79,6 +80,10 @@ export async function parentApproveDecision(
       approvalBase.id,
       null,
       {
+        // Off-platform actor: a parent deciding through the approval link.
+        // There is no user id to store, so the descriptor says who it was.
+        actorType: ACTOR_TYPE.PARENT,
+        trigger: AUDIT_TRIGGER.SMS,
         leaveRequestId: approvalBase.leaveRequestId,
         leaveExtensionId: approvalBase.leaveExtensionId,
         comments: dto.comments,
@@ -199,6 +204,8 @@ async function handleLeaveDecision(
         approval.leaveRequestId!,
         null,
         {
+          actorType: ACTOR_TYPE.PARENT,
+          trigger: AUDIT_TRIGGER.SMS,
           oldStatus: LEAVE_REQUEST_STATUS.PENDING,
           newStatus: LEAVE_REQUEST_STATUS.APPROVED,
         },
@@ -342,6 +349,8 @@ async function handleExtensionDecision(
         leaveRequestId,
         null,
         {
+          actorType: ACTOR_TYPE.PARENT,
+          trigger: AUDIT_TRIGGER.SMS,
           extensionId,
           oldEndAt: extension.currentEndAt.toISOString(),
           newEndAt: extension.requestedEndAt.toISOString(),

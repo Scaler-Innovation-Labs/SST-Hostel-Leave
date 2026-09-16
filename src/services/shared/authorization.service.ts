@@ -49,10 +49,12 @@ export function hasUnrestrictedRoleAccess(
 export function isStaffScopeRestricted(currentUser: CurrentUser): boolean {
   const isAdmin = currentUser.roles.includes(ROLES.ADMIN);
   const isPoc = currentUser.roles.includes(ROLES.POC);
-  if (!isAdmin && !isPoc) return false;
+  const isGuard = currentUser.roles.includes(ROLES.GUARD);
+  if (!isAdmin && !isPoc && !isGuard) return false;
   return (
     (isAdmin && !hasUnrestrictedRoleAccess(currentUser, ROLES.ADMIN)) ||
-    (isPoc && !hasUnrestrictedRoleAccess(currentUser, ROLES.POC))
+    (isPoc && !hasUnrestrictedRoleAccess(currentUser, ROLES.POC)) ||
+    (isGuard && !hasUnrestrictedRoleAccess(currentUser, ROLES.GUARD))
   );
 }
 
@@ -79,7 +81,8 @@ export async function canAccessLeave(
 
   const isAdmin = currentUser.roles.includes(ROLES.ADMIN);
   const isPoc = currentUser.roles.includes(ROLES.POC);
-  if (!isAdmin && !isPoc) return false;
+  const isGuard = currentUser.roles.includes(ROLES.GUARD);
+  if (!isAdmin && !isPoc && !isGuard) return false;
 
   if (!isStaffScopeRestricted(currentUser)) return true;
 
@@ -107,7 +110,7 @@ export async function hasAccessToStudent(
 
   if (currentUser.roles.includes(ROLES.SUPER_ADMIN)) return true;
 
-  if (!currentUser.roles.some((r) => r === ROLES.ADMIN || r === ROLES.POC)) {
+  if (!currentUser.roles.some((r) => r === ROLES.ADMIN || r === ROLES.POC || r === ROLES.GUARD)) {
     return false;
   }
 

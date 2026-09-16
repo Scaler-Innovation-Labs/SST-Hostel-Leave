@@ -25,6 +25,7 @@ const mockFindExpiredForRetention = vi.fn().mockResolvedValue([]);
 const mockUpdateStatus = vi.fn();
 const mockDeleteByKey = vi.fn().mockResolvedValue(true);
 const mockAuditRecord = vi.fn().mockResolvedValue({});
+const mockLoggerError = vi.fn();
 
 vi.mock("@/db/repositories/leave/leave-document.repository", () => ({
   leaveDocumentRepository: {
@@ -46,6 +47,15 @@ vi.mock("@/lib/s3", () => ({
 vi.mock("@/services/audit/audit.service", () => ({
   auditService: {
     record: (...args: any[]) => mockAuditRecord(...args),
+  },
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: (...args: any[]) => mockLoggerError(...args),
+    debug: vi.fn(),
   },
 }));
 
@@ -88,7 +98,11 @@ describe("runDocumentRetentionJob", () => {
     expect(mockDeleteByKey).toHaveBeenCalledWith(
       "prefix/leaves/LR1/medical-cert.pdf"
     );
-    expect(mockUpdateStatus).toHaveBeenCalledWith("DOC1", "DELETED");
+    expect(mockUpdateStatus).toHaveBeenCalledWith(
+      "DOC1",
+      "DELETED",
+      expect.anything()
+    );
   });
 
   it("uses s3Key from metadata regardless of mime type", async () => {
@@ -126,7 +140,11 @@ describe("runDocumentRetentionJob", () => {
 
     expect(mockDeleteByKey).not.toHaveBeenCalled();
     expect(result.deleted).toBe(1);
-    expect(mockUpdateStatus).toHaveBeenCalledWith("DOC1", "DELETED");
+    expect(mockUpdateStatus).toHaveBeenCalledWith(
+      "DOC1",
+      "DELETED",
+      expect.anything()
+    );
   });
 
   it("records an audit entry per deleted document", async () => {
@@ -139,11 +157,14 @@ describe("runDocumentRetentionJob", () => {
       "DELETE",
       "LEAVE_REQUEST",
       "LR1",
-      "SYSTEM",
+      // Described actor: NULL uuid plus the job label (regression: a literal
+      // "SYSTEM" actor made every cron pass throw on the uuid FK column).
+      expect.objectContaining({ id: null, job: "document-retention" }),
       expect.objectContaining({
         action: "DOCUMENT_RETENTION_DELETED",
         documentId: "DOC1",
-      })
+      }),
+      expect.anything()
     );
   });
 
@@ -171,6 +192,7 @@ describe("runDocumentRetentionJob", () => {
 
     expect(result.deleted).toBe(0);
     expect(result.failed).toBe(1);
+    expect(result.errors).toHaveLength(1);
     expect(mockUpdateStatus).not.toHaveBeenCalled();
   });
 
@@ -187,6 +209,50 @@ describe("runDocumentRetentionJob", () => {
 
     expect(result.deleted).toBe(1);
     expect(result.failed).toBe(1);
-    expect(mockUpdateStatus).toHaveBeenCalledWith("DOC-GOOD", "DELETED");
+    expect(result.errors).toHaveLength(1);
+    expect(mockUpdateStatus).toHaveBeenCalledWith(
+      "DOC-GOOD",
+      "DELETED",
+      expect.anything()
+    );
+  });
+
+  it("reports an audit failure instead of quietly marking the row deleted", async () => {
+    mockAuditRecord.mockRejectedValueOnce(
+      new Error("invalid input syntax for type uuid")
+    );
+    mockFindExpiredForRetention.mockResolvedValueOnce([makeDocument()]);
+
+    const result = await runDocumentRetentionJob();
+
+    expect(result.deleted).toBe(0);
+    expect(result.failed).toBe(1);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]).toContain(
+      "invalid input syntax for type uuid"
+    );
+    expect(mockLoggerError).toHaveBeenCalled();
+  });
+
+  it("stops instead of re-attempting a full batch it cannot retire", async () => {
+    mockAuditRecord.mockRejectedValue(new Error("audit write failed"));
+
+    try {
+      // A full batch of unretirable documents: the batch is re-queried once
+      // and must then stop, rather than looping on the same ids forever.
+      mockFindExpiredForRetention.mockResolvedValue(
+        Array.from({ length: 100 }, (_, i) =>
+          makeDocument({ id: `DOC${i}`, metadata: null, fileUrl: null })
+        )
+      );
+
+      const result = await runDocumentRetentionJob();
+
+      expect(result.deleted).toBe(0);
+      expect(result.failed).toBe(100);
+      expect(mockFindExpiredForRetention).toHaveBeenCalledTimes(2);
+    } finally {
+      mockAuditRecord.mockResolvedValue({});
+    }
   });
 });

@@ -12,6 +12,7 @@ export async function POST(request: Request) {
       ROLES.POC,
       ROLES.ADMIN,
       ROLES.SUPER_ADMIN,
+      ROLES.GUARD,
     ]);
 
     await rateLimit(`movement-write:${currentUser.id}`, 60, 60_000);

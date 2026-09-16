@@ -1,3 +1,5 @@
+import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
+import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveQuestionRepository } from "@/db/repositories/leave/leave-question.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
@@ -7,6 +9,7 @@ import type { CreateLeaveQuestionDto } from "@/dto/leave/create-leave-question.d
 import type { CurrentUser } from "@/lib/auth/types";
 import { NotFoundError } from "@/lib/errors/not-found-error";
 import { ValidationError } from "@/lib/errors/validation-error";
+import { outboxService } from "@/services/outbox/outbox.service";
 import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
 export type LeaveQuestionResult = {
@@ -46,6 +49,25 @@ export async function askQuestion(
     askedByRole: currentUser.roles[0] ?? "ADMIN",
     askedByName: user.fullName,
     question: dto.question,
+  });
+
+  // Delivery is asynchronous and retryable. The email is deliberately sent
+  // only to the leave's student, never to a parent approval channel.
+  await outboxService.publish({
+    eventType: OUTBOX_EVENT_TYPE.LEAVE_QUESTION_ASKED,
+    aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
+    aggregateId: leaveId,
+    payload: {
+      leaveId,
+      studentId: leave.studentId,
+      questionId: question.id,
+      variables: {
+        question: question.question,
+        askedByName: user.fullName,
+        askedByRole: question.askedByRole,
+      },
+    },
+    idempotencyKey: `${OUTBOX_EVENT_TYPE.LEAVE_QUESTION_ASKED}:${question.id}`,
   });
 
   return {

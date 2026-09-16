@@ -287,6 +287,14 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
 // alerts email the student only, asking them to extend the leave.
 const GLOBAL_RULES: RuleDraft[] = [
   {
+    eventType: NOTIFICATION_EVENT.LEAVE_QUESTION_ASKED,
+    templateCode: "leave_question_email_student",
+    recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT],
+    channels: [NOTIFICATION_CHANNEL.EMAIL],
+    enabled: true,
+    customRecipients: null,
+  },
+  {
     eventType: NOTIFICATION_EVENT.LEAVE_OVERDUE,
     templateCode: "leave_overdue_email_student",
     recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT],

@@ -8,13 +8,14 @@ import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
-import { requireRole } from "@/lib/auth/authorization";
+import { requireAnyRole } from "@/lib/auth/authorization";
 import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
 import { transaction } from "@/lib/db/transaction";
 import { AuthorizationError, ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
+import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
 export type OverrideMode = "ONE_STEP" | "ALL";
 
@@ -33,16 +34,16 @@ export async function superadminOverrideLeave(
   currentUser: CurrentUser,
   comments?: string,
 ): Promise<SuperadminOverrideResult> {
-  // Defense in depth: the route already gates this to SUPER_ADMIN, but the
-  // service enforces it too so no future caller can invoke the override
-  // with a lesser privilege (e.g. a hostel-scoped ADMIN).
-  requireRole(currentUser, ROLES.SUPER_ADMIN);
+  // Admins can use the same audited override flow for leaves in their scope.
+  // Parent approval steps remain explicitly non-overridable below.
+  requireAnyRole(currentUser, [ROLES.ADMIN, ROLES.SUPER_ADMIN]);
 
   const userId = currentUser.id;
 
   return await transaction(async (tx) => {
     const leave = await leaveRepository.findByIdForUpdate(leaveId, tx);
     if (!leave) throw new NotFoundError("LeaveRequest");
+    await assertCanAccessLeave(currentUser, leave);
     if (leave.status !== LEAVE_REQUEST_STATUS.PENDING && leave.status !== LEAVE_REQUEST_STATUS.REJECTED) {
       throw new ConflictError("Leave is not in a state that can be overridden");
     }

@@ -38,7 +38,12 @@ vi.mock("@/services/outbox/outbox.service", () => ({
   },
 }));
 
+import { systemActor } from "@/constants/audit/actor";
 import { autoCompleteNonQrLeaves } from "@/services/leave/auto-complete-non-qr.service";
+
+// A scheduled pass acts with no logged-in user: the audit trail stores a NULL
+// actor id and labels the run through the actor descriptor instead.
+const SYSTEM_ACTOR = systemActor("expire-leaves");
 
 const APPROVED_LEAVE = {
   id: "L1",
@@ -59,7 +64,7 @@ describe("autoCompleteNonQrLeaves service", () => {
     mockFindByIdForUpdate.mockResolvedValue(APPROVED_LEAVE);
     mockUpdateById.mockResolvedValue({ id: "L1", status: "COMPLETED" });
 
-    const result = await autoCompleteNonQrLeaves({ id: "SYSTEM" });
+    const result = await autoCompleteNonQrLeaves(SYSTEM_ACTOR);
 
     expect(result).toEqual({
       total: 1,
@@ -81,7 +86,7 @@ describe("autoCompleteNonQrLeaves service", () => {
       { id: "EXT1", leaveRequestId: "L1", status: "PENDING" },
     ]);
 
-    const result = await autoCompleteNonQrLeaves({ id: "SYSTEM" });
+    const result = await autoCompleteNonQrLeaves(SYSTEM_ACTOR);
 
     expect(result.completed).toBe(0);
     expect(result.skipped).toBe(1);
@@ -92,7 +97,7 @@ describe("autoCompleteNonQrLeaves service", () => {
     mockFindAutoCompleteDue.mockResolvedValue([APPROVED_LEAVE]);
     mockFindByIdForUpdate.mockResolvedValue({ ...APPROVED_LEAVE, status: "COMPLETED" });
 
-    const result = await autoCompleteNonQrLeaves({ id: "SYSTEM" });
+    const result = await autoCompleteNonQrLeaves(SYSTEM_ACTOR);
 
     expect(result.completed).toBe(0);
     expect(result.skipped).toBe(1);
@@ -101,7 +106,7 @@ describe("autoCompleteNonQrLeaves service", () => {
   it("returns empty result when nothing is due", async () => {
     mockFindAutoCompleteDue.mockResolvedValue([]);
 
-    const result = await autoCompleteNonQrLeaves({ id: "SYSTEM" });
+    const result = await autoCompleteNonQrLeaves(SYSTEM_ACTOR);
 
     expect(result).toEqual({
       total: 0,

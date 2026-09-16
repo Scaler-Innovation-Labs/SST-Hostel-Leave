@@ -1,3 +1,4 @@
+import type { ActingRef } from "@/constants/audit/actor";
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
@@ -38,7 +39,7 @@ const BATCH_SIZE = 100;
  */
 export async function markOverdueSingleLeave(
   leaveId: string,
-  currentUser: { id: string }
+  currentUser: ActingRef
 ): Promise<MarkOverdueSingleResult> {
   const leave = await leaveRepository.findById(leaveId);
 
@@ -107,7 +108,8 @@ export async function markOverdueSingleLeave(
         toState: MOVEMENT_STATE.OVERDUE,
         eventType: MOVEMENT_EVENT.AUTO_OVERDUE,
         movementMethod: MOVEMENT_METHOD.SYSTEM,
-        recordedBy: currentUser.id,
+        recordedBy: currentUser.id ?? null,
+        actor: currentUser,
         isManualOverride: true,
         dbClient: tx,
       });
@@ -117,7 +119,7 @@ export async function markOverdueSingleLeave(
       AUDIT_ACTION.UPDATE,
       AUDIT_ENTITY_TYPE.LEAVE_REQUEST,
       leaveId,
-      currentUser.id,
+      currentUser,
       {
         oldStatus: leaveInTx.status,
         newStatus: nextState,
@@ -146,7 +148,7 @@ export async function markOverdueSingleLeave(
 }
 
 export async function markOverdueLeaves(
-  currentUser: { id: string }
+  currentUser: ActingRef
 ): Promise<MarkOverdueBatchResult> {
   const now = new Date();
 

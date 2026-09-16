@@ -66,7 +66,12 @@ vi.mock("@/services/outbox/outbox.service", () => ({
   },
 }));
 
+import { systemActor } from "@/constants/audit/actor";
 import { expireSingleLeave, expireOverdueLeaves } from "@/services/leave/expire-leave.service";
+
+// A scheduled pass acts with no logged-in user: the audit trail stores a NULL
+// actor id and labels the run through the actor descriptor instead.
+const SYSTEM_ACTOR = systemActor("expire-leaves");
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -81,7 +86,7 @@ describe("expireSingleLeave service", () => {
     mockFindByIdForUpdate.mockResolvedValue({ id: "L1", status: "APPROVED", studentId: "S1", endAt: new Date("2026-06-01") });
     mockUpdateById.mockResolvedValue({ id: "L1", status: "EXPIRED" });
 
-    const result = await expireSingleLeave("L1", { id: "SYSTEM" });
+    const result = await expireSingleLeave("L1", SYSTEM_ACTOR);
 
     expect(result).toEqual({
       leaveId: "L1",
@@ -101,7 +106,7 @@ describe("expireSingleLeave service", () => {
     mockFindStudentById.mockResolvedValue({ id: "S1", currentLocationState: "CHECKED_OUT" });
     mockUpdateById.mockResolvedValue({ id: "L2", status: "EXPIRED" });
 
-    await expireSingleLeave("L2", { id: "SYSTEM" });
+    await expireSingleLeave("L2", SYSTEM_ACTOR);
 
     expect(mockRecordMovement).not.toHaveBeenCalled();
   });
@@ -112,7 +117,7 @@ describe("expireSingleLeave service", () => {
     mockFindStudentById.mockResolvedValue({ id: "S1", currentLocationState: "IN_HOSTEL" });
     mockUpdateById.mockResolvedValue({ id: "L3", status: "EXPIRED" });
 
-    await expireSingleLeave("L3", { id: "SYSTEM" });
+    await expireSingleLeave("L3", SYSTEM_ACTOR);
 
     expect(mockRecordMovement).not.toHaveBeenCalled();
   });
@@ -121,7 +126,7 @@ describe("expireSingleLeave service", () => {
     mockFindById.mockResolvedValue({ id: "L4", status: "PENDING" });
 
     await expect(
-      expireSingleLeave("L4", { id: "SYSTEM" })
+      expireSingleLeave("L4", SYSTEM_ACTOR)
     ).rejects.toThrow("Cannot expire leave in PENDING status");
   });
 
@@ -130,13 +135,13 @@ describe("expireSingleLeave service", () => {
     mockFindByIdForUpdate.mockResolvedValue({ id: "L5", status: "APPROVED", studentId: "S1", endAt: new Date("2026-06-01") });
     mockUpdateById.mockResolvedValue({ id: "L5", status: "EXPIRED" });
 
-    await expireSingleLeave("L5", { id: "SYSTEM" });
+    await expireSingleLeave("L5", SYSTEM_ACTOR);
 
     expect(mockAuditRecord).toHaveBeenCalledWith(
       "UPDATE",
       "LEAVE_REQUEST",
       "L5",
-      "SYSTEM",
+      expect.objectContaining({ id: null, job: "expire-leaves" }),
       expect.objectContaining({
         oldStatus: "APPROVED",
         newStatus: "EXPIRED",
@@ -160,7 +165,7 @@ describe("expireOverdueLeaves service", () => {
     );
     mockUpdateById.mockResolvedValue({ status: "EXPIRED" });
 
-    const result = await expireOverdueLeaves({ id: "SYSTEM" });
+    const result = await expireOverdueLeaves(SYSTEM_ACTOR);
 
     expect(result.total).toBe(2);
     expect(result.expired).toBe(2);
@@ -176,7 +181,7 @@ describe("expireOverdueLeaves service", () => {
       Promise.resolve({ id: _id, status: "PENDING", studentId: "S1" })
     );
 
-    const result = await expireOverdueLeaves({ id: "SYSTEM" });
+    const result = await expireOverdueLeaves(SYSTEM_ACTOR);
 
     expect(result.total).toBe(2);
     expect(result.errors.length).toBeGreaterThan(0);
@@ -185,7 +190,7 @@ describe("expireOverdueLeaves service", () => {
   it("returns empty result when no overdue leaves", async () => {
     mockFindExpiredLeaves.mockResolvedValue([]);
 
-    const result = await expireOverdueLeaves({ id: "SYSTEM" });
+    const result = await expireOverdueLeaves(SYSTEM_ACTOR);
 
     expect(result).toEqual({
       total: 0,

@@ -247,6 +247,7 @@ export const notificationEventEnum =
       "PARENT_APPROVAL_REQUESTED",
       "LEAVE_APPROVAL_REQUIRED",
       "LEAVE_POC_REVIEW_REQUIRED",
+      "LEAVE_QUESTION_ASKED",
       "QR_GENERATED",
       "QR_SCANNED",
       "QR_INVALIDATED",

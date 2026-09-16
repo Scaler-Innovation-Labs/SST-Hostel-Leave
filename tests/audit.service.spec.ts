@@ -25,6 +25,7 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
   },
 }));
 
+import { systemActor } from "@/constants/audit/actor";
 import { auditService } from "@/services/audit/audit.service";
 import { AuthorizationError } from "@/lib/errors";
 
@@ -120,5 +121,63 @@ describe("auditService.listAuditLogs", () => {
     mockFindByUserId.mockResolvedValue(null);
 
     await expect(auditService.listAuditLogs(query, STUDENT)).rejects.toBeInstanceOf(AuthorizationError);
+  });
+});
+
+describe("auditService.record actor attribution", () => {
+  it("stores a NULL actor id for a scheduled pass and describes it in metadata", async () => {
+    await auditService.record(
+      "UPDATE",
+      "LEAVE_REQUEST",
+      "LR1",
+      systemActor("expire-leaves"),
+      { newStatus: "EXPIRED" },
+    );
+
+    // actor_user_id is a uuid FK to users: a label like "SYSTEM" cannot be
+    // stored there, so the meaning moves into the descriptor.
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: null,
+        metadata: {
+          actorType: "SYSTEM",
+          trigger: "CRON",
+          job: "expire-leaves",
+          newStatus: "EXPIRED",
+        },
+      }),
+      expect.anything(),
+    );
+  });
+
+  it("keeps a real user id as the actor and leaves metadata untouched", async () => {
+    await auditService.record("UPDATE", "LEAVE_REQUEST", "LR1", { id: "U1" }, { newStatus: "EXPIRED" });
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: "U1",
+        metadata: { newStatus: "EXPIRED" },
+      }),
+      expect.anything(),
+    );
+  });
+
+  it("labels the job so repeated nightly passes stay distinguishable", async () => {
+    await auditService.record(
+      "UPDATE",
+      "QR_PASS",
+      "QP1",
+      systemActor("cleanup-qr"),
+      {},
+    );
+
+    const [input] = mockCreate.mock.calls[0];
+
+    expect(input.actorUserId).toBeNull();
+    expect(input.metadata).toEqual({
+      actorType: "SYSTEM",
+      trigger: "CRON",
+      job: "cleanup-qr",
+    });
   });
 });

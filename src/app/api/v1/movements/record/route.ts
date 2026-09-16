@@ -3,6 +3,7 @@ import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
+import { AuthorizationError } from "@/lib/errors";
 import { rateLimit } from "@/lib/rate-limiter";
 import { recordMovement } from "@/services/movement/record-movement.service";
 import { assertCanAccessStudent } from "@/services/shared/authorization.service";
@@ -17,6 +18,13 @@ export async function POST(request: Request) {
       ROLES.ADMIN,
       ROLES.SUPER_ADMIN,
     ]);
+
+    // Keep this defense in depth even though requireAnyRole rejects guards:
+    // the raw recorder must never accept a guard if an authorization adapter
+    // is misconfigured. Guards use the constrained scan/manual endpoints.
+    if (currentUser.roles.includes(ROLES.GUARD)) {
+      throw new AuthorizationError("Guards cannot use the raw movement recorder");
+    }
 
     await rateLimit(`movement-write:${currentUser.id}`, 60, 60_000);
 
