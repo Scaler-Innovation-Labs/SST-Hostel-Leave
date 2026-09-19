@@ -38,6 +38,7 @@ const CONFIG_ENTITY_TYPES = new Set([
   "ACADEMIC_GROUP",
   "NOTIFICATION_TEMPLATE",
   "NOTIFICATION_RULE",
+  "LATE_STAY_AUTHORIZATION",
 ]);
 
 /** Actions that are pure user sessions — shortest retention. */

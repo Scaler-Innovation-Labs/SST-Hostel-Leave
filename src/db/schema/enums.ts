@@ -61,6 +61,20 @@ export const leaveRejectionSourceEnum =
     ]
   );
 
+export const lateStayAuthStatusEnum =
+  pgEnum(
+    "late_stay_auth_status",
+    [
+      "PENDING_POC",
+      "PENDING_ADMIN",
+      "ACTIVE",
+      "REJECTED",
+      "REVOKED",
+      "EXPIRED",
+      "SUPERSEDED",
+    ]
+  );
+
 export const approvalSourceEnum = pgEnum(
   "approval_source",
   [
@@ -251,6 +265,12 @@ export const notificationEventEnum =
       "QR_GENERATED",
       "QR_SCANNED",
       "QR_INVALIDATED",
+      "LATE_STAY_AUTH_SUBMITTED",
+      "LATE_STAY_AUTH_STEP_APPROVED",
+      "LATE_STAY_AUTH_ACTIVE",
+      "LATE_STAY_AUTH_REJECTED",
+      "LATE_STAY_AUTH_REVOKED",
+      "LATE_STAY_AUTH_EXPIRED",
     ]
   );
 
@@ -317,12 +337,12 @@ export const auditEntityTypeEnum =
       "HOSTEL",
       "DEPARTMENT",
       "ACADEMIC_GROUP",
-      "WORKFLOW",
-      "NOTIFICATION_TEMPLATE",
+      "WORKFLOW",      "NOTIFICATION_TEMPLATE",
       "NOTIFICATION_RULE",
       "LEAVE_TYPE",
+      "LATE_STAY_AUTHORIZATION",
     ]
-  );
+);
 
 export const auditActionEnum = pgEnum(
   "audit_action",
@@ -335,6 +355,8 @@ export const auditActionEnum = pgEnum(
     "CANCEL",
     "INVALIDATE",
     "OVERRIDE",
+    "REVOKE",
+    "EXPIRE",
     "LOGIN",
     "LOGOUT",
   ]

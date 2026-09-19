@@ -133,6 +133,12 @@ vi.mock("@/services/parent/generate-parent-approval.service", () => ({
   generateParentApproval: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock("@/db/repositories/leave/late-stay-authorization.repository", () => ({
+  lateStayAuthorizationRepository: {
+    findActiveByStudent: vi.fn().mockResolvedValue([]),
+  },
+}));
+
 import { createLeave } from "@/services/leave/create-leave.service";
 import { AuthorizationError, ConflictError, ValidationError } from "@/lib/errors";
 

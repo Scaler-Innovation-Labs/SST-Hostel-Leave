@@ -27,6 +27,7 @@ import { resolveApprovalSource } from "@/lib/workflows/resolve-approval-source";
 import { auditService } from "@/services/audit/audit.service";
 import { leaveTypeVersionService } from "@/services/leave/leave-type-version.service";
 import { assertNoConflictingOverlap } from "@/services/leave/overlap-guard.service";
+import { assertNoActiveAuthorizationCoverage } from "@/services/leave/recurring-authorization/duplicate-application-guard.service";
 import { validateLeaveSubmittedForm } from "@/services/leave/validate-leave-form.service";
 import { notificationService } from "@/services/notification/notification.service";
 import { outboxService } from "@/services/outbox/outbox.service";
@@ -153,6 +154,17 @@ export async function createLeave(
       endAt: new Date(dto.endAt),
       qrMode: leaveType.qrMode,
       leaveTypeId: leaveType.id,
+      dbClient: tx,
+    });
+
+    // Recurring-authorization duplicate guard: a manual LATE_STAY_COLLEGE
+    // application fully covered by an ACTIVE recurring authorization must
+    // go through the claim flow instead (domain validation, not UI).
+    await assertNoActiveAuthorizationCoverage({
+      studentId: student.id,
+      leaveTypeId: leaveType.id,
+      startAt: new Date(dto.startAt),
+      endAt: new Date(dto.endAt),
       dbClient: tx,
     });
 

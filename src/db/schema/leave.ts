@@ -3,6 +3,7 @@
 // src/db/schema/leave.ts
 // =====================================================
 
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import {
   boolean,
   check,
@@ -13,6 +14,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm/sql/sql";
@@ -21,6 +23,7 @@ import { students } from "./academics";
 import { roles,users } from "./auth";
 import {
   approvalSourceEnum,
+  lateStayAuthStatusEnum,
   leaveApprovalDecisionEnum,
   leaveCategoryEnum,
   leaveDocumentStatusEnum,
@@ -344,7 +347,154 @@ export const leaveRequests = pgTable("leave_requests", {
   studentDatesIdx: index("lr_student_dates_idx").on(table.studentId, table.startAt, table.endAt),
   statusEndatReturnIdx: index("lr_status_endat_return_idx").on(table.status, table.endAt, table.actualReturnAt),
   statusCreatedIdx: index("lr_status_created_idx").on(table.status, table.createdAt),
+
+  // Recurring late-stay idempotency (late_stay_authorization contract):
+  // ONE live occurrence per (authorization, calendar date). A unique
+  // violation on claim means a concurrent/retried claim already created
+  // the row — the DB arbitrates the race, not TypeScript. Cancelled and
+  // rejected occurrences never block a re-claim.
+  recurringOccurrenceIdempotencyUnq: uniqueIndex(
+    "lr_recurring_occurrence_unq"
+  ).on(
+    sql`(${table.metadata} ->> 'authorizationId')`,
+    sql`(${table.metadata} ->> 'occurrenceDate')`
+  ).where(sql`(${table.metadata} ->> 'authorizationId') IS NOT NULL AND (${table.status} NOT IN ('CANCELLED', 'REJECTED'))`),
 }));
+
+// =====================================================
+// LATE STAY AUTHORIZATIONS
+// Recurring permission layer (Layer 1). A POC/Admin approves ONCE per
+// authorization; each night the student CLAIMS (Layer 2) materializes a
+// real leave_requests occurrence auto-approved by provenance — approval
+// authority stays with the authorization, never fabricated per-night.
+// Versions are immutable after activation: changes create a child row
+// (parentAuthorizationId + version) that supersedes the parent only on
+// approval, so historical occurrences always name the exact version that
+// permitted them.
+// =====================================================
+
+export const lateStayAuthorizations = pgTable(
+  "late_stay_authorizations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => students.id, {
+        onDelete: "cascade",
+      }),
+
+    leaveTypeId: uuid("leave_type_id")
+      .notNull()
+      .references(() => leaveTypes.id, {
+        onDelete: "restrict",
+      }),
+
+    /** Previous version this row supersedes (null for V1). */
+    parentAuthorizationId: uuid("parent_authorization_id").references(
+      (): AnyPgColumn => lateStayAuthorizations.id,
+      {
+        onDelete: "restrict",
+      }
+    ),
+
+    /** Monotonically increasing per authorization lineage, starting at 1. */
+    version: integer("version")
+      .default(1)
+      .notNull(),
+
+    /** Authorization window (dates, inclusive). */
+    validFrom: timestamp("valid_from", {
+      withTimezone: true,
+    }).notNull(),
+
+    validUntil: timestamp("valid_until", {
+      withTimezone: true,
+    }).notNull(),
+
+    /** Daily late-stay window, minutes since local midnight (e.g. 1080–1320 = 18:00–22:00). */
+    startTimeMinutes: integer("start_time_minutes").notNull(),
+
+    endTimeMinutes: integer("end_time_minutes").notNull(),
+
+    /** Day-of-week mask, bit 0 = Sunday … bit 6 = Saturday (e.g. Mon–Fri = 0b0111110). */
+    daysOfWeekMask: integer("days_of_week_mask").notNull(),
+
+    reason: text("reason").notNull(),
+
+    status: lateStayAuthStatusEnum("status").notNull(),
+
+    pocApprovedAt: timestamp("poc_approved_at", { withTimezone: true }),
+
+    pocApprovedBy: uuid("poc_approved_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+
+    adminApprovedAt: timestamp("admin_approved_at", { withTimezone: true }),
+
+    adminApprovedBy: uuid("admin_approved_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+
+    rejectedAt: timestamp("rejected_at", { withTimezone: true }),
+
+    rejectedBy: uuid("rejected_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+
+    revokeReason: text("revoke_reason"),
+
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+
+    revokedBy: uuid("revoked_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+
+    submittedAt: timestamp("submitted_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+
+    updatedAt: timestamp("updated_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    studentStatusIdx: index("lsa_student_status_idx").on(table.studentId, table.status),
+    lineageIdx: index("lsa_lineage_idx").on(table.parentAuthorizationId),
+    statusValidUntilIdx: index("lsa_status_valid_until_idx").on(table.status, table.validUntil),
+
+    validWindowChk: check(
+      "lsa_valid_window_chk",
+      sql`${table.validFrom} <= ${table.validUntil}`
+    ),
+    dailyWindowChk: check(
+      "lsa_daily_window_chk",
+      sql`${table.startTimeMinutes} < ${table.endTimeMinutes}`
+    ),
+    daysMaskChk: check(
+      "lsa_days_mask_chk",
+      sql`${table.daysOfWeekMask} > 0 AND ${table.daysOfWeekMask} < 128`
+    ),
+    versionChk: check(
+      "lsa_version_chk",
+      sql`${table.version} >= 1`
+    ),
+    parentChk: check(
+      "lsa_parent_chk",
+      sql`${table.parentAuthorizationId} IS NULL OR ${table.parentAuthorizationId} <> ${table.id}`
+    ),
+  })
+);
 
 // =====================================================
 // LEAVE EXTENSIONS
@@ -752,3 +902,13 @@ export const operationalPeriods = pgTable(
 // REPLACED
 // INVALID
 // DELETED
+
+// late_stay_authorizations.status
+// --------------------------------
+// PENDING_POC
+// PENDING_ADMIN
+// ACTIVE
+// REJECTED
+// REVOKED
+// EXPIRED
+// SUPERSEDED

@@ -27,6 +27,62 @@ type LeaveTypeRuleDraft = {
   rules: RuleDraft[];
 };
 
+/**
+ * Recurring late-stay authorization lifecycle alerts (leave-type-keyed so
+ * the seeder's leaveType join applies). Channels: Slack to the POC for
+ * review steps; email to the student for outcomes.
+ */
+const AUTHORIZATION_RULES: RuleDraft[] = [
+  {
+    eventType: NOTIFICATION_EVENT.LATE_STAY_AUTH_SUBMITTED,
+    templateCode: "late_stay_auth_submitted_slack_poc",
+    recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.POC],
+    channels: [NOTIFICATION_CHANNEL.SLACK],
+    enabled: true,
+    customRecipients: null,
+  },
+  {
+    eventType: NOTIFICATION_EVENT.LATE_STAY_AUTH_STEP_APPROVED,
+    templateCode: "late_stay_auth_step_approved_slack_admin",
+    recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.HOSTEL_ADMIN],
+    channels: [NOTIFICATION_CHANNEL.SLACK],
+    enabled: true,
+    customRecipients: null,
+  },
+  {
+    eventType: NOTIFICATION_EVENT.LATE_STAY_AUTH_ACTIVE,
+    templateCode: "late_stay_auth_active_email_student",
+    recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT],
+    channels: [NOTIFICATION_CHANNEL.EMAIL],
+    enabled: true,
+    customRecipients: null,
+  },
+  {
+    eventType: NOTIFICATION_EVENT.LATE_STAY_AUTH_REJECTED,
+    templateCode: "late_stay_auth_rejected_email_student",
+    recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT],
+    channels: [NOTIFICATION_CHANNEL.EMAIL],
+    enabled: true,
+    customRecipients: null,
+  },
+  {
+    eventType: NOTIFICATION_EVENT.LATE_STAY_AUTH_REVOKED,
+    templateCode: "late_stay_auth_revoked_email_student",
+    recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT],
+    channels: [NOTIFICATION_CHANNEL.EMAIL],
+    enabled: true,
+    customRecipients: null,
+  },
+  {
+    eventType: NOTIFICATION_EVENT.LATE_STAY_AUTH_EXPIRED,
+    templateCode: "late_stay_auth_expired_email_student",
+    recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT],
+    channels: [NOTIFICATION_CHANNEL.EMAIL],
+    enabled: true,
+    customRecipients: null,
+  },
+];
+
 // Staff alerts fire when the relevant workflow step becomes current, never on
 // submission:
 //   - POC review  → LEAVE_POC_REVIEW_REQUIRED (POC step current, i.e. the
@@ -387,6 +443,17 @@ export async function seedNotificationRules() {
     for (const rule of group.rules) {
       await insertRule(rule, leaveTypeId);
     }
+  }
+
+  // Recurring late-stay authorization lifecycle rules, keyed to the
+  // LATE_STAY_COLLEGE leave type.
+  const lateStayTypeId = leaveTypeByCode.get("LATE_STAY_COLLEGE");
+  if (lateStayTypeId) {
+    for (const rule of AUTHORIZATION_RULES) {
+      await insertRule(rule, lateStayTypeId);
+    }
+  } else {
+    logger.warn("LATE_STAY_COLLEGE leave type not found — authorization rules skipped");
   }
 
   logger.info("Seeded notification rules", { count: inserted });

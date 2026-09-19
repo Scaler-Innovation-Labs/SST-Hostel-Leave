@@ -253,6 +253,71 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
 
   LATE_STAY_COLLEGE: [
     {
+      code: "late_stay_auth_submitted_slack_poc",
+      eventKey: NOTIFICATION_EVENT.LATE_STAY_AUTH_SUBMITTED,
+      channel: NOTIFICATION_CHANNEL.SLACK,
+      subject: null,
+      templateBody:
+        "A new recurring late-stay authorization has been requested by {{studentName}}.\n" +
+        "Valid: {{validFrom}} to {{validUntil}}\n" +
+        "Reason: {{reason}}\n\n" +
+        "Please review and approve or reject it in the hostel portal.",
+    },
+    {
+      code: "late_stay_auth_step_approved_slack_admin",
+      eventKey: NOTIFICATION_EVENT.LATE_STAY_AUTH_STEP_APPROVED,
+      channel: NOTIFICATION_CHANNEL.SLACK,
+      subject: null,
+      templateBody:
+        "The POC has approved a recurring late-stay authorization for {{studentName}} ({{validFrom}} to {{validUntil}}).\n" +
+        "Admin review is now required before it becomes active.",
+    },
+    {
+      code: "late_stay_auth_active_email_student",
+      eventKey: NOTIFICATION_EVENT.LATE_STAY_AUTH_ACTIVE,
+      channel: NOTIFICATION_CHANNEL.EMAIL,
+      subject: "Recurring Late Stay Authorization Approved",
+      templateBody:
+        "Dear {{studentName}},\n\n" +
+        "Your recurring late-stay authorization for {{validFrom}} to {{validUntil}} has been approved.\n\n" +
+        "On any day you intend to stay late within your authorized window, submit your claim in the portal before heading out. Your claim creates that night's approved late-stay pass.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
+    },
+    {
+      code: "late_stay_auth_rejected_email_student",
+      eventKey: NOTIFICATION_EVENT.LATE_STAY_AUTH_REJECTED,
+      channel: NOTIFICATION_CHANNEL.EMAIL,
+      subject: "Recurring Late Stay Authorization Declined",
+      templateBody:
+        "Dear {{studentName}},\n\n" +
+        "Your request for a recurring late-stay authorization ({{validFrom}} to {{validUntil}}) has been declined.\n\n" +
+        "For any clarification, please coordinate with your POC or Hostel Warden.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
+    },
+    {
+      code: "late_stay_auth_revoked_email_student",
+      eventKey: NOTIFICATION_EVENT.LATE_STAY_AUTH_REVOKED,
+      channel: NOTIFICATION_CHANNEL.EMAIL,
+      subject: "Recurring Late Stay Authorization Revoked",
+      templateBody:
+        "Dear {{studentName}},\n\n" +
+        "Your recurring late-stay authorization has been revoked and is no longer valid.\n\n" +
+        "Reason: {{reason}}\n\n" +
+        "Future late stays will require a fresh application.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
+    },
+    {
+      code: "late_stay_auth_expired_email_student",
+      eventKey: NOTIFICATION_EVENT.LATE_STAY_AUTH_EXPIRED,
+      channel: NOTIFICATION_CHANNEL.EMAIL,
+      subject: "Recurring Late Stay Authorization Expired",
+      templateBody:
+        "Dear {{studentName}},\n\n" +
+        "Your recurring late-stay authorization (ended {{validUntil}}) has expired.\n\n" +
+        "If you still need to stay late on campus, please submit a new request.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
+    },
+    {
       code: "leave_approved_email_late_stay",
       eventKey: NOTIFICATION_EVENT.LEAVE_APPROVED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
