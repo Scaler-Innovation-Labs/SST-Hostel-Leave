@@ -151,6 +151,33 @@ export async function claimLateStayOccurrence(
 			}
 		}
 
+		// Cross-version guard: per-auth findOccurrence above cannot see a
+		// sibling version's claim, so a V1 claim for tonight would not stop
+		// a V2 claim for the same night. One night yields at most one live
+		// occurrence per student + leave type — refuse the second version's
+		// claim instead of materializing two leaves for one night.
+		const crossVersion =
+			await lateStayAuthorizationRepository.findLiveOccurrenceForStudentDate(
+				student.id,
+				authorization.leaveTypeId,
+				occurrenceDate,
+				tx
+			);
+		if (crossVersion) {
+			if (crossVersion.authorizationId === authorizationId) {
+				const full = await leaveRepository.findById(crossVersion.id, tx);
+				if (full) {
+					return {
+						occurrence: full,
+						idempotentReplay: true,
+					};
+				}
+			}
+			throw new ConflictError(
+				"Tonight is already claimed under another authorization version"
+			);
+		}
+
 		// Overlap guard: refuse claiming while the student is out of hostel
 		// on an existing live leave (e.g. HOME_PASS until 21:30 tonight).
 		const liveEnd = await lateStayAuthorizationRepository.findEarliestLiveLeaveEnd(

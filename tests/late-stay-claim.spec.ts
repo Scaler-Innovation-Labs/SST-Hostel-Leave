@@ -6,6 +6,7 @@ const mockFindByIdForUpdate = vi.fn();
 const mockFindActiveByStudent = vi.fn();
 const mockFindActiveForStudentForUpdate = vi.fn();
 const mockFindOccurrence = vi.fn();
+const mockFindLiveOccurrenceForStudentDate = vi.fn();
 const mockFindEarliestLiveLeaveEnd = vi.fn();
 const mockFindStudentByUserId = vi.fn();
 const mockFindLeaveTypeByCode = vi.fn();
@@ -48,6 +49,8 @@ vi.mock("@/db/repositories/leave/late-stay-authorization.repository", () => ({
 		findActiveForStudentForUpdate: (...args: any[]) =>
 			mockFindActiveForStudentForUpdate(...args),
 		findOccurrence: (...args: any[]) => mockFindOccurrence(...args),
+		findLiveOccurrenceForStudentDate: (...args: any[]) =>
+			mockFindLiveOccurrenceForStudentDate(...args),
 		findEarliestLiveLeaveEnd: (...args: any[]) =>
 			mockFindEarliestLiveLeaveEnd(...args),
 	},
@@ -127,6 +130,7 @@ beforeEach(() => {
 	mockFindById.mockResolvedValue(ACTIVE_AUTH);
 	mockFindByIdForUpdate.mockResolvedValue(ACTIVE_AUTH);
 	mockFindOccurrence.mockResolvedValue(null);
+	mockFindLiveOccurrenceForStudentDate.mockResolvedValue(null);
 	mockFindEarliestLiveLeaveEnd.mockResolvedValue(null);
 	mockFindLeaveTypeByCode.mockResolvedValue({ id: "LT1", code: "LATE_STAY_COLLEGE" });
 	mockLeaveCreate.mockImplementation(async (values: any) => ({

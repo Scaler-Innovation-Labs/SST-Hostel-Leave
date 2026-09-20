@@ -90,8 +90,35 @@ export async function getLateStayClaimEligibility(
 		occurrenceDate
 	);
 
+	if (existing) {
+		return {
+			eligible: false,
+			authorization: {
+				id: covering.id,
+				version: covering.version,
+				validFrom: covering.validFrom,
+				validUntil: covering.validUntil,
+				startTimeMinutes: covering.startTimeMinutes,
+				endTimeMinutes: covering.endTimeMinutes,
+				daysOfWeekMask: covering.daysOfWeekMask,
+			},
+			alreadyClaimed: existing,
+			reason: "ALREADY_CLAIMED",
+			targetDate: occurrenceDate,
+		};
+	}
+
+	// Cross-version: tonight claimed under a sibling version (V1) must read
+	// as ALREADY_CLAIMED on the covering version (V2), not eligible.
+	const crossVersion =
+		await lateStayAuthorizationRepository.findLiveOccurrenceForStudentDate(
+			student.id,
+			leaveTypeId,
+			occurrenceDate
+		);
+
 	return {
-		eligible: !existing,
+		eligible: !crossVersion,
 		authorization: {
 			id: covering.id,
 			version: covering.version,
@@ -101,8 +128,8 @@ export async function getLateStayClaimEligibility(
 			endTimeMinutes: covering.endTimeMinutes,
 			daysOfWeekMask: covering.daysOfWeekMask,
 		},
-		alreadyClaimed: existing ?? null,
-		reason: existing ? "ALREADY_CLAIMED" : undefined,
+		alreadyClaimed: crossVersion ? { id: crossVersion.id } : null,
+		reason: crossVersion ? "ALREADY_CLAIMED" : undefined,
 		targetDate: occurrenceDate,
 	};
 }

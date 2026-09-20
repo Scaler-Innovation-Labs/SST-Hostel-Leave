@@ -342,6 +342,41 @@ export const lateStayAuthorizationRepository = {
 		return rows[0] ?? null;
 	},
 
+	/**
+	 * Cross-version claim guard: find a live occurrence for this student +
+	 * leave type + calendar date under ANY authorization. Per-auth
+	 * findOccurrence cannot see a sibling version's claim (a V1 claim would
+	 * not block a V2 claim for the same night) — the claim flow checks this
+	 * so one night yields at most one live occurrence per student + type.
+	 * Excluded statuses mirror the partial unique index.
+	 */
+	async findLiveOccurrenceForStudentDate(
+		studentId: string,
+		leaveTypeId: string,
+		occurrenceDate: string,
+		dbClient: Pick<typeof db, "select"> = db
+	): Promise<{ id: string; authorizationId: string | null } | null> {
+		const rows = await dbClient
+			.select({
+				id: leaveRequests.id,
+				authorizationId:
+					sql<string | null>`${leaveRequests.metadata} ->> 'authorizationId'`,
+			})
+			.from(leaveRequests)
+			.where(
+				and(
+					eq(leaveRequests.studentId, studentId),
+					eq(leaveRequests.leaveTypeId, leaveTypeId),
+					sql`${leaveRequests.metadata} ->> 'occurrenceDate' = ${occurrenceDate}`,
+					sql`${leaveRequests.metadata} ->> 'authorizationId' IS NOT NULL`,
+					sql`${leaveRequests.status} NOT IN ('CANCELLED', 'REJECTED')`
+				)
+			)
+			.limit(1);
+
+		return rows[0] ?? null;
+	},
+
 	/** Occurrences already claimed under an authorization (usage history). */
 	async findOccurrencesForAuthorization(
 		authorizationId: string,
