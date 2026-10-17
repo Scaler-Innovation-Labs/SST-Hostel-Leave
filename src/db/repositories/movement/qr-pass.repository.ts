@@ -274,23 +274,29 @@ export const qrPassRepository = {
    */
   async findUsableExitPassForStudent(
     studentId: string,
-    excludePassId: string,
+    excludePassId: string | null | undefined,
     now: Date,
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<QrPass | null> {
+    const conditions: ReturnType<typeof and>[] = [
+      eq(qrPasses.studentId, studentId),
+      eq(qrPasses.status, QR_STATUS.ACTIVE),
+      isNull(qrPasses.firstScanAt),
+      or(isNull(qrPasses.validFrom), lte(qrPasses.validFrom, now)),
+      or(isNull(qrPasses.expiresAt), gte(qrPasses.expiresAt, now)),
+    ];
+
+    // Only exclude an id when one exists: `id <> ''` is invalid uuid input
+    // (Postgres 22P02) and would 500 the whole generate call on the normal
+    // first-pass path where there is nothing to exclude.
+    if (excludePassId) {
+      conditions.push(ne(qrPasses.id, excludePassId));
+    }
+
     const rows = await dbClient
       .select()
       .from(qrPasses)
-      .where(
-        and(
-          eq(qrPasses.studentId, studentId),
-          ne(qrPasses.id, excludePassId),
-          eq(qrPasses.status, QR_STATUS.ACTIVE),
-          isNull(qrPasses.firstScanAt),
-          or(isNull(qrPasses.validFrom), lte(qrPasses.validFrom, now)),
-          or(isNull(qrPasses.expiresAt), gte(qrPasses.expiresAt, now))
-        )
-      )
+      .where(and(...conditions))
       .limit(1);
 
     return rows[0] ?? null;

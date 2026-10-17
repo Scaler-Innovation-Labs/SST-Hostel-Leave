@@ -143,7 +143,7 @@ export async function generateQrPass(
 		) {
 			const conflicting = await qrPassRepository.findUsableExitPassForStudent(
 				student.id,
-				existingPass?.id ?? "",
+				existingPass?.id ?? null,
 				now,
 				tx
 			);

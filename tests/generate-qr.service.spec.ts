@@ -229,6 +229,19 @@ describe("generateQrPass service", () => {
       ).rejects.toBeInstanceOf(ValidationError);
       expect(mockQrPassCreate).not.toHaveBeenCalled();
     });
+
+    it("passes no exclude id (never an empty string) when no pass exists yet", async () => {
+      // Regression: `existingPass?.id ?? ""` sent `id <> ''` to Postgres,
+      // which rejects "" as a uuid (22P02) and 500'd first-pass generation.
+      await generateQrPass(VALID_INPUT);
+
+      expect(mockFindUsableExitPass).toHaveBeenCalledWith(
+        "S1",
+        null,
+        expect.any(Date),
+        expect.any(Object)
+      );
+    });
   });
 
   describe("leave request validation", () => {
