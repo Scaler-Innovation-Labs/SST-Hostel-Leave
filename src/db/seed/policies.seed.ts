@@ -1,9 +1,11 @@
 import { eq } from "drizzle-orm";
 
+import { policyVersionRepository } from "@/db/repositories/policy/policy-version.repository";
 import { leaveTypes } from "@/db/schema/leave";
 import { policies } from "@/db/schema/policy";
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { policyVersionService } from "@/services/policy/policy-version.service";
 
 async function getLeaveTypeCodeMap(): Promise<Record<string, string>> {
   const types = await db.select({ id: leaveTypes.id, code: leaveTypes.code }).from(leaveTypes);
@@ -202,6 +204,22 @@ export async function seedPolicies(): Promise<void> {
     });
 
     logger.info("Policy seeded", { name: policyConfig.name, policyType: policyConfig.policyType });
+  }
+
+  // Seeds insert rows directly, bypassing the manage-policy service that
+  // snapshots versions — so snapshot v1 here for every policy that has none.
+  // Without this, leave creation fails with a missing PolicyVersion.
+  const allPolicies = await db
+    .select({ id: policies.id })
+    .from(policies);
+  for (const policy of allPolicies) {
+    const existing = await policyVersionRepository.findLatestByPolicyId(
+      policy.id,
+      db
+    );
+    if (!existing) {
+      await policyVersionService.createVersion(policy.id, null, db);
+    }
   }
 
   logger.info("Policies seed complete", { count: policyConfigs.length });
