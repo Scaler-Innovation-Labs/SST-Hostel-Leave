@@ -20,6 +20,29 @@ type OutboxDbClient = Pick<
   execute?: typeof db.execute;
 };
 
+// claimNext uses a raw UPDATE ... RETURNING * so it can claim rows
+// atomically. Raw SQL results keep the database column names, so map them
+// back to the camelCase shape the rest of the app (and the worker) expects.
+function mapRawOutboxRow(row: Record<string, unknown>): OutboxEvent {
+  return {
+    id: row.id as string,
+    eventType: row.event_type as OutboxEvent["eventType"],
+    aggregateType: row.aggregate_type as OutboxEvent["aggregateType"],
+    aggregateId: row.aggregate_id as string,
+    payload: row.payload as OutboxEvent["payload"],
+    idempotencyKey: (row.idempotency_key ?? null) as string | null,
+    status: row.status as OutboxEvent["status"],
+    attemptCount: row.attempt_count as number,
+    lastError: (row.last_error ?? null) as string | null,
+    nextAttemptAt: (row.next_attempt_at ?? null) as Date | null,
+    leaseExpiresAt: (row.lease_expires_at ?? null) as Date | null,
+    createdAt: row.created_at as Date,
+    processedAt: (row.processed_at ?? null) as Date | null,
+    claimedAt: (row.claimed_at ?? null) as Date | null,
+    publishedAt: (row.published_at ?? null) as Date | null,
+  };
+}
+
 export const outboxRepository = {
   async create(
     input: NewOutboxEvent,
@@ -172,7 +195,7 @@ export const outboxRepository = {
       RETURNING *
     `);
 
-    return rows.rows as OutboxEvent[];
+    return (rows.rows as Record<string, unknown>[]).map(mapRawOutboxRow);
   },
 
   async markProcessing(

@@ -53,6 +53,45 @@ beforeEach(() => {
 });
 
 describe("outboxRepository", () => {
+  it("claimNext maps raw snake_case RETURNING rows to camelCase events", async () => {
+    const createdAt = new Date("2026-10-21T06:26:25.847Z");
+    const execute = vi.fn().mockResolvedValue({
+      rows: [
+        {
+          id: "OE1",
+          event_type: "NOTIFICATION_REQUESTED",
+          aggregate_type: "NOTIFICATION",
+          aggregate_id: "A1",
+          payload: { notificationType: "PARENT_APPROVAL_REQUESTED" },
+          idempotency_key: null,
+          status: "PROCESSING",
+          attempt_count: 0,
+          last_error: null,
+          next_attempt_at: null,
+          lease_expires_at: null,
+          created_at: createdAt,
+          processed_at: null,
+          claimed_at: createdAt,
+          published_at: null,
+        },
+      ],
+    });
+
+    const rows = await outboxRepository.claimNext(50, 300_000, { execute });
+
+    expect(execute).toHaveBeenCalled();
+    expect(rows[0]).toMatchObject({
+      id: "OE1",
+      eventType: "NOTIFICATION_REQUESTED",
+      aggregateType: "NOTIFICATION",
+      aggregateId: "A1",
+      status: "PROCESSING",
+      attemptCount: 0,
+      createdAt,
+    });
+    expect(rows[0]).not.toHaveProperty("event_type");
+  });
+
   it("markProcessing claims with a claimedAt timestamp", async () => {
     await outboxRepository.markProcessing("OE1");
 
