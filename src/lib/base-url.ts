@@ -6,6 +6,7 @@
  * production domain so links are never localhost in deployed builds.
  */
 const PRODUCTION_BASE_URL = "https://leave.sst-dashboard.com";
+const LOCAL_DEV_BASE_URL = "http://localhost:3000";
 
 function isLocalUrl(value: string): boolean {
   try {
@@ -18,18 +19,29 @@ function isLocalUrl(value: string): boolean {
   }
 }
 
-export function getPublicBaseUrl(): string {
-  const configuredUrl = process.env.NEXT_PUBLIC_BASE_URL?.trim();
+function normalizeBaseUrl(value: string): string {
+  return value.replace(/\/+$/, "");
+}
 
-  // Local development deliberately supports the value in .env.example. A
-  // deployed worker must never emit localhost links, even if that development
-  // value was accidentally promoted with the rest of its environment.
-  if (process.env.NODE_ENV === "development") {
-    return (configuredUrl ?? "http://localhost:3000").replace(/\/+$/, "");
+export function getPublicBaseUrl(): string {
+  const configuredUrl = process.env.NEXT_PUBLIC_BASE_URL?.trim() || undefined;
+
+  // A public configured URL always wins, including in local development.
+  if (configuredUrl && !isLocalUrl(configuredUrl)) {
+    return normalizeBaseUrl(configuredUrl);
   }
 
-  if (configuredUrl && !isLocalUrl(configuredUrl)) {
-    return configuredUrl.replace(/\/+$/, "");
+  // Localhost links are opt-in. NODE_ENV alone is not proof of a developer
+  // machine: a worker host can inherit or be started with NODE_ENV=development
+  // while holding a localhost NEXT_PUBLIC_BASE_URL. Without the explicit flag
+  // such a process still emits public links. Local dev sets the flag in
+  // .env.local so approval and QR links open the local app.
+  const localhostAllowed =
+    process.env.NODE_ENV === "development" &&
+    process.env.ALLOW_LOCALHOST_LINKS === "true";
+
+  if (localhostAllowed) {
+    return normalizeBaseUrl(configuredUrl ?? LOCAL_DEV_BASE_URL);
   }
 
   return PRODUCTION_BASE_URL;
