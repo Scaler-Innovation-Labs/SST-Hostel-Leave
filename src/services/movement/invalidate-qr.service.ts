@@ -8,19 +8,19 @@ import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
+import type { CurrentUser } from "@/lib/auth/types";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
+import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
 import { recordMovement } from "./record-movement.service";
 
 export type InvalidateQrInput = {
   qrPassId: string;
-  recordedBy: string;
+  currentUser: CurrentUser;
   reason?: string;
-  /** Caller identity. Students may only invalidate their own pass. */
-  isOwnerOnly?: boolean;
 };
 
 export type InvalidateQrResult = {
@@ -37,9 +37,11 @@ export async function invalidateQrPass(
     throw new NotFoundError("QRPass");
   }
 
-  if (input.isOwnerOnly && qrPass.studentId !== input.recordedBy) {
-    throw new ConflictError("Cannot invalidate another student's QR pass");
-  }
+  // Scope-aware: students may invalidate only their own passes; hostel-scoped
+  // staff only passes for students in their hostels.
+  await assertCanAccessLeave(input.currentUser, { studentId: qrPass.studentId });
+
+  const recordedBy = input.currentUser.id;
 
   if (qrPass.status !== QR_STATUS.ACTIVE) {
     throw new ConflictError(
@@ -63,7 +65,7 @@ export async function invalidateQrPass(
         toState: MOVEMENT_STATE.IN_HOSTEL,
         eventType: MOVEMENT_EVENT.QR_INVALIDATED,
         movementMethod: MOVEMENT_METHOD.SYSTEM,
-        recordedBy: input.recordedBy,
+        recordedBy,
         isManualOverride: true,
         overrideReason: input.reason,
         dbClient: tx,
@@ -75,7 +77,7 @@ export async function invalidateQrPass(
       AUDIT_ACTION.INVALIDATE,
       AUDIT_ENTITY_TYPE.QR_PASS,
       input.qrPassId,
-      input.recordedBy,
+      recordedBy,
       {
         reason: input.reason ?? null,
         leaveRequestId: qrPass.leaveRequestId,

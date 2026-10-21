@@ -5,7 +5,7 @@ import type { CurrentUser } from "@/lib/auth/types";
 import { NotFoundError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { decryptQrToken } from "@/lib/qr-token-crypto";
-import { verifyStudentOwnership } from "@/services/shared/authorization.service";
+import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
 export type QrImageResult = {
   png: Buffer;
@@ -29,8 +29,9 @@ export type QrImageResult = {
  * Security notes:
  * - The URL carries only the unguessable qrPassId UUID — never the raw
  *   pass token, which stays server-side.
- * - Callers must own the pass (the student it was issued to) or hold a
- *   staff role; email clients and other unauthenticated fetchers get 401.
+ * - Callers must own the pass (the student it was issued to) or be staff
+ *   with access to that student's hostel; email clients and other
+ *   unauthenticated fetchers get 401.
  *   Scan-time validation still enforces the pass validity window and
  *   status independently of this render path.
  */
@@ -44,7 +45,10 @@ export async function getQrImage(
     throw new NotFoundError("QR pass not found");
   }
 
-  await verifyStudentOwnership(currentUser, pass.studentId);
+  // Scope-aware: students may render only their own passes; hostel-scoped
+  // ADMIN see only passes for students in their hostels. verifyStudentOwnership
+  // is not used here because its staff pass-through would skip that scope.
+  await assertCanAccessLeave(currentUser, { studentId: pass.studentId });
 
   // The ONLY place the encrypted credential is decrypted: in memory, for
   // this single render. A pass without an envelope cannot render.

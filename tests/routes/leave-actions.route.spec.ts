@@ -22,6 +22,7 @@ vi.mock("@/services/leave/complete-leave.service", () => ({
 
 vi.mock("@/services/leave/expire-leave.service", () => ({
   expireSingleLeave: (...args: any[]) => mockExpireLeave(...args),
+  expireLeaveAsUser: (...args: any[]) => mockExpireLeave(...args),
 }));
 
 import { POST as COMPLETE } from "@/app/api/v1/leaves/[id]/complete/route";

@@ -66,8 +66,15 @@ vi.mock("@/services/outbox/outbox.service", () => ({
   },
 }));
 
+const mockAssertCanAccessLeave = vi.fn();
+
+vi.mock("@/services/shared/authorization.service", () => ({
+  assertCanAccessLeave: (...args: any[]) => mockAssertCanAccessLeave(...args),
+}));
+
 import { systemActor } from "@/constants/audit/actor";
-import { expireSingleLeave, expireOverdueLeaves } from "@/services/leave/expire-leave.service";
+import { AuthorizationError } from "@/lib/errors";
+import { expireLeaveAsUser, expireSingleLeave, expireOverdueLeaves } from "@/services/leave/expire-leave.service";
 
 // A scheduled pass acts with no logged-in user: the audit trail stores a NULL
 // actor id and labels the run through the actor descriptor instead.
@@ -78,6 +85,7 @@ beforeEach(() => {
   mockAuditRecord.mockResolvedValue({});
   mockRecordMovement.mockResolvedValue({ id: "ME1" });
   mockFindStudentById.mockResolvedValue({ id: "S1", currentLocationState: "APPROVED_LEAVE" });
+  mockAssertCanAccessLeave.mockResolvedValue(undefined);
 });
 
 describe("expireSingleLeave service", () => {
@@ -148,6 +156,37 @@ describe("expireSingleLeave service", () => {
       }),
       expect.any(Object)
     );
+  });
+});
+
+describe("expireLeaveAsUser service", () => {
+  const ADMIN = { id: "U1", roles: ["ADMIN"] };
+
+  it("expires a leave inside the caller's scope", async () => {
+    mockFindById.mockResolvedValue({ id: "L6", status: "APPROVED", studentId: "S1", endAt: new Date("2026-06-01") });
+    mockFindByIdForUpdate.mockResolvedValue({ id: "L6", status: "APPROVED", studentId: "S1", endAt: new Date("2026-06-01") });
+    mockUpdateById.mockResolvedValue({ id: "L6", status: "EXPIRED" });
+
+    const result = await expireLeaveAsUser("L6", ADMIN);
+
+    expect(result.newStatus).toBe("EXPIRED");
+    expect(mockAssertCanAccessLeave).toHaveBeenCalledWith(
+      ADMIN,
+      expect.objectContaining({ id: "L6", studentId: "S1" }),
+    );
+  });
+
+  it("refuses a leave outside the caller's scope", async () => {
+    mockFindById.mockResolvedValue({ id: "L7", status: "APPROVED", studentId: "S2", endAt: new Date("2026-06-01") });
+    mockAssertCanAccessLeave.mockRejectedValue(
+      new AuthorizationError("You do not have access to this leave"),
+    );
+
+    await expect(expireLeaveAsUser("L7", ADMIN)).rejects.toBeInstanceOf(
+      AuthorizationError,
+    );
+
+    expect(mockUpdateById).not.toHaveBeenCalled();
   });
 });
 

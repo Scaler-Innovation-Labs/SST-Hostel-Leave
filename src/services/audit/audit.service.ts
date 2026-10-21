@@ -20,6 +20,7 @@ import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
 import { db } from "@/lib/db";
 import { AuthorizationError } from "@/lib/errors";
+import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
 type AuditServiceDbClient = Pick<typeof db, "insert">;
 type AuditSelectDbClient = Pick<typeof db, "select">;
@@ -96,17 +97,32 @@ export const auditService = {
   },
 
   async listAuditLogs(query: ListAuditQuery, currentUser: CurrentUser) {
-    if (!currentUser.roles.some(r => r === ROLES.ADMIN || r === ROLES.SUPER_ADMIN)) {
-      const student = await studentRepository.findByUserId(currentUser.id);
-      if (!student) {
-        throw new AuthorizationError("Access denied");
-      }
-      if (query.entityType !== "LEAVE_REQUEST") {
-        throw new AuthorizationError("Access denied");
-      }
-      const leave = await leaveRepository.findById(query.entityId);
-      if (!leave || leave.studentId !== student.id) {
-        throw new AuthorizationError("Access denied");
+    const isSuperAdmin = currentUser.roles.includes(ROLES.SUPER_ADMIN);
+
+    if (!isSuperAdmin) {
+      if (currentUser.roles.includes(ROLES.ADMIN)) {
+        // Hostel-scoped admins may only read leave audit history for leaves
+        // inside their scope. Other entity types stay super-admin-only.
+        if (query.entityType !== "LEAVE_REQUEST") {
+          throw new AuthorizationError("Access denied");
+        }
+        const leave = await leaveRepository.findById(query.entityId);
+        if (!leave) {
+          throw new AuthorizationError("Access denied");
+        }
+        await assertCanAccessLeave(currentUser, leave);
+      } else {
+        const student = await studentRepository.findByUserId(currentUser.id);
+        if (!student) {
+          throw new AuthorizationError("Access denied");
+        }
+        if (query.entityType !== "LEAVE_REQUEST") {
+          throw new AuthorizationError("Access denied");
+        }
+        const leave = await leaveRepository.findById(query.entityId);
+        if (!leave || leave.studentId !== student.id) {
+          throw new AuthorizationError("Access denied");
+        }
       }
     }
 

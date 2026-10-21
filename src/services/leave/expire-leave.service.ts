@@ -6,11 +6,13 @@ import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
+import type { CurrentUser } from "@/lib/auth/types";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { canTransition, getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
+import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
 export type ExpireSingleResult = {
   leaveId: string;
@@ -112,6 +114,26 @@ export async function expireSingleLeave(
       expiredAt,
     };
   });
+}
+
+/**
+ * Manual expiry: a staff-initiated state change, so it must honour the
+ * caller's hostel scope. The cron batch uses expireSingleLeave directly
+ * because it has no user to scope against.
+ */
+export async function expireLeaveAsUser(
+  leaveId: string,
+  currentUser: CurrentUser
+): Promise<ExpireSingleResult> {
+  const leave = await leaveRepository.findById(leaveId);
+
+  if (!leave) {
+    throw new NotFoundError("LeaveRequest");
+  }
+
+  await assertCanAccessLeave(currentUser, leave);
+
+  return expireSingleLeave(leaveId, currentUser);
 }
 
 export async function expireOverdueLeaves(

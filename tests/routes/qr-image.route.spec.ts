@@ -7,7 +7,7 @@ import { encryptQrToken } from "@/lib/qr-token-crypto";
 const mockFindById = vi.fn();
 const mockRequireAuth = vi.fn();
 const mockRequireAnyRole = vi.fn();
-const mockVerifyStudentOwnership = vi.fn();
+const mockAssertCanAccessLeave = vi.fn();
 
 vi.mock("@/db/repositories/movement/qr-pass.repository", () => ({
   qrPassRepository: {
@@ -24,8 +24,8 @@ vi.mock("@/lib/auth/authorization", () => ({
 }));
 
 vi.mock("@/services/shared/authorization.service", () => ({
-  verifyStudentOwnership: (...args: any[]) =>
-    mockVerifyStudentOwnership(...args),
+  assertCanAccessLeave: (...args: any[]) =>
+    mockAssertCanAccessLeave(...args),
 }));
 
 import { GET } from "@/app/api/v1/qr/[qrPassId]/image/route";
@@ -37,7 +37,7 @@ beforeEach(() => {
   vi.stubEnv("QR_TOKEN_ENC_KEY", "ab".repeat(32));
   mockRequireAuth.mockResolvedValue(ownerUser);
   mockRequireAnyRole.mockReturnValue(ownerUser);
-  mockVerifyStudentOwnership.mockResolvedValue(undefined);
+  mockAssertCanAccessLeave.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -60,7 +60,9 @@ describe("GET /api/v1/qr/[qrPassId]/image", () => {
     expect(res.headers.get("content-type")).toBe("image/png");
     const bytes = new Uint8Array(await res.arrayBuffer());
     expect([...bytes.slice(0, 8)]).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
-    expect(mockVerifyStudentOwnership).toHaveBeenCalledWith(ownerUser, "S1");
+    expect(mockAssertCanAccessLeave).toHaveBeenCalledWith(ownerUser, {
+      studentId: "S1",
+    });
   });
 
   it("returns 401 when unauthenticated", async () => {
@@ -80,7 +82,7 @@ describe("GET /api/v1/qr/[qrPassId]/image", () => {
       studentId: "S2",
       tokenEnc: "v1:unused-iv:unused-ciphertext",
     });
-    mockVerifyStudentOwnership.mockRejectedValue(
+    mockAssertCanAccessLeave.mockRejectedValue(
       new AuthorizationError()
     );
 

@@ -54,8 +54,17 @@ vi.mock("@/services/outbox/outbox.service", () => ({
   },
 }));
 
+const mockAssertCanAccessLeave = vi.fn();
+
+vi.mock("@/services/shared/authorization.service", () => ({
+  assertCanAccessLeave: (...args: any[]) => mockAssertCanAccessLeave(...args),
+}));
+
 import { invalidateQrPass } from "@/services/movement/invalidate-qr.service";
-import { ConflictError, NotFoundError } from "@/lib/errors";
+import { AuthorizationError, ConflictError, NotFoundError } from "@/lib/errors";
+
+const STAFF = { id: "U1", roles: ["ADMIN"] };
+const STUDENT = { id: "U2", roles: ["STUDENT"] };
 
 const VALID_PASS = {
   id: "QP1",
@@ -73,6 +82,7 @@ beforeEach(() => {
     currentLocationState: "APPROVED_LEAVE",
   });
   mockRecordMovement.mockResolvedValue({ id: "ME1" });
+  mockAssertCanAccessLeave.mockResolvedValue(undefined);
 });
 
 describe("invalidateQrPass service", () => {
@@ -81,7 +91,7 @@ describe("invalidateQrPass service", () => {
       mockQrPassFindById.mockResolvedValue(null);
 
       await expect(
-        invalidateQrPass({ qrPassId: "NONEXISTENT", recordedBy: "U1" })
+        invalidateQrPass({ qrPassId: "NONEXISTENT", currentUser: STAFF })
       ).rejects.toBeInstanceOf(NotFoundError);
     });
 
@@ -92,7 +102,7 @@ describe("invalidateQrPass service", () => {
       });
 
       await expect(
-        invalidateQrPass({ qrPassId: "QP1", recordedBy: "U1" })
+        invalidateQrPass({ qrPassId: "QP1", currentUser: STAFF })
       ).rejects.toBeInstanceOf(ConflictError);
     });
   });
@@ -101,7 +111,7 @@ describe("invalidateQrPass service", () => {
     it("invalidates QR pass and records movement when student is APPROVED_LEAVE", async () => {
       const result = await invalidateQrPass({
         qrPassId: "QP1",
-        recordedBy: "U1",
+        currentUser: STAFF,
         reason: "Student changed plans",
       });
 
@@ -133,7 +143,7 @@ describe("invalidateQrPass service", () => {
 
       const result = await invalidateQrPass({
         qrPassId: "QP1",
-        recordedBy: "U1",
+        currentUser: STAFF,
       });
 
       expect(result.qrPassId).toBe("QP1");
@@ -146,7 +156,7 @@ describe("invalidateQrPass service", () => {
     it("records audit on invalidation", async () => {
       await invalidateQrPass({
         qrPassId: "QP1",
-        recordedBy: "U1",
+        currentUser: STAFF,
         reason: "Admin action",
       });
 
@@ -173,7 +183,7 @@ describe("invalidateQrPass service", () => {
 
       await invalidateQrPass({
         qrPassId: "QP1",
-        recordedBy: "U1",
+        currentUser: STAFF,
       });
 
       expect(mockAuditRecord).toHaveBeenCalledWith(
@@ -193,7 +203,7 @@ describe("invalidateQrPass service", () => {
     it("performs all operations in same transaction", async () => {
       await invalidateQrPass({
         qrPassId: "QP1",
-        recordedBy: "U1",
+        currentUser: STAFF,
       });
 
       expect(mockQrPassInvalidate).toHaveBeenCalledTimes(1);
@@ -209,7 +219,7 @@ describe("invalidateQrPass service", () => {
       await expect(
         invalidateQrPass({
           qrPassId: "QP1",
-          recordedBy: "U1",
+          currentUser: STAFF,
         })
       ).rejects.toBeInstanceOf(ConflictError);
     });
@@ -219,7 +229,7 @@ describe("invalidateQrPass service", () => {
     it("publishes a QR_INVALIDATED outbox event", async () => {
       await invalidateQrPass({
         qrPassId: "QP1",
-        recordedBy: "U1",
+        currentUser: STAFF,
       });
 
       expect(mockOutboxPublish).toHaveBeenCalledWith(
@@ -240,13 +250,16 @@ describe("invalidateQrPass service", () => {
 
   describe("ownership guard", () => {
     it("blocks a student from invalidating another student's pass", async () => {
+      mockAssertCanAccessLeave.mockRejectedValue(
+        new AuthorizationError("You do not have access to this leave")
+      );
+
       await expect(
         invalidateQrPass({
           qrPassId: "QP1",
-          recordedBy: "SOMEONE_ELSE",
-          isOwnerOnly: true,
+          currentUser: STUDENT,
         })
-      ).rejects.toBeInstanceOf(ConflictError);
+      ).rejects.toBeInstanceOf(AuthorizationError);
 
       expect(mockQrPassInvalidate).not.toHaveBeenCalled();
     });
@@ -255,8 +268,7 @@ describe("invalidateQrPass service", () => {
       await expect(
         invalidateQrPass({
           qrPassId: "QP1",
-          recordedBy: "S1",
-          isOwnerOnly: true,
+          currentUser: STUDENT,
         })
       ).resolves.toEqual({ qrPassId: "QP1", movementEventId: "ME1" });
     });

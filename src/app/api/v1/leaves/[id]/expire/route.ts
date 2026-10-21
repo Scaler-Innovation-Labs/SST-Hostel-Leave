@@ -2,7 +2,7 @@ import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
-import { expireSingleLeave } from "@/services/leave/expire-leave.service";
+import { expireLeaveAsUser } from "@/services/leave/expire-leave.service";
 
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -10,7 +10,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
     const { id } = await params;
 
-    const result = await expireSingleLeave(id, currentUser);
+    const result = await expireLeaveAsUser(id, currentUser);
 
     return ApiResponse.success(result);
   } catch (error) {

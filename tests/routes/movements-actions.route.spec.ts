@@ -101,7 +101,7 @@ describe("POST /api/v1/movements/qr-passes/invalidate", () => {
 
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(mockInvalidateQr).toHaveBeenCalledWith({ qrPassId: UUID, recordedBy: "U1", reason: "Lost card", isOwnerOnly: false });
+    expect(mockInvalidateQr).toHaveBeenCalledWith({ qrPassId: UUID, currentUser: { id: "U1", roles: ["ADMIN"] }, reason: "Lost card" });
   });
 
   it("rejects a missing qrPassId", async () => {

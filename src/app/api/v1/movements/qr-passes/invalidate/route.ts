@@ -1,6 +1,6 @@
 import invalidateQrSchema from "@/dto/movement/invalidate-qr.dto";
 import { ApiResponse } from "@/lib/api/response";
-import { hasRole, requireAnyRole } from "@/lib/auth/authorization";
+import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
 import { invalidateQrPass } from "@/services/movement/invalidate-qr.service";
@@ -19,10 +19,8 @@ export async function POST(request: Request) {
 
     const result = await invalidateQrPass({
       qrPassId: dto.qrPassId,
-      recordedBy: currentUser.id,
+      currentUser,
       reason: dto.reason,
-      // Students may only invalidate their own pass; staff may invalidate any.
-      isOwnerOnly: hasRole(currentUser, ROLES.STUDENT),
     });
 
     return ApiResponse.success(result);

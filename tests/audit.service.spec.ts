@@ -5,6 +5,7 @@ const mockCreate = vi.fn();
 const mockFindByEntity = vi.fn();
 const mockFindByUserId = vi.fn();
 const mockFindById = vi.fn();
+const mockFindByIdWithRelations = vi.fn();
 
 vi.mock("@/db/repositories/audit/audit.repository", () => ({
   auditRepository: {
@@ -16,6 +17,7 @@ vi.mock("@/db/repositories/audit/audit.repository", () => ({
 vi.mock("@/db/repositories/student/student.repository", () => ({
   studentRepository: {
     findByUserId: (...args: any[]) => mockFindByUserId(...args),
+    findByIdWithRelations: (...args: any[]) => mockFindByIdWithRelations(...args),
   },
 }));
 
@@ -85,11 +87,57 @@ describe("auditService.record", () => {
 describe("auditService.listAuditLogs", () => {
   const query = { entityType: "LEAVE_REQUEST", entityId: "LR1" };
 
-  it("allows admins and super-admins to read any entity", async () => {
+  it("allows admins to read audit history for a leave", async () => {
+    mockFindById.mockResolvedValue({ id: "LR1", studentId: "S1" });
+
     await auditService.listAuditLogs(query, ADMIN);
 
     expect(mockFindByEntity).toHaveBeenCalledWith("LEAVE_REQUEST", "LR1");
     expect(mockFindByUserId).not.toHaveBeenCalled();
+  });
+
+  it("allows super-admins to read any entity", async () => {
+    const superAdmin = { id: "U9", roles: ["SUPER_ADMIN"] };
+
+    await auditService.listAuditLogs(
+      { entityType: "HOSTEL", entityId: "H1" },
+      superAdmin,
+    );
+
+    expect(mockFindByEntity).toHaveBeenCalledWith("HOSTEL", "H1");
+    expect(mockFindById).not.toHaveBeenCalled();
+  });
+
+  it("denies an admin reading a non-leave entity", async () => {
+    await expect(
+      auditService.listAuditLogs(
+        { entityType: "HOSTEL", entityId: "H1" },
+        ADMIN,
+      ),
+    ).rejects.toBeInstanceOf(AuthorizationError);
+
+    expect(mockFindByEntity).not.toHaveBeenCalled();
+  });
+
+  it("denies a hostel-scoped admin reading another hostel's leave", async () => {
+    const scopedAdmin = {
+      id: "U3",
+      roles: ["ADMIN"],
+      roleScopes: [
+        { roleCode: "ADMIN", scopeType: "HOSTEL", scopeId: "H1" },
+      ],
+    };
+    mockFindById.mockResolvedValue({ id: "LR1", studentId: "S1" });
+    mockFindByIdWithRelations.mockResolvedValue({
+      id: "S1",
+      user: { hostelId: "H2" },
+    });
+
+    await expect(
+      auditService.listAuditLogs(query, scopedAdmin),
+    ).rejects.toBeInstanceOf(AuthorizationError);
+
+    expect(mockFindByEntity).not.toHaveBeenCalled();
   });
 
   it("allows a student to read their own leave's audit log", async () => {
