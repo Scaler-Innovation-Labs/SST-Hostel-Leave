@@ -31,6 +31,7 @@ import { getQrImage } from "@/services/movement/get-qr-image.service";
 const PASS = {
   id: "QP1",
   studentId: "S1",
+  status: "ACTIVE",
   tokenEnc: "envelope",
 };
 
@@ -51,6 +52,15 @@ describe("getQrImage service", () => {
       NotFoundError,
     );
     expect(mockAssertCanAccessLeave).not.toHaveBeenCalled();
+  });
+
+  it("refuses to render a retired pass", async () => {
+    mockFindById.mockResolvedValue({ ...PASS, status: "INVALIDATED" });
+
+    await expect(getQrImage("QP1", ADMIN)).rejects.toBeInstanceOf(
+      NotFoundError,
+    );
+    expect(mockDecryptQrToken).not.toHaveBeenCalled();
   });
 
   it("checks access against the pass owner's hostel scope", async () => {

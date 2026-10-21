@@ -95,10 +95,38 @@ export async function previewQrScan(token: string): Promise<QrScanPreview> {
 		return { valid: false, reason: "QR pass has already been fully used" };
 	}
 
+	// EXIT is window-gated; a RETURN by an already-exited student is not
+	// (overdue returns must still work after expires_at).
+	if (scanType === "EXIT_SCAN") {
+		const now = new Date();
+
+		if (pass.validFrom && now < pass.validFrom) {
+			return {
+				valid: false,
+				reason: `QR pass is not valid until ${pass.validFrom.toISOString()}`,
+			};
+		}
+
+		if (pass.expiresAt && now > pass.expiresAt) {
+			return { valid: false, reason: "QR pass has expired" };
+		}
+	}
+
 	const student = await studentRepository.findById(pass.studentId);
 	const user = student ? await userRepository.findById(student.userId) : null;
 	const hostel = user?.hostelId ? await hostelRepository.findById(user.hostelId) : null;
 	const leave = await leaveRepository.findById(pass.leaveRequestId);
+
+	if (
+		leave &&
+		leave.status !== LEAVE_REQUEST_STATUS.APPROVED &&
+		leave.status !== LEAVE_REQUEST_STATUS.OVERDUE
+	) {
+		return {
+			valid: false,
+			reason: `Leave is ${leave.status}`,
+		};
+	}
 	const leaveType = leave ? await leaveTypeRepository.findById(leave.leaveTypeId) : null;
 
 	return {
@@ -158,6 +186,26 @@ export async function scanQrPass(
 			success: false,
 			scanType: input.scanType ?? "EXIT_SCAN",
 			failureReason: `QR pass status is ${pass.status}`,
+		};
+	}
+
+	// A RETURN_ONLY credential authorizes re-entry, never an exit. Without
+	// this guard a caller-supplied EXIT_SCAN could spend the return QR on an
+	// exit movement, bypassing the leave type's QR mode.
+	if (input.scanType === "EXIT_SCAN" && pass.qrType === "LEAVE_RETURN") {
+		const log = await qrScanLogRepository.create({
+			qrPassId: pass.id,
+			scannedBy: input.scannedBy,
+			scanType: "EXIT_SCAN",
+			scanResult: "FAILED",
+			failureReason: "Return-only QR cannot be used for exit",
+		});
+
+		return {
+			scanLogId: log.id,
+			success: false,
+			scanType: "EXIT_SCAN",
+			failureReason: "Return-only QR cannot be used for exit",
 		};
 	}
 
@@ -337,6 +385,21 @@ export async function scanQrPass(
 
 			if (!passInTx || passInTx.status !== QR_STATUS.ACTIVE) {
 				throw new ConflictError("QR pass is no longer active");
+			}
+
+			// Re-check the window inside the transaction: the snapshot check
+			// above is advisory, and an exit must never commit outside
+			// [valid_from, expires_at].
+			const now = new Date();
+
+			if (passInTx.validFrom && now < passInTx.validFrom) {
+				throw new ConflictError(
+					`QR pass is not valid until ${passInTx.validFrom.toISOString()}`
+				);
+			}
+
+			if (passInTx.expiresAt && now > passInTx.expiresAt) {
+				throw new ConflictError("QR pass has expired");
 			}
 
 			// Serialize with expire/cancel on the leave row (mirrors the

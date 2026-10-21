@@ -1,5 +1,6 @@
 import QRCode from "qrcode";
 
+import { QR_STATUS } from "@/constants/movement/qr-status";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import type { CurrentUser } from "@/lib/auth/types";
 import { NotFoundError } from "@/lib/errors";
@@ -42,6 +43,12 @@ export async function getQrImage(
   const pass = await qrPassRepository.findById(qrPassId);
 
   if (!pass) {
+    throw new NotFoundError("QR pass not found");
+  }
+
+  // Only a live credential may be rendered. A USED/INVALIDATED/EXPIRED pass
+  // must not keep producing a scannable image from a bookmarked URL.
+  if (pass.status !== QR_STATUS.ACTIVE) {
     throw new NotFoundError("QR pass not found");
   }
 

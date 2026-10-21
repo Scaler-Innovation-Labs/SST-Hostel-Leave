@@ -199,6 +199,12 @@ export const qrPassRepository = {
     return rows[0] ?? null;
   },
 
+	/**
+	 * Guarded invalidation for a credential that has never opened a movement
+	 * session. Returns null when a concurrent exit consumed it first — the
+	 * caller must not report revocation or write audit/outbox state in that
+	 * case (the student is now outside on a live session).
+	 */
 	async invalidate(
 		id: string,
 		dbClient: Pick<typeof db, "update"> = db
@@ -209,11 +215,42 @@ export const qrPassRepository = {
 				invalidatedAt: new Date(),
 				status: QR_STATUS.INVALIDATED,
 			})
-			.where(eq(qrPasses.id, id))
+			.where(
+				and(
+					eq(qrPasses.id, id),
+					eq(qrPasses.status, QR_STATUS.ACTIVE),
+					isNull(qrPasses.firstScanAt)
+				)
+			)
 			.returning();
 
 		return rows[0] ?? null;
   },
+
+	/**
+	 * Guarded retirement for the cleanup job: only a never-scanned ACTIVE pass
+	 * may become EXPIRED. Without the firstScanAt guard, a cleanup pass racing
+	 * an exit could expire the credential after the student left, stranding
+	 * the return scan.
+	 */
+	async expireIfUnused(
+		id: string,
+		dbClient: Pick<typeof db, "update"> = db
+	): Promise<QrPass | null> {
+		const rows = await dbClient
+			.update(qrPasses)
+			.set({ status: QR_STATUS.EXPIRED })
+			.where(
+				and(
+					eq(qrPasses.id, id),
+					eq(qrPasses.status, QR_STATUS.ACTIVE),
+					isNull(qrPasses.firstScanAt)
+				)
+			)
+			.returning();
+
+		return rows[0] ?? null;
+	},
 
   async findExpired(
     before: Date,

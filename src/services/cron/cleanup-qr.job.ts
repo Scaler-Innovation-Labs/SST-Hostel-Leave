@@ -57,8 +57,17 @@ export async function runCleanupQrJob(
       attempted.add(pass.id);
 
       try {
-        await transaction(async (tx) => {
-          await qrPassRepository.updateStatus(pass.id, QR_STATUS.EXPIRED, tx);
+        const retired = await transaction(async (tx) => {
+          // Guarded: an exit scan may have consumed the pass after the batch
+          // read. Never expire a live movement session's return credential.
+          const expired = await qrPassRepository.expireIfUnused(
+            pass.id,
+            tx
+          );
+
+          if (!expired) {
+            return false;
+          }
 
           await auditService.record(
             AUDIT_ACTION.UPDATE,
@@ -74,9 +83,13 @@ export async function runCleanupQrJob(
             },
             tx
           );
+
+          return true;
         });
 
-        expiredCount++;
+        if (retired) {
+          expiredCount++;
+        }
       } catch (error) {
         errors.push(
           `Failed to expire QR pass ${pass.id}: ${

@@ -165,6 +165,39 @@ describe("previewQrScan", () => {
     expect(result.reason).toBe("QR pass status is INVALIDATED");
   });
 
+  it("rejects an EXIT preview before the pass window opens", async () => {
+    mockFindByTokenHash.mockResolvedValue({
+      ...ACTIVE_UNSCANNED_PASS,
+      validFrom: new Date("2099-01-01T00:00:00.000Z"),
+    });
+
+    const result = await previewQrScan("raw-token");
+
+    expect(result.valid).toBe(false);
+    expect(result.reason).toContain("not valid until");
+  });
+
+  it("rejects an EXIT preview after the pass expires", async () => {
+    mockFindByTokenHash.mockResolvedValue({
+      ...ACTIVE_UNSCANNED_PASS,
+      expiresAt: new Date("2020-01-01T00:00:00.000Z"),
+    });
+
+    const result = await previewQrScan("raw-token");
+
+    expect(result.valid).toBe(false);
+    expect(result.reason).toBe("QR pass has expired");
+  });
+
+  it("rejects a pass whose leave is no longer live", async () => {
+    mockLeaveFindById.mockResolvedValue({ ...LEAVE, status: "CANCELLED" });
+
+    const result = await previewQrScan("raw-token");
+
+    expect(result.valid).toBe(false);
+    expect(result.reason).toBe("Leave is CANCELLED");
+  });
+
   it("never records a scan log, movement, audit, or outbox event", async () => {
     await previewQrScan("raw-token");
 

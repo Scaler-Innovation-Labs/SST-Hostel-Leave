@@ -33,6 +33,8 @@ const mockAuditRecord = vi.fn();
 const mockRecordMovement = vi.fn();
 const mockFindExpiredLeaves = vi.fn();
 const mockFindStudentById = vi.fn();
+const mockQrFindByLeaveRequestId = vi.fn();
+const mockQrInvalidate = vi.fn();
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
@@ -46,6 +48,13 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
 vi.mock("@/db/repositories/student/student.repository", () => ({
   studentRepository: {
     findById: (...args: any[]) => mockFindStudentById(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/movement/qr-pass.repository", () => ({
+  qrPassRepository: {
+    findByLeaveRequestId: (...args: any[]) => mockQrFindByLeaveRequestId(...args),
+    invalidate: (...args: any[]) => mockQrInvalidate(...args),
   },
 }));
 
@@ -86,6 +95,8 @@ beforeEach(() => {
   mockRecordMovement.mockResolvedValue({ id: "ME1" });
   mockFindStudentById.mockResolvedValue({ id: "S1", currentLocationState: "APPROVED_LEAVE" });
   mockAssertCanAccessLeave.mockResolvedValue(undefined);
+  mockQrFindByLeaveRequestId.mockResolvedValue(null);
+  mockQrInvalidate.mockResolvedValue({ id: "QP1", status: "INVALIDATED" });
 });
 
 describe("expireSingleLeave service", () => {
@@ -136,6 +147,36 @@ describe("expireSingleLeave service", () => {
     await expect(
       expireSingleLeave("L4", SYSTEM_ACTOR)
     ).rejects.toThrow("Cannot expire leave in PENDING status");
+  });
+
+  it("invalidates an unused QR pass on expiry", async () => {
+    mockFindById.mockResolvedValue({ id: "L8", status: "APPROVED", studentId: "S1", endAt: new Date("2026-06-01") });
+    mockFindByIdForUpdate.mockResolvedValue({ id: "L8", status: "APPROVED", studentId: "S1", endAt: new Date("2026-06-01") });
+    mockQrFindByLeaveRequestId.mockResolvedValue({
+      id: "QP1",
+      status: "ACTIVE",
+      firstScanAt: null,
+    });
+
+    await expireSingleLeave("L8", SYSTEM_ACTOR);
+
+    expect(mockQrInvalidate).toHaveBeenCalledWith("QP1", expect.any(Object));
+  });
+
+  it("refuses to expire a leave with an open movement session", async () => {
+    mockFindById.mockResolvedValue({ id: "L9", status: "APPROVED", studentId: "S1", endAt: new Date("2026-06-01") });
+    mockFindByIdForUpdate.mockResolvedValue({ id: "L9", status: "APPROVED", studentId: "S1", endAt: new Date("2026-06-01") });
+    mockQrFindByLeaveRequestId.mockResolvedValue({
+      id: "QP1",
+      status: "ACTIVE",
+      firstScanAt: new Date("2026-06-10T10:00:00Z"),
+    });
+
+    await expect(expireSingleLeave("L9", SYSTEM_ACTOR)).rejects.toThrow(
+      /open movement session/i
+    );
+    expect(mockUpdateById).not.toHaveBeenCalled();
+    expect(mockQrInvalidate).not.toHaveBeenCalled();
   });
 
   it("records audit on expire", async () => {

@@ -70,7 +70,11 @@ export function LeaveQrPass({ leaveId }: { leaveId: string }) {
     setGenerating(true);
     setFailure(null);
     try {
-      const result = (await generateQr(leaveId, "LEAVE_EXIT")) as {
+      // Repair keeps the pass's own type: a RETURN_ONLY credential must not
+      // be re-issued as an exit QR.
+      const qrType: "LEAVE_EXIT" | "LEAVE_RETURN" =
+        activePass?.qrType === "LEAVE_RETURN" ? "LEAVE_RETURN" : "LEAVE_EXIT";
+      const result = (await generateQr(leaveId, qrType)) as {
         passId: string;
       } | null;
       if (result?.passId) {

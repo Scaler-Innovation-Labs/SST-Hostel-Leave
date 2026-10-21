@@ -2,8 +2,6 @@ import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
-import { QR_STATUS } from "@/constants/movement/qr-status";
-import { getQrExpiryFromLeaveEnd } from "@/constants/movement/qr-window";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
@@ -11,15 +9,13 @@ import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
-import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import type { ApproveLeaveDto } from "@/dto/leave/approve-leave.dto";
 import type { CurrentUser } from "@/lib/auth/types";
-import { sha256, toHex } from "@/lib/crypto";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
-import { encryptQrToken } from "@/lib/qr-token-crypto";
 import { getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
 import { auditService } from "@/services/audit/audit.service";
+import { issueQrPassForApprovedLeave } from "@/services/leave/qr-pass-lifecycle.service";
 import {
   checkParentOverride,
   getApprovalAuditMeta,
@@ -209,49 +205,11 @@ export async function approveLeave(
       tx
     );
 
-    // Create the QR pass first (when this leave type uses QR gates): ONE
-    // token per approved leave, generated once and stable for its lifetime.
-    // The raw token is stored on the pass row so the student app and the
-    // approval email can render the SAME scannable QR. The token is NOT
-    // published into outbox payloads — handlers fetch it from the pass at
-    // render time so bearer credentials are never persisted at rest in the
-    // outbox table.
-    const leaveType = await leaveTypeRepository.findById(leaveInTx.leaveTypeId, tx);
-    if (leaveType && leaveType.qrMode !== "NONE") {
-      const raw = new Uint8Array(32);
-      crypto.getRandomValues(raw);
-      const token = toHex(raw);
-      const tokenHash = await sha256(token);
-      // The raw token is NEVER persisted in plaintext — only the hash (gate
-      // scans) and the encrypted envelope (QR rendering) reach the database.
-      const tokenEnc = await encryptQrToken(token);
-      const qrType = leaveType.qrMode === "RETURN_ONLY" ? "LEAVE_RETURN" : "LEAVE_EXIT";
-
-      const pass = await qrPassRepository.create({
-        leaveRequestId: leaveId,
-        studentId: leaveInTx.studentId,
-        qrType,
-        tokenHash,
-        tokenEnc,
-        status: QR_STATUS.ACTIVE,
-        // Contract §2: the pass is window-gated — usable for exit only from
-        // the leave start until the leave end (+ return grace).
-        validFrom: leaveInTx.startAt,
-        expiresAt: getQrExpiryFromLeaveEnd(leaveInTx.endAt),
-      }, tx);
-
-      await outboxService.publish({
-        eventType: OUTBOX_EVENT_TYPE.QR_GENERATED,
-        aggregateType: AGGREGATE_TYPE.QR_PASS,
-        aggregateId: leaveId,
-        payload: {
-          qrPassId: pass.id,
-          leaveRequestId: leaveId,
-          studentId: leaveInTx.studentId,
-          qrType,
-        },
-      }, tx);
-    }
+    // ONE token per approved leave, generated once and stable for its
+    // lifetime. The raw token is stored encrypted on the pass row so the
+    // student app can render the SAME scannable QR; it is never published
+    // into outbox payloads.
+    await issueQrPassForApprovedLeave(leaveInTx, tx);
 
     await outboxService.publish({
       eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVED,

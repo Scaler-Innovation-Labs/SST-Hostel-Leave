@@ -49,8 +49,40 @@ export async function invalidateQrPass(
     );
   }
 
+  // Contract T13: only a pass that is still usable-for-exit (no open
+  // movement session) may be revoked. Invalidating after an exit would strip
+  // the student's return credential while they are outside.
+  if (qrPass.firstScanAt) {
+    throw new ConflictError(
+      "Cannot invalidate a QR pass with an open movement session"
+    );
+  }
+
   return await transaction(async (tx) => {
-    await qrPassRepository.invalidate(input.qrPassId, tx);
+    const passInTx = await qrPassRepository.findById(input.qrPassId, tx);
+
+    if (!passInTx || passInTx.status !== QR_STATUS.ACTIVE) {
+      throw new ConflictError("QR pass is no longer active");
+    }
+
+    if (passInTx.firstScanAt) {
+      throw new ConflictError(
+        "Cannot invalidate a QR pass with an open movement session"
+      );
+    }
+
+    // Guarded: if an exit scan won the race after our re-read, this returns
+    // null and we must report a conflict instead of revoking a live session.
+    const invalidated = await qrPassRepository.invalidate(
+      input.qrPassId,
+      tx
+    );
+
+    if (!invalidated) {
+      throw new ConflictError(
+        "QR pass was concurrently used or invalidated"
+      );
+    }
 
     const student = await studentRepository.findById(qrPass.studentId, tx);
 

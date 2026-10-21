@@ -61,6 +61,20 @@ export async function expireSingleLeave(
     const nextState = getNextState(leaveInTx.status, LEAVE_ACTION.EXPIRE);
     const expiredAt = new Date();
 
+    const qrPass = await qrPassRepository.findByLeaveRequestId(
+      leaveId,
+      tx
+    );
+
+    // Contract T6: EXPIRED is the "never checked out" outcome. A leave with
+    // an open movement session is OVERDUE (T7) and its return QR must stay
+    // usable, so it can never be expired here.
+    if (qrPass && qrPass.status === QR_STATUS.ACTIVE && qrPass.firstScanAt) {
+      throw new ConflictError(
+        "Cannot expire a leave with an open movement session"
+      );
+    }
+
     await leaveRepository.updateById(
       leaveId,
       {
@@ -73,11 +87,8 @@ export async function expireSingleLeave(
     );
 
     // Lifecycle invalidation: an expired leave's QR pass must stop working.
-    const qrPass = await qrPassRepository.findByLeaveRequestId(
-      leaveId,
-      tx
-    );
-
+    // Guarded: a concurrent exit wins by leaving first_scan_at set, in which
+    // case the pass is a live session and must not be revoked.
     if (qrPass && qrPass.status === QR_STATUS.ACTIVE) {
       await qrPassRepository.invalidate(qrPass.id, tx);
     }

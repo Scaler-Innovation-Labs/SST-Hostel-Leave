@@ -22,14 +22,14 @@ vi.mock("@/lib/db", () => {
 });
 
 const mockFindExpired = vi.fn().mockResolvedValue([]);
-const mockUpdateStatus = vi.fn();
+const mockExpireIfUnused = vi.fn();
 const mockAuditRecord = vi.fn().mockResolvedValue({});
 const mockLoggerError = vi.fn();
 
 vi.mock("@/db/repositories/movement/qr-pass.repository", () => ({
   qrPassRepository: {
     findExpired: (...args: any[]) => mockFindExpired(...args),
-    updateStatus: (...args: any[]) => mockUpdateStatus(...args),
+    expireIfUnused: (...args: any[]) => mockExpireIfUnused(...args),
   },
 }));
 
@@ -67,13 +67,14 @@ describe("runCleanupQrJob", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFindExpired.mockResolvedValue([]);
+    mockExpireIfUnused.mockResolvedValue(makePass());
   });
 
   it("does nothing when no pass has closed its window", async () => {
     const result = await runCleanupQrJob();
 
     expect(result).toEqual({ job: "cleanup-qr", expired: 0, errors: [] });
-    expect(mockUpdateStatus).not.toHaveBeenCalled();
+    expect(mockExpireIfUnused).not.toHaveBeenCalled();
     expect(mockAuditRecord).not.toHaveBeenCalled();
   });
 
@@ -83,9 +84,8 @@ describe("runCleanupQrJob", () => {
     const result = await runCleanupQrJob();
 
     expect(result).toEqual({ job: "cleanup-qr", expired: 1, errors: [] });
-    expect(mockUpdateStatus).toHaveBeenCalledWith(
+    expect(mockExpireIfUnused).toHaveBeenCalledWith(
       "QP1",
-      "EXPIRED",
       expect.anything()
     );
     // The actor is a described one, not a string: the audit trail stores a
@@ -106,6 +106,16 @@ describe("runCleanupQrJob", () => {
     );
   });
 
+  it("skips a pass that an exit scan consumed after the batch read", async () => {
+    mockFindExpired.mockResolvedValueOnce([makePass()]);
+    mockExpireIfUnused.mockResolvedValue(null);
+
+    const result = await runCleanupQrJob();
+
+    expect(result).toEqual({ job: "cleanup-qr", expired: 0, errors: [] });
+    expect(mockAuditRecord).not.toHaveBeenCalled();
+  });
+
   it("isolates a failing pass and reports it instead of a green run", async () => {
     mockAuditRecord.mockRejectedValueOnce(new Error("audit write failed"));
     mockFindExpired.mockResolvedValueOnce([
@@ -118,9 +128,8 @@ describe("runCleanupQrJob", () => {
     expect(result.expired).toBe(1);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]).toContain("QP-BAD");
-    expect(mockUpdateStatus).toHaveBeenCalledWith(
+    expect(mockExpireIfUnused).toHaveBeenCalledWith(
       "QP-GOOD",
-      "EXPIRED",
       expect.anything()
     );
     expect(mockLoggerError).toHaveBeenCalled();

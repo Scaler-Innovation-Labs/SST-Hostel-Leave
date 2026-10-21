@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { canTransition, getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
 import { auditService } from "@/services/audit/audit.service";
+import { retireQrPassOnLeaveCompletion } from "@/services/leave/qr-pass-lifecycle.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
@@ -65,6 +66,11 @@ export async function completeLeave(
       tx
     );
 
+    // Contract §2/T5: a completed leave must not leave a usable credential
+    // behind. An unused pass is invalidated; a pass with an open movement
+    // session is closed as USED so the session is resolved.
+    const qrPassStatus = await retireQrPassOnLeaveCompletion(leaveId, tx);
+
     await auditService.record(
       AUDIT_ACTION.UPDATE,
       AUDIT_ENTITY_TYPE.LEAVE_REQUEST,
@@ -74,6 +80,7 @@ export async function completeLeave(
         oldStatus: leaveInTx.status,
         newStatus: nextState,
         completedAt: completedAt.toISOString(),
+        qrPassStatus,
       },
       tx
     );

@@ -32,6 +32,9 @@ const mockUpdateById = vi.fn();
 const mockAuditRecord = vi.fn();
 const mockPublish = vi.fn();
 const mockFindStudentByUserId = vi.fn();
+const mockQrFindByLeaveRequestId = vi.fn();
+const mockQrInvalidate = vi.fn();
+const mockQrMarkAsClosed = vi.fn();
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
@@ -44,6 +47,14 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
 vi.mock("@/db/repositories/student/student.repository", () => ({
   studentRepository: {
     findByUserId: (...args: any[]) => mockFindStudentByUserId(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/movement/qr-pass.repository", () => ({
+  qrPassRepository: {
+    findByLeaveRequestId: (...args: any[]) => mockQrFindByLeaveRequestId(...args),
+    invalidate: (...args: any[]) => mockQrInvalidate(...args),
+    markAsClosed: (...args: any[]) => mockQrMarkAsClosed(...args),
   },
 }));
 
@@ -85,6 +96,9 @@ beforeEach(() => {
     id: userId === "U1" ? "S1" : "S2",
     userId,
   }));
+  mockQrFindByLeaveRequestId.mockResolvedValue(null);
+  mockQrInvalidate.mockResolvedValue({ id: "QP1", status: "INVALIDATED" });
+  mockQrMarkAsClosed.mockResolvedValue({ id: "QP1", status: "USED" });
 });
 
 describe("completeLeave service", () => {
@@ -122,6 +136,32 @@ describe("completeLeave service", () => {
     await expect(
       completeLeave("L1", { actualReturnAt: undefined }, STUDENT_USER)
     ).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("invalidates an unused QR pass on direct completion", async () => {
+    mockQrFindByLeaveRequestId.mockResolvedValue({
+      id: "QP1",
+      status: "ACTIVE",
+      firstScanAt: null,
+    });
+
+    await completeLeave("L1", { actualReturnAt: undefined }, STUDENT_USER);
+
+    expect(mockQrInvalidate).toHaveBeenCalledWith("QP1", expect.any(Object));
+    expect(mockQrMarkAsClosed).not.toHaveBeenCalled();
+  });
+
+  it("closes an open QR session on direct completion", async () => {
+    mockQrFindByLeaveRequestId.mockResolvedValue({
+      id: "QP1",
+      status: "ACTIVE",
+      firstScanAt: new Date("2026-06-10T10:00:00Z"),
+    });
+
+    await completeLeave("L1", { actualReturnAt: undefined }, STUDENT_USER);
+
+    expect(mockQrMarkAsClosed).toHaveBeenCalledWith("QP1", expect.any(Object));
+    expect(mockQrInvalidate).not.toHaveBeenCalled();
   });
 
   it("allows staff to complete a leave within scope", async () => {

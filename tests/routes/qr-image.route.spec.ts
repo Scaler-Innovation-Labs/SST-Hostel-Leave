@@ -49,6 +49,7 @@ describe("GET /api/v1/qr/[qrPassId]/image", () => {
     mockFindById.mockResolvedValue({
       id: "QP1",
       studentId: "S1",
+      status: "ACTIVE",
       tokenEnc: await encryptQrToken("envelope-backed-token"),
     });
 
@@ -80,6 +81,7 @@ describe("GET /api/v1/qr/[qrPassId]/image", () => {
     mockFindById.mockResolvedValue({
       id: "QP1",
       studentId: "S2",
+      status: "ACTIVE",
       tokenEnc: "v1:unused-iv:unused-ciphertext",
     });
     mockAssertCanAccessLeave.mockRejectedValue(

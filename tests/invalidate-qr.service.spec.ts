@@ -105,6 +105,27 @@ describe("invalidateQrPass service", () => {
         invalidateQrPass({ qrPassId: "QP1", currentUser: STAFF })
       ).rejects.toBeInstanceOf(ConflictError);
     });
+
+    it("refuses to invalidate a pass with an open movement session", async () => {
+      mockQrPassFindById.mockResolvedValue({
+        ...VALID_PASS,
+        firstScanAt: new Date(),
+      });
+
+      await expect(
+        invalidateQrPass({ qrPassId: "QP1", currentUser: STAFF })
+      ).rejects.toBeInstanceOf(ConflictError);
+      expect(mockQrPassInvalidate).not.toHaveBeenCalled();
+    });
+
+    it("reports a conflict when a concurrent exit consumed the pass", async () => {
+      mockQrPassInvalidate.mockResolvedValue(null);
+
+      await expect(
+        invalidateQrPass({ qrPassId: "QP1", currentUser: STAFF })
+      ).rejects.toBeInstanceOf(ConflictError);
+      expect(mockRecordMovement).not.toHaveBeenCalled();
+    });
   });
 
   describe("invalidation with movement", () => {

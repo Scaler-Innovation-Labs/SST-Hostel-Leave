@@ -192,6 +192,23 @@ describe("scanQrPass service", () => {
       );
     });
 
+    it("rejects an EXIT_SCAN on a RETURN_ONLY pass", async () => {
+      mockFindByTokenHash.mockResolvedValue(VALID_RETURN_PASS);
+
+      const result = await scanQrPass({
+        token: "return-token",
+        scannedBy: "U1",
+        scanType: "EXIT_SCAN",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.failureReason).toBe(
+        "Return-only QR cannot be used for exit"
+      );
+      expect(mockMarkAsFirstScanned).not.toHaveBeenCalled();
+      expect(mockRecordMovement).not.toHaveBeenCalled();
+    });
+
     it("rejects EXIT_SCAN when another usable-for-exit pass exists for the student", async () => {
       mockFindByTokenHash.mockResolvedValue(VALID_PASS);
       mockFindUsableExitPass.mockResolvedValue({ id: "PASS-OTHER" });
@@ -330,6 +347,24 @@ describe("scanQrPass service", () => {
       expect(mockRecordMovement).toHaveBeenCalledWith(
         expect.objectContaining({ fromState: "APPROVED_LEAVE", toState: "OUTSIDE_HOSTEL" })
       );
+    });
+
+    it("rechecks the window inside the transaction", async () => {
+      mockFindByTokenHash.mockResolvedValue(VALID_PASS);
+      mockFindById.mockResolvedValue({
+        ...VALID_PASS,
+        expiresAt: new Date("2020-01-01"),
+      });
+
+      await expect(
+        scanQrPass({
+          token: "exit-token",
+          scannedBy: "U1",
+          scanType: "EXIT_SCAN",
+        })
+      ).rejects.toBeInstanceOf(ConflictError);
+      expect(mockMarkAsFirstScanned).not.toHaveBeenCalled();
+      expect(mockRecordMovement).not.toHaveBeenCalled();
     });
 
     it("lets recordMovement reject an exit while the student is already outside", async () => {

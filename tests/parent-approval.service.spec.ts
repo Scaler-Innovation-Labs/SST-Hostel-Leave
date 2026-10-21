@@ -24,6 +24,8 @@ const mockExtensionUpdateById = vi.fn().mockResolvedValue({ id: "EXT1" });
 const mockExtensionUpdateCurrentStep = vi.fn().mockResolvedValue({ id: "EXT1" });
 const mockExtensionFindByIdWithLeave = vi.fn();
 const mockExtensionFindByIdForUpdate = vi.fn();
+const mockIssueQrPass = vi.fn().mockResolvedValue(undefined);
+const mockExtendQrPassWindow = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@/lib/db", () => {
   const tx: any = {
@@ -73,6 +75,12 @@ vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
 
 vi.mock("@/services/movement/record-movement.service", () => ({
   recordMovement: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("@/services/leave/qr-pass-lifecycle.service", () => ({
+  issueQrPassForApprovedLeave: (...args: any[]) => mockIssueQrPass(...args),
+  extendQrPassWindow: (...args: any[]) => mockExtendQrPassWindow(...args),
+  retireQrPassOnLeaveCompletion: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock("@/db/repositories/parent/parent.repository", () => ({
@@ -156,6 +164,10 @@ describe("parentApproveDecision", () => {
       expect.anything()
     );
     expect(mockAuditRecord).toHaveBeenCalled();
+    expect(mockIssueQrPass).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "LR1" }),
+      expect.anything()
+    );
   });
 
   it("rejects leave via parent decision", async () => {
@@ -345,6 +357,11 @@ describe("parentApproveDecision", () => {
     expect(mockLeaveUpdateById).toHaveBeenCalledWith(
       "LR1",
       expect.objectContaining({ endAt: requestedEnd }),
+      expect.anything()
+    );
+    expect(mockExtendQrPassWindow).toHaveBeenCalledWith(
+      "LR1",
+      requestedEnd,
       expect.anything()
     );
     expect(outboxService.publish).toHaveBeenCalledWith(

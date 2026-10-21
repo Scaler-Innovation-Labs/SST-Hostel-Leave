@@ -140,8 +140,8 @@ export async function cancelLeave(
       );
 
       if (qrPass && qrPass.status === QR_STATUS.ACTIVE) {
-        await qrPassRepository.invalidate(qrPass.id, tx);
-        qrInvalidated = true;
+        const invalidated = await qrPassRepository.invalidate(qrPass.id, tx);
+        qrInvalidated = invalidated !== null;
       }
 
       // Movement transition (if applicable) handled asynchronously by outbox handler

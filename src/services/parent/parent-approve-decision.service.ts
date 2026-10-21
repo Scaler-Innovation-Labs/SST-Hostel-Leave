@@ -20,6 +20,10 @@ import {
   NotFoundError,
 } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
+import {
+  extendQrPassWindow,
+  issueQrPassForApprovedLeave,
+} from "@/services/leave/qr-pass-lifecycle.service";
 import { assertApprovalIsAtCurrentStep } from "@/services/leave/shared-approval.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 
@@ -219,6 +223,10 @@ async function handleLeaveDecision(
         tx
       );
 
+      // A parent decision can be the terminal approval step. It must issue
+      // the same usable gate pass as a staff terminal approval.
+      await issueQrPassForApprovedLeave(lockedLeave, tx);
+
       const approvedLeave = await leaveRepository.findById(
         approval.leaveRequestId!,
         tx
@@ -375,7 +383,17 @@ async function handleExtensionDecision(
         leaveRequestId,
         {
           endAt: extension.requestedEndAt,
+          // An extended OVERDUE leave is authorized again through the new
+          // end date; no-op for already-APPROVED leaves.
+          status: LEAVE_REQUEST_STATUS.APPROVED,
         },
+        tx
+      );
+
+      // Contract T14: the pass window must track the extended end date.
+      await extendQrPassWindow(
+        leaveRequestId,
+        extension.requestedEndAt,
         tx
       );
 
