@@ -6,6 +6,7 @@ import {
   formatDateTime,
   formatRelative,
   formatTimeRemaining,
+  startOfTodayIst,
 } from "@/lib/date-utils";
 
 /**
@@ -70,5 +71,16 @@ describe("date formatting", () => {
       expect(value).not.toMatch(/\d{4}-\d{2}-\d{2}/);
       expect(value).not.toMatch(/\dT\d/);
     }
+  });
+});
+
+describe("startOfTodayIst", () => {
+  it("uses the IST calendar day around the UTC boundary", () => {
+    expect(
+      startOfTodayIst(new Date("2026-03-03T18:29:59Z")).toISOString()
+    ).toBe("2026-03-02T18:30:00.000Z");
+    expect(
+      startOfTodayIst(new Date("2026-03-03T18:30:00Z")).toISOString()
+    ).toBe("2026-03-03T18:30:00.000Z");
   });
 });

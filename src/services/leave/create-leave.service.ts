@@ -19,6 +19,7 @@ import { studentRepository } from "@/db/repositories/student/student.repository"
 import { userRepository } from "@/db/repositories/user/user.repository";
 import type { CreateLeaveDto } from "@/dto/leave/create-leave.dto";
 import { getPublicBaseUrl } from "@/lib/base-url";
+import { startOfTodayIst } from "@/lib/date-utils";
 import { db } from "@/lib/db";
 import { AuthorizationError, ConflictError, NotFoundError,
 ValidationError } from "@/lib/errors";
@@ -52,6 +53,10 @@ export async function createLeave(
 
   if (!leaveType) {
     throw new NotFoundError("LeaveType");
+  }
+
+  if (new Date(dto.startAt) < startOfTodayIst()) {
+    throw new ValidationError("Leave cannot start in the past");
   }
 
   const defaultWorkflowId = leaveType.defaultWorkflowId;

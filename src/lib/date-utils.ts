@@ -11,6 +11,22 @@ import { differenceInCalendarDays, format, parseISO } from "date-fns";
 /** The product's operating timezone. Every timestamp renders here. */
 export const OPERATING_TIMEZONE = "IST";
 
+/** India has no DST, so the operating offset is a constant. */
+const IST_UTC_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+/** Midnight at the start of the current IST calendar day, as an instant. */
+export function startOfTodayIst(now: Date = new Date()): Date {
+  const shifted = new Date(now.getTime() + IST_UTC_OFFSET_MS);
+
+  return new Date(
+    Date.UTC(
+      shifted.getUTCFullYear(),
+      shifted.getUTCMonth(),
+      shifted.getUTCDate()
+    ) - IST_UTC_OFFSET_MS
+  );
+}
+
 /** 24-hour clock. `18:00`, never `6:00 PM`. */
 const TIME = "HH:mm";
 /** `3 March`. */

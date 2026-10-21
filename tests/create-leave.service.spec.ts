@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 const mockFindOverlapping = vi.fn().mockResolvedValue([]);
 const mockFindStudentByUserId = vi.fn().mockResolvedValue({ id: "S1", userId: "U1" });
@@ -140,6 +140,8 @@ import { AuthorizationError, ConflictError, ValidationError } from "@/lib/errors
 
 describe("createLeave service", () => {
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-01T10:00:00Z"));
     vi.clearAllMocks();
     mockFindStudentByUserId.mockResolvedValue({ id: "S1", userId: "U1" });
     mockFindOverlapping.mockResolvedValue([]);
@@ -160,6 +162,10 @@ describe("createLeave service", () => {
     mockWorkflowVersionGetOrCreate.mockResolvedValue({ id: "WV1", version: 1 });
     mockContextCreate.mockResolvedValue({ id: "LCC1" });
     mockPolicyEvaluationCreateMany.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("creates a leave and pending approvals", async () => {
@@ -271,5 +277,24 @@ describe("createLeave service", () => {
         { id: "U1" }
       )
     ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it("rejects a leave that starts before today in IST", async () => {
+    await expect(
+      createLeave(
+        { leaveTypeId: "LT1", reason: "Test", startAt: "2026-05-31T18:00:00Z", endAt: "2026-06-02T18:00:00Z" },
+        { id: "U1" }
+      )
+    ).rejects.toThrow("Leave cannot start in the past");
+  });
+
+  it("allows a leave that started earlier today in IST", async () => {
+    const res = await createLeave(
+      { leaveTypeId: "LT1", reason: "Test", startAt: "2026-06-01T04:00:00Z", endAt: "2026-06-02T18:00:00Z" },
+      { id: "U1" }
+    );
+
+    expect(res).toBeDefined();
+    expect(mockLeaveCreate).toHaveBeenCalled();
   });
 });
