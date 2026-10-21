@@ -43,7 +43,12 @@ describe("getCurrentUser", () => {
     const { currentUser } = await import("@clerk/nextjs/server");
     currentUser.mockResolvedValue(clerkUser);
 
-    mockFindByClerkId.mockResolvedValue({ id: "U1", clerkId: "C1" });
+    mockFindByClerkId.mockResolvedValue({
+      id: "U1",
+      clerkId: "C1",
+      isActive: true,
+      deletedAt: null,
+    });
     mockFindRoles.mockResolvedValue(["ADMIN"]);
     mockFindRoleScopes.mockResolvedValue([]);
 
@@ -59,7 +64,12 @@ describe("getCurrentUser", () => {
     const { currentUser } = await import("@clerk/nextjs/server");
     currentUser.mockResolvedValue(clerkUser);
 
-    mockFindByClerkId.mockResolvedValue({ id: "U2", clerkId: "C2" });
+    mockFindByClerkId.mockResolvedValue({
+      id: "U2",
+      clerkId: "C2",
+      isActive: true,
+      deletedAt: null,
+    });
     mockFindRoles.mockResolvedValue(["ADMIN"]);
     mockFindRoleScopes.mockResolvedValue([
       { roleCode: "ADMIN", scopeType: "HOSTEL", scopeId: "H1" },

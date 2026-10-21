@@ -56,6 +56,16 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     return null;
   }
 
+  // Disabling or deleting a user must take effect on the next request, even
+  // while their Clerk session is still valid. This is the single enforcement
+  // point: every route reaches the database user through this function.
+  if (!dbUser.isActive || dbUser.deletedAt) {
+    logger.warn("[getCurrentUser] inactive or deleted user denied", {
+      userId: dbUser.id,
+    });
+    return null;
+  }
+
   const [roleCodes, roleScopes] = await Promise.all([
     userRoleRepository.findRoleCodesByUserId(dbUser.id),
     userRoleRepository.findRoleScopesByUserId(dbUser.id),
