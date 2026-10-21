@@ -24,6 +24,7 @@ import {
   checkParentOverride,
   getApprovalAuditMeta,
   handleNextStep,
+  selectCurrentPendingApproval,
   updateApprovalAndAudit,
 } from "@/services/leave/shared-approval.service";
 import { outboxService } from "@/services/outbox/outbox.service";
@@ -75,7 +76,11 @@ export async function approveLeave(
       throw new ConflictError("No pending approval");
     }
 
-    const current = pending[0]!;
+    const current = selectCurrentPendingApproval(
+      pending,
+      leaveInTx.currentStepKey,
+      leaveInTx.currentStepOrder,
+    );
 
     const override = checkParentOverride(current, dto, currentUser);
     if (override?.requiresConfirmation) {

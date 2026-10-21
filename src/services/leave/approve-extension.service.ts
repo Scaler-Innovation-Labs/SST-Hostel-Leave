@@ -23,6 +23,7 @@ import {
   checkParentOverride,
   getApprovalAuditMeta,
   handleNextStep,
+  selectCurrentPendingApproval,
   updateApprovalAndAudit,
 } from "@/services/leave/shared-approval.service";
 import { outboxService } from "@/services/outbox/outbox.service";
@@ -58,12 +59,27 @@ export async function approveExtension(
 
     if (!extensionInTx) throw new NotFoundError("LeaveExtension");
 
-    const leave = await leaveRepository.findById(extensionInTx.leaveRequestId);
+    const leave = await leaveRepository.findByIdForUpdate(
+      extensionInTx.leaveRequestId,
+      tx,
+    );
     if (!leave) throw new NotFoundError("LeaveRequest");
     await assertCanAccessLeave(currentUser, leave);
 
     if (extensionInTx.status !== LEAVE_REQUEST_STATUS.PENDING) {
       throw new ConflictError("Extension is not in a state that can be approved");
+    }
+
+    // A pending extension outlives its parent leave unless the leave is still
+    // one an extension may apply to. Without this guard a cancelled, rejected,
+    // expired, or completed leave can be set back to APPROVED below.
+    if (
+      leave.status !== LEAVE_REQUEST_STATUS.APPROVED &&
+      leave.status !== LEAVE_REQUEST_STATUS.OVERDUE
+    ) {
+      throw new ConflictError(
+        `Cannot approve an extension for a leave in ${leave.status} status`,
+      );
     }
 
     const pending =
@@ -78,7 +94,11 @@ export async function approveExtension(
       throw new ConflictError("No pending approval");
     }
 
-    const current = pending[0]!;
+    const current = selectCurrentPendingApproval(
+      pending,
+      extensionInTx.currentStepKey,
+      extensionInTx.currentStepOrder,
+    );
 
     const override = checkParentOverride(current, dto, currentUser);
     if (override?.requiresConfirmation) {

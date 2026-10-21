@@ -35,6 +35,7 @@ const mockFindNextByDecisionForExtension = vi.fn();
 const mockUpdateDecisionById = vi.fn();
 const mockApprovalCreateMany = vi.fn();
 const mockLeaveFindById = vi.fn();
+const mockLeaveFindByIdForUpdate = vi.fn();
 const mockLeaveUpdateById = vi.fn();
 const mockAuditRecord = vi.fn();
 const mockPublish = vi.fn();
@@ -60,6 +61,7 @@ vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
     findById: (...args: any[]) => mockLeaveFindById(...args),
+    findByIdForUpdate: (...args: any[]) => mockLeaveFindByIdForUpdate(...args),
     updateById: (...args: any[]) => mockLeaveUpdateById(...args),
   },
 }));
@@ -104,7 +106,12 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockAuditRecord.mockResolvedValue({});
   mockUpdateDecisionById.mockResolvedValue({ id: "A1", decision: "APPROVED" });
-  mockLeaveFindById.mockResolvedValue({ id: "L1", studentId: "ST1" });
+  mockLeaveFindById.mockResolvedValue({ id: "L1", studentId: "ST1", status: "APPROVED" });
+  mockLeaveFindByIdForUpdate.mockResolvedValue({
+    id: "L1",
+    studentId: "ST1",
+    status: "APPROVED",
+  });
   mockLeaveTypeFindById.mockResolvedValue({ id: "LT1", qrMode: "NONE" });
 });
 
@@ -206,6 +213,52 @@ describe("approveExtension service", () => {
       "L1",
       { endAt: new Date("2026-06-20"), status: "APPROVED" },
       expect.any(Object)
+    );
+  });
+
+  it("refuses to approve an extension after its parent leave was cancelled", async () => {
+    mockExtensionFindById.mockResolvedValue({ id: "EXT6", status: "PENDING", leaveRequestId: "L1" });
+    mockExtensionFindByIdForUpdate.mockResolvedValue({ id: "EXT6", status: "PENDING", leaveRequestId: "L1" });
+    mockLeaveFindByIdForUpdate.mockResolvedValue({
+      id: "L1",
+      studentId: "ST1",
+      status: "CANCELLED",
+    });
+
+    await expect(
+      approveExtension("EXT6", { decision: "APPROVED" }, { id: "U1", roles: ["ADMIN"] })
+    ).rejects.toBeInstanceOf(ConflictError);
+    expect(mockFindPending).not.toHaveBeenCalled();
+  });
+
+  it("only acts on the extension's current workflow step", async () => {
+    mockExtensionFindById.mockResolvedValue({ id: "EXT7", status: "PENDING", leaveRequestId: "L1" });
+    mockExtensionFindByIdForUpdate.mockResolvedValue({
+      id: "EXT7",
+      status: "PENDING",
+      leaveRequestId: "L1",
+      currentStepKey: "S2",
+      currentStepOrder: 2,
+      currentEndAt: new Date("2026-06-15"),
+      requestedEndAt: new Date("2026-06-20"),
+    });
+    mockFindPending.mockResolvedValue([
+      { id: "A1", stepOrder: 1, stepKey: "S1", approverRoleCode: null },
+      { id: "A2", stepOrder: 2, stepKey: "S2", approverRoleCode: null },
+    ]);
+    mockFindNextByDecisionForExtension.mockResolvedValue(null);
+
+    await approveExtension("EXT7", { decision: "APPROVED" }, { id: "U1", roles: ["ADMIN"] });
+
+    expect(mockUpdateDecisionById).toHaveBeenCalledWith(
+      "A2",
+      "APPROVED",
+      "U1",
+      undefined,
+      expect.any(Date),
+      expect.any(Object),
+      undefined,
+      undefined
     );
   });
 

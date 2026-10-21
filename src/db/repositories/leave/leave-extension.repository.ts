@@ -1,6 +1,7 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 
+import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { leaveExtensions, leaveRequests } from "@/db";
 import { db } from "@/lib/db";
 
@@ -155,6 +156,32 @@ export const leaveExtensionRepository = {
       .returning();
 
     return rows[0] ?? null;
+  },
+
+  /**
+   * Cancels extensions still awaiting a decision when their parent leave is
+   * cancelled. Approved/rejected extensions are history and stay untouched.
+   */
+  async cancelPendingByLeaveRequestId(
+    leaveRequestId: string,
+    dbClient: Pick<typeof db, "update"> = db
+  ): Promise<LeaveExtension[]> {
+    const rows = await dbClient
+      .update(leaveExtensions)
+      .set({
+        status: LEAVE_REQUEST_STATUS.CANCELLED,
+        currentStepKey: null,
+        currentStepOrder: null,
+      })
+      .where(
+        and(
+          eq(leaveExtensions.leaveRequestId, leaveRequestId),
+          eq(leaveExtensions.status, LEAVE_REQUEST_STATUS.PENDING)
+        )
+      )
+      .returning();
+
+    return rows;
   },
 
   async updateCurrentStep(

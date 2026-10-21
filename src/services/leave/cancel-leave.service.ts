@@ -8,6 +8,7 @@ import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
+import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import type { CancelLeaveDto } from "@/dto/leave/cancel-leave.dto";
@@ -87,12 +88,13 @@ export async function cancelLeave(
     }
 
     const nextState = getNextState(leaveInTx.status, LEAVE_ACTION.CANCEL);
+    const cancelledAt = new Date();
 
     await leaveRepository.updateById(
       leaveId,
       {
         status: nextState,
-        cancelledAt: new Date(),
+        cancelledAt,
         currentStepKey: null,
         currentStepOrder: null,
       },
@@ -103,9 +105,31 @@ export async function cancelLeave(
     await leaveApprovalRepository.updateDecisionByLeaveRequestId(
       leaveId,
       LEAVE_APPROVAL_DECISION.CANCELLED,
-      new Date(),
+      cancelledAt,
       tx
     );
+
+    // Extension approvals point at the extension, not the leave, so they are
+    // invisible to the bulk update above. Cancel them and their pending
+    // extension rows together; otherwise an old approval link could approve
+    // the extension and move this cancelled leave back to APPROVED.
+    const extensions = await leaveExtensionRepository.findByLeaveRequestId(
+      leaveId,
+      tx
+    );
+    const pendingExtensionIds = extensions
+      .filter((extension) => extension.status === LEAVE_REQUEST_STATUS.PENDING)
+      .map((extension) => extension.id);
+
+    if (pendingExtensionIds.length > 0) {
+      await leaveExtensionRepository.cancelPendingByLeaveRequestId(leaveId, tx);
+      await leaveApprovalRepository.updateDecisionByExtensionIds(
+        pendingExtensionIds,
+        LEAVE_APPROVAL_DECISION.CANCELLED,
+        cancelledAt,
+        tx
+      );
+    }
 
     let qrInvalidated = false;
 

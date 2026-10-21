@@ -646,6 +646,36 @@ export const leaveApprovalRepository = {
     return rows;
   },
 
+  /**
+   * Cancels every pending approval belonging to the given extensions. Used
+   * when the parent leave is cancelled: extension approvals carry
+   * `leaveExtensionId` only, so the leave-id bulk update cannot reach them.
+   */
+  async updateDecisionByExtensionIds(
+    leaveExtensionIds: string[],
+    decision: LeaveApprovalDecision,
+    actedAt: Date,
+    dbClient: Pick<typeof db, "update"> = db,
+  ): Promise<LeaveApproval[]> {
+    if (leaveExtensionIds.length === 0) return [];
+
+    const rows = await dbClient
+      .update(leaveApprovals)
+      .set({
+        decision,
+        actedAt,
+      })
+      .where(
+        and(
+          inArray(leaveApprovals.leaveExtensionId, leaveExtensionIds),
+          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+        ),
+      )
+      .returning();
+
+    return rows;
+  },
+
   async updateDecisionById(
     id: string,
     decision: LeaveApprovalDecision,

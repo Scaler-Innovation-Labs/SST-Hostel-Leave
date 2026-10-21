@@ -14,7 +14,10 @@ import type { CurrentUser } from "@/lib/auth/types";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
-import { updateApprovalAndAudit } from "@/services/leave/shared-approval.service";
+import {
+  selectCurrentPendingApproval,
+  updateApprovalAndAudit,
+} from "@/services/leave/shared-approval.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
@@ -46,13 +49,24 @@ export async function rejectExtension(
 
     if (!extensionInTx) throw new NotFoundError("LeaveExtension");
 
-    const leave = await leaveRepository.findById(extensionInTx.leaveRequestId);
-    if (leave) {
-      await assertCanAccessLeave(currentUser, leave);
-    }
+    const leave = await leaveRepository.findByIdForUpdate(
+      extensionInTx.leaveRequestId,
+      tx,
+    );
+    if (!leave) throw new NotFoundError("LeaveRequest");
+    await assertCanAccessLeave(currentUser, leave);
 
     if (extensionInTx.status !== LEAVE_REQUEST_STATUS.PENDING) {
       throw new ConflictError("Extension is not in a state that can be rejected");
+    }
+
+    if (
+      leave.status !== LEAVE_REQUEST_STATUS.APPROVED &&
+      leave.status !== LEAVE_REQUEST_STATUS.OVERDUE
+    ) {
+      throw new ConflictError(
+        `Cannot reject an extension for a leave in ${leave.status} status`,
+      );
     }
 
     const pending =
@@ -67,7 +81,11 @@ export async function rejectExtension(
       throw new ConflictError("No pending approval");
     }
 
-    const current = pending[0]!;
+    const current = selectCurrentPendingApproval(
+      pending,
+      extensionInTx.currentStepKey,
+      extensionInTx.currentStepOrder,
+    );
 
     requireApprovalAuthorization(current, currentUser);
 

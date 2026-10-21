@@ -108,6 +108,7 @@ vi.mock("@/services/outbox/outbox.service", () => {
   };
 });
 
+import { ConflictError } from "@/lib/errors";
 import { parentApproveDecision } from "@/services/parent/parent-approve-decision.service";
 import { generateParentApproval } from "@/services/parent/generate-parent-approval.service";
 import { __mockOutboxPublish } from "@/services/outbox/outbox.service";
@@ -119,7 +120,11 @@ describe("parentApproveDecision", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockLeaveFindByIdForUpdate.mockResolvedValue({ id: "LR1", status: "PENDING" });
-    mockExtensionFindByIdForUpdate.mockResolvedValue({ id: "EXT1", status: "PENDING" });
+    mockExtensionFindByIdForUpdate.mockResolvedValue({
+      id: "EXT1",
+      leaveRequestId: "LR1",
+      status: "PENDING",
+    });
   });
 
   it("approves leave via parent decision", async () => {
@@ -260,7 +265,38 @@ describe("parentApproveDecision", () => {
     expect(mockLeaveUpdateById).not.toHaveBeenCalled();
   });
 
+  it("refuses a token whose step is no longer the current step", async () => {
+    mockFindByParentApprovalToken.mockResolvedValue({
+      id: "LA1",
+      leaveRequestId: "LR1",
+      leaveExtensionId: null,
+      leaveExtension: null,
+      approverParentId: "P1",
+      parentApprovalExpiresAt: new Date(Date.now() + 3600000),
+      decision: "PENDING",
+      parentApprovalToken: TOKEN_HASH,
+      stepOrder: 1,
+      stepKey: "PARENT_APPROVAL",
+      studentName: "Test",
+      studentRollNumber: "001",
+      leaveRequest: { id: "LR1", reason: "r", startAt: new Date(), endAt: new Date(), status: "PENDING", submittedForm: null },
+    });
+    mockUpdateParentDecision.mockResolvedValue({ id: "LA1", decision: "APPROVED" });
+    mockLeaveFindByIdForUpdate.mockResolvedValue({
+      id: "LR1",
+      status: "PENDING",
+      currentStepKey: "ADMIN_APPROVAL",
+      currentStepOrder: 2,
+    });
+
+    await expect(
+      parentApproveDecision(RAW_TOKEN, { decision: "APPROVED" })
+    ).rejects.toThrow(/current workflow step/i);
+    expect(mockLeaveUpdateById).not.toHaveBeenCalled();
+  });
+
   it("approves extension via parent decision", async () => {
+    mockLeaveFindByIdForUpdate.mockResolvedValue({ id: "LR1", status: "APPROVED" });
     const currentEnd = new Date("2026-06-15");
     const requestedEnd = new Date("2026-06-22");
 
@@ -378,6 +414,7 @@ describe("parentApproveDecision", () => {
   });
 
   it("publishes LEAVE_APPROVAL_REQUIRED when a next extension step becomes current", async () => {
+    mockLeaveFindByIdForUpdate.mockResolvedValue({ id: "LR1", status: "APPROVED" });
     mockFindByParentApprovalToken.mockResolvedValue({
       id: "LA1",
       leaveRequestId: "LR1",
@@ -435,6 +472,7 @@ describe("parentApproveDecision", () => {
   });
 
   it("rejects extension via parent decision", async () => {
+    mockLeaveFindByIdForUpdate.mockResolvedValue({ id: "LR1", status: "APPROVED" });
     mockFindByParentApprovalToken.mockResolvedValue({
       id: "LA1",
       leaveRequestId: "LR1",
@@ -483,6 +521,43 @@ describe("parentApproveDecision", () => {
       expect.anything()
     );
     expect(mockAuditRecord).toHaveBeenCalled();
+  });
+
+  it("refuses an extension decision after the parent leave was cancelled", async () => {
+    mockLeaveFindByIdForUpdate.mockResolvedValue({ id: "LR1", status: "CANCELLED" });
+    mockFindByParentApprovalToken.mockResolvedValue({
+      id: "LA1",
+      leaveRequestId: "LR1",
+      leaveExtensionId: "EXT1",
+      leaveExtension: {
+        id: "EXT1",
+        extensionNumber: 2,
+        reason: "Need more time",
+        currentEndAt: new Date("2026-06-15"),
+        requestedEndAt: new Date("2026-06-22"),
+        status: "PENDING",
+        submittedForm: null,
+        leaveRequestId: "LR1",
+      },
+      approverParentId: "P1",
+      parentApprovalExpiresAt: new Date(Date.now() + 3600000),
+      decision: "PENDING",
+      parentApprovalToken: TOKEN_HASH,
+      stepOrder: 1,
+      studentName: "Test",
+      studentRollNumber: "001",
+      leaveRequest: null,
+    });
+    mockExtensionFindByIdForUpdate.mockResolvedValue({
+      id: "EXT1",
+      status: "PENDING",
+      leaveRequestId: "LR1",
+    });
+
+    await expect(
+      parentApproveDecision(RAW_TOKEN, { decision: "APPROVED" })
+    ).rejects.toBeInstanceOf(ConflictError);
+    expect(mockExtensionUpdateById).not.toHaveBeenCalled();
   });
 });
 

@@ -20,6 +20,7 @@ import {
   NotFoundError,
 } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
+import { assertApprovalIsAtCurrentStep } from "@/services/leave/shared-approval.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 
 export type ParentDecisionResult = {
@@ -126,6 +127,12 @@ async function handleLeaveDecision(
       `Leave request is no longer pending (status: ${lockedLeave.status})`
     );
   }
+
+  assertApprovalIsAtCurrentStep(
+    approval,
+    lockedLeave.currentStepKey,
+    lockedLeave.currentStepOrder,
+  );
 
   if (dto.decision === LEAVE_APPROVAL_DECISION.REJECTED) {
     await leaveRepository.updateById(
@@ -246,7 +253,6 @@ async function handleExtensionDecision(
   tx: DbClient
 ): Promise<ParentDecisionResult> {
   const extensionId = approval.leaveExtensionId!;
-  const leaveRequestId = approval.leaveExtension?.leaveRequestId ?? approval.leaveRequestId ?? "";
 
   // Same serialization as the leave path: lock the extension row and
   // require it still be actionable before writing a decision outcome.
@@ -259,11 +265,41 @@ async function handleExtensionDecision(
     throw new NotFoundError("LeaveExtension");
   }
 
+  // The extension row is the source of truth for the parent leave, not the
+  // token join, which may omit the relation for older approvals.
+  const leaveRequestId = lockedExtension.leaveRequestId;
+
   if (lockedExtension.status !== LEAVE_REQUEST_STATUS.PENDING) {
     throw new ConflictError(
       `Leave extension is no longer pending (status: ${lockedExtension.status})`
     );
   }
+
+  // The extension may only be decided while its parent leave is still live.
+  // Otherwise an old parent link can re-approve a cancelled/completed leave.
+  const parentLeave = await leaveRepository.findByIdForUpdate(
+    leaveRequestId,
+    tx,
+  );
+
+  if (!parentLeave) {
+    throw new NotFoundError("LeaveRequest");
+  }
+
+  if (
+    parentLeave.status !== LEAVE_REQUEST_STATUS.APPROVED &&
+    parentLeave.status !== LEAVE_REQUEST_STATUS.OVERDUE
+  ) {
+    throw new ConflictError(
+      `Cannot decide an extension for a leave in ${parentLeave.status} status`,
+    );
+  }
+
+  assertApprovalIsAtCurrentStep(
+    approval,
+    lockedExtension.currentStepKey,
+    lockedExtension.currentStepOrder,
+  );
 
   if (dto.decision === LEAVE_APPROVAL_DECISION.REJECTED) {
     await leaveExtensionRepository.updateById(

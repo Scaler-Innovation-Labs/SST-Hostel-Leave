@@ -17,6 +17,7 @@ import { getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine"
 import { auditService } from "@/services/audit/audit.service";
 import {
   getApprovalAuditMeta,
+  selectCurrentPendingApproval,
   updateApprovalAndAudit,
 } from "@/services/leave/shared-approval.service";
 import { outboxService } from "@/services/outbox/outbox.service";
@@ -58,7 +59,11 @@ export async function rejectLeave(
       throw new ConflictError("No pending approval");
     }
 
-    const current = pending[0]!;
+    const current = selectCurrentPendingApproval(
+      pending,
+      leaveInTx.currentStepKey,
+      leaveInTx.currentStepOrder,
+    );
 
     requireApprovalAuthorization(current, currentUser);
 

@@ -34,6 +34,9 @@ const mockRecordMovement = vi.fn();
 const mockFindStudentById = vi.fn();
 const mockFindQrPassByLeaveRequestId = vi.fn();
 const mockInvalidateQr = vi.fn();
+const mockFindExtensions = vi.fn();
+const mockCancelExtensions = vi.fn();
+const mockCancelExtensionApprovals = vi.fn();
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
@@ -46,6 +49,14 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
 vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
   leaveApprovalRepository: {
     updateDecisionByLeaveRequestId: (...args: any[]) => mockUpdateById(...args),
+    updateDecisionByExtensionIds: (...args: any[]) => mockCancelExtensionApprovals(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
+  leaveExtensionRepository: {
+    findByLeaveRequestId: (...args: any[]) => mockFindExtensions(...args),
+    cancelPendingByLeaveRequestId: (...args: any[]) => mockCancelExtensions(...args),
   },
 }));
 
@@ -91,6 +102,9 @@ beforeEach(() => {
   mockAuditRecord.mockResolvedValue({});
   mockRecordMovement.mockResolvedValue({ id: "ME1" });
   mockInvalidateQr.mockResolvedValue({});
+  mockFindExtensions.mockResolvedValue([]);
+  mockCancelExtensions.mockResolvedValue([]);
+  mockCancelExtensionApprovals.mockResolvedValue([]);
 });
 
 describe("cancelLeave service", () => {
@@ -200,6 +214,38 @@ describe("cancelLeave service", () => {
     await expect(
       cancelLeave("NONEXISTENT", {}, { id: "U1" })
     ).rejects.toBeInstanceOf(NotFoundError);
+  });
+
+  it("cancels pending extensions and their approvals with the leave", async () => {
+    mockFindById.mockResolvedValue({ id: "L10", status: "PENDING", studentId: "S1" });
+    mockFindByIdForUpdate.mockResolvedValue({ id: "L10", status: "PENDING", studentId: "S1" });
+    mockFindExtensions.mockResolvedValue([
+      { id: "EXT1", status: "PENDING" },
+      { id: "EXT2", status: "APPROVED" },
+    ]);
+    mockUpdateById.mockResolvedValue({ id: "L10", status: "CANCELLED" });
+
+    await cancelLeave("L10", {}, { id: "U1" });
+
+    expect(mockCancelExtensions).toHaveBeenCalledWith("L10", expect.any(Object));
+    expect(mockCancelExtensionApprovals).toHaveBeenCalledWith(
+      ["EXT1"],
+      "CANCELLED",
+      expect.any(Date),
+      expect.any(Object)
+    );
+  });
+
+  it("does not touch extension approvals when no extension is pending", async () => {
+    mockFindById.mockResolvedValue({ id: "L11", status: "PENDING", studentId: "S1" });
+    mockFindByIdForUpdate.mockResolvedValue({ id: "L11", status: "PENDING", studentId: "S1" });
+    mockFindExtensions.mockResolvedValue([{ id: "EXT2", status: "APPROVED" }]);
+    mockUpdateById.mockResolvedValue({ id: "L11", status: "CANCELLED" });
+
+    await cancelLeave("L11", {}, { id: "U1" });
+
+    expect(mockCancelExtensions).not.toHaveBeenCalled();
+    expect(mockCancelExtensionApprovals).not.toHaveBeenCalled();
   });
 
   it("records audit on cancel", async () => {

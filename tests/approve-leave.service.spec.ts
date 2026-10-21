@@ -187,6 +187,54 @@ describe("approveLeave service", () => {
     expect(mockUpdateCurrentStep).toHaveBeenCalledWith("L6", "S2", 2, expect.any(Object));
   });
 
+  it("only acts on the leave's current workflow step", async () => {
+    mockFindById.mockResolvedValue({ id: "L12", status: "PENDING" });
+    mockFindByIdForUpdate.mockResolvedValue({
+      id: "L12",
+      status: "PENDING",
+      currentStepKey: "S2",
+      currentStepOrder: 2,
+      studentId: "S1",
+    });
+    mockFindPending.mockResolvedValue([
+      { id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null },
+      { id: "A2", stepOrder: 2, stepKey: "S2", approverUserId: null, approverRoleCode: null },
+    ]);
+    mockUpdateDecisionById.mockResolvedValue({ id: "A2", decision: "APPROVED" });
+    mockFindNextByDecision.mockResolvedValue(null);
+    mockUpdateById.mockResolvedValue({ id: "L12", status: "APPROVED" });
+
+    await approveLeave("L12", { decision: "APPROVED" }, { id: "U1", roles: ["ADMIN"] });
+
+    expect(mockUpdateDecisionById).toHaveBeenCalledWith(
+      "A2",
+      "APPROVED",
+      "U1",
+      undefined,
+      expect.any(Date),
+      expect.any(Object),
+      undefined,
+      undefined
+    );
+  });
+
+  it("refuses to act when no pending approval matches the current step", async () => {
+    mockFindById.mockResolvedValue({ id: "L13", status: "PENDING" });
+    mockFindByIdForUpdate.mockResolvedValue({
+      id: "L13",
+      status: "PENDING",
+      currentStepKey: "S2",
+      currentStepOrder: 2,
+    });
+    mockFindPending.mockResolvedValue([
+      { id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null },
+    ]);
+
+    await expect(
+      approveLeave("L13", { decision: "APPROVED" }, { id: "U1", roles: ["ADMIN"] })
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
+
   it("throws NotFoundError when leave does not exist", async () => {
     mockFindById.mockResolvedValue(null);
 

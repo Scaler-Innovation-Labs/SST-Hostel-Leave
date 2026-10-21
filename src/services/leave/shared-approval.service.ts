@@ -12,6 +12,65 @@ import type { DbClient } from "@/lib/db/transaction";
 import { ConflictError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 
+type StepScoped = {
+  stepKey: string;
+  stepOrder: number;
+};
+
+/**
+ * Selects the pending approval that sits at the entity's current workflow
+ * step. Ordering the pending rows is not enough: a later step can be approved
+ * out of order if every row is eligible. Legacy rows without a current step
+ * fall back to the earliest pending row.
+ */
+export function selectCurrentPendingApproval<T extends StepScoped>(
+  pending: T[],
+  currentStepKey: string | null,
+  currentStepOrder: number | null,
+): T {
+  const first = pending[0];
+
+  if (!first) {
+    throw new ConflictError("No pending approval");
+  }
+
+  if (currentStepKey == null && currentStepOrder == null) {
+    return first;
+  }
+
+  const current = pending.find(
+    (approval) =>
+      (currentStepKey == null || approval.stepKey === currentStepKey) &&
+      (currentStepOrder == null || approval.stepOrder === currentStepOrder),
+  );
+
+  if (!current) {
+    throw new ConflictError(
+      "Approval does not match the current workflow step",
+    );
+  }
+
+  return current;
+}
+
+/** Guards token-driven parents to the step that is actually waiting. */
+export function assertApprovalIsAtCurrentStep(
+  approval: StepScoped,
+  currentStepKey: string | null,
+  currentStepOrder: number | null,
+): void {
+  if (currentStepKey == null && currentStepOrder == null) {
+    return;
+  }
+
+  if (
+    (currentStepKey != null && approval.stepKey !== currentStepKey) ||
+    (currentStepOrder != null && approval.stepOrder !== currentStepOrder)
+  ) {
+    throw new ConflictError("Approval is not for the current workflow step");
+  }
+}
+
 export function checkParentOverride(
   current: { approverParentId: string | null; approverUserId: string | null; approverRoleCode: string | null; stepKey: string; stepOrder: number | null },
   dto: { forceOverride?: boolean },

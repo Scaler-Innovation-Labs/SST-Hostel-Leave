@@ -9,10 +9,12 @@ const mockUpdateById = vi.fn();
 const mockAuditRecord = vi.fn();
 const mockOutboxPublish = vi.fn();
 const mockLeaveFindById = vi.fn();
+const mockLeaveFindByIdForUpdate = vi.fn();
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
     findById: (...args: any[]) => mockLeaveFindById(...args),
+    findByIdForUpdate: (...args: any[]) => mockLeaveFindByIdForUpdate(...args),
   },
 }));
 
@@ -68,7 +70,12 @@ beforeEach(() => {
   mockFindById.mockResolvedValue({ id: "EXT1", status: "PENDING", leaveRequestId: "LR1" });
   mockFindByIdForUpdate.mockResolvedValue({ id: "EXT1", status: "PENDING", leaveRequestId: "LR1" });
   mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null }]);
-  mockLeaveFindById.mockResolvedValue({ id: "LR1", studentId: "S1" });
+  mockLeaveFindById.mockResolvedValue({ id: "LR1", studentId: "S1", status: "APPROVED" });
+  mockLeaveFindByIdForUpdate.mockResolvedValue({
+    id: "LR1",
+    studentId: "S1",
+    status: "APPROVED",
+  });
 });
 
 describe("rejectExtension service", () => {
@@ -102,6 +109,19 @@ describe("rejectExtension service", () => {
 
     await expect(rejectExtension("EXT2", { decision: "REJECTED" }, { id: "U1", roles: ["ADMIN"] }))
       .rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("throws ConflictError when the parent leave is no longer live", async () => {
+    mockLeaveFindByIdForUpdate.mockResolvedValue({
+      id: "LR1",
+      studentId: "S1",
+      status: "CANCELLED",
+    });
+
+    await expect(
+      rejectExtension("EXT1", { decision: "REJECTED" }, { id: "U1", roles: ["ADMIN"] })
+    ).rejects.toBeInstanceOf(ConflictError);
+    expect(mockFindPending).not.toHaveBeenCalled();
   });
 
   it("throws ConflictError when no pending approval found", async () => {
