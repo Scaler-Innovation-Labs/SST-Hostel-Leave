@@ -1,5 +1,9 @@
 import { Building2, CheckCircle2, Clock, FileText, Shield, User } from "lucide-react";
 
+import {
+  APPROVAL_OVERRIDE_TYPE,
+  type ApprovalOverrideType,
+} from "@/constants/leave/approval-override-type";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { VIEW_STEP_KEY, WORKFLOW_STEP_KEY, WORKFLOW_STEP_KEYS } from "@/constants/workflow/workflow-step-key";
 import type { ApprovalStepBreakdownEntry } from "@/types/leave/approval-step-breakdown";
@@ -111,4 +115,63 @@ export function toWaitingOnStepKeys(entries: ApprovalStepBreakdownEntry[]): stri
   return entries
     .map((entry) => entry.stepKey)
     .filter((stepKey) => stepKey !== VIEW_STEP_KEY.COMPLETE);
+}
+
+/** The identity fields needed to render who actually acted on a step. */
+export type ApprovalActor = {
+  approverName?: string | null;
+  approverPhone?: string | null;
+  approverParentId?: string | null;
+  approverRoleCode?: string | null;
+  overrideType?: ApprovalOverrideType | null;
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  PARENT: "Parent",
+  POC: "POC",
+  ADMIN: "Admin",
+  SUPER_ADMIN: "Super Admin",
+  SUPERADMIN: "Super Admin",
+  WARDEN: "Warden",
+};
+
+function toRoleLabel(roleCode: string | null | undefined): string | null {
+  const code = roleCode?.trim();
+  if (!code) return null;
+  const known = ROLE_LABELS[code.toUpperCase()];
+  if (known) return known;
+  return code
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+/**
+ * Reads an approver as `Name (Role · phone · override)`, e.g.
+ * `Neerasa Mohana Rao (Parent · 9876543210)` or
+ * `Super Admin (Admin · admin override)`.
+ *
+ * The name always comes first; the role is only repeated when it adds
+ * information, so a parent step does not read "Parent (Parent)".
+ */
+export function formatApprovalActor(approval: ApprovalActor): string {
+  const isParent = !!approval.approverParentId;
+  const roleLabel = isParent
+    ? "Parent"
+    : toRoleLabel(approval.approverRoleCode);
+  const name = approval.approverName?.trim() || roleLabel || "Unknown";
+
+  const details: string[] = [];
+  if (roleLabel && roleLabel.toLowerCase() !== name.toLowerCase()) {
+    details.push(roleLabel);
+  }
+  if (isParent && approval.approverPhone?.trim()) {
+    details.push(approval.approverPhone.trim());
+  }
+  if (approval.overrideType === APPROVAL_OVERRIDE_TYPE.ADMIN) {
+    details.push("admin override");
+  } else if (approval.overrideType === APPROVAL_OVERRIDE_TYPE.PARENT) {
+    details.push("parent override");
+  }
+
+  return details.length > 0 ? `${name} (${details.join(" · ")})` : name;
 }

@@ -1,8 +1,15 @@
 import type { AuditAction } from "@/constants/audit/audit-action";
+import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import type { AuditEntityType } from "@/constants/audit/audit-entity-type";
+import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
+import {
+  APPROVAL_OVERRIDE_TYPE,
+  type ApprovalOverrideType,
+} from "@/constants/leave/approval-override-type";
 import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { type leaveApprovals } from "@/db";
+import { auditRepository } from "@/db/repositories/audit/audit.repository";
 import type { LeaveApproval } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { requireAnyRole, requireApprovalAuthorization } from "@/lib/auth/authorization";
@@ -92,6 +99,10 @@ export function checkParentOverride(
         requiresConfirmation: true,
       };
     }
+
+    // Confirmed: the decision bypasses a pending parent, so the audit trail
+    // must record it as a parent override even though the step's role is staff.
+    return { isParentOverride: true };
   } else {
     requireApprovalAuthorization(current, currentUser);
   }
@@ -166,6 +177,45 @@ export function getApprovalAuditMeta(
   return {
     leaveRequestId: entityId,
     comments,
-    ...(isParentOverride ? { overrideType: "PARENT_OVERRIDE" } : {}),
+    ...(isParentOverride
+      ? { overrideType: APPROVAL_OVERRIDE_TYPE.PARENT }
+      : {}),
   };
+}
+
+/**
+ * Resolves which listed approvals were forced rather than normally decided.
+ *
+ * Overrides are facts in the audit log, not columns on the approval row: the
+ * admin override endpoint records an OVERRIDE action, while forcing a pending
+ * parent records a normal APPROVE/REJECT with `overrideType` metadata. One
+ * bounded query annotates the whole page.
+ */
+export async function getApprovalOverrideTypes(
+  approvalIds: string[]
+): Promise<Map<string, ApprovalOverrideType>> {
+  if (approvalIds.length === 0) {
+    return new Map();
+  }
+
+  const rows = await auditRepository.findByEntityIds(
+    AUDIT_ENTITY_TYPE.LEAVE_APPROVAL,
+    approvalIds
+  );
+
+  const overrideTypes = new Map<string, ApprovalOverrideType>();
+  for (const row of rows) {
+    const metadata = row.metadata as Record<string, unknown> | null;
+
+    if (row.action === AUDIT_ACTION.OVERRIDE) {
+      overrideTypes.set(row.entityId, APPROVAL_OVERRIDE_TYPE.ADMIN);
+      continue;
+    }
+
+    if (metadata?.overrideType === APPROVAL_OVERRIDE_TYPE.PARENT) {
+      overrideTypes.set(row.entityId, APPROVAL_OVERRIDE_TYPE.PARENT);
+    }
+  }
+
+  return overrideTypes;
 }

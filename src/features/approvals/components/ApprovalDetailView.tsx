@@ -67,6 +67,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import type { ApprovalOverrideType } from "@/constants/leave/approval-override-type";
 import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import type { BadgeTone } from "@/design-system/sst";
@@ -79,6 +80,7 @@ import {
   TONE_TEXT,
 } from "@/design-system/sst";
 import { useApprovalChain } from "@/features/approvals/hooks/use-approval-chain";
+import { formatApprovalActor } from "@/features/approvals/lib/step-display";
 import { AskAQuestionSection } from "@/features/leaves/components/AskAQuestionSection";
 import { useLeaves } from "@/features/leaves/hooks/use-leaves";
 import { useDocuments } from "@/hooks/use-documents";
@@ -114,8 +116,13 @@ type LeaveApproval = {
   stepKey: string;
   stepOrder: number;
   approverRoleCode: string | null;
-  approverName?: string;
+  approverParentId?: string | null;
+  approverName?: string | null;
+  approverPhone?: string | null;
+  approvalSource?: string | null;
+  overrideType?: ApprovalOverrideType | null;
   comments: string | null;
+  actedAt?: string | null;
   createdAt: string;
 };
 
@@ -796,9 +803,8 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                                 </Badge>
                               </div>
                               <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-caption text-muted">
-                                {app.approverRoleCode && <span>{app.approverRoleCode}</span>}
-                                {app.approverName && <span>· {app.approverName}</span>}
-                                {app.createdAt && <span>· {formatRelative(app.createdAt)}</span>}
+                                <span>{formatApprovalActor(app)}</span>
+                                <span>· {formatRelative(app.actedAt ?? app.createdAt)}</span>
                               </div>
                               {app.comments && (
                                 <div className="mt-1.5 rounded-lg bg-surface-sunken/50 px-3 py-1.5 text-caption text-muted">
@@ -889,9 +895,8 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                             </div>
 
                             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-muted">
-                              <span className="font-medium">{app.approverRoleCode ?? "—"}</span>
-                              {app.approverName && <span>· {app.approverName}</span>}
-                              {app.createdAt && <span>· {formatDateTime(app.createdAt)}</span>}
+                              <span className="font-medium">{formatApprovalActor(app)}</span>
+                              <span>· {formatDateTime(app.actedAt ?? app.createdAt)}</span>
                             </div>
 
                             {app.comments && (
@@ -941,18 +946,18 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   sortedApprovals.forEach((app) => {
                     if (!app.createdAt) return;
                     const decision = app.decision;
+                    const actor = formatApprovalActor(app);
                     const label =
                       decision === "approved"
-                        ? `Approved by ${app.approverName ?? app.approverRoleCode ?? "Unknown"}`
+                        ? `Approved by ${actor}`
                         : decision === "rejected"
-                        ? `Rejected by ${app.approverName ?? app.approverRoleCode ?? "Unknown"}`
-                        : `Pending review — ${app.approverRoleCode ?? "Unknown"}`;
+                        ? `Rejected by ${actor}`
+                        : `Pending review — ${actor}`;
                     events.push({
                       id: `step-${app.id}`,
                       type: decision === "approved" ? "approved" : decision === "rejected" ? "rejected" : "comment",
                       label,
-                      timestamp: app.createdAt,
-                      actor: app.approverName ?? app.approverRoleCode ?? undefined,
+                      timestamp: app.actedAt ?? app.createdAt,
                     });
                   });
 

@@ -14,6 +14,7 @@ import {
   or,
   sql,
 } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
 import type { LeaveApprovalSource } from "@/constants/leave/approval-source";
 import { LEAVE_APPROVAL_SOURCE } from "@/constants/leave/approval-source";
@@ -44,6 +45,12 @@ import { db } from "@/lib/db";
 import type { ApprovalStepBreakdownEntry } from "@/types/leave/approval-step-breakdown";
 
 type LeaveApprovalDbClient = Pick<typeof db, "insert" | "select" | "update">;
+
+/**
+ * `users` is already joined for the student, so the approver needs its own
+ * alias. `parents` needs no alias: only the approver parent is joined.
+ */
+const approverUser = alias(users, "approver_user");
 
 export type LeaveApproval = InferSelectModel<typeof leaveApprovals>;
 
@@ -246,6 +253,10 @@ export const leaveApprovalRepository = {
     items: Array<
       LeaveApproval & {
         approverRoleCode: string | null;
+        /** Parent name for parent steps, otherwise the staff approver's name. */
+        approverName: string | null;
+        /** Parent phone for parent steps; null for staff (not exposed). */
+        approverPhone: string | null;
         leaveRequest: {
           id: string;
           status: string;
@@ -437,6 +448,9 @@ export const leaveApprovalRepository = {
         approval: leaveApprovals,
         stepOrder: leaveApprovals.stepOrder,
         roleCode: roles.code,
+        approverUserName: approverUser.fullName,
+        approverParentName: parents.name,
+        approverParentPhone: parents.phone,
         leaveReqId: leaveRequests.id,
         leaveReqStatus: leaveRequests.status,
         leaveReqStartAt: leaveRequests.startAt,
@@ -461,6 +475,11 @@ export const leaveApprovalRepository = {
       })
       .from(leaveApprovals)
       .leftJoin(roles, eq(leaveApprovals.approverRoleId, roles.id))
+      .leftJoin(
+        approverUser,
+        eq(leaveApprovals.approverUserId, approverUser.id),
+      )
+      .leftJoin(parents, eq(leaveApprovals.approverParentId, parents.id))
       .leftJoin(
         leaveRequests,
         eq(leaveApprovals.leaveRequestId, leaveRequests.id),
@@ -523,6 +542,12 @@ export const leaveApprovalRepository = {
       items: dedupedRows.map((row) => ({
         ...row.approval,
         approverRoleCode: row.roleCode,
+        approverName: row.approval.approverParentId
+          ? row.approverParentName
+          : row.approverUserName,
+        approverPhone: row.approval.approverParentId
+          ? row.approverParentPhone
+          : null,
         // Prefer the frozen steps from the leave's execution context (what
         // the chain actually was at submission time); fall back to the live
         // workflow for legacy leaves without a context.
@@ -736,6 +761,10 @@ export const leaveApprovalRepository = {
     items: Array<
       LeaveApproval & {
         approverRoleCode: string | null;
+        /** Parent name for parent steps, otherwise the staff approver's name. */
+        approverName: string | null;
+        /** Parent phone for parent steps; null for staff (not exposed). */
+        approverPhone: string | null;
         workflowSteps: Array<{
           stepKey: string;
           stepOrder: number;
@@ -957,6 +986,7 @@ export const leaveApprovalRepository = {
       .select({
         approval: leaveApprovals,
         roleCode: roles.code,
+        approverUserName: approverUser.fullName,
         extId: leaveExtensions.id,
         extReason: leaveExtensions.reason,
         extStatus: leaveExtensions.status,
@@ -988,6 +1018,10 @@ export const leaveApprovalRepository = {
       })
       .from(leaveApprovals)
       .leftJoin(roles, eq(leaveApprovals.approverRoleId, roles.id))
+      .leftJoin(
+        approverUser,
+        eq(leaveApprovals.approverUserId, approverUser.id),
+      )
       .innerJoin(
         leaveExtensions,
         eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
@@ -1046,6 +1080,10 @@ export const leaveApprovalRepository = {
       items: dedupedRows.map((row) => ({
         ...row.approval,
         approverRoleCode: row.roleCode,
+        approverName: row.approval.approverParentId
+          ? row.parentName
+          : row.approverUserName,
+        approverPhone: row.approval.approverParentId ? row.parentPhone : null,
         // Frozen steps from the parent leave's execution context; fall back
         // to the live workflow for legacy leaves without a context.
         workflowSteps:

@@ -1,5 +1,6 @@
 import useSWR from "swr";
 
+import type { ApprovalOverrideType } from "@/constants/leave/approval-override-type";
 import { getApprovalsUrl } from "@/lib/api/approval-api";
 
 export function useApprovalChain(leaveRequestId: string) {
@@ -14,12 +15,17 @@ export function useApprovalChain(leaveRequestId: string) {
       approverUserId: string | null;
       approverRoleId: string;
       approverRoleCode: string | null;
+      approverParentId?: string | null;
+      approverName?: string | null;
+      approverPhone?: string | null;
+      approvalSource?: string | null;
+      overrideType?: ApprovalOverrideType | null;
       decision: string;
       comments: string | null;
+      actedAt?: string | null;
       createdAt: string;
       stepOrder: number;
       stepKey: string;
-      approverName?: string;
     }>) ?? [],
     total: data?.data?.total ?? 0,
     isLoading,

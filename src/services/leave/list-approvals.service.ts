@@ -1,3 +1,4 @@
+import type { ApprovalOverrideType } from "@/constants/leave/approval-override-type";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import {
   LEAVE_REQUEST_STATUS,
@@ -14,6 +15,7 @@ import type { ListApprovalsQuery } from "@/dto/approval/list-approvals.dto";
 import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
 import { AuthorizationError } from "@/lib/errors";
+import { getApprovalOverrideTypes } from "@/services/leave/shared-approval.service";
 import {
   assertCanAccessLeave,
   getScopedHostelIds,
@@ -28,6 +30,9 @@ export async function listApprovals(
   items: Array<
     LeaveApproval & {
       approverRoleCode: string | null;
+      approverName: string | null;
+      approverPhone: string | null;
+      overrideType: ApprovalOverrideType | null;
       leaveRequest: {
         id: string;
         status: string;
@@ -116,7 +121,7 @@ export async function listApprovals(
       ? LEAVE_APPROVAL_DECISION.PENDING
       : undefined;
 
-  return leaveApprovalRepository.findByFilters({
+  const result = await leaveApprovalRepository.findByFilters({
     status: effectiveApprovalStatus,
     leaveStatus: requestedLeaveStatus,
     leaveRequestId: query.leaveRequestId,
@@ -142,4 +147,16 @@ export async function listApprovals(
     page: query.page,
     limit: query.limit,
   });
+
+  const overrideTypes = await getApprovalOverrideTypes(
+    result.items.map((item) => item.id),
+  );
+
+  return {
+    ...result,
+    items: result.items.map((item) => ({
+      ...item,
+      overrideType: overrideTypes.get(item.id) ?? null,
+    })),
+  };
 }

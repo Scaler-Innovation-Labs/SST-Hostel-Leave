@@ -17,6 +17,7 @@ import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
 import { QR_STATUS } from "@/constants/movement/qr-status";
 import { RowSkeleton } from "@/design-system/sst";
 import { useApprovalChain } from "@/features/approvals/hooks/use-approval-chain";
+import { formatApprovalActor } from "@/features/approvals/lib/step-display";
 import { useLeaveExtensions } from "@/features/extensions/hooks/use-leave-extensions";
 import type { QuestionItem } from "@/features/leaves/components/AskAQuestionSection";
 import { useMovement } from "@/hooks/use-movement";
@@ -145,8 +146,8 @@ export function LeaveTimeline({
             : decision === "rejected"
               ? "rejected"
               : "waiting",
-        actor: approval.approverName ?? approval.approverRoleCode ?? null,
-        time: approval.createdAt as string | null,
+        actor: formatApprovalActor(approval),
+        time: (approval.actedAt ?? approval.createdAt) as string | null,
       });
     }
 
@@ -160,8 +161,8 @@ export function LeaveTimeline({
         id: "decision",
         label: "Request rejected",
         status: "rejected",
-        actor: rejected.approverName ?? null,
-        time: (rejected.createdAt as string | null) ?? null,
+        actor: formatApprovalActor(rejected),
+        time: (rejected.actedAt ?? rejected.createdAt) as string | null,
       });
     }
 

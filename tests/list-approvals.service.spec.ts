@@ -5,6 +5,7 @@ const mockFindByFilters = vi.fn();
 const mockFindById = vi.fn();
 const mockAssertCanAccessLeave = vi.fn();
 const mockFindStudentByUserId = vi.fn();
+const mockFindAuditByEntityIds = vi.fn();
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
@@ -21,6 +22,12 @@ vi.mock("@/db/repositories/student/student.repository", () => ({
 vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
   leaveApprovalRepository: {
     findByFilters: (...args: any[]) => mockFindByFilters(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/audit/audit.repository", () => ({
+  auditRepository: {
+    findByEntityIds: (...args: any[]) => mockFindAuditByEntityIds(...args),
   },
 }));
 
@@ -46,6 +53,7 @@ beforeEach(() => {
   mockFindById.mockResolvedValue(null);
   mockAssertCanAccessLeave.mockResolvedValue(undefined);
   mockFindStudentByUserId.mockResolvedValue({ id: "S1" });
+  mockFindAuditByEntityIds.mockResolvedValue([]);
 });
 
 describe("listApprovals service", () => {
@@ -55,7 +63,14 @@ describe("listApprovals service", () => {
       { id: "U1", roles: ["ADMIN"] }
     );
 
-    expect(result).toEqual(MOCK_RESULT);
+    expect(result).toEqual({
+      ...MOCK_RESULT,
+      items: [{ ...MOCK_RESULT.items[0], overrideType: null }],
+    });
+    expect(mockFindAuditByEntityIds).toHaveBeenCalledWith(
+      "LEAVE_APPROVAL",
+      ["A1"]
+    );
     expect(mockFindByFilters).toHaveBeenCalledWith(
       expect.objectContaining({
         page: 1,
@@ -171,6 +186,40 @@ describe("listApprovals service", () => {
     expect(mockFindByFilters).toHaveBeenCalledWith(
       expect.objectContaining({ leaveTypeId: "LT1" })
     );
+  });
+
+  it("annotates approvals with override types from the audit log", async () => {
+    mockFindByFilters.mockResolvedValue({
+      items: [{ id: "A1" }, { id: "A2" }, { id: "A3" }],
+      total: 3,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    });
+    mockFindAuditByEntityIds.mockResolvedValue([
+      { entityId: "A1", action: "OVERRIDE", metadata: null },
+      {
+        entityId: "A2",
+        action: "APPROVE",
+        metadata: { overrideType: "PARENT_OVERRIDE" },
+      },
+    ]);
+
+    const result = await listApprovals(
+      { page: 1, limit: 20 },
+      { id: "U1", roles: ["ADMIN"] }
+    );
+
+    expect(result.items.map((item: any) => item.overrideType)).toEqual([
+      "ADMIN_OVERRIDE",
+      "PARENT_OVERRIDE",
+      null,
+    ]);
+    expect(mockFindAuditByEntityIds).toHaveBeenCalledWith("LEAVE_APPROVAL", [
+      "A1",
+      "A2",
+      "A3",
+    ]);
   });
 
   it("does not scope to POC for SUPER_ADMIN", async () => {
