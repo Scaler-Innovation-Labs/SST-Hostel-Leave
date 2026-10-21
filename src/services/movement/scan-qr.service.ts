@@ -54,6 +54,21 @@ export function detectScanType(
 	return null;
 }
 
+function returnSessionError(
+	openSession: QrPass | null,
+	pass: QrPass
+): string | null {
+	if (openSession && openSession.id !== pass.id) {
+		return "Return pass does not match the open movement session";
+	}
+
+	if (!openSession && pass.qrType !== "LEAVE_RETURN") {
+		return "Student has no open movement session";
+	}
+
+	return null;
+}
+
 export type QrScanPreview = {
 	valid: boolean;
 	reason?: string;
@@ -96,19 +111,29 @@ export async function previewQrScan(token: string): Promise<QrScanPreview> {
 	}
 
 	// EXIT is window-gated; a RETURN by an already-exited student is not
-	// (overdue returns must still work after expires_at).
-	if (scanType === "EXIT_SCAN") {
-		const now = new Date();
+	// (overdue returns must still work after expires_at). Neither scan may
+	// happen before the pass window opens.
+	const now = new Date();
 
-		if (pass.validFrom && now < pass.validFrom) {
-			return {
-				valid: false,
-				reason: `QR pass is not valid until ${pass.validFrom.toISOString()}`,
-			};
-		}
+	if (pass.validFrom && now < pass.validFrom) {
+		return {
+			valid: false,
+			reason: `QR pass is not valid until ${pass.validFrom.toISOString()}`,
+		};
+	}
 
-		if (pass.expiresAt && now > pass.expiresAt) {
-			return { valid: false, reason: "QR pass has expired" };
+	if (scanType === "EXIT_SCAN" && pass.expiresAt && now > pass.expiresAt) {
+		return { valid: false, reason: "QR pass has expired" };
+	}
+
+	if (scanType === "RETURN_SCAN") {
+		const openSession = await qrPassRepository.findOpenSessionPassForStudent(
+			pass.studentId
+		);
+		const sessionError = returnSessionError(openSession, pass);
+
+		if (sessionError) {
+			return { valid: false, reason: sessionError };
 		}
 	}
 
@@ -283,6 +308,47 @@ export async function scanQrPass(
 		};
 	}
 
+	if (input.scanType === "RETURN_SCAN") {
+		if (pass.validFrom && new Date() < pass.validFrom) {
+			const reason = `QR pass is not valid until ${pass.validFrom.toISOString()}`;
+			const log = await qrScanLogRepository.create({
+				qrPassId: pass.id,
+				scannedBy: input.scannedBy,
+				scanType: "RETURN_SCAN",
+				scanResult: "FAILED",
+				failureReason: reason,
+			});
+
+			return {
+				scanLogId: log.id,
+				success: false,
+				scanType: "RETURN_SCAN",
+				failureReason: reason,
+			};
+		}
+
+		const openSession =
+			await qrPassRepository.findOpenSessionPassForStudent(pass.studentId);
+		const sessionError = returnSessionError(openSession, pass);
+
+		if (sessionError) {
+			const log = await qrScanLogRepository.create({
+				qrPassId: pass.id,
+				scannedBy: input.scannedBy,
+				scanType: "RETURN_SCAN",
+				scanResult: "FAILED",
+				failureReason: sessionError,
+			});
+
+			return {
+				scanLogId: log.id,
+				success: false,
+				scanType: "RETURN_SCAN",
+				failureReason: sessionError,
+			};
+		}
+	}
+
 	if (input.scanType === "EXIT_SCAN") {
 		// Contract §2: usable-for-exit ⟺ ACTIVE + valid_from <= now <= expires_at.
 		// A future approved leave's pass is ACTIVE but outside its window — the
@@ -385,6 +451,14 @@ export async function scanQrPass(
 
 			if (!passInTx || passInTx.status !== QR_STATUS.ACTIVE) {
 				throw new ConflictError("QR pass is no longer active");
+			}
+
+			if (passInTx.tokenHash !== pass.tokenHash) {
+				throw new ConflictError("QR pass token has been rotated");
+			}
+
+			if (passInTx.closedAt) {
+				throw new ConflictError("QR pass has already been used for return");
 			}
 
 			// Re-check the window inside the transaction: the snapshot check
@@ -506,6 +580,33 @@ export async function scanQrPass(
 
 			if (!passInTx || passInTx.status !== QR_STATUS.ACTIVE) {
 				throw new ConflictError("QR pass is no longer active");
+			}
+
+			if (passInTx.tokenHash !== pass.tokenHash) {
+				throw new ConflictError("QR pass token has been rotated");
+			}
+
+			if (passInTx.closedAt) {
+				throw new ConflictError("QR pass has already been used for return");
+			}
+
+			const now = new Date();
+
+			if (passInTx.validFrom && now < passInTx.validFrom) {
+				throw new ConflictError(
+					`QR pass is not valid until ${passInTx.validFrom.toISOString()}`
+				);
+			}
+
+			const openSession =
+				await qrPassRepository.findOpenSessionPassForStudent(
+					pass.studentId,
+					tx
+				);
+			const sessionError = returnSessionError(openSession, passInTx);
+
+			if (sessionError) {
+				throw new ConflictError(sessionError);
 			}
 
 			// Serialize with cancel/expire/override on the leave row. Without

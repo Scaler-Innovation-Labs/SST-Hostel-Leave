@@ -93,7 +93,11 @@ beforeEach(() => {
   mockInvalidate.mockResolvedValue({ id: "PASS1" });
   mockFindUsableExitPass.mockResolvedValue(null);
   mockFindOpenSessionPass.mockResolvedValue(null);
-  mockFindById.mockResolvedValue({ id: "PASS1", status: "ACTIVE" });
+  mockFindById.mockResolvedValue({
+    id: "PASS1",
+    status: "ACTIVE",
+    qrType: "LEAVE_RETURN",
+  });
   mockLeaveFindByIdForUpdate.mockResolvedValue({
     id: "L1",
     status: "APPROVED",
@@ -448,6 +452,101 @@ describe("scanQrPass service", () => {
         expect.any(Object)
       );
     });
+
+    it("rejects a RETURN_SCAN before the pass window opens", async () => {
+      mockFindByTokenHash.mockResolvedValue({
+        ...VALID_RETURN_PASS,
+        validFrom: new Date("2099-01-01"),
+      });
+
+      const result = await scanQrPass({
+        token: "return-token",
+        scannedBy: "U1",
+        scanType: "RETURN_SCAN",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.failureReason).toContain("QR pass is not valid until");
+      expect(mockMarkAsClosed).not.toHaveBeenCalled();
+      expect(mockRecordMovement).not.toHaveBeenCalled();
+    });
+
+    it("rejects a return-only pass while a different movement session is open", async () => {
+      mockFindByTokenHash.mockResolvedValue(VALID_RETURN_PASS);
+      mockFindOpenSessionPass.mockResolvedValue({ id: "PASS-OTHER" });
+
+      const result = await scanQrPass({
+        token: "return-token",
+        scannedBy: "U1",
+        scanType: "RETURN_SCAN",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.failureReason).toBe(
+        "Return pass does not match the open movement session"
+      );
+      expect(mockMarkAsClosed).not.toHaveBeenCalled();
+      expect(mockRecordMovement).not.toHaveBeenCalled();
+    });
+
+    it("rejects a normal pass return when another movement session is open", async () => {
+      mockFindByTokenHash.mockResolvedValue({
+        ...VALID_PASS,
+        firstScanAt: new Date(),
+      });
+      mockFindOpenSessionPass.mockResolvedValue({ id: "PASS-OTHER" });
+
+      const result = await scanQrPass({
+        token: "exit-token",
+        scannedBy: "U1",
+        scanType: "RETURN_SCAN",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.failureReason).toBe(
+        "Return pass does not match the open movement session"
+      );
+      expect(mockMarkAsClosed).not.toHaveBeenCalled();
+    });
+
+    it("allows a normal pass return when the open session is the same pass", async () => {
+      mockFindByTokenHash.mockResolvedValue({
+        ...VALID_PASS,
+        firstScanAt: new Date(),
+      });
+      mockFindOpenSessionPass.mockResolvedValue({ id: "PASS1" });
+      mockFindById.mockResolvedValue({
+        ...VALID_PASS,
+        firstScanAt: new Date(),
+        qrType: "LEAVE_EXIT",
+      });
+
+      const result = await scanQrPass({
+        token: "exit-token",
+        scannedBy: "U1",
+        scanType: "RETURN_SCAN",
+      });
+
+      expect(result.success).toBe(true);
+      expect(mockMarkAsClosed).toHaveBeenCalledWith("PASS1", expect.any(Object));
+    });
+
+    it("rechecks return-session ownership inside the transaction", async () => {
+      mockFindByTokenHash.mockResolvedValue(VALID_RETURN_PASS);
+      mockFindOpenSessionPass
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: "PASS-OTHER" });
+
+      await expect(
+        scanQrPass({
+          token: "return-token",
+          scannedBy: "U1",
+          scanType: "RETURN_SCAN",
+        })
+      ).rejects.toBeInstanceOf(ConflictError);
+      expect(mockMarkAsClosed).not.toHaveBeenCalled();
+      expect(mockRecordMovement).not.toHaveBeenCalled();
+    });
   });
 
   describe("transaction atomicity", () => {
@@ -623,6 +722,76 @@ describe("scanQrPass service", () => {
 
       expect(result.success).toBe(false);
       expect(result.failureReason).toBe("QR pass has already been used for exit");
+    });
+
+    it("EXIT_SCAN fails when a concurrent scan wins the guarded update", async () => {
+      mockFindByTokenHash.mockResolvedValue(VALID_PASS);
+      mockMarkAsFirstScanned.mockResolvedValue(null);
+
+      await expect(
+        scanQrPass({
+          token: "exit-token",
+          scannedBy: "U1",
+          scanType: "EXIT_SCAN",
+        })
+      ).rejects.toBeInstanceOf(ConflictError);
+      expect(mockRecordMovement).not.toHaveBeenCalled();
+    });
+
+    it("RETURN_SCAN fails when a concurrent return wins the guarded update", async () => {
+      mockFindByTokenHash.mockResolvedValue(VALID_RETURN_PASS);
+      mockMarkAsClosed.mockResolvedValue(null);
+
+      await expect(
+        scanQrPass({
+          token: "return-token",
+          scannedBy: "U1",
+          scanType: "RETURN_SCAN",
+        })
+      ).rejects.toBeInstanceOf(ConflictError);
+      expect(mockRecordMovement).not.toHaveBeenCalled();
+    });
+
+    it("rejects EXIT_SCAN when the token was rotated after lookup", async () => {
+      mockFindByTokenHash.mockResolvedValue({
+        ...VALID_PASS,
+        tokenHash: "old-token-hash",
+      });
+      mockFindById.mockResolvedValue({
+        ...VALID_PASS,
+        status: "ACTIVE",
+        tokenHash: "new-token-hash",
+      });
+
+      await expect(
+        scanQrPass({
+          token: "exit-token",
+          scannedBy: "U1",
+          scanType: "EXIT_SCAN",
+        })
+      ).rejects.toBeInstanceOf(ConflictError);
+      expect(mockMarkAsFirstScanned).not.toHaveBeenCalled();
+    });
+
+    it("rejects RETURN_SCAN when the token was rotated after lookup", async () => {
+      mockFindByTokenHash.mockResolvedValue({
+        ...VALID_RETURN_PASS,
+        tokenHash: "old-token-hash",
+      });
+      mockFindById.mockResolvedValue({
+        ...VALID_RETURN_PASS,
+        status: "ACTIVE",
+        tokenHash: "new-token-hash",
+      });
+
+      await expect(
+        scanQrPass({
+          token: "return-token",
+          scannedBy: "U1",
+          scanType: "RETURN_SCAN",
+        })
+      ).rejects.toBeInstanceOf(ConflictError);
+      expect(mockMarkAsClosed).not.toHaveBeenCalled();
     });
   });
 });

@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const mockFindByTokenHash = vi.fn();
+const mockFindOpenSessionPass = vi.fn();
 const mockQrScanLogCreate = vi.fn();
 const mockStudentFindById = vi.fn();
 const mockUserFindById = vi.fn();
@@ -17,7 +18,11 @@ vi.mock("@/lib/db/transaction", () => ({
 }));
 
 vi.mock("@/db/repositories/movement/qr-pass.repository", () => ({
-  qrPassRepository: { findByTokenHash: (...args: any[]) => mockFindByTokenHash(...args) },
+  qrPassRepository: {
+    findByTokenHash: (...args: any[]) => mockFindByTokenHash(...args),
+    findOpenSessionPassForStudent: (...args: any[]) =>
+      mockFindOpenSessionPass(...args),
+  },
 }));
 
 vi.mock("@/db/repositories/movement/qr-scan-log.repository", () => ({
@@ -103,6 +108,7 @@ const LEAVE_TYPE = { id: "LT1", name: "Home Visit" };
 beforeEach(() => {
   vi.clearAllMocks();
   mockFindByTokenHash.mockResolvedValue(ACTIVE_UNSCANNED_PASS);
+  mockFindOpenSessionPass.mockResolvedValue(null);
   mockStudentFindById.mockResolvedValue(STUDENT);
   mockUserFindById.mockResolvedValue(USER);
   mockHostelFindById.mockResolvedValue(HOSTEL);
@@ -187,6 +193,30 @@ describe("previewQrScan", () => {
 
     expect(result.valid).toBe(false);
     expect(result.reason).toBe("QR pass has expired");
+  });
+
+  it("rejects a RETURN preview before the pass window opens", async () => {
+    mockFindByTokenHash.mockResolvedValue({
+      ...ACTIVE_RETURN_PASS,
+      validFrom: new Date("2099-01-01T00:00:00.000Z"),
+    });
+
+    const result = await previewQrScan("raw-token");
+
+    expect(result.valid).toBe(false);
+    expect(result.reason).toContain("not valid until");
+  });
+
+  it("rejects a RETURN preview while a different movement session is open", async () => {
+    mockFindByTokenHash.mockResolvedValue(ACTIVE_RETURN_PASS);
+    mockFindOpenSessionPass.mockResolvedValue({ id: "QP-OTHER" });
+
+    const result = await previewQrScan("raw-token");
+
+    expect(result.valid).toBe(false);
+    expect(result.reason).toBe(
+      "Return pass does not match the open movement session"
+    );
   });
 
   it("rejects a pass whose leave is no longer live", async () => {

@@ -165,7 +165,8 @@ export const qrPassRepository = {
         and(
           eq(qrPasses.id, id),
           eq(qrPasses.status, QR_STATUS.ACTIVE),
-          isNull(qrPasses.firstScanAt)
+          isNull(qrPasses.firstScanAt),
+          isNull(qrPasses.closedAt)
         )
       )
       .returning();
@@ -191,7 +192,8 @@ export const qrPassRepository = {
       .where(
         and(
           eq(qrPasses.id, id),
-          eq(qrPasses.status, QR_STATUS.ACTIVE)
+          eq(qrPasses.status, QR_STATUS.ACTIVE),
+          isNull(qrPasses.closedAt)
         )
       )
       .returning();
