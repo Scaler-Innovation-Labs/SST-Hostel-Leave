@@ -14,6 +14,7 @@ const mockWorkflowResolve = vi.fn().mockResolvedValue({
 });
 const mockWorkflowFirstStep = vi.fn().mockReturnValue({ stepKey: "S1", stepOrder: 1, approverRoleId: "R1" });
 const mockLeaveCreate = vi.fn().mockResolvedValue({ id: "LR1", requestNumber: "LR-1" });
+const mockNextRequestNumber = vi.fn().mockResolvedValue("LR-1");
 const mockApprovalCreateMany = vi.fn().mockResolvedValue([]);
 const mockAuditRecord = vi.fn().mockResolvedValue({});
 
@@ -45,6 +46,7 @@ vi.mock("@/lib/db", () => {
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
     create: (...args: any[]) => mockLeaveCreate(...args),
+    nextRequestNumber: (...args: any[]) => mockNextRequestNumber(...args),
     findOverlappingLeaves: (...args: any[]) => mockFindOverlapping(...args),
   },
 }));
@@ -151,6 +153,7 @@ describe("createLeave service", () => {
     });
     mockWorkflowFirstStep.mockReturnValue({ stepKey: "S1", stepOrder: 1, approverRoleId: "R1" });
     mockLeaveCreate.mockResolvedValue({ id: "LR1", requestNumber: "LR-1" });
+    mockNextRequestNumber.mockResolvedValue("LR-1");
     mockApprovalCreateMany.mockResolvedValue([]);
     mockAuditRecord.mockResolvedValue({});
     mockLeaveTypeVersionGetOrCreate.mockResolvedValue({ id: "LTV1", version: 1 });

@@ -22,6 +22,13 @@
       "when": 1789558200000,
       "tag": "0002_leave_question_notification",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792540800000,
+      "tag": "0003_leave_request_number_sequence",
+      "breakpoints": true
     }
   ]
 }

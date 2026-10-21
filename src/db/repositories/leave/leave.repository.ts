@@ -5,6 +5,7 @@ import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { QR_MODE } from "@/constants/leave/qr-mode";
 import { leaveExtensions, leaveRequests, leaveTypes, qrPasses, students, users } from "@/db";
 import { db } from "@/lib/db";
+import { PersistenceError } from "@/lib/errors";
 
 type LeaveDbClient = Pick<typeof db, "insert" | "select" | "update">;
 
@@ -62,6 +63,23 @@ export const leaveRepository = {
 			.returning();
 
 		return rows[0]!;
+	},
+
+	async nextRequestNumber(
+		dbClient: Pick<typeof db, "execute"> = db
+	): Promise<string> {
+		const result = await dbClient.execute(
+			sql`SELECT nextval('leave_request_number_seq') AS value`
+		);
+		const row = (result.rows as Array<{ value: string | number }>)[0];
+
+		if (!row) {
+			throw new PersistenceError(
+				"leave_request_number_seq returned no value"
+			);
+		}
+
+		return `LR-${row.value}`;
 	},
 
 	async findById(id: string, dbClient: Pick<typeof db, "select"> = db): Promise<LeaveRequest | null> {

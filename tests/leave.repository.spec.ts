@@ -6,6 +6,7 @@ vi.mock("@/lib/db", () => ({
     insert: vi.fn().mockReturnValue({ values: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([]) }) }),
     select: vi.fn().mockReturnValue({ from: vi.fn().mockReturnValue({ where: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }) }) }),
     update: vi.fn().mockReturnValue({ set: vi.fn().mockReturnValue({ where: vi.fn().mockReturnValue({ returning: vi.fn().mockResolvedValue([]) }) }) }),
+    execute: vi.fn().mockResolvedValue({ rows: [{ value: "42" }] }),
   },
 }));
 
@@ -15,10 +16,15 @@ describe("leaveRepository", () => {
   it("exists and has expected methods", () => {
     expect(leaveRepository).toBeDefined();
     expect(typeof leaveRepository.create).toBe("function");
+    expect(typeof leaveRepository.nextRequestNumber).toBe("function");
     expect(typeof leaveRepository.findById).toBe("function");
     expect(typeof leaveRepository.findByIdForUpdate).toBe("function");
     expect(typeof leaveRepository.findOverlappingLeaves).toBe("function");
     expect(typeof leaveRepository.updateById).toBe("function");
     expect(typeof leaveRepository.updateCurrentStep).toBe("function");
+  });
+
+  it("generates request numbers from the database sequence", async () => {
+    await expect(leaveRepository.nextRequestNumber()).resolves.toBe("LR-42");
   });
 });

@@ -134,8 +134,6 @@ export async function createLeave(
     throw new ConflictError("Policy restricted: " + policyResult.restrictions.join(", "));
   }
 
-  const requestNumber = `LR-${Date.now()}`;
-
   const policyResultSummary: PolicyResultSummary = {
     allowed: policyResult.allowed,
     restrictions: policyResult.restrictions,
@@ -170,6 +168,8 @@ export async function createLeave(
     }
 
   const firstStep = workflowEngine.getFirstStep(approvalSteps);
+
+    const requestNumber = await leaveRepository.nextRequestNumber(tx);
 
     const createdLeave =
   await leaveRepository.create(
