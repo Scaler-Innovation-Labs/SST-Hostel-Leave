@@ -76,6 +76,20 @@ describe("outboxService", () => {
         outboxService.publish({ ...validInput, payload: undefined })
       ).rejects.toBeInstanceOf(ValidationError);
     });
+
+    it("throws ValidationError for an unknown eventType", async () => {
+      await expect(
+        outboxService.publish({ ...validInput, eventType: "NOT_A_REAL_EVENT" })
+      ).rejects.toBeInstanceOf(ValidationError);
+      expect(mockCreate).not.toHaveBeenCalled();
+    });
+
+    it("throws ValidationError for an unknown aggregateType", async () => {
+      await expect(
+        outboxService.publish({ ...validInput, aggregateType: "NOT_A_REAL_AGGREGATE" })
+      ).rejects.toBeInstanceOf(ValidationError);
+      expect(mockCreate).not.toHaveBeenCalled();
+    });
   });
 
   describe("publishMany", () => {

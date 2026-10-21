@@ -15,6 +15,15 @@ vi.mock("@/db/repositories/outbox/outbox.repository", () => ({
   },
 }));
 
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
 vi.mock("@/services/notification/notification.service", () => ({
   notificationService: {
     notify: vi.fn().mockResolvedValue(undefined),
@@ -39,11 +48,21 @@ import { handleLeaveEvent as mockHandleLeaveEvent } from "@/services/outbox/hand
 import { handleMovementEvent as mockHandleMovementEvent } from "@/services/outbox/handlers/movement-event.handler";
 import { handleNotificationEvent as mockHandleNotificationEvent } from "@/services/outbox/handlers/notification-event.handler";
 
+const CLAIMED_AT = new Date("2026-10-21T06:00:00.000Z");
+const LEASE_EXPIRES_AT = new Date("2026-10-21T06:05:00.000Z");
+const CLAIM = {
+  claimedAt: CLAIMED_AT,
+  leaseExpiresAt: LEASE_EXPIRES_AT,
+};
+
 beforeEach(() => {
   vi.resetAllMocks();
   mockHandleLeaveEvent.mockResolvedValue(undefined);
   mockHandleMovementEvent.mockResolvedValue(undefined);
   mockHandleNotificationEvent.mockResolvedValue(undefined);
+  mockMarkProcessed.mockResolvedValue({ id: "OE1" });
+  mockMarkFailed.mockResolvedValue({ id: "OE1" });
+  mockReleaseForRetry.mockResolvedValue({ id: "OE1" });
 });
 
 function makeEvent(overrides: Record<string, unknown> = {}) {
@@ -58,6 +77,8 @@ function makeEvent(overrides: Record<string, unknown> = {}) {
     lastError: null,
     createdAt: new Date(),
     processedAt: null,
+    claimedAt: CLAIMED_AT,
+    leaseExpiresAt: LEASE_EXPIRES_AT,
     ...overrides,
   };
 }
@@ -72,7 +93,7 @@ describe("processPendingEvents", () => {
 
     expect(result).toEqual({ processed: 1, failed: 0, skipped: 0 });
     // claimNext returns claimed events directly � no separate lock step
-    expect(mockMarkProcessed).toHaveBeenCalledWith("OE1");
+    expect(mockMarkProcessed).toHaveBeenCalledWith("OE1", CLAIM);
   });
 
   it("routes LEAVE_APPROVED event correctly", async () => {
@@ -122,7 +143,7 @@ describe("processPendingEvents", () => {
     const result = await processPendingEvents();
 
     expect(result).toEqual({ processed: 0, failed: 1, skipped: 0 });
-    expect(mockMarkFailed).toHaveBeenCalledWith("OE1", "No handler for event type: UNKNOWN_EVENT", MAX_RETRIES);
+    expect(mockMarkFailed).toHaveBeenCalledWith("OE1", "No handler for event type: UNKNOWN_EVENT", MAX_RETRIES, CLAIM);
   });
 
   it("consumes the retry budget for unknown event types so they cannot loop", async () => {
@@ -139,7 +160,8 @@ describe("processPendingEvents", () => {
     expect(mockMarkFailed).toHaveBeenCalledWith(
       "OE1",
       "No handler for event type: UNKNOWN_EVENT",
-      MAX_RETRIES
+      MAX_RETRIES,
+      CLAIM
     );
     expect(mockReleaseForRetry).not.toHaveBeenCalled();
   });
@@ -160,7 +182,7 @@ describe("processPendingEvents", () => {
     const result = await processPendingEvents();
 
     expect(result.failed).toBe(1);
-    expect(mockReleaseForRetry).toHaveBeenCalledWith("OE1");
+    expect(mockReleaseForRetry).toHaveBeenCalledWith("OE1", CLAIM);
     expect(mockMarkFailed).not.toHaveBeenCalled();
   });
 
@@ -172,8 +194,38 @@ describe("processPendingEvents", () => {
     const result = await processPendingEvents();
 
     expect(result.failed).toBe(1);
-    expect(mockMarkFailed).toHaveBeenCalledWith("OE1", "Handler failed", 5);
+    expect(mockMarkFailed).toHaveBeenCalledWith("OE1", "Handler failed", 5, CLAIM);
     expect(mockReleaseForRetry).not.toHaveBeenCalled();
+  });
+
+  it("passes the claim metadata to markProcessed", async () => {
+    const event = makeEvent();
+    mockClaimNext.mockResolvedValue([{ ...event, status: "PROCESSING" }]);
+
+    await processPendingEvents();
+
+    expect(mockMarkProcessed).toHaveBeenCalledWith("OE1", CLAIM);
+  });
+
+  it("does not count an event as processed when its claim was lost", async () => {
+    const event = makeEvent();
+    mockClaimNext.mockResolvedValue([{ ...event, status: "PROCESSING" }]);
+    mockMarkProcessed.mockResolvedValue(null);
+
+    const result = await processPendingEvents();
+
+    expect(result).toEqual({ processed: 0, failed: 0, skipped: 1 });
+  });
+
+  it("does not count a retry as released when its claim was lost", async () => {
+    mockHandleLeaveEvent.mockRejectedValue(new Error("Handler failed"));
+    const event = makeEvent({ attemptCount: 0 });
+    mockClaimNext.mockResolvedValue([{ ...event, status: "PROCESSING" }]);
+    mockReleaseForRetry.mockResolvedValue(null);
+
+    const result = await processPendingEvents();
+
+    expect(result).toEqual({ processed: 0, failed: 0, skipped: 1 });
   });
 
   it("processes multiple batch events", async () => {

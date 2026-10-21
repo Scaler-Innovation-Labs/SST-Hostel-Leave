@@ -8,6 +8,17 @@ import type {
   OutboxStatus,
 } from "@/constants/outbox/outbox-status";
 
+/**
+ * The claim metadata a worker must present to finalize an event. `claimNext`
+ * writes these values atomically; comparing them on the terminal update
+ * prevents a worker whose lease expired from overwriting the state of a row
+ * another worker has since re-claimed.
+ */
+export type OutboxClaim = {
+  claimedAt: Date | null;
+  leaseExpiresAt: Date | null;
+};
+
 export type OutboxEventRow = {
   id: string;
   eventType: OutboxEventType;
@@ -19,4 +30,6 @@ export type OutboxEventRow = {
   lastError: string | null;
   createdAt: Date;
   processedAt: Date | null;
+  claimedAt?: Date | null;
+  leaseExpiresAt?: Date | null;
 };

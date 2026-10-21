@@ -119,6 +119,18 @@ describe("outboxRepository", () => {
     expect(sqlText).toContain("+");
   });
 
+  it("markProcessed clears claim, lease, retry, and error state", async () => {
+    await outboxRepository.markProcessed("OE1");
+
+    const setArgs = mockSet.mock.calls[0][0];
+    expect(setArgs.status).toBe("PROCESSED");
+    expect(setArgs.processedAt).toBeInstanceOf(Date);
+    expect(setArgs.claimedAt).toBeNull();
+    expect(setArgs.leaseExpiresAt).toBeNull();
+    expect(setArgs.nextAttemptAt).toBeNull();
+    expect(setArgs.lastError).toBeNull();
+  });
+
   it("markFailed stores the error and the given attempt budget", async () => {
     await outboxRepository.markFailed("OE1", "boom", 5);
 
@@ -126,6 +138,9 @@ describe("outboxRepository", () => {
     expect(setArgs.status).toBe("FAILED");
     expect(setArgs.lastError).toBe("boom");
     expect(setArgs.attemptCount).toBe(5);
+    expect(setArgs.claimedAt).toBeNull();
+    expect(setArgs.leaseExpiresAt).toBeNull();
+    expect(setArgs.nextAttemptAt).toBeNull();
   });
 
   it("markFailed omits attemptCount when not provided", async () => {
@@ -135,13 +150,31 @@ describe("outboxRepository", () => {
     expect(setArgs.attemptCount).toBeUndefined();
   });
 
-  it("requeueStuckProcessing requeues stale PROCESSING claims only", async () => {
+  it("requeueStuckProcessing counts the crashed attempt and clears the lease", async () => {
     const count = await outboxRepository.requeueStuckProcessing(15);
 
     expect(count).toBe(0);
     const setArgs = mockSet.mock.calls[0][0];
     expect(setArgs.status).toBe("PENDING");
     expect(setArgs.claimedAt).toBeNull();
+    expect(setArgs.leaseExpiresAt).toBeNull();
+    expect(setArgs.nextAttemptAt).toBeNull();
+    expect(setArgs.attemptCount).toBeDefined();
+    expect(mockWhere).toHaveBeenCalled();
+  });
+
+  it("failStuckProcessing terminal-fails stale claims with no retry budget", async () => {
+    mockReturning.mockResolvedValueOnce([{ id: "OE1" }]);
+
+    const count = await outboxRepository.failStuckProcessing(15, 5);
+
+    expect(count).toBe(1);
+    const setArgs = mockSet.mock.calls[0][0];
+    expect(setArgs.status).toBe("FAILED");
+    expect(setArgs.attemptCount).toBe(5);
+    expect(setArgs.lastError).toContain("lease expired");
+    expect(setArgs.claimedAt).toBeNull();
+    expect(setArgs.leaseExpiresAt).toBeNull();
     expect(mockWhere).toHaveBeenCalled();
   });
 

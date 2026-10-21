@@ -1,9 +1,10 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, asc, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 
 import { OUTBOX_STATUS } from "@/constants/outbox/outbox-status";
 import { outboxEvents } from "@/db";
 import { db } from "@/lib/db";
+import type { OutboxClaim } from "@/types/outbox/outbox-event";
 
 export type OutboxEvent = InferSelectModel<
   typeof outboxEvents
@@ -41,6 +42,51 @@ function mapRawOutboxRow(row: Record<string, unknown>): OutboxEvent {
     claimedAt: (row.claimed_at ?? null) as Date | null,
     publishedAt: (row.published_at ?? null) as Date | null,
   };
+}
+
+/**
+ * Only a worker that still owns the row may finalize it. The status guard
+ * alone is not enough: after a lease expires the row can be requeued and
+ * claimed again, returning to PROCESSING while the original worker is still
+ * running. Matching the claim timestamps is a compare-and-set against that
+ * specific claim.
+ */
+function processingClaimGuard(claim?: OutboxClaim) {
+  return and(
+    eq(outboxEvents.status, OUTBOX_STATUS.PROCESSING),
+    claim
+      ? and(
+          claim.claimedAt
+            ? eq(outboxEvents.claimedAt, claim.claimedAt)
+            : isNull(outboxEvents.claimedAt),
+          claim.leaseExpiresAt
+            ? eq(outboxEvents.leaseExpiresAt, claim.leaseExpiresAt)
+            : isNull(outboxEvents.leaseExpiresAt)
+        )
+      : undefined
+  );
+}
+
+function staleProcessingGuard(graceMinutes: number) {
+  const cutoff = new Date(Date.now() - graceMinutes * 60_000);
+
+  return and(
+    eq(outboxEvents.status, OUTBOX_STATUS.PROCESSING),
+    // Use leaseExpiresAt if set; fall back to claimedAt grace for legacy rows.
+    or(
+      and(
+        isNotNull(outboxEvents.leaseExpiresAt),
+        lt(outboxEvents.leaseExpiresAt, new Date())
+      ),
+      and(
+        isNull(outboxEvents.leaseExpiresAt),
+        or(
+          isNull(outboxEvents.claimedAt),
+          lt(outboxEvents.claimedAt, cutoff)
+        )
+      )
+    )
+  );
 }
 
 export const outboxRepository = {
@@ -222,6 +268,7 @@ export const outboxRepository = {
 
   async markProcessed(
     id: string,
+    claim?: OutboxClaim,
     dbClient: Pick<typeof db, "update"> = db
   ): Promise<OutboxEvent | null> {
     const rows = await dbClient
@@ -229,8 +276,17 @@ export const outboxRepository = {
       .set({
         status: OUTBOX_STATUS.PROCESSED,
         processedAt: new Date(),
+        claimedAt: null,
+        leaseExpiresAt: null,
+        nextAttemptAt: null,
+        lastError: null,
       })
-      .where(eq(outboxEvents.id, id))
+      .where(
+        and(
+          eq(outboxEvents.id, id),
+          processingClaimGuard(claim)
+        )
+      )
       .returning();
 
     return rows[0] ?? null;
@@ -240,6 +296,7 @@ export const outboxRepository = {
     id: string,
     error: string,
     attemptCount?: number,
+    claim?: OutboxClaim,
     dbClient: Pick<typeof db, "update"> = db
   ): Promise<OutboxEvent | null> {
     const rows = await dbClient
@@ -247,9 +304,17 @@ export const outboxRepository = {
       .set({
         status: OUTBOX_STATUS.FAILED,
         lastError: error,
+        claimedAt: null,
+        leaseExpiresAt: null,
+        nextAttemptAt: null,
         ...(attemptCount !== undefined ? { attemptCount } : {}),
       })
-      .where(eq(outboxEvents.id, id))
+      .where(
+        and(
+          eq(outboxEvents.id, id),
+          processingClaimGuard(claim)
+        )
+      )
       .returning();
 
     return rows[0] ?? null;
@@ -261,7 +326,12 @@ export const outboxRepository = {
   ): Promise<OutboxEvent | null> {
     const rows = await dbClient
       .update(outboxEvents)
-      .set({ status: OUTBOX_STATUS.PENDING })
+      .set({
+        status: OUTBOX_STATUS.PENDING,
+        claimedAt: null,
+        leaseExpiresAt: null,
+        nextAttemptAt: null,
+      })
       .where(
         and(
           eq(outboxEvents.id, id),
@@ -285,6 +355,7 @@ export const outboxRepository = {
    */
   async releaseForRetry(
     id: string,
+    claim?: OutboxClaim,
     dbClient: Pick<typeof db, "update" | "select"> = db
   ): Promise<OutboxEvent | null> {
     const current = await dbClient
@@ -308,7 +379,7 @@ export const outboxRepository = {
       .where(
         and(
           eq(outboxEvents.id, id),
-          eq(outboxEvents.status, OUTBOX_STATUS.PROCESSING)
+          processingClaimGuard(claim)
         )
       )
       .returning();
@@ -391,34 +462,48 @@ export const outboxRepository = {
     graceMinutes: number,
     dbClient: Pick<typeof db, "update"> = db
   ): Promise<number> {
-    const cutoff = new Date(
-      Date.now() - graceMinutes * 60_000
-    );
-
     const rows = await dbClient
       .update(outboxEvents)
       .set({
         status: OUTBOX_STATUS.PENDING,
+        // A crashed attempt still consumed one of the retry budget. Without
+        // this, a handler that repeatedly kills the worker would be requeued
+        // forever and never reach FAILED.
+        attemptCount: sql`COALESCE(${outboxEvents.attemptCount}, 0) + 1`,
         claimedAt: null,
         leaseExpiresAt: null,
+        nextAttemptAt: null,
+      })
+      .where(staleProcessingGuard(graceMinutes))
+      .returning();
+
+    return rows.length;
+  },
+
+  /**
+   * Terminal-fail stale PROCESSING rows that have no retry budget left. This
+   * runs before requeueStuckProcessing so a poison event that keeps crashing
+   * the worker cannot loop forever.
+   */
+  async failStuckProcessing(
+    graceMinutes: number,
+    maxAttempts: number,
+    dbClient: Pick<typeof db, "update"> = db
+  ): Promise<number> {
+    const rows = await dbClient
+      .update(outboxEvents)
+      .set({
+        status: OUTBOX_STATUS.FAILED,
+        attemptCount: maxAttempts,
+        lastError: "Processing lease expired before completion",
+        claimedAt: null,
+        leaseExpiresAt: null,
+        nextAttemptAt: null,
       })
       .where(
         and(
-          eq(outboxEvents.status, OUTBOX_STATUS.PROCESSING),
-          // Use leaseExpiresAt if set; fall back to claimedAt grace for legacy rows
-          or(
-            and(
-              isNotNull(outboxEvents.leaseExpiresAt),
-              lt(outboxEvents.leaseExpiresAt, new Date())
-            ),
-            and(
-              isNull(outboxEvents.leaseExpiresAt),
-              or(
-                isNull(outboxEvents.claimedAt),
-                lt(outboxEvents.claimedAt, cutoff)
-              )
-            )
-          )
+          staleProcessingGuard(graceMinutes),
+          gte(outboxEvents.attemptCount, maxAttempts - 1)
         )
       )
       .returning();

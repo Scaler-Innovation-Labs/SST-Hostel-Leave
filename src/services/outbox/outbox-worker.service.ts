@@ -1,5 +1,7 @@
 import { type OutboxEvent,outboxRepository } from "@/db/repositories/outbox/outbox.repository";
+import { logger } from "@/lib/logger";
 import type {
+  OutboxClaim,
   OutboxEventRow,
 } from "@/types/outbox/outbox-event";
 
@@ -55,6 +57,15 @@ function toEventRow(event: OutboxEvent): OutboxEventRow {
     lastError: event.lastError,
     createdAt: event.createdAt,
     processedAt: event.processedAt,
+    claimedAt: event.claimedAt,
+    leaseExpiresAt: event.leaseExpiresAt,
+  };
+}
+
+function claimOf(event: OutboxEventRow): OutboxClaim {
+  return {
+    claimedAt: event.claimedAt ?? null,
+    leaseExpiresAt: event.leaseExpiresAt ?? null,
   };
 }
 
@@ -70,10 +81,11 @@ export async function processPendingEvents(): Promise<{
 
   let processed = 0;
   let failed = 0;
-  const skipped = 0;
+  let skipped = 0;
 
   for (const event of claimedEvents) {
     const eventRow = toEventRow(event);
+    const claim = claimOf(eventRow);
 
     const handler = getHandler(eventRow.eventType);
 
@@ -83,19 +95,50 @@ export async function processPendingEvents(): Promise<{
       // row lands FAILED and stays there. Otherwise the retry job (which
       // resets FAILED rows with remaining budget) would loop it
       // FAILED → PENDING → FAILED on every drain run forever.
-      await outboxRepository.markFailed(
+      const reason = `No handler for event type: ${eventRow.eventType}`;
+      const marked = await outboxRepository.markFailed(
         eventRow.id,
-        `No handler for event type: ${eventRow.eventType}`,
-        MAX_RETRIES
+        reason,
+        MAX_RETRIES,
+        claim
       );
-      failed++;
+
+      if (marked) {
+        failed++;
+        logger.error("Outbox event terminally failed", {
+          eventId: eventRow.id,
+          eventType: eventRow.eventType,
+          reason,
+        });
+      } else {
+        skipped++;
+        logger.warn("Outbox claim lost before terminal failure", {
+          eventId: eventRow.id,
+          eventType: eventRow.eventType,
+        });
+      }
       continue;
     }
 
     try {
       await handler(eventRow);
-      await outboxRepository.markProcessed(eventRow.id);
-      processed++;
+      const marked = await outboxRepository.markProcessed(
+        eventRow.id,
+        claim
+      );
+
+      if (marked) {
+        processed++;
+      } else {
+        // The handler ran, but this worker no longer owned the row (its
+        // lease expired and another worker re-claimed it). Do not claim
+        // success for a row someone else now owns.
+        skipped++;
+        logger.warn("Outbox claim lost before markProcessed", {
+          eventId: eventRow.id,
+          eventType: eventRow.eventType,
+        });
+      }
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -107,18 +150,46 @@ export async function processPendingEvents(): Promise<{
       ) {
         // Exhausted: mark FAILED with the attempt budget consumed so the
         // cron never requeues a permanently failing event.
-        await outboxRepository.markFailed(
+        const marked = await outboxRepository.markFailed(
           eventRow.id,
           errorMessage,
-          MAX_RETRIES
+          MAX_RETRIES,
+          claim
         );
+
+        if (marked) {
+          failed++;
+          logger.error("Outbox event exhausted retries", {
+            eventId: eventRow.id,
+            eventType: eventRow.eventType,
+            error: errorMessage,
+          });
+        } else {
+          skipped++;
+          logger.warn("Outbox claim lost before terminal failure", {
+            eventId: eventRow.id,
+            eventType: eventRow.eventType,
+          });
+        }
       } else {
         // Transient failure: requeue as PENDING with one more attempt
         // counted. The status must be reset — an event left in PROCESSING
         // is invisible to both findPending and findFailed.
-        await outboxRepository.releaseForRetry(eventRow.id);
+        const released = await outboxRepository.releaseForRetry(
+          eventRow.id,
+          claim
+        );
+
+        if (released) {
+          failed++;
+        } else {
+          skipped++;
+          logger.warn("Outbox claim lost before releaseForRetry", {
+            eventId: eventRow.id,
+            eventType: eventRow.eventType,
+          });
+        }
       }
-      failed++;
     }
   }
 

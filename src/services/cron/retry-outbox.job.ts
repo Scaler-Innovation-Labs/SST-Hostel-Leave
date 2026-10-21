@@ -5,10 +5,21 @@ import {
   processPendingEvents,
 } from "@/services/outbox/outbox-worker.service";
 
-export async function runRetryOutboxJob(): Promise<{ job: string; recoveredStuck: number; resetCount: number; processed: number; failed: number; skipped: number }> {
-  // Crash recovery: requeue PROCESSING events whose claim is stale (worker
-  // died mid-processing, or was left behind by the old worker logic).
+export async function runRetryOutboxJob(): Promise<{ job: string; failedStuck: number; recoveredStuck: number; resetCount: number; processed: number; failed: number; skipped: number }> {
+  // Crash recovery: terminal-fail PROCESSING events that have already used
+  // their retry budget, then requeue the rest. A handler that keeps crashing
+  // the worker must not loop forever with an untouched attempt count.
+  const failedStuck = await outboxRepository.failStuckProcessing(
+    15,
+    MAX_RETRIES
+  );
   const recoveredStuck = await outboxRepository.requeueStuckProcessing(15);
+
+  if (failedStuck > 0) {
+    logger.error("Outbox events exhausted retries after stale leases", {
+      failedStuck,
+    });
+  }
 
   // Only reset events that still have attempts left — exhausted events stay
   // FAILED instead of looping forever.
@@ -31,6 +42,7 @@ export async function runRetryOutboxJob(): Promise<{ job: string; recoveredStuck
 
   return {
     job: "retry-outbox",
+    failedStuck,
     recoveredStuck,
     resetCount,
     ...result,

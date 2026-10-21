@@ -1,8 +1,10 @@
-import type {
-  AggregateType,
+import {
+  AGGREGATE_TYPES,
+  type AggregateType,
 } from "@/constants/outbox/aggregate-types";
-import type {
-  OutboxEventType,
+import {
+  OUTBOX_EVENT_TYPES,
+  type OutboxEventType,
 } from "@/constants/outbox/event-types";
 import { OUTBOX_STATUS } from "@/constants/outbox/outbox-status";
 import {
@@ -30,14 +32,27 @@ export type PublishEventInput = {
   idempotencyKey?: string;
 };
 
+const KNOWN_EVENT_TYPES = new Set<string>(OUTBOX_EVENT_TYPES);
+const KNOWN_AGGREGATE_TYPES = new Set<string>(AGGREGATE_TYPES);
+
 function validateEvent(
   input: PublishEventInput
 ): void {
   if (!input.eventType) {
     throw new ValidationError("eventType is required");
   }
+  if (!KNOWN_EVENT_TYPES.has(input.eventType)) {
+    throw new ValidationError(
+      `Unknown eventType: ${input.eventType}`
+    );
+  }
   if (!input.aggregateType) {
     throw new ValidationError("aggregateType is required");
+  }
+  if (!KNOWN_AGGREGATE_TYPES.has(input.aggregateType)) {
+    throw new ValidationError(
+      `Unknown aggregateType: ${input.aggregateType}`
+    );
   }
   if (!input.aggregateId) {
     throw new ValidationError("aggregateId is required");
