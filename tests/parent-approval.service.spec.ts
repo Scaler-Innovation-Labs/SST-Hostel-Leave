@@ -9,6 +9,7 @@ function sha256(input: string): string {
 import { outboxService } from "@/services/outbox/outbox.service";
 
 const mockFindByParentApprovalToken = vi.fn();
+const mockFindApprovalById = vi.fn();
 const mockUpdateParentApprovalToken = vi.fn().mockResolvedValue({ id: "LA1" });
 const mockUpdateParentDecision = vi.fn().mockResolvedValue({ id: "LA1" });
 const mockFindNextByDecision = vi.fn().mockResolvedValue(null);
@@ -55,7 +56,7 @@ vi.mock("@/db/repositories/leave/leave-parent-approval.repository", () => ({
     findByParentApprovalToken: (...args: any[]) => mockFindByParentApprovalToken(...args),
     updateParentApprovalToken: (...args: any[]) => mockUpdateParentApprovalToken(...args),
     updateParentDecision: (...args: any[]) => mockUpdateParentDecision(...args),
-    findById: vi.fn().mockResolvedValue(null),
+    findById: (...args: any[]) => mockFindApprovalById(...args),
   },
 }));
 
@@ -582,6 +583,13 @@ describe("parentApproveDecision", () => {
 describe("generateParentApproval", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFindApprovalById.mockResolvedValue({
+      id: "LA1",
+      decision: "PENDING",
+      approverParentId: null,
+      parentApprovalToken: null,
+      parentApprovalExpiresAt: null,
+    });
   });
 
   it("generates token and sends SMS", async () => {
