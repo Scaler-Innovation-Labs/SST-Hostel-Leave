@@ -4,7 +4,7 @@ import { formatDistanceToNow, parseISO } from "date-fns";
 import { CheckCircle2, Clock, HelpCircle, Loader2, MessageSquarePlus, Paperclip, SendHorizonal } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
-import useSWR from "swr";
+import useSWR, { mutate as globalMutate } from "swr";
 
 import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
 import { answerLeaveQuestion, askLeaveQuestion, getQuestionsUrl, uploadLeaveDocument } from "@/lib/api/leave-api";
@@ -94,6 +94,7 @@ export function AskAQuestionSection({ leaveId, canAsk = false, canAnswer = false
       setSelectedFile(null);
       setAnsweringId(null);
       await mutate();
+      await globalMutate((key) => typeof key === "string" && key.includes(`/api/v1/leaves/${leaveId}/documents`));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to submit answer");
     } finally {

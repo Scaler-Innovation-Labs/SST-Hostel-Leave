@@ -12,6 +12,7 @@ vi.mock("@/hooks/use-documents", () => ({
 // Mock the API client
 vi.mock("@/lib/api/leave-api", () => ({
   deleteLeaveDocument: vi.fn(),
+  getQuestionsUrl: vi.fn((id: string) => `/api/v1/leaves/${id}/questions`),
 }));
 
 // Mock ConfirmationDialog
@@ -19,8 +20,6 @@ vi.mock("@/components/shared/ConfirmationDialog", () => ({
   ConfirmationDialog: ({ open, title }: { open: boolean; title: string }) =>
     open ? <div data-testid="confirm-dialog">{title}</div> : null,
 }));
-
-
 
 import { useDocuments } from "@/hooks/use-documents";
 
@@ -63,6 +62,7 @@ describe("DocumentList", () => {
 
     const { container } = render(<DocumentList leaveId="leave-1" />);
     expect(screen.getByText("Documents")).toBeInTheDocument();
+    expect(screen.getByText("No documents attached.")).toBeInTheDocument();
     expect(container.querySelectorAll("a[download]").length).toBe(0);
   });
 
@@ -149,5 +149,56 @@ describe("DocumentList", () => {
     render(<DocumentList leaveId="leave-1" canDelete />);
     const buttons = screen.getAllByRole("button");
     expect(buttons.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("does not show supporting document upload box by default when canUpload is true and admin has not asked", () => {
+    vi.mocked(useDocuments).mockReturnValue({
+      documents: [],
+      isLoading: false,
+      isError: false,
+      error: undefined,
+      mutate: vi.fn(),
+    });
+
+    render(<DocumentList leaveId="leave-1" canUpload hasAdminAsked={false} />);
+    expect(screen.queryByText("Supporting document")).not.toBeInTheDocument();
+    expect(screen.getByText("No documents attached.")).toBeInTheDocument();
+  });
+
+  it("shows supporting document upload box when admin has asked", () => {
+    vi.mocked(useDocuments).mockReturnValue({
+      documents: [],
+      isLoading: false,
+      isError: false,
+      error: undefined,
+      mutate: vi.fn(),
+    });
+
+    render(<DocumentList leaveId="leave-1" canUpload hasAdminAsked={true} />);
+    expect(screen.getByText("Supporting document")).toBeInTheDocument();
+    expect(
+      screen.getByText("Add any other document that will help reviewers assess this request."),
+    ).toBeInTheDocument();
+  });
+
+  it("shows missing required document upload even if admin has not asked generic supporting document", () => {
+    vi.mocked(useDocuments).mockReturnValue({
+      documents: [],
+      isLoading: false,
+      isError: false,
+      error: undefined,
+      mutate: vi.fn(),
+    });
+
+    render(
+      <DocumentList
+        leaveId="leave-1"
+        canUpload
+        hasAdminAsked={false}
+        requiredDocuments={[{ type: "medical", label: "Medical Certificate" }]}
+      />,
+    );
+    expect(screen.getByText("Medical Certificate required")).toBeInTheDocument();
+    expect(screen.queryByText("Supporting document")).not.toBeInTheDocument();
   });
 });

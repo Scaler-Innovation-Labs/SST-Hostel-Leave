@@ -1090,7 +1090,19 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 {documents.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <FileText className="mb-3 h-10 w-10 text-muted/50" />
-                    <p className="text-body text-muted">No documents attached.</p>
+                    <p className="text-body font-medium">No documents attached</p>
+                    <p className="mt-1 text-caption text-muted">
+                      Need documentation? You can request it from the student under Questions.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-4 gap-1.5"
+                      onClick={() => setActiveTab("questions")}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      Ask student for documents
+                    </Button>
                   </div>
                 ) : (
                   <div className="space-y-2">

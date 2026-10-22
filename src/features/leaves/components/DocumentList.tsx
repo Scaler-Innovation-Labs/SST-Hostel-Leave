@@ -3,6 +3,7 @@
 import { FileText, Image, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import useSWR from "swr";
 
 import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
@@ -11,7 +12,7 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { Button } from "@/components/ui/button";
 import { DocumentUpload } from "@/features/leaves/components/DocumentUpload";
 import { type DocumentItem, useDocuments } from "@/hooks/use-documents";
-import { deleteLeaveDocument } from "@/lib/api/leave-api";
+import { deleteLeaveDocument, getQuestionsUrl } from "@/lib/api/leave-api";
 
 function getFileIcon(mimeType: string | null) {
   if (!mimeType) return <FileText className="h-5 w-5" />;
@@ -35,6 +36,8 @@ type DocumentListProps = {
     type: string;
     label: string;
   }>;
+  /** Whether staff/admin has requested documents or asked a question on this leave */
+  hasAdminAsked?: boolean;
 };
 
 export function DocumentList({
@@ -42,11 +45,37 @@ export function DocumentList({
   canDelete = false,
   canUpload = false,
   requiredDocuments = [],
+  hasAdminAsked: hasAdminAskedProp,
 }: DocumentListProps) {
   const { documents, isLoading, isError, error, mutate } =
     useDocuments(leaveId);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const { data: questionData } = useSWR<{
+    data: { items: Array<{ id: string; askedByRole: string }>; total: number };
+  }>(
+    hasAdminAskedProp !== undefined
+      ? null
+      : leaveId
+        ? getQuestionsUrl(leaveId, { limit: 50 })
+        : null,
+  );
+
+  const hasAdminAsked =
+    hasAdminAskedProp ??
+    Boolean(
+      questionData?.data?.items && questionData.data.items.length > 0,
+    );
+
+  const missingRequiredDocuments = requiredDocuments.filter(
+    (requiredDocument) =>
+      !documents.some(
+        (document) => document.documentType === requiredDocument.type,
+      ),
+  );
+
+  const canUploadSupporting = canUpload && hasAdminAsked;
 
   const handleDelete = async () => {
     if (!confirmDeleteId) return;
@@ -81,36 +110,32 @@ export function DocumentList({
   return (
     <CollapsibleSection title="Documents" icon={FileText}>
       <div className="space-y-2">
-        {requiredDocuments.map((requiredDocument) =>
-          !documents.some(
-            (document) => document.documentType === requiredDocument.type,
-          ) ? (
-            <div
-              key={requiredDocument.type}
-              className="rounded-xl border border-warning/30 bg-warning-light p-4"
-            >
-              <p className="text-body font-medium">
-                {requiredDocument.label} required
-              </p>
-              <p className="mt-1 text-caption text-muted">
-                Upload this document so it can be reviewed with your leave
-                request.
-              </p>
-              {canUpload && (
-                <div className="mt-4">
-                  <DocumentUpload
-                    leaveId={leaveId}
-                    documentType={requiredDocument.type}
-                    documentLabel={requiredDocument.label}
-                    onUploadSuccess={() => mutate()}
-                  />
-                </div>
-              )}
-            </div>
-          ) : null,
-        )}
+        {missingRequiredDocuments.map((requiredDocument) => (
+          <div
+            key={requiredDocument.type}
+            className="rounded-xl border border-warning/30 bg-warning-light p-4"
+          >
+            <p className="text-body font-medium">
+              {requiredDocument.label} required
+            </p>
+            <p className="mt-1 text-caption text-muted">
+              Upload this document so it can be reviewed with your leave
+              request.
+            </p>
+            {canUpload && (
+              <div className="mt-4">
+                <DocumentUpload
+                  leaveId={leaveId}
+                  documentType={requiredDocument.type}
+                  documentLabel={requiredDocument.label}
+                  onUploadSuccess={() => mutate()}
+                />
+              </div>
+            )}
+          </div>
+        ))}
 
-        {canUpload && (
+        {canUploadSupporting && (
           <div className="rounded-xl border border-border bg-surface p-4">
             <p className="text-body font-medium">Supporting document</p>
             <p className="mt-1 text-caption text-muted">
@@ -126,6 +151,14 @@ export function DocumentList({
             </div>
           </div>
         )}
+
+        {documents.length === 0 &&
+          missingRequiredDocuments.length === 0 &&
+          !canUploadSupporting && (
+            <p className="py-2 text-center text-body text-muted">
+              No documents attached.
+            </p>
+          )}
 
         {documents.map((doc: DocumentItem) => (
           <div
