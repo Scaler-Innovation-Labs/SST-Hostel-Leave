@@ -559,6 +559,43 @@ export const leaveApprovals = pgTable("leave_approvals", {
   })
 );
 
+export const leaveApprovalParentDetails = pgTable(
+  "leave_approval_parent_details",
+  {
+    approvalId: uuid("approval_id")
+      .primaryKey()
+      .references(() => leaveApprovals.id, {
+        onDelete: "cascade",
+      }),
+
+    parentId: uuid("parent_id")
+      .notNull()
+      .references(() => parents.id, {
+        onDelete: "restrict",
+      }),
+
+    tokenHash: text("token_hash").unique(),
+
+    tokenExpiresAt: timestamp("token_expires_at", {
+      withTimezone: true,
+    }),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    tokenValidChk: check(
+      "parent_details_token_valid_chk",
+      sql`num_nonnulls(${table.tokenHash}, ${table.tokenExpiresAt}) IN (0, 2)`
+    ),
+    parentIdIndex: index("lapd_parent_id_idx").on(table.parentId),
+    tokenExpiresIndex: index("lapd_token_expires_idx").on(table.tokenExpiresAt),
+  })
+);
+
 export const leaveRejections = pgTable("leave_rejections", {
   id: uuid("id").defaultRandom().primaryKey(),
 

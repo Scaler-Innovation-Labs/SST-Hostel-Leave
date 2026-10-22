@@ -23,6 +23,7 @@ import {
   parents,
 } from "./hostel";
 import {
+  leaveApprovalParentDetails,
   leaveApprovals,
   leaveConfigurationContexts,
   leaveDocuments,
@@ -193,6 +194,7 @@ export const parentsRelations = relations(
     }),
 
     leaveApprovals: many(leaveApprovals),
+    leaveApprovalParentDetails: many(leaveApprovalParentDetails),
 
     notificationLogs: many(notificationLogs),
   })
@@ -376,6 +378,26 @@ export const leaveApprovalsRelations = relations(
 
     approverParent: one(parents, {
       fields: [leaveApprovals.approverParentId],
+      references: [parents.id],
+    }),
+
+    parentDetails: one(leaveApprovalParentDetails, {
+      fields: [leaveApprovals.id],
+      references: [leaveApprovalParentDetails.approvalId],
+    }),
+  })
+);
+
+export const leaveApprovalParentDetailsRelations = relations(
+  leaveApprovalParentDetails,
+  ({ one }) => ({
+    approval: one(leaveApprovals, {
+      fields: [leaveApprovalParentDetails.approvalId],
+      references: [leaveApprovals.id],
+    }),
+
+    parent: one(parents, {
+      fields: [leaveApprovalParentDetails.parentId],
       references: [parents.id],
     }),
   })
