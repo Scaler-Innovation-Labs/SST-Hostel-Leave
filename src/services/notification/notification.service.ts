@@ -166,7 +166,7 @@ async function resolveRecipientContacts(
 			const approvals = await leaveApprovalRepository.findByLeaveRequestId(context.leaveRequestId);
 			const pending = approvals.filter((a) => a.decision === LEAVE_APPROVAL_DECISION.PENDING);
 			if (pending.length === 0) return [];
-			const assignedApproverUserId = pending[0]!.assignedApproverUserId;
+			const assignedApproverUserId = pending[0]!.assignedApproverUserId ?? pending[0]!.approverUserId;
 			if (!assignedApproverUserId) return [];
 			const users = await userRepository.findByIds([assignedApproverUserId]);
 			return users.length > 0
@@ -180,7 +180,7 @@ async function resolveRecipientContacts(
 			const decided = approvals.filter((a): a is typeof a & { actedByUserId: string } => a.decision !== LEAVE_APPROVAL_DECISION.PENDING && a.actedByUserId !== null);
 			const sorted = [...decided].sort((a, b) => b.stepOrder - a.stepOrder);
 			if (sorted.length === 0) return [];
-			const actedByUserId = sorted[0]!.actedByUserId;
+			const actedByUserId = sorted[0]!.actedByUserId ?? sorted[0]!.approverUserId;
 			const users = await userRepository.findByIds([actedByUserId]);
 			return users.length > 0
 				? [{ email: users[0]!.email ?? undefined, phone: users[0]!.phone ?? undefined, userId: users[0]!.id }]
@@ -191,7 +191,7 @@ async function resolveRecipientContacts(
 			if (!context.leaveRequestId) return [];
 			const approvals = await leaveApprovalRepository.findByLeaveRequestId(context.leaveRequestId);
 			const userIds = approvals
-        .map((a) => a.actedByUserId ?? a.assignedApproverUserId)
+        .map((a) => a.actedByUserId ?? a.assignedApproverUserId ?? a.approverUserId)
         .filter((id): id is string => id !== null);
 			if (userIds.length === 0) return [];
 			const users = await userRepository.findByIds(userIds);

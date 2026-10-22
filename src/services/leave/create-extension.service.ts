@@ -8,6 +8,7 @@ import { QR_STATUS } from "@/constants/movement/qr-status";
 import { getQrExpiryFromLeaveEnd } from "@/constants/movement/qr-window";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { academicGroupRepository } from "@/db/repositories/academics/academic-group.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
@@ -225,29 +226,48 @@ export async function createExtension(
       );
     }
 
-    // Resolve parent approval step
+    // Resolve parent approval step and POC assignment from original leave
     const parentApprovalStep = approvalSteps.find((s) => s.isParentApproval);
+    const pocApprovalStep = approvalSteps.find((s) => s.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL);
+
     let parentId: string | null = null;
-    if (parentApprovalStep) {
+    let assignedPocId: string | null = null;
+
+    if (parentApprovalStep || pocApprovalStep) {
       const originalApprovals = await leaveApprovalRepository.findByLeaveRequestId(leaveRequestId, tx);
-      const originalParentApproval = originalApprovals.find((a) => a.approverParentId != null);
-      if (originalParentApproval?.approverParentId) {
-        parentId = originalParentApproval.approverParentId;
-      } else {
-        const parent = await parentRepository.findPrimaryByStudentId(leave.studentId, tx);
-        parentId = parent?.id ?? null;
+      if (parentApprovalStep) {
+        const originalParentApproval = originalApprovals.find((a) => a.approverParentId != null);
+        if (originalParentApproval?.approverParentId) {
+          parentId = originalParentApproval.approverParentId;
+        } else {
+          const parent = await parentRepository.findPrimaryByStudentId(leave.studentId, tx);
+          parentId = parent?.id ?? null;
+        }
+      }
+      if (pocApprovalStep) {
+        const originalPocApproval = originalApprovals.find((a) => a.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL);
+        assignedPocId = originalPocApproval?.assignedApproverUserId ?? originalPocApproval?.approverUserId ?? null;
       }
     }
 
-    const approvalsToCreate = approvalSteps.map((step) => ({
-      leaveExtensionId: createdExtension.id,
-      stepKey: step.stepKey,
-      stepOrder: step.stepOrder,
-      approverRoleId: step.approverRoleId ?? null,
-      approverParentId: step.isParentApproval ? parentId : null,
-      decision: LEAVE_APPROVAL_DECISION.PENDING,
-      approvalSource: resolveApprovalSource(step.approvalMethod ?? null, step.isParentApproval),
-    }));
+    const approvalsToCreate = approvalSteps.map((step) => {
+      let assignedApproverUserId: string | null = null;
+      if (step.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL) {
+        assignedApproverUserId = assignedPocId;
+      }
+
+      return {
+        leaveExtensionId: createdExtension.id,
+        stepKey: step.stepKey,
+        stepOrder: step.stepOrder,
+        approverRoleId: step.approverRoleId ?? null,
+        assignedApproverUserId,
+        approverUserId: assignedApproverUserId, // Dual-write for backward-compatible rollbacks
+        approverParentId: step.isParentApproval ? parentId : null,
+        decision: LEAVE_APPROVAL_DECISION.PENDING,
+        approvalSource: resolveApprovalSource(step.approvalMethod ?? null, step.isParentApproval),
+      };
+    });
 
     const createdApprovals = await leaveApprovalRepository.createMany(approvalsToCreate, tx);
 

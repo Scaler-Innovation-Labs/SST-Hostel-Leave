@@ -14,6 +14,7 @@ export function useApprovalChain(leaveRequestId: string) {
       leaveRequestId: string;
       assignedApproverUserId: string | null;
       actedByUserId: string | null;
+      approverUserId?: string | null;
       approverRoleId: string;
       approverRoleCode: string | null;
       approverParentId?: string | null;

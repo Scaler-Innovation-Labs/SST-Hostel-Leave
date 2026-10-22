@@ -468,6 +468,17 @@ export const leaveApprovals = pgTable("leave_approvals", {
     }
   ),
 
+  /**
+   * @deprecated Retained for zero-downtime rollback window during Stage 1 migration.
+   * Dual-written on write paths; reads should use assignedApproverUserId or actedByUserId.
+   */
+  approverUserId: uuid("approver_user_id").references(
+    () => users.id,
+    {
+      onDelete: "set null",
+    }
+  ),
+
   approverParentId: uuid("approver_parent_id").references(
     () => parents.id,
     {
@@ -520,6 +531,7 @@ export const leaveApprovals = pgTable("leave_approvals", {
     approverRoleIdIndex: index("la_approver_role_id_idx").on(table.approverRoleId),
     assignedApproverUserIdIndex: index("la_assigned_approver_user_id_idx").on(table.assignedApproverUserId),
     actedByUserIdIndex: index("la_acted_by_user_id_idx").on(table.actedByUserId),
+    approverUserIdIndex: index("la_approver_user_id_idx").on(table.approverUserId),
     decisionIndex: index("la_decision_idx").on(table.decision),
     parentApprovalTokenIndex: index("la_parent_token_idx").on(table.parentApprovalToken),
     approverParentIdIndex: index("la_approver_parent_id_idx").on(table.approverParentId),

@@ -265,6 +265,7 @@ export async function createLeave(
         stepOrder: step.stepOrder,
         approverRoleId: step.approverRoleId ?? null,
         assignedApproverUserId,
+        approverUserId: assignedApproverUserId,
         approverParentId: step.isParentApproval ? parentId : null,
         decision: LEAVE_APPROVAL_DECISION.PENDING,
         approvalSource: resolveApprovalSource(step.approvalMethod ?? null, step.isParentApproval),

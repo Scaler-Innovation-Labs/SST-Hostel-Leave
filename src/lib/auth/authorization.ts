@@ -43,10 +43,11 @@ export function requireAnyRole(
 }
 
 export function canApproveApproval(
-  approval: { assignedApproverUserId: string | null; approverRoleCode: string | null },
+  approval: { assignedApproverUserId?: string | null; approverUserId?: string | null; approverRoleCode: string | null },
   currentUser: { id: string; roles: string[] }
 ): boolean {
-  if (approval.assignedApproverUserId && approval.assignedApproverUserId !== currentUser.id) {
+  const assigned = approval.assignedApproverUserId ?? approval.approverUserId ?? null;
+  if (assigned && assigned !== currentUser.id) {
     return false;
   }
 
@@ -58,7 +59,7 @@ export function canApproveApproval(
 }
 
 export function requireApprovalAuthorization(
-  approval: { assignedApproverUserId: string | null; approverRoleCode: string | null },
+  approval: { assignedApproverUserId?: string | null; approverUserId?: string | null; approverRoleCode: string | null },
   currentUser: { id: string; roles: string[] }
 ): void {
   if (!canApproveApproval(approval, currentUser)) {

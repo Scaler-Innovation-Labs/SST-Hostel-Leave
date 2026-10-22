@@ -195,7 +195,12 @@ export const leaveApprovalRepository = {
 
     const rows = await dbClient
       .insert(leaveApprovals)
-      .values(inputs)
+      .values(
+        inputs.map((input) => ({
+          ...input,
+          approverUserId: input.approverUserId ?? input.assignedApproverUserId ?? null,
+        }))
+      )
       .returning();
 
     return rows;
@@ -240,6 +245,8 @@ export const leaveApprovalRepository = {
       studentId?: string;
       leaveTypeId?: string;
       assignedApproverUserId?: string;
+      /** @deprecated Legacy alias for assignedApproverUserId */
+      approverUserId?: string;
       /**
        * Queue mode (the default): one row per leave request, paginated over
        * requests. Pass false to get every matching approval row instead —
@@ -345,9 +352,13 @@ export const leaveApprovalRepository = {
     if (filters.leaveTypeId) {
       baseConditions.push(eq(leaveRequests.leaveTypeId, filters.leaveTypeId));
     }
-    if (filters.assignedApproverUserId) {
+    const targetAssignedUser = filters.assignedApproverUserId ?? filters.approverUserId;
+    if (targetAssignedUser) {
       baseConditions.push(
-        eq(leaveApprovals.assignedApproverUserId, filters.assignedApproverUserId),
+        or(
+          eq(leaveApprovals.assignedApproverUserId, targetAssignedUser),
+          eq(leaveApprovals.approverUserId, targetAssignedUser),
+        )!,
       );
     }
 
@@ -720,6 +731,7 @@ export const leaveApprovalRepository = {
     const setData: Partial<InferInsertModel<typeof leaveApprovals>> = {
       decision,
       actedByUserId,
+      approverUserId: actedByUserId,
       comments,
       actedAt,
     };
