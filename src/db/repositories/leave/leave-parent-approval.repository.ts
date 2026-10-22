@@ -1,10 +1,11 @@
 import type { InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 
 import { LEAVE_APPROVAL_SOURCE } from "@/constants/leave/approval-source";
 import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import {
+  leaveApprovalParentDetails,
   leaveApprovals,
   leaveExtensions,
   leaveRequests,
@@ -16,6 +17,7 @@ import {
 import { db } from "@/lib/db";
 
 export type LeaveApproval = InferSelectModel<typeof leaveApprovals>;
+export type LeaveApprovalParentDetails = InferSelectModel<typeof leaveApprovalParentDetails>;
 
 export const leaveParentApprovalRepository = {
   async findByParentApprovalToken(
@@ -23,6 +25,7 @@ export const leaveParentApprovalRepository = {
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<
     (LeaveApproval & {
+      parentDetails: LeaveApprovalParentDetails | null;
       approverRoleCode: string | null;
       parentName: string | null;
       parentPhone: string | null;
@@ -51,6 +54,7 @@ export const leaveParentApprovalRepository = {
     const rows = await dbClient
       .select({
         approval: leaveApprovals,
+        parentDetails: leaveApprovalParentDetails,
         roleCode: roles.code,
         parentName: parents.name,
         parentPhone: parents.phone,
@@ -59,12 +63,19 @@ export const leaveParentApprovalRepository = {
       })
       .from(leaveApprovals)
       .leftJoin(
+        leaveApprovalParentDetails,
+        eq(leaveApprovals.id, leaveApprovalParentDetails.approvalId)
+      )
+      .leftJoin(
         roles,
         eq(leaveApprovals.approverRoleId, roles.id)
       )
       .leftJoin(
         parents,
-        eq(leaveApprovals.approverParentId, parents.id)
+        eq(
+          parents.id,
+          sql`COALESCE(${leaveApprovalParentDetails.parentId}, ${leaveApprovals.approverParentId})`
+        )
       )
       .leftJoin(
         leaveRequests,
@@ -83,7 +94,10 @@ export const leaveParentApprovalRepository = {
         eq(students.userId, users.id)
       )
       .where(
-        eq(leaveApprovals.parentApprovalToken, tokenHash)
+        or(
+          eq(leaveApprovalParentDetails.tokenHash, tokenHash),
+          eq(leaveApprovals.parentApprovalToken, tokenHash)
+        )
       )
       .limit(1);
 
@@ -159,8 +173,17 @@ export const leaveParentApprovalRepository = {
       }
     }
 
+    // Child-first resolution with legacy fallback
+    const effectiveParentId = row.parentDetails?.parentId ?? row.approval.approverParentId;
+    const effectiveToken = row.parentDetails?.tokenHash ?? row.approval.parentApprovalToken;
+    const effectiveExpiresAt = row.parentDetails?.tokenExpiresAt ?? row.approval.parentApprovalExpiresAt;
+
     return {
       ...row.approval,
+      approverParentId: effectiveParentId,
+      parentApprovalToken: effectiveToken,
+      parentApprovalExpiresAt: effectiveExpiresAt,
+      parentDetails: row.parentDetails,
       approverRoleCode: row.roleCode,
       parentName: row.parentName,
       parentPhone: row.parentPhone,
@@ -190,6 +213,7 @@ export const leaveParentApprovalRepository = {
       updateData.approverParentId = approverParentId;
     }
 
+    // 1. Update legacy columns on leave_approvals
     const rows = await dbClient
       .update(leaveApprovals)
       .set(updateData)
@@ -206,7 +230,33 @@ export const leaveParentApprovalRepository = {
       )
       .returning();
 
-    return rows[0] ?? null;
+    const updatedApproval = rows[0] ?? null;
+    if (!updatedApproval) return null;
+
+    // 2. Dual-write into leave_approval_parent_details
+    const clientAny = dbClient as any;
+    const resolvedParentId = approverParentId ?? updatedApproval.approverParentId;
+
+    if (resolvedParentId && typeof clientAny.insert === "function") {
+      await clientAny
+        .insert(leaveApprovalParentDetails)
+        .values({
+          approvalId: id,
+          parentId: resolvedParentId,
+          tokenHash,
+          tokenExpiresAt: expiresAt,
+        })
+        .onConflictDoUpdate({
+          target: leaveApprovalParentDetails.approvalId,
+          set: {
+            parentId: resolvedParentId,
+            tokenHash,
+            tokenExpiresAt: expiresAt,
+          },
+        });
+    }
+
+    return updatedApproval;
   },
 
   async updateParentDecision(
@@ -221,7 +271,7 @@ export const leaveParentApprovalRepository = {
       .update(leaveApprovals)
       .set({
         decision,
-        approverParentId,
+        approverParentId: approverParentId || undefined,
         comments,
         actedAt: new Date(),
         approvalSource: (approvalSource ?? LEAVE_APPROVAL_SOURCE.SMS) as typeof LEAVE_APPROVAL_SOURCE.SMS,
@@ -243,14 +293,34 @@ export const leaveParentApprovalRepository = {
   async findById(
     id: string,
     dbClient: Pick<typeof db, "select"> = db
-  ): Promise<LeaveApproval | null> {
+  ): Promise<(LeaveApproval & { parentDetails?: LeaveApprovalParentDetails | null }) | null> {
     const rows = await dbClient
-      .select()
+      .select({
+        approval: leaveApprovals,
+        parentDetails: leaveApprovalParentDetails,
+      })
       .from(leaveApprovals)
+      .leftJoin(
+        leaveApprovalParentDetails,
+        eq(leaveApprovals.id, leaveApprovalParentDetails.approvalId)
+      )
       .where(eq(leaveApprovals.id, id))
       .limit(1);
 
-    return rows[0] ?? null;
+    if (rows.length === 0) return null;
+
+    const row = rows[0]!;
+    const effectiveParentId = row.parentDetails?.parentId ?? row.approval.approverParentId;
+    const effectiveToken = row.parentDetails?.tokenHash ?? row.approval.parentApprovalToken;
+    const effectiveExpiresAt = row.parentDetails?.tokenExpiresAt ?? row.approval.parentApprovalExpiresAt;
+
+    return {
+      ...row.approval,
+      approverParentId: effectiveParentId,
+      parentApprovalToken: effectiveToken,
+      parentApprovalExpiresAt: effectiveExpiresAt,
+      parentDetails: row.parentDetails,
+    };
   },
 
   async findPendingByParentPhone(
@@ -269,6 +339,7 @@ export const leaveParentApprovalRepository = {
     const rows = await dbClient
       .select({
         approval: leaveApprovals,
+        parentDetails: leaveApprovalParentDetails,
         studentName: users.fullName,
         leaveReqId: leaveRequests.id,
         leaveReqReason: leaveRequests.reason,
@@ -278,20 +349,33 @@ export const leaveParentApprovalRepository = {
         leaveReqNumber: leaveRequests.requestNumber,
       })
       .from(leaveApprovals)
+      .leftJoin(
+        leaveApprovalParentDetails,
+        eq(leaveApprovals.id, leaveApprovalParentDetails.approvalId)
+      )
       .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .where(
         and(
-          inArray(leaveApprovals.approverParentId, parentIds),
+          or(
+            inArray(leaveApprovalParentDetails.parentId, parentIds),
+            inArray(leaveApprovals.approverParentId, parentIds)
+          ),
           eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
-          sql`(${leaveApprovals.parentApprovalExpiresAt} IS NULL OR ${leaveApprovals.parentApprovalExpiresAt} > NOW())`
+          sql`(
+            COALESCE(${leaveApprovalParentDetails.tokenExpiresAt}, ${leaveApprovals.parentApprovalExpiresAt}) IS NULL
+            OR COALESCE(${leaveApprovalParentDetails.tokenExpiresAt}, ${leaveApprovals.parentApprovalExpiresAt}) > NOW()
+          )`
         )
       )
       .orderBy(desc(leaveApprovals.createdAt));
 
     return rows.map((row) => ({
       ...row.approval,
+      approverParentId: row.parentDetails?.parentId ?? row.approval.approverParentId,
+      parentApprovalToken: row.parentDetails?.tokenHash ?? row.approval.parentApprovalToken,
+      parentApprovalExpiresAt: row.parentDetails?.tokenExpiresAt ?? row.approval.parentApprovalExpiresAt,
       studentName: row.studentName,
       leaveRequest: row.leaveReqId
         ? {
@@ -323,25 +407,43 @@ export const leaveParentApprovalRepository = {
     const rows = await dbClient
       .select({
         approval: leaveApprovals,
+        parentDetails: leaveApprovalParentDetails,
         studentName: users.fullName,
       })
       .from(leaveApprovals)
+      .leftJoin(
+        leaveApprovalParentDetails,
+        eq(leaveApprovals.id, leaveApprovalParentDetails.approvalId)
+      )
       .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .where(
         and(
-          inArray(leaveApprovals.approverParentId, parentIds),
+          or(
+            inArray(leaveApprovalParentDetails.parentId, parentIds),
+            inArray(leaveApprovals.approverParentId, parentIds)
+          ),
           eq(leaveApprovals.leaveRequestId, leaveRequestId),
           eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
-          sql`(${leaveApprovals.parentApprovalExpiresAt} IS NULL OR ${leaveApprovals.parentApprovalExpiresAt} > NOW())`
+          sql`(
+            COALESCE(${leaveApprovalParentDetails.tokenExpiresAt}, ${leaveApprovals.parentApprovalExpiresAt}) IS NULL
+            OR COALESCE(${leaveApprovalParentDetails.tokenExpiresAt}, ${leaveApprovals.parentApprovalExpiresAt}) > NOW()
+          )`
         )
       )
       .limit(1);
 
     if (rows.length === 0) return null;
 
-    return { ...rows[0]!.approval, studentName: rows[0]!.studentName };
+    const row = rows[0]!;
+    return {
+      ...row.approval,
+      approverParentId: row.parentDetails?.parentId ?? row.approval.approverParentId,
+      parentApprovalToken: row.parentDetails?.tokenHash ?? row.approval.parentApprovalToken,
+      parentApprovalExpiresAt: row.parentDetails?.tokenExpiresAt ?? row.approval.parentApprovalExpiresAt,
+      studentName: row.studentName,
+    };
   },
 
   async findByParentPhoneAndExtensionRequest(
@@ -361,26 +463,44 @@ export const leaveParentApprovalRepository = {
     const rows = await dbClient
       .select({
         approval: leaveApprovals,
+        parentDetails: leaveApprovalParentDetails,
         studentName: users.fullName,
       })
       .from(leaveApprovals)
+      .leftJoin(
+        leaveApprovalParentDetails,
+        eq(leaveApprovals.id, leaveApprovalParentDetails.approvalId)
+      )
       .leftJoin(leaveExtensions, eq(leaveApprovals.leaveExtensionId, leaveExtensions.id))
       .leftJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .where(
         and(
-          inArray(leaveApprovals.approverParentId, parentIds),
+          or(
+            inArray(leaveApprovalParentDetails.parentId, parentIds),
+            inArray(leaveApprovals.approverParentId, parentIds)
+          ),
           eq(leaveApprovals.leaveExtensionId, extensionId),
           eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
-          sql`(${leaveApprovals.parentApprovalExpiresAt} IS NULL OR ${leaveApprovals.parentApprovalExpiresAt} > NOW())`
+          sql`(
+            COALESCE(${leaveApprovalParentDetails.tokenExpiresAt}, ${leaveApprovals.parentApprovalExpiresAt}) IS NULL
+            OR COALESCE(${leaveApprovalParentDetails.tokenExpiresAt}, ${leaveApprovals.parentApprovalExpiresAt}) > NOW()
+          )`
         )
       )
       .limit(1);
 
     if (rows.length === 0) return null;
 
-    return { ...rows[0]!.approval, studentName: rows[0]!.studentName };
+    const row = rows[0]!;
+    return {
+      ...row.approval,
+      approverParentId: row.parentDetails?.parentId ?? row.approval.approverParentId,
+      parentApprovalToken: row.parentDetails?.tokenHash ?? row.approval.parentApprovalToken,
+      parentApprovalExpiresAt: row.parentDetails?.tokenExpiresAt ?? row.approval.parentApprovalExpiresAt,
+      studentName: row.studentName,
+    };
   },
 };
 

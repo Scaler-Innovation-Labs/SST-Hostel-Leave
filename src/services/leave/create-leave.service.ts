@@ -7,6 +7,7 @@ import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event"
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
+import { leaveApprovalParentDetails } from "@/db";
 import type { LeaveRequest } from "@/db/repositories/leave/leave.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
@@ -273,6 +274,14 @@ export async function createLeave(
     });
 
     const createdApprovals = await leaveApprovalRepository.createMany(approvalsToCreate, tx);
+
+    const parentApproval = createdApprovals.find((a) => a.approverParentId);
+    if (parentApproval && parentId && typeof (tx as any).insert === "function") {
+      await (tx as any).insert(leaveApprovalParentDetails).values({
+        approvalId: parentApproval.id,
+        parentId,
+      });
+    }
 
     const stepKeyToApprovalId = new Map<string, string>();
     for (let i = 0; i < createdApprovals.length; i++) {
