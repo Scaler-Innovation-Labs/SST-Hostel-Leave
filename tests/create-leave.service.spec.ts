@@ -70,6 +70,16 @@ vi.mock("@/db/repositories/student/student.repository", () => ({
   },
 }));
 
+const mockParentFindById = vi.fn();
+const mockParentFindPrimary = vi.fn().mockResolvedValue({ id: "P1", studentId: "S1", phone: "9876543210" });
+
+vi.mock("@/db/repositories/parent/parent.repository", () => ({
+  parentRepository: {
+    findById: (...args: any[]) => mockParentFindById(...args),
+    findPrimaryByStudentId: (...args: any[]) => mockParentFindPrimary(...args),
+  },
+}));
+
 vi.mock("@/services/audit/audit.service", () => ({
   auditService: {
     record: (...args: any[]) => mockAuditRecord(...args),
@@ -296,5 +306,128 @@ describe("createLeave service", () => {
 
     expect(res).toBeDefined();
     expect(mockLeaveCreate).toHaveBeenCalled();
+  });
+
+  describe("parent approval contact selection", () => {
+    beforeEach(() => {
+      mockWorkflowResolve.mockResolvedValue({
+        definition: { id: "WF1", isActive: true, version: 1 },
+        steps: [
+          { stepKey: "PARENT_APPROVAL", stepOrder: 1, isParentApproval: true, approvalMethod: "SMS_LINK" },
+        ],
+      });
+      mockWorkflowFirstStep.mockReturnValue({
+        stepKey: "PARENT_APPROVAL",
+        stepOrder: 1,
+        isParentApproval: true,
+      });
+    });
+
+    it("persists the selected contact ID when approvalContactId belongs to the student", async () => {
+      mockParentFindById.mockResolvedValue({
+        id: "P-MOTHER",
+        studentId: "S1",
+        name: "Jane Doe",
+        phone: "9876543210",
+        relationship: "Mother",
+      });
+
+      await createLeave(
+        {
+          leaveTypeId: "LT1",
+          reason: "Going home for festival",
+          startAt: "2026-06-10T08:00:00Z",
+          endAt: "2026-06-12T18:00:00Z",
+          approvalContactId: "P-MOTHER",
+        },
+        { id: "U1" }
+      );
+
+      expect(mockParentFindById).toHaveBeenCalledWith("P-MOTHER", expect.anything());
+      expect(mockApprovalCreateMany).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            stepKey: "PARENT_APPROVAL",
+            approverParentId: "P-MOTHER",
+          }),
+        ]),
+        expect.anything()
+      );
+    });
+
+    it("rejects when approvalContactId belongs to another student", async () => {
+      mockParentFindById.mockResolvedValue({
+        id: "P-OTHER",
+        studentId: "S-OTHER-STUDENT",
+        name: "Stranger",
+        phone: "9876543210",
+        relationship: "Father",
+      });
+
+      await expect(
+        createLeave(
+          {
+            leaveTypeId: "LT1",
+            reason: "Going home for festival",
+            startAt: "2026-06-10T08:00:00Z",
+            endAt: "2026-06-12T18:00:00Z",
+            approvalContactId: "P-OTHER",
+          },
+          { id: "U1" }
+        )
+      ).rejects.toThrow("Selected contact does not belong to this student");
+    });
+
+    it("rejects when selected contact has no phone number", async () => {
+      mockParentFindById.mockResolvedValue({
+        id: "P-NO-PHONE",
+        studentId: "S1",
+        name: "Jane Doe",
+        phone: "",
+        relationship: "Mother",
+      });
+
+      await expect(
+        createLeave(
+          {
+            leaveTypeId: "LT1",
+            reason: "Going home for festival",
+            startAt: "2026-06-10T08:00:00Z",
+            endAt: "2026-06-12T18:00:00Z",
+            approvalContactId: "P-NO-PHONE",
+          },
+          { id: "U1" }
+        )
+      ).rejects.toThrow("Selected contact has no phone number");
+    });
+
+    it("falls back to primary parent when approvalContactId is omitted", async () => {
+      mockParentFindPrimary.mockResolvedValue({
+        id: "P-PRIMARY",
+        studentId: "S1",
+        phone: "9123456789",
+      });
+
+      await createLeave(
+        {
+          leaveTypeId: "LT1",
+          reason: "Going home for festival",
+          startAt: "2026-06-10T08:00:00Z",
+          endAt: "2026-06-12T18:00:00Z",
+        },
+        { id: "U1" }
+      );
+
+      expect(mockParentFindPrimary).toHaveBeenCalledWith("S1", expect.anything());
+      expect(mockApprovalCreateMany).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            stepKey: "PARENT_APPROVAL",
+            approverParentId: "P-PRIMARY",
+          }),
+        ]),
+        expect.anything()
+      );
+    });
   });
 });

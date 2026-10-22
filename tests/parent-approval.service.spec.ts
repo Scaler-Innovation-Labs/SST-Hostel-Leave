@@ -55,6 +55,7 @@ vi.mock("@/db/repositories/leave/leave-parent-approval.repository", () => ({
     findByParentApprovalToken: (...args: any[]) => mockFindByParentApprovalToken(...args),
     updateParentApprovalToken: (...args: any[]) => mockUpdateParentApprovalToken(...args),
     updateParentDecision: (...args: any[]) => mockUpdateParentDecision(...args),
+    findById: vi.fn().mockResolvedValue(null),
   },
 }));
 
@@ -605,9 +606,50 @@ describe("generateParentApproval", () => {
       "LA1",
       expect.any(String),
       expect.any(Date),
-      expect.anything()
+      expect.anything(),
+      "P1"
     );
     expect(outboxService.publish).toHaveBeenCalledTimes(1);
+  });
+
+  it("generates token and sends SMS to selected parent when parentId is provided", async () => {
+    mockParentFindById.mockResolvedValue({
+      id: "P-MOTHER",
+      phone: "+919876543210",
+      name: "Jane Mother",
+      studentId: "S1",
+    });
+
+    await generateParentApproval(
+      {
+        leaveRequestId: "LR1",
+        studentId: "S1",
+        studentName: "Test Student",
+        leaveDates: "6/15/2026 - 6/20/2026",
+        leaveReason: "Family function",
+        baseUrl: "http://localhost:3000",
+        parentId: "P-MOTHER",
+      },
+      { id: "LA1", stepKey: "parent" }
+    );
+
+    expect(mockParentFindById).toHaveBeenCalledWith("P-MOTHER");
+    expect(mockUpdateParentApprovalToken).toHaveBeenCalledWith(
+      "LA1",
+      expect.any(String),
+      expect.any(Date),
+      expect.anything(),
+      "P-MOTHER"
+    );
+    expect(outboxService.publish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          parentId: "P-MOTHER",
+          recipientPhone: "+919876543210",
+        }),
+      }),
+      expect.anything()
+    );
   });
 
   it("throws when no parent found", async () => {

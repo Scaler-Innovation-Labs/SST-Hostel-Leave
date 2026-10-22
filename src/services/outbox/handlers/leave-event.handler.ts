@@ -9,6 +9,7 @@ import { getRejectionTemplateCode } from "@/constants/notification/rejection-tem
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { hostelRepository } from "@/db/repositories/hostel/hostel.repository";
+import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
@@ -105,10 +106,25 @@ async function resolveContext(
         phone = user.phone ?? undefined;
         hostelId = user.hostelId ?? undefined;
       }
-      // Resolve parent for parent notification delivery
-      const parent = await parentRepository.findPrimaryByStudentId(resolvedStudentId);
-      if (parent) {
-        parentId = parent.id;
+      // Resolve parent for parent notification delivery:
+      // Check the persisted approverParentId on the leave's approvals first,
+      // ensuring the exact selected parent receives subsequent notifications.
+      if (leaveId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(leaveId)) {
+        try {
+          const approvals = await leaveApprovalRepository.findByLeaveRequestId(leaveId);
+          const parentApproval = approvals.find((a) => a.approverParentId);
+          if (parentApproval?.approverParentId) {
+            parentId = parentApproval.approverParentId;
+          }
+        } catch {
+          // fallback to primary parent below
+        }
+      }
+      if (!parentId) {
+        const parent = await parentRepository.findPrimaryByStudentId(resolvedStudentId);
+        if (parent) {
+          parentId = parent.id;
+        }
       }
     }
   }
@@ -331,9 +347,10 @@ export async function handleLeaveEvent(
 
     if (leaveRequestId && studentId && approvalStepId) {
       const logIdentifier = leaveExtensionId ? `extension ${leaveExtensionId}` : `leave ${leaveRequestId}`;
+      const parentId = payload.parentId as string | undefined;
       try {
         await generateParentApproval(
-          { leaveRequestId, leaveExtensionId, studentId, studentName, leaveDates, leaveReason, baseUrl },
+          { leaveRequestId, leaveExtensionId, studentId, studentName, leaveDates, leaveReason, baseUrl, parentId },
           { id: approvalStepId, stepKey: approvalStepKey },
         );
         logger.info("Parent approval generated for", { target: logIdentifier });

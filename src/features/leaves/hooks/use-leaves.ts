@@ -142,6 +142,7 @@ export type LeaveTypeOption = {
   description?: string | null;
   isActive: boolean;
   requiresPoc?: boolean;
+  requiresParentApproval?: boolean;
   formSchema?: { fields: Array<Record<string, unknown>> };
   requiredDocuments?: Array<{
     code: string;

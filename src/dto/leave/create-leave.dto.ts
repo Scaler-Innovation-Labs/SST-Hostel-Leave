@@ -12,6 +12,7 @@ export const createLeaveSchema = z
     submittedForm: z.record(z.string(), z.unknown()).optional(),
 
     pocId: z.string().uuid().optional(),
+    approvalContactId: z.string().uuid().optional(),
   })
   .refine(
     (data) =>

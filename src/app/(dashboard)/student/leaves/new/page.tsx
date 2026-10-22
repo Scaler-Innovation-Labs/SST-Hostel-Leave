@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarPlus, FileText, Info, Upload, UserCheck } from "lucide-react";
+import { CalendarPlus, FileText, Info, Phone, Upload, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -54,6 +54,15 @@ type PocUser = {
   email: string | null;
 };
 
+type StudentContact = {
+  id: string;
+  name: string;
+  relationship: string;
+  maskedPhone: string;
+  isPrimary: boolean;
+  hasValidPhone: boolean;
+};
+
 function toDatetimeLocal(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -76,6 +85,7 @@ export default function NewLeavePage() {
     register,
     handleSubmit,
     control,
+    setValue,
     unregister,
     formState: { errors },
   } = useForm<CreateLeaveFormDto>({
@@ -87,12 +97,14 @@ export default function NewLeavePage() {
   const endAt = useWatch({ control, name: "endAt" });
   const reason = useWatch({ control, name: "reason" });
   const selectedLeaveTypeId = useWatch({ control, name: "leaveTypeId" });
+  const approvalContactId = useWatch({ control, name: "approvalContactId" });
 
   const selectedLeaveType = leaveTypes.find(
     (type: LeaveTypeItem) => type.id === selectedLeaveTypeId
   );
   const typeDescription = selectedLeaveType?.description ?? undefined;
   const needsPoc = selectedLeaveType?.requiresPoc ?? false;
+  const needsParentApproval = selectedLeaveType?.requiresParentApproval ?? false;
   const dynamicSchema = parseLeaveFormSchema(selectedLeaveType?.formSchema);
   const configuredDocuments = selectedLeaveType?.requiredDocuments;
   const requiredDocuments = Array.isArray(configuredDocuments)
@@ -104,6 +116,21 @@ export default function NewLeavePage() {
     fetcher
   );
   const pocUsers = pocData ?? [];
+
+  const { data: contactsData, isLoading: contactsLoading } = useSWR<StudentContact[]>(
+    needsParentApproval ? "/api/v1/students/contacts" : null,
+    fetcher
+  );
+  const contacts = contactsData ?? [];
+
+  useEffect(() => {
+    if (needsParentApproval && contacts.length > 0 && !approvalContactId) {
+      const primary = contacts.find((c) => c.isPrimary) ?? contacts[0];
+      if (primary) {
+        setValue("approvalContactId", primary.id);
+      }
+    }
+  }, [needsParentApproval, contacts, approvalContactId, setValue]);
 
   // A late stay must be cleared with the POC in person before it is submitted,
   // so the reminder fires the moment that type is chosen.
@@ -135,6 +162,13 @@ export default function NewLeavePage() {
         throw new Error(
           "This leave type needs a point of contact. Pick the staff member who has agreed to be yours."
         );
+      }
+
+      if (needsParentApproval && contacts.length > 0 && !data.approvalContactId) {
+        const primary = contacts.find((c) => c.isPrimary) ?? contacts[0];
+        if (primary) {
+          data.approvalContactId = primary.id;
+        }
       }
 
       const payload: CreateLeaveDto = {
@@ -376,6 +410,40 @@ export default function NewLeavePage() {
                     {poc.fullName}
                   </option>
                 ))}
+              </Select>
+            </Field>
+          </SectionCard>
+        )}
+
+        {needsParentApproval && (
+          <SectionCard Icon={Phone} title="Send parent approval SMS to">
+            <Field
+              htmlFor="approvalContactId"
+              label="Recipient contact"
+              required
+              hint="An approval link will be sent via SMS to this contact."
+              error={errors.approvalContactId?.message}
+            >
+              <Select
+                disabled={contactsLoading}
+                {...register("approvalContactId")}
+                {...fieldControlProps("approvalContactId", {
+                  hint: "An approval link will be sent via SMS to this contact.",
+                  error: errors.approvalContactId?.message,
+                })}
+              >
+                {contacts.length === 0 ? (
+                  <option value="">
+                    {contactsLoading ? "Loading contacts…" : "No contacts on file"}
+                  </option>
+                ) : (
+                  contacts.map((contact) => (
+                    <option key={contact.id} value={contact.id}>
+                      {contact.relationship} ({contact.name}) — {contact.maskedPhone}
+                      {contact.isPrimary ? " (Primary)" : ""}
+                    </option>
+                  ))
+                )}
               </Select>
             </Field>
           </SectionCard>

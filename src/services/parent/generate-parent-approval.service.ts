@@ -21,6 +21,7 @@ export type GenerateParentApprovalContext = {
   leaveDates: string;
   leaveReason: string;
   baseUrl: string;
+  parentId?: string;
 };
 
 export async function generateParentApproval(
@@ -30,9 +31,23 @@ export async function generateParentApproval(
     stepKey: string;
   }
 ): Promise<void> {
-  const parent = await parentRepository.findPrimaryByStudentId(
-    context.studentId
-  );
+  let parent = null;
+  if (context.parentId) {
+    parent = await parentRepository.findById(context.parentId);
+  }
+
+  if (!parent) {
+    const existingApproval = await leaveParentApprovalRepository.findById(approvalStep.id);
+    if (existingApproval?.approverParentId) {
+      parent = await parentRepository.findById(existingApproval.approverParentId);
+    }
+  }
+
+  if (!parent) {
+    parent = await parentRepository.findPrimaryByStudentId(
+      context.studentId
+    );
+  }
 
   if (!parent) {
     throw new NotFoundError("Parent");
@@ -57,7 +72,8 @@ export async function generateParentApproval(
       approvalStep.id,
       tokenHash,
       expiresAt,
-      tx
+      tx,
+      parent.id
     );
 
     const approvalLink = `${context.baseUrl}/parent-approve/${rawToken}`;

@@ -238,8 +238,19 @@ export async function createLeave(
     const parentApprovalStep = approvalSteps.find((s) => s.isParentApproval);
     let parentId: string | null = null;
     if (parentApprovalStep) {
-      const parent = await parentRepository.findPrimaryByStudentId(student.id, tx);
-      parentId = parent?.id ?? null;
+      if (dto.approvalContactId) {
+        const selectedParent = await parentRepository.findById(dto.approvalContactId, tx);
+        if (!selectedParent || selectedParent.studentId !== student.id) {
+          throw new ValidationError("Selected contact does not belong to this student");
+        }
+        if (!selectedParent.phone || !selectedParent.phone.trim()) {
+          throw new ValidationError("Selected contact has no phone number");
+        }
+        parentId = selectedParent.id;
+      } else {
+        const parent = await parentRepository.findPrimaryByStudentId(student.id, tx);
+        parentId = parent?.id ?? null;
+      }
     }
 
     const approvalsToCreate = approvalSteps.map((step) => {
@@ -342,6 +353,7 @@ export async function createLeave(
             baseUrl,
             approvalStepId: approvalId,
             approvalStepKey: step.stepKey,
+            parentId: parentId ?? undefined,
           },
         }, tx);
       }

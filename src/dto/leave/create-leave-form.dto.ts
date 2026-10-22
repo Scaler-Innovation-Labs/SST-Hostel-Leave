@@ -17,6 +17,8 @@ export const createLeaveFormSchema = z
     submittedForm: z.record(z.string(), z.unknown()).optional(),
 
     pocId: z.string().uuid().optional(),
+
+    approvalContactId: z.string().uuid().optional(),
   })
   .refine(
     (data) => new Date(data.startAt) < new Date(data.endAt),
@@ -36,6 +38,7 @@ export function mapFormToCreateLeaveDto(
   return {
     ...data,
     pocId: data.pocId || undefined,
+    approvalContactId: data.approvalContactId || undefined,
     startAt: new Date(data.startAt).toISOString(),
     endAt: new Date(data.endAt).toISOString(),
   };

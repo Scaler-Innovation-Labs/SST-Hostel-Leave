@@ -52,6 +52,12 @@ vi.mock("@/db/repositories/hostel/hostel.repository", () => ({
   },
 }));
 
+vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
+  leaveApprovalRepository: {
+    findByLeaveRequestId: vi.fn().mockResolvedValue([]),
+  },
+}));
+
 const mockGenerateParentApproval = vi.fn().mockResolvedValue(undefined);
 
 vi.mock("@/services/parent/generate-parent-approval.service", () => ({

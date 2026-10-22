@@ -30,3 +30,14 @@ export function normalizePhoneNumber(value: string): string {
 export function isValidPhoneNumber(value: string): boolean {
   return INDIAN_MOBILE_PATTERN.test(normalizePhoneNumber(value));
 }
+
+/**
+ * Safely masks a phone number for display (e.g. "+91 XXXXX 12345").
+ * Hides all but the last 5 digits so students can identify the contact safely.
+ */
+export function maskPhoneNumber(value: string): string {
+  const normalized = normalizePhoneNumber(value);
+  if (!normalized || normalized.length < 5) return "•••••";
+  const last5 = normalized.slice(-5);
+  return `+91 XXXXX ${last5}`;
+}

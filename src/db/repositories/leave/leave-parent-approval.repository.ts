@@ -175,14 +175,24 @@ export const leaveParentApprovalRepository = {
     id: string,
     tokenHash: string,
     expiresAt: Date,
-    dbClient: Pick<typeof db, "update"> = db
+    dbClient: Pick<typeof db, "update"> = db,
+    approverParentId?: string
   ): Promise<LeaveApproval | null> {
+    const updateData: {
+      parentApprovalToken: string;
+      parentApprovalExpiresAt: Date;
+      approverParentId?: string;
+    } = {
+      parentApprovalToken: tokenHash,
+      parentApprovalExpiresAt: expiresAt,
+    };
+    if (approverParentId) {
+      updateData.approverParentId = approverParentId;
+    }
+
     const rows = await dbClient
       .update(leaveApprovals)
-      .set({
-        parentApprovalToken: tokenHash,
-        parentApprovalExpiresAt: expiresAt,
-      })
+      .set(updateData)
       .where(eq(leaveApprovals.id, id))
       .returning();
 

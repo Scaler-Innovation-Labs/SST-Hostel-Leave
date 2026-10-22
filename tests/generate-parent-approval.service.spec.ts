@@ -15,6 +15,7 @@ vi.mock("@/db/repositories/parent/parent.repository", () => ({
 vi.mock("@/db/repositories/leave/leave-parent-approval.repository", () => ({
   leaveParentApprovalRepository: {
     updateParentApprovalToken: (...args: any[]) => mockUpdateParentApprovalToken(...args),
+    findById: vi.fn().mockResolvedValue(null),
   },
 }));
 
@@ -73,7 +74,7 @@ describe("generateParentApproval service", () => {
     await generateParentApproval(VALID_CONTEXT, APPROVAL_STEP);
 
     expect(mockFindPrimaryByStudentId).toHaveBeenCalledWith("S1");
-    expect(mockUpdateParentApprovalToken).toHaveBeenCalledWith("AP1", "hashed-token", expect.any(Date), expect.any(Object));
+    expect(mockUpdateParentApprovalToken).toHaveBeenCalledWith("AP1", "hashed-token", expect.any(Date), expect.any(Object), "P1");
     expect(mockAuditRecord).toHaveBeenCalledWith("CREATE", "LEAVE_APPROVAL", "AP1", null, expect.any(Object), expect.any(Object));
     expect(mockOutboxPublish).toHaveBeenCalledWith(
       expect.objectContaining({

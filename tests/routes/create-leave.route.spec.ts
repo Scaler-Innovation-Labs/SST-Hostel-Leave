@@ -60,6 +60,30 @@ describe("POST /api/v1/leaves", () => {
     );
   });
 
+  it("creates a leave with selected approvalContactId", async () => {
+    const bodyWithContact = {
+      ...validBody,
+      approvalContactId: "a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c8d",
+    };
+    const req = new Request("http://localhost:3000/api/v1/leaves", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(bodyWithContact),
+    });
+
+    const res = await POST(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(201);
+    expect(body.success).toBe(true);
+    expect(mockCreateLeave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        approvalContactId: "a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c8d",
+      }),
+      expect.objectContaining({ id: "U1" })
+    );
+  });
+
   it("returns 400 when body fails validation", async () => {
     const req = new Request("http://localhost:3000/api/v1/leaves", {
       method: "POST",
