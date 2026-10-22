@@ -7,9 +7,11 @@ import { RoleSwitcher } from "@/components/layout/RoleSwitcher";
 
 const push = vi.fn();
 const refresh = vi.fn();
+let mockPathname = "/student/dashboard";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh }),
+  usePathname: () => mockPathname,
 }));
 
 const MULTI_ROLE_PAYLOAD = {
@@ -20,6 +22,19 @@ const MULTI_ROLE_PAYLOAD = {
       { role: "POC", label: "POC", dashboardHref: "/poc/dashboard" },
     ],
     activeRole: "STUDENT",
+  },
+};
+
+const DUPLICATE_ROLE_PAYLOAD = {
+  success: true,
+  data: {
+    roles: [
+      { role: "ADMIN", label: "Admin", dashboardHref: "/admin/dashboard" },
+      { role: "ADMIN", label: "Admin", dashboardHref: "/admin/dashboard" },
+      { role: "ADMIN", label: "Admin", dashboardHref: "/admin/dashboard" },
+      { role: "GUARD", label: "Guard", dashboardHref: "/guard/scanner" },
+    ],
+    activeRole: "ADMIN",
   },
 };
 
@@ -51,11 +66,17 @@ function mockGetRoles(payload: unknown) {
   );
 }
 
-function renderSwitcher(props: { fallbackLabel?: string; compact?: boolean } = {}) {
-  const { fallbackLabel = "Student", compact = false } = props;
+function renderSwitcher(
+  props: { fallbackLabel?: string; currentRole?: any; compact?: boolean } = {}
+) {
+  const { fallbackLabel = "Student", currentRole, compact = false } = props;
   return render(
     <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
-      <RoleSwitcher fallbackLabel={fallbackLabel} compact={compact} />
+      <RoleSwitcher
+        fallbackLabel={fallbackLabel}
+        currentRole={currentRole}
+        compact={compact}
+      />
     </SWRConfig>
   );
 }
@@ -70,6 +91,7 @@ afterEach(() => {
 // real event loop.
 beforeEach(() => {
   vi.useRealTimers();
+  mockPathname = "/student/dashboard";
 });
 
 describe("RoleSwitcher", () => {
@@ -129,12 +151,40 @@ describe("RoleSwitcher", () => {
 
   it("renders a compact header-sized trigger for shell headers", async () => {
     mockGetRoles(MULTI_ROLE_PAYLOAD);
-    renderSwitcher({ fallbackLabel: "Gate", compact: true });
+    renderSwitcher({ fallbackLabel: "Guard", compact: true });
 
     const trigger = await screen.findByRole("button", {
       name: /switch console, current: student/i,
     });
     expect(trigger.className).toContain("shrink-0");
     expect(trigger.className).not.toContain("flex-1");
+  });
+
+  it("deduplicates repeated role entries in the switch console menu", async () => {
+    mockGetRoles(DUPLICATE_ROLE_PAYLOAD);
+    renderSwitcher({ fallbackLabel: "Admin" });
+
+    const trigger = await screen.findByRole("button", {
+      name: /switch console/i,
+    });
+    fireEvent.pointerDown(trigger);
+    fireEvent.click(trigger);
+
+    const adminItems = await screen.findAllByRole("menuitem", { name: "Admin" });
+    expect(adminItems).toHaveLength(1);
+
+    const guardItems = await screen.findAllByRole("menuitem", { name: "Guard" });
+    expect(guardItems).toHaveLength(1);
+  });
+
+  it("displays Guard when on /guard/scanner even if activeRole was Admin", async () => {
+    mockPathname = "/guard/scanner";
+    mockGetRoles(DUPLICATE_ROLE_PAYLOAD);
+    renderSwitcher({ fallbackLabel: "Guard", compact: true });
+
+    const trigger = await screen.findByRole("button", {
+      name: /switch console, current: guard/i,
+    });
+    expect(trigger).toBeInTheDocument();
   });
 });

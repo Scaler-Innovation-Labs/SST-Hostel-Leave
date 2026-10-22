@@ -25,5 +25,5 @@ export default async function GuardLayout({ children }: GuardLayoutProps) {
     redirect("/unauthorized");
   }
 
-  return <FieldShell roleLabel="Gate">{children}</FieldShell>;
+  return <FieldShell roleLabel="Guard">{children}</FieldShell>;
 }

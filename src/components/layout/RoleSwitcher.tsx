@@ -1,7 +1,8 @@
 "use client";
 
 import { Check, ChevronsUpDown } from "lucide-react";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -12,11 +13,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useActiveRole } from "@/hooks/use-active-role";
-import type { Role } from "@/lib/auth/roles";
+import { type Role, ROLES } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
 
 const LABEL_CLASSES =
   "min-w-0 flex-1 truncate font-mono text-micro uppercase tracking-wider text-muted";
+
+const LABEL_TO_ROLE: Record<string, Role> = {
+  admin: ROLES.ADMIN,
+  guard: ROLES.GUARD,
+  gate: ROLES.GUARD,
+  poc: ROLES.POC,
+  student: ROLES.STUDENT,
+  "super admin": ROLES.SUPER_ADMIN,
+  super_admin: ROLES.SUPER_ADMIN,
+};
+
+function getRoleFromPathname(pathname: string | null): Role | null {
+  if (!pathname) return null;
+  if (pathname.startsWith("/guard")) return ROLES.GUARD;
+  if (pathname.startsWith("/super-admin")) return ROLES.SUPER_ADMIN;
+  if (pathname.startsWith("/admin")) return ROLES.ADMIN;
+  if (pathname.startsWith("/student")) return ROLES.STUDENT;
+  if (pathname.startsWith("/poc")) return ROLES.POC;
+  return null;
+}
 
 /**
  * The role label in the sidebar footer. Single-role users see today's
@@ -29,19 +50,47 @@ const LABEL_CLASSES =
  */
 export function RoleSwitcher({
   fallbackLabel,
+  currentRole: explicitRole,
   compact = false,
 }: {
   fallbackLabel: string;
+  currentRole?: Role;
   compact?: boolean;
 }) {
-  const { roles, activeRole, isLoading, switchRole } = useActiveRole();
+  const pathname = usePathname();
+  const { roles: rawRoles, activeRole, isLoading, switchRole } = useActiveRole();
   const [switching, setSwitching] = useState(false);
+
+  // Deduplicate roles by role code to guarantee no console is listed repeatedly
+  const roles = useMemo(() => {
+    const seen = new Set<string>();
+    return rawRoles.filter((entry) => {
+      if (!entry?.role || seen.has(entry.role)) return false;
+      seen.add(entry.role);
+      return true;
+    });
+  }, [rawRoles]);
 
   if (isLoading || roles.length <= 1) {
     return <span className={LABEL_CLASSES}>{fallbackLabel}</span>;
   }
 
-  const active = roles.find((entry) => entry.role === activeRole) ?? roles[0]!;
+  // Derive current console:
+  // 1. Explicit currentRole prop if provided
+  // 2. Role matching the current route URL
+  // 3. Role matching the fallbackLabel passed from layout
+  // 4. Stored activeRole from cookie / session
+  // 5. First assigned role
+  const resolvedCurrentRole =
+    explicitRole ??
+    getRoleFromPathname(pathname) ??
+    LABEL_TO_ROLE[fallbackLabel.toLowerCase().trim()] ??
+    activeRole;
+
+  const active =
+    roles.find((entry) => entry.role === resolvedCurrentRole) ??
+    roles.find((entry) => entry.role === activeRole) ??
+    roles[0]!;
 
   const handleSelect = async (role: Role) => {
     if (role === active.role || switching) return;

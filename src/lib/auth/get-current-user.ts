@@ -70,7 +70,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     userRoleRepository.findRoleCodesByUserId(dbUser.id),
     userRoleRepository.findRoleScopesByUserId(dbUser.id),
   ]);
-  const roles = roleCodes.filter(isRole);
+  const roles = Array.from(new Set(roleCodes.filter(isRole)));
 
   // Track the last successful sign-in. This is a login audit signal, not a
   // critical path — a failure must never block the user from the app.

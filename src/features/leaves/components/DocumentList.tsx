@@ -85,7 +85,10 @@ export function DocumentList({
           !documents.some(
             (document) => document.documentType === requiredDocument.type,
           ) ? (
-            <div className="rounded-xl border border-warning/30 bg-warning-light p-4">
+            <div
+              key={requiredDocument.type}
+              className="rounded-xl border border-warning/30 bg-warning-light p-4"
+            >
               <p className="text-body font-medium">
                 {requiredDocument.label} required
               </p>

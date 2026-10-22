@@ -2,8 +2,8 @@ import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
-import { getNavBadges } from "@/services/shared/get-nav-badges.service";
 import { logger } from "@/lib/logger";
+import { getNavBadges } from "@/services/shared/get-nav-badges.service";
 
 /**
  * Nav badge counts for staff dashboards in one round trip.

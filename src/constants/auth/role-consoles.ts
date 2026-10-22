@@ -36,7 +36,7 @@ export const ROLE_CONSOLES: Record<Role, RoleConsole> = {
   },
   [ROLES.GUARD]: {
     role: ROLES.GUARD,
-    label: "Gate",
+    label: "Guard",
     dashboardHref: ROUTES.GUARD_SCANNER,
   },
 };

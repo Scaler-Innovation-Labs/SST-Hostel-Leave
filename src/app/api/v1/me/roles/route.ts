@@ -12,8 +12,10 @@ export async function GET() {
     const requested = (await cookies()).get(ACTIVE_ROLE_COOKIE)?.value ?? null;
     const activeRole = resolveActiveRole(user.roles, requested);
 
+    const uniqueRoles = Array.from(new Set(user.roles));
+
     return ApiResponse.success({
-      roles: user.roles.map((role) => ROLE_CONSOLES[role]),
+      roles: uniqueRoles.map((role) => ROLE_CONSOLES[role]).filter(Boolean),
       activeRole,
     });
   } catch (error) {

@@ -16,6 +16,7 @@ import {
 } from "@/constants/navigation";
 import { type Density,DensityProvider } from "@/design-system/sst";
 import { useSidebarCollapsed } from "@/hooks/use-sidebar-collapsed";
+import { ROLES } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
 
 type AppShellProps = {
@@ -151,7 +152,7 @@ export function FieldShell({
     <DensityProvider density="guard">
       <div className="flex min-h-screen flex-col bg-bg">
         <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
-          <RoleSwitcher fallbackLabel={roleLabel} compact />
+          <RoleSwitcher fallbackLabel={roleLabel} currentRole={ROLES.GUARD} compact />
           {/* Deliberately thin: nothing here competes with the scanner. */}
           <div className="ml-auto flex shrink-0 items-center gap-1">
             <SignedIn>

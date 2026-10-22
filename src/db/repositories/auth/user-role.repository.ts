@@ -21,11 +21,13 @@ export const userRoleRepository = {
       )
       .where(eq(userRoles.userId, userId));
 
-    return rows
-      .map((row) => row.code)
-      .filter(
-        (code): code is string => code !== null
-      );
+    return Array.from(
+      new Set(
+        rows
+          .map((row) => row.code)
+          .filter((code): code is string => code !== null)
+      )
+    );
   },
 
   /**
