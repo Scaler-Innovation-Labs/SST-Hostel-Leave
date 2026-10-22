@@ -2,6 +2,7 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 const mockFindPrimaryByStudentId = vi.fn();
+const mockFindApprovalById = vi.fn();
 const mockUpdateParentApprovalToken = vi.fn();
 const mockAuditRecord = vi.fn();
 const mockOutboxPublish = vi.fn();
@@ -15,7 +16,7 @@ vi.mock("@/db/repositories/parent/parent.repository", () => ({
 vi.mock("@/db/repositories/leave/leave-parent-approval.repository", () => ({
   leaveParentApprovalRepository: {
     updateParentApprovalToken: (...args: any[]) => mockUpdateParentApprovalToken(...args),
-    findById: vi.fn().mockResolvedValue(null),
+    findById: (...args: any[]) => mockFindApprovalById(...args),
   },
 }));
 
@@ -62,7 +63,14 @@ const APPROVAL_STEP = { id: "AP1", stepKey: "PARENT_APPROVAL" };
 beforeEach(() => {
   vi.resetAllMocks();
   mockFindPrimaryByStudentId.mockResolvedValue({ id: "P1", phone: "+1234567890", name: "Parent" });
-  mockUpdateParentApprovalToken.mockResolvedValue(undefined);
+  mockFindApprovalById.mockResolvedValue({
+    id: "AP1",
+    decision: "PENDING",
+    approverParentId: null,
+    parentApprovalToken: null,
+    parentApprovalExpiresAt: null,
+  });
+  mockUpdateParentApprovalToken.mockResolvedValue({ id: "AP1" });
   mockAuditRecord.mockResolvedValue({});
   mockOutboxPublish.mockResolvedValue(undefined);
   mockSha256.mockResolvedValue("hashed-token");
@@ -86,6 +94,30 @@ describe("generateParentApproval service", () => {
       }),
       expect.any(Object)
     );
+  });
+
+  it("does not mint or queue another link when a valid token already exists", async () => {
+    mockFindApprovalById.mockResolvedValue({
+      id: "AP1",
+      decision: "PENDING",
+      approverParentId: "P1",
+      parentApprovalToken: "existing-token-hash",
+      parentApprovalExpiresAt: new Date(Date.now() + 60_000),
+    });
+
+    await generateParentApproval(VALID_CONTEXT, APPROVAL_STEP);
+
+    expect(mockUpdateParentApprovalToken).not.toHaveBeenCalled();
+    expect(mockOutboxPublish).not.toHaveBeenCalled();
+  });
+
+  it("does not queue a notification when the compare-and-set token update loses a race", async () => {
+    mockUpdateParentApprovalToken.mockResolvedValue(null);
+
+    await generateParentApproval(VALID_CONTEXT, APPROVAL_STEP);
+
+    expect(mockAuditRecord).not.toHaveBeenCalled();
+    expect(mockOutboxPublish).not.toHaveBeenCalled();
   });
 
   it("throws NotFoundError when no primary parent found", async () => {
