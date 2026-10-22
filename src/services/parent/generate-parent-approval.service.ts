@@ -3,6 +3,7 @@ import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { PARENT_APPROVAL_TOKEN_EXPIRY_HOURS } from "@/constants/parent/parent-approval";
 import { leaveParentApprovalRepository } from "@/db/repositories/leave/leave-parent-approval.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
@@ -31,16 +32,31 @@ export async function generateParentApproval(
     stepKey: string;
   }
 ): Promise<void> {
+  // Outbox delivery is at-least-once. If the parent-required event is
+  // retried after its transaction committed, reuse the existing valid token
+  // rather than minting a new token and sending another SMS.
+  const existingApproval = await leaveParentApprovalRepository.findById(approvalStep.id);
+  if (!existingApproval) {
+    throw new NotFoundError("Leave approval");
+  }
+  if (existingApproval.decision !== LEAVE_APPROVAL_DECISION.PENDING) {
+    return;
+  }
+  if (
+    existingApproval.parentApprovalToken &&
+    existingApproval.parentApprovalExpiresAt &&
+    existingApproval.parentApprovalExpiresAt > new Date()
+  ) {
+    return;
+  }
+
   let parent = null;
   if (context.parentId) {
     parent = await parentRepository.findById(context.parentId);
   }
 
-  if (!parent) {
-    const existingApproval = await leaveParentApprovalRepository.findById(approvalStep.id);
-    if (existingApproval?.approverParentId) {
-      parent = await parentRepository.findById(existingApproval.approverParentId);
-    }
+  if (!parent && existingApproval.approverParentId) {
+    parent = await parentRepository.findById(existingApproval.approverParentId);
   }
 
   if (!parent) {
@@ -68,13 +84,18 @@ export async function generateParentApproval(
   );
 
   await transaction(async (tx) => {
-    await leaveParentApprovalRepository.updateParentApprovalToken(
+    // Compare-and-set in the repository closes the race where two workers
+    // process duplicate parent-required events concurrently.
+    const updatedApproval = await leaveParentApprovalRepository.updateParentApprovalToken(
       approvalStep.id,
       tokenHash,
       expiresAt,
       tx,
       parent.id
     );
+    if (!updatedApproval) {
+      return;
+    }
 
     const approvalLink = `${context.baseUrl}/parent-approve/${rawToken}`;
 
@@ -114,6 +135,7 @@ export async function generateParentApproval(
           leaveId: context.leaveRequestId,
         },
       },
+      idempotencyKey: `PARENT_APPROVAL_REQUESTED:${approvalStep.id}:${tokenHash}`,
     }, tx);
   });
 }

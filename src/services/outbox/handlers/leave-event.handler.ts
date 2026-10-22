@@ -341,7 +341,10 @@ export async function handleLeaveEvent(
     const studentName = payload.studentName as string;
     const leaveDates = payload.leaveDates as string;
     const leaveReason = payload.leaveReason as string;
-    const baseUrl = payload.baseUrl as string;
+    // Resolve the public URL at delivery time rather than trusting the
+    // URL captured when the outbox event was created. This also repairs
+    // queued events created before a production-domain configuration fix.
+    const baseUrl = getPublicBaseUrl();
     const approvalStepId = payload.approvalStepId as string;
     const approvalStepKey = payload.approvalStepKey as string;
 

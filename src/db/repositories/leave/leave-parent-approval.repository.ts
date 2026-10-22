@@ -193,7 +193,17 @@ export const leaveParentApprovalRepository = {
     const rows = await dbClient
       .update(leaveApprovals)
       .set(updateData)
-      .where(eq(leaveApprovals.id, id))
+      .where(
+        and(
+          eq(leaveApprovals.id, id),
+          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+          sql`(
+            ${leaveApprovals.parentApprovalToken} IS NULL
+            OR ${leaveApprovals.parentApprovalExpiresAt} IS NULL
+            OR ${leaveApprovals.parentApprovalExpiresAt} <= NOW()
+          )`
+        )
+      )
       .returning();
 
     return rows[0] ?? null;
