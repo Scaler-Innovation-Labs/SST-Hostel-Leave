@@ -2,6 +2,7 @@ import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 
 import type { NotificationChannel } from "@/constants/notification/notification-channel";
+import { NOTIFICATION_DELIVERY_STATUS } from "@/constants/notification/notification-delivery-status";
 import type { NotificationDeliveryStatus } from "@/constants/notification/notification-delivery-status";
 import type { NotificationEvent } from "@/constants/notification/notification-event";
 import { leaveRequests, notificationLogs, students, users } from "@/db";
@@ -45,6 +46,29 @@ export const notificationLogRepository = {
 			.returning();
 
 		return rows[0]!;
+	},
+
+	/**
+	 * True when this outbox event already has a successfully delivered
+	 * notification log. Used to avoid re-sending an accepted SMS if the
+	 * worker retries after the log was committed but before outbox completion.
+	 */
+	async hasSentForOutboxEventId(
+		outboxEventId: string,
+		dbClient: Pick<typeof db, "select"> = db
+	): Promise<boolean> {
+		const rows = await dbClient
+			.select({ id: notificationLogs.id })
+			.from(notificationLogs)
+			.where(
+				and(
+					eq(notificationLogs.deliveryStatus, NOTIFICATION_DELIVERY_STATUS.SENT),
+					sql`${notificationLogs.metadata}->>'outboxEventId' = ${outboxEventId}`
+				)
+			)
+			.limit(1);
+
+		return rows.length > 0;
 	},
 
 	async findById(

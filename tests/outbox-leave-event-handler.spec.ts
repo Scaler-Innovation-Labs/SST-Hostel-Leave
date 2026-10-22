@@ -287,6 +287,28 @@ describe("handleLeaveEvent", () => {
     expect(mockNotify).not.toHaveBeenCalled();
   });
 
+  it("uses the current public base URL instead of a stale queued payload URL", async () => {
+    vi.stubEnv("NEXT_PUBLIC_BASE_URL", "https://leave.sst-dashboard.com");
+    const event = makeEvent("PARENT_APPROVAL_REQUIRED", {
+      studentId: "S1",
+      studentName: "Neerasa",
+      leaveDates: "10 Jun - 12 Jun",
+      leaveReason: "Home",
+      baseUrl: "https://old-host.example",
+      approvalStepId: "AP1",
+      approvalStepKey: "PARENT_APPROVAL",
+    });
+
+    await handleLeaveEvent(event);
+
+    expect(mockGenerateParentApproval).toHaveBeenCalledWith(
+      expect.objectContaining({
+        baseUrl: "https://leave.sst-dashboard.com",
+      }),
+      expect.objectContaining({ id: "AP1", stepKey: "PARENT_APPROVAL" }),
+    );
+  });
+
   it("rethrows transient parent-approval failures so the outbox retries", async () => {
     const event = makeEvent("PARENT_APPROVAL_REQUIRED", {
       studentId: "S1",

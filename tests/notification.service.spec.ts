@@ -4,6 +4,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 const mockFindByEventKey = vi.fn();
 const mockFindByIds = vi.fn();
 const mockLogCreate = vi.fn();
+const mockHasSentForOutboxEventId = vi.fn();
 const mockFindActiveByEvent = vi.fn();
 const mockFindRuleById = vi.fn();
 const mockSlackSend = vi.fn();
@@ -55,6 +56,7 @@ vi.mock("@/db/repositories/notification/notification-rule.repository", () => ({
 vi.mock("@/db/repositories/notification/notification-log.repository", () => ({
   notificationLogRepository: {
     create: (...args: any[]) => mockLogCreate(...args),
+    hasSentForOutboxEventId: (...args: any[]) => mockHasSentForOutboxEventId(...args),
   },
 }));
 
@@ -88,6 +90,7 @@ import { notificationService } from "@/services/notification/notification.servic
 beforeEach(() => {
   vi.resetAllMocks();
   mockLogCreate.mockResolvedValue({ id: "NL1" });
+  mockHasSentForOutboxEventId.mockResolvedValue(false);
   mockFindActiveByEvent.mockResolvedValue([]);
   mockSlackSend.mockResolvedValue({ success: true, messageId: "slack-1" });
   mockHostelFindById.mockResolvedValue(null);
@@ -401,6 +404,25 @@ describe("notificationService", () => {
     });
     expect(logCall.metadata.approvalLink).toBeUndefined();
     expect(logCall.metadata.qrToken).toBeUndefined();
+  });
+
+  it("does not resend a parent approval SMS when the same outbox event was already logged SENT", async () => {
+    mockHasSentForOutboxEventId.mockResolvedValue(true);
+
+    const result = await notificationService.notify("PARENT_APPROVAL_REQUESTED", {
+      outboxEventId: "OE_PARENT_1",
+      leaveRequestId: "L8",
+      parentId: "P1",
+      variables: {
+        leaveId: "L8",
+        approvalLink: "https://leave.sst-dashboard.com/parent-approve/token",
+      },
+    });
+
+    expect(result).toEqual({ success: true, failures: [] });
+    expect(mockHasSentForOutboxEventId).toHaveBeenCalledWith("OE_PARENT_1");
+    expect(mockFindActiveByEvent).not.toHaveBeenCalled();
+    expect(mockLogCreate).not.toHaveBeenCalled();
   });
 
   it("logs FAILED status when provider fails", async () => {

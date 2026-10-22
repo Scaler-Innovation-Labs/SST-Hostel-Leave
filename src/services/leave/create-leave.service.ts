@@ -356,6 +356,7 @@ export async function createLeave(
             approvalStepKey: step.stepKey,
             parentId: parentId ?? undefined,
           },
+          idempotencyKey: `PARENT_APPROVAL_REQUIRED:${approvalId}`,
         }, tx);
       }
 

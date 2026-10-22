@@ -2,6 +2,7 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import type { NotificationChannel } from "@/constants/notification/notification-channel";
 import { NOTIFICATION_CHANNEL } from "@/constants/notification/notification-channel";
 import { NOTIFICATION_DELIVERY_STATUS } from "@/constants/notification/notification-delivery-status";
+import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event";
 import type { NotificationEvent } from "@/constants/notification/notification-event";
 import type { NotificationRecipientType } from "@/constants/notification/notification-recipient-type";
 import { NOTIFICATION_RECIPIENT_TYPE } from "@/constants/notification/notification-recipient-type";
@@ -26,6 +27,8 @@ import { createSlackProvider } from "./providers/slack.provider";
 import { createSmsProvider } from "./providers/sms.provider";
 
 export type NotificationContext = {
+	/** Stable identity for this dispatch when it originates from the outbox. */
+	outboxEventId?: string;
 	leaveRequestId?: string;
 	leaveExtensionId?: string;
 	leaveTypeId?: string;
@@ -369,6 +372,7 @@ async function deliverToRecipient(
 	const logMetadata: Record<string, string> = sanitizeLogMetadata(
 		context.variables
 	);
+	if (context.outboxEventId) logMetadata.outboxEventId = context.outboxEventId;
 	if (mentions.length > 0) logMetadata.slackMentions = mentions.join(", ");
 
 	await notificationLogRepository.create({
@@ -409,6 +413,19 @@ export const notificationService = {
 		const failures: string[] = [];
 
 		try {
+			// Parent SMS may be retried if the worker fails after delivery.
+			// If a SENT log for this exact outbox event exists, do not send it again.
+			if (
+				eventType === NOTIFICATION_EVENT.PARENT_APPROVAL_REQUESTED &&
+				context.outboxEventId &&
+				(await notificationLogRepository.hasSentForOutboxEventId(context.outboxEventId))
+			) {
+				logger.warn("Skipping duplicate parent approval SMS after prior successful delivery", {
+					outboxEventId: context.outboxEventId,
+				});
+				return { success: true, failures };
+			}
+
 			if (context.templateCode) {
 				const template = await notificationTemplateRepository.findByCode(context.templateCode);
 				if (template) {

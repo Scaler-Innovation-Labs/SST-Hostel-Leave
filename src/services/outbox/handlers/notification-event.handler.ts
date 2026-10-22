@@ -58,6 +58,8 @@ export async function handleNotificationEvent(
   );
 
   const result = await notificationService.notify(notificationType, {
+    outboxEventId:
+      notificationType === "PARENT_APPROVAL_REQUESTED" ? event.id : undefined,
     leaveRequestId: payload.leaveRequestId as
       | string
       | undefined,
