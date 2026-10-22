@@ -84,6 +84,28 @@ describe("InfobipSmsProvider", () => {
     expect(body.options.tracking).toEqual({ shortenUrl: true, trackClicks: true });
   });
 
+  it("does not shorten or track parent approval bearer links", async () => {
+    vi.mocked(fetch).mockResolvedValue(acceptedResponse("infobip-parent-link"));
+
+    const approvalLink = "https://leave.sst-dashboard.com/parent-approve/hex-token";
+    const body =
+      `Dear Parent, review this request: ${approvalLink} -Scaler School of Technology`;
+
+    await provider.send({
+      to: "+919391541081",
+      body,
+      variables: { approvalLink },
+    });
+
+    const init = vi.mocked(fetch).mock.calls[0]![1];
+    const parsed = JSON.parse(init.body);
+    expect(parsed.messages[0].content.text).toBe(body);
+    expect(parsed.options.tracking).toEqual({
+      shortenUrl: false,
+      trackClicks: false,
+    });
+  });
+
   it("includes customDomain in tracking options when configured", async () => {
     vi.stubEnv("INFOBIP_CUSTOM_DOMAIN", "scaler.short.gy");
     vi.mocked(fetch).mockResolvedValue(acceptedResponse("infobip-msg-2"));
