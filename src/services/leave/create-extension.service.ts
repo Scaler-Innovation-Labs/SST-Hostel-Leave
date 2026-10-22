@@ -385,6 +385,7 @@ export async function createExtension(
             approvalStepId: approvalId,
             approvalStepKey: step.stepKey,
           },
+          idempotencyKey: `PARENT_APPROVAL_REQUIRED:${approvalId}`,
         }, tx);
       }
 
