@@ -1,5 +1,5 @@
 import type { InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, inArray, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 
 import { roles } from "@/db/schema/auth";
 import { workflowDefinitions, workflowSteps } from "@/db/schema/workflow";
@@ -43,8 +43,8 @@ export const workflowRepository = {
       const pattern = `%${filters.search}%`;
       conditions.push(
         or(
-          like(workflowDefinitions.name, pattern),
-          like(workflowDefinitions.code, pattern)
+          ilike(workflowDefinitions.name, pattern),
+          ilike(workflowDefinitions.code, pattern)
         )
       );
     }

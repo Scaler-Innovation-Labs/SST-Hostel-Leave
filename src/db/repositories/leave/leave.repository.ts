@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, like, lte, ne, notExists, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, lte, ne, notExists, or, sql } from "drizzle-orm";
 
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { QR_MODE } from "@/constants/leave/qr-mode";
@@ -293,8 +293,8 @@ async findAutoCompleteDueNonQrLeaves(
       const searchPattern = `%${filters.search}%`;
       conditions.push(
         or(
-          like(leaveRequests.requestNumber, searchPattern),
-          like(users.fullName, searchPattern)
+          ilike(leaveRequests.requestNumber, searchPattern),
+          ilike(users.fullName, searchPattern)
         )
       );
     }
@@ -475,6 +475,37 @@ async findAutoCompleteDueNonQrLeaves(
       .leftJoin(users, eq(students.userId, users.id))
       .where(whereClause);
     return Number(result[0]?.count ?? 0);
+  },
+  async countStatusStats(
+    hostelIds?: string[],
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<{
+    total: number;
+    approved: number;
+    rejected: number;
+  }> {
+    const conditions: ReturnType<typeof and>[] = [];
+    if (hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, hostelIds));
+    }
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const result = await dbClient
+      .select({
+        total: sql<number>`count(*)`,
+        approved: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.APPROVED})`,
+        rejected: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.REJECTED})`,
+      })
+      .from(leaveRequests)
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(whereClause);
+
+    const row = result[0];
+    return {
+      total: Number(row?.total ?? 0),
+      approved: Number(row?.approved ?? 0),
+      rejected: Number(row?.rejected ?? 0),
+    };
   },
 };
 

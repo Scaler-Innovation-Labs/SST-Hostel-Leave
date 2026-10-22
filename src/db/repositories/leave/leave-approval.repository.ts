@@ -6,9 +6,9 @@ import {
   eq,
   gt,
   gte,
+  ilike,
   inArray,
   isNotNull,
-  like,
   lte,
   ne,
   or,
@@ -330,8 +330,8 @@ export const leaveApprovalRepository = {
       const searchPattern = `%${filters.search}%`;
       baseConditions.push(
         or(
-          like(leaveRequests.requestNumber, searchPattern),
-          like(users.fullName, searchPattern),
+          ilike(leaveRequests.requestNumber, searchPattern),
+          ilike(users.fullName, searchPattern),
         ),
       );
     }
@@ -832,8 +832,8 @@ export const leaveApprovalRepository = {
       const searchPattern = `%${filters.search}%`;
       baseConditions.push(
         or(
-          like(leaveRequests.requestNumber, searchPattern),
-          like(users.fullName, searchPattern),
+          ilike(leaveRequests.requestNumber, searchPattern),
+          ilike(users.fullName, searchPattern),
         ),
       );
     }

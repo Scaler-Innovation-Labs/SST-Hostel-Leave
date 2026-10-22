@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, like, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 
 import { parents, students, users } from "@/db";
 import { db } from "@/lib/db";
@@ -100,9 +100,9 @@ export const parentRepository = {
       const pattern = `%${filters.search}%`;
       conditions.push(
         or(
-          like(parents.name, pattern),
-          like(parents.phone, pattern),
-          like(parents.email ?? "", pattern)
+          ilike(parents.name, pattern),
+          ilike(parents.phone, pattern),
+          ilike(parents.email ?? "", pattern)
         )
       );
     }

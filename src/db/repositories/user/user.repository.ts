@@ -1,5 +1,5 @@
 import type { InferSelectModel } from "drizzle-orm";
-import { and, asc, desc, eq, inArray, like, not, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, not, notInArray, or, sql } from "drizzle-orm";
 
 import { hostels, roles, userRoles, users } from "@/db";
 import { db } from "@/lib/db";
@@ -49,7 +49,7 @@ export const userRepository = {
     if (filters.search) {
       const pattern = `%${filters.search}%`;
       conditions.push(
-        or(like(users.fullName, pattern), like(users.email, pattern))
+        or(ilike(users.fullName, pattern), ilike(users.email, pattern))
       );
     }
 

@@ -23,12 +23,16 @@ const mockFindByStudentId = vi.fn();
 const mockCountActive = vi.fn();
 const mockCountUsers = vi.fn();
 const mockCountByLocationState = vi.fn();
+const mockCountLocationStats = vi.fn();
+const mockCountStatusStats = vi.fn();
+const mockCountPendingStats = vi.fn();
 
 vi.mock("@/db/repositories/student/student.repository", () => ({
   studentRepository: {
     findByUserId: (...args: any[]) => mockFindByUserId(...args),
     countAll: (...args: any[]) => mockCountAll(...args),
     countByLocationState: (...args: any[]) => mockCountByLocationState(...args),
+    countLocationStats: (...args: any[]) => mockCountLocationStats(...args),
   },
 }));
 
@@ -39,6 +43,7 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
     countByStatus: (...args: any[]) => mockCountByStatus(...args),
     countByLeaveType: (...args: any[]) => mockCountByLeaveType(...args),
     countByDateRange: (...args: any[]) => mockCountByDateRange(...args),
+    countStatusStats: (...args: any[]) => mockCountStatusStats(...args),
   },
 }));
 
@@ -54,6 +59,7 @@ vi.mock("@/db/repositories/leave/leave-approval-analytics.repository", () => ({
     countRecent: (...args: any[]) => mockCountRecent(...args),
     averageApprovalTime: (...args: any[]) => mockAverageApprovalTime(...args),
     countByDateRange: (...args: any[]) => mockCountByDateRangeApproval(...args),
+    countPendingStats: (...args: any[]) => mockCountPendingStats(...args),
   },
 }));
 
@@ -116,6 +122,9 @@ beforeEach(() => {
   mockCountActive.mockResolvedValue(0);
   mockCountUsers.mockResolvedValue(0);
   mockCountByLocationState.mockResolvedValue(0);
+  mockCountLocationStats.mockResolvedValue({ total: 100, inHostel: 80, outsideHostel: 15, overdue: 5 });
+  mockCountStatusStats.mockResolvedValue({ total: 200, approved: 150, rejected: 10 });
+  mockCountPendingStats.mockResolvedValue({ pendingLeaves: 4, pendingExtensions: 1 });
 });
 
 describe("getDashboardStats", () => {
@@ -245,7 +254,7 @@ describe("getDashboardStats", () => {
 
     await getDashboardStats(ADMIN_USER);
 
-    expect(mockCountAll).toHaveBeenCalledWith(["H1"]);
+    expect(mockCountLocationStats).toHaveBeenCalledWith(["H1"]);
     expect(mockCountByLeaveType).toHaveBeenCalledWith(["H1"], undefined);
   });
 

@@ -1,6 +1,7 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, asc, desc, eq, inArray, like, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 
+import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { academicGroups, movementStates, students, users } from "@/db";
 import { db } from "@/lib/db";
 
@@ -138,8 +139,8 @@ export const studentRepository = {
       const searchPattern = `%${filters.search}%`;
       conditions.push(
         or(
-          like(users.fullName, searchPattern),
-          like(students.rollNumber, searchPattern)
+          ilike(users.fullName, searchPattern),
+          ilike(students.rollNumber, searchPattern)
         )
       );
     }
@@ -275,6 +276,39 @@ export const studentRepository = {
       .leftJoin(users, eq(students.userId, users.id))
       .where(and(...conditions));
     return Number(result[0]?.count ?? 0);
+  },
+  async countLocationStats(
+    hostelIds?: string[],
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<{
+    total: number;
+    inHostel: number;
+    outsideHostel: number;
+    overdue: number;
+  }> {
+    const conditions: ReturnType<typeof and>[] = [];
+    if (hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, hostelIds));
+    }
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const result = await dbClient
+      .select({
+        total: sql<number>`count(*)`,
+        inHostel: sql<number>`count(*) filter (where ${students.currentLocationState} = ${MOVEMENT_STATE.IN_HOSTEL})`,
+        outsideHostel: sql<number>`count(*) filter (where ${students.currentLocationState} = ${MOVEMENT_STATE.OUTSIDE_HOSTEL})`,
+        overdue: sql<number>`count(*) filter (where ${students.currentLocationState} = ${MOVEMENT_STATE.OVERDUE})`,
+      })
+      .from(students)
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(whereClause);
+
+    const row = result[0];
+    return {
+      total: Number(row?.total ?? 0),
+      inHostel: Number(row?.inHostel ?? 0),
+      outsideHostel: Number(row?.outsideHostel ?? 0),
+      overdue: Number(row?.overdue ?? 0),
+    };
   },
 };
 
