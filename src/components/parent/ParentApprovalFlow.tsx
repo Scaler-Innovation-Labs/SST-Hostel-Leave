@@ -12,7 +12,7 @@ import {
 import { useState } from "react";
 
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
-import { Button, Textarea } from "@/design-system/sst";
+import { Button, ConfirmDialog, Textarea } from "@/design-system/sst";
 import { initialsOf } from "@/design-system/sst";
 import { formatDate } from "@/lib/date-utils";
 
@@ -51,6 +51,7 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [comments, setComments] = useState<string>("");
+  const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false);
 
   const isExtension = leaveData.targetType === "LEAVE_EXTENSION";
   const initials = initialsOf(leaveData.studentName);
@@ -308,34 +309,51 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
           </div>
 
           {/* Actions */}
-          <div className="flex flex-col gap-5 border-t border-border bg-surface-sunken/40 px-6 py-5 sm:flex-row">
-            <Button
-              size="lg"
-              variant="success"
-              className="flex-1"
-              onClick={() => handleDecision(LEAVE_APPROVAL_DECISION.APPROVED)}
-              disabled={submitting}
-              loading={submitting && decision === LEAVE_APPROVAL_DECISION.APPROVED}
-              loadingText="Sending…"
-            >
-              <CheckCircle2 className="h-5 w-5" aria-hidden />
-              Give permission
-            </Button>
+          <div className="border-t border-border bg-surface-sunken/40 px-6 py-5">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button
+                size="lg"
+                variant="success"
+                className="flex-1 rounded-xl shadow-sm hover:shadow active:translate-y-px transition-all font-semibold gap-2"
+                onClick={() => handleDecision(LEAVE_APPROVAL_DECISION.APPROVED)}
+                disabled={submitting}
+                loading={submitting && decision === LEAVE_APPROVAL_DECISION.APPROVED}
+                loadingText="Approving…"
+              >
+                <CheckCircle2 className="size-5 shrink-0" aria-hidden />
+                {isExtension ? "Approve Extension" : "Approve Leave"}
+              </Button>
 
-            <Button
-              size="lg"
-              variant="danger"
-              className="flex-1"
-              onClick={() => handleDecision(LEAVE_APPROVAL_DECISION.REJECTED)}
-              disabled={submitting}
-              loading={submitting && decision === LEAVE_APPROVAL_DECISION.REJECTED}
-              loadingText="Sending…"
-            >
-              <XCircle className="h-5 w-5" aria-hidden />
-              Don&apos;t allow
-            </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="flex-1 rounded-xl font-medium border-border-strong text-ink hover:text-danger hover:border-danger hover:bg-danger-light active:bg-danger-light transition-all gap-2"
+                onClick={() => setRejectConfirmOpen(true)}
+                disabled={submitting}
+                loading={submitting && decision === LEAVE_APPROVAL_DECISION.REJECTED}
+                loadingText="Rejecting…"
+              >
+                <XCircle className="size-5 shrink-0 text-muted transition-colors group-hover:text-danger" aria-hidden />
+                {isExtension ? "Reject Extension" : "Reject Leave"}
+              </Button>
+            </div>
           </div>
         </div>
+
+        <ConfirmDialog
+          open={rejectConfirmOpen}
+          onOpenChange={setRejectConfirmOpen}
+          title={isExtension ? "Reject extension request?" : "Reject leave request?"}
+          consequence="The student will be notified and will not be permitted to leave the hostel. This decision cannot be reversed."
+          confirmLabel={isExtension ? "Reject Extension" : "Reject Leave"}
+          dismissLabel="Keep Request"
+          destructive={true}
+          loading={submitting && decision === LEAVE_APPROVAL_DECISION.REJECTED}
+          onConfirm={() => {
+            setRejectConfirmOpen(false);
+            handleDecision(LEAVE_APPROVAL_DECISION.REJECTED);
+          }}
+        />
 
         {/* Trust footer */}
         <p className="mt-6 flex items-center justify-center gap-1.5 text-center text-caption text-muted">
