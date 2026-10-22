@@ -6,6 +6,8 @@ export const listExtensionApprovalsSchema = z.object({
   status: z.string().optional(),
   search: z.string().optional(),
   waitingOn: z.string().optional(),
+  leaveRequestId: z.string().uuid().optional(),
+  leaveExtensionId: z.string().uuid().optional(),
   hostelId: z.string().uuid().optional(),
   leaveTypeId: z.string().uuid().optional(),
   dateFrom: z.string().datetime().optional(),

@@ -745,6 +745,8 @@ export const leaveApprovalRepository = {
       /** Filters on the extension's own status (LEAVE_REQUEST_STATUS). */
       status?: LeaveRequestStatus;
       search?: string;
+      leaveRequestId?: string;
+      leaveExtensionId?: string;
       /** Restrict to extensions whose parent leave is waiting on this step. */
       waitingOn?: string;
       hostelId?: string;
@@ -781,6 +783,14 @@ export const leaveApprovalRepository = {
         studentRollNumber: string | null;
         parentName: string | null;
         parentPhone: string | null;
+        extension?: {
+          id: string;
+          extensionNumber: number;
+          reason: string;
+          status: string;
+          currentEndAt: Date | null;
+          requestedEndAt: Date | null;
+        } | null;
         leaveRequest: {
           id: string;
           status: string;
@@ -829,13 +839,28 @@ export const leaveApprovalRepository = {
       baseConditions.push(eq(leaveExtensions.status, filters.status));
     }
     if (filters.search) {
-      const searchPattern = `%${filters.search}%`;
+      const trimmed = filters.search.trim();
+      const searchPattern = `%${trimmed}%`;
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed);
       baseConditions.push(
         or(
           ilike(leaveRequests.requestNumber, searchPattern),
           ilike(users.fullName, searchPattern),
+          ...(isUuid
+            ? [
+                eq(leaveExtensions.id, trimmed),
+                eq(leaveRequests.id, trimmed),
+                eq(leaveApprovals.id, trimmed),
+              ]
+            : []),
         ),
       );
+    }
+    if (filters.leaveRequestId) {
+      baseConditions.push(eq(leaveRequests.id, filters.leaveRequestId));
+    }
+    if (filters.leaveExtensionId) {
+      baseConditions.push(eq(leaveExtensions.id, filters.leaveExtensionId));
     }
     if (filters.leaveTypeId) {
       baseConditions.push(eq(leaveRequests.leaveTypeId, filters.leaveTypeId));
@@ -994,6 +1019,9 @@ export const leaveApprovalRepository = {
         extCurrentStepOrder: leaveExtensions.currentStepOrder,
         extPolicyResult: leaveExtensions.policyResult,
         extSubmittedForm: leaveExtensions.submittedForm,
+        extExtensionNumber: leaveExtensions.extensionNumber,
+        extCurrentEndAt: leaveExtensions.currentEndAt,
+        extRequestedEndAt: leaveExtensions.requestedEndAt,
         leaveReqId: leaveRequests.id,
         leaveReqStatus: leaveRequests.status,
         leaveReqStartAt: leaveRequests.startAt,
@@ -1103,6 +1131,16 @@ export const leaveApprovalRepository = {
         studentRollNumber: row.studentRollNumber,
         parentName: row.parentName,
         parentPhone: row.parentPhone,
+        extension: row.extId
+          ? {
+              id: row.extId,
+              extensionNumber: row.extExtensionNumber ?? 1,
+              reason: row.extReason ?? "",
+              status: row.extStatus ?? "",
+              currentEndAt: row.extCurrentEndAt ?? null,
+              requestedEndAt: row.extRequestedEndAt ?? null,
+            }
+          : null,
         leaveRequest: row.leaveReqId
           ? {
               id: row.leaveReqId,

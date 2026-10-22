@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2, Clock, FileText, Search, X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 
@@ -18,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import { ROUTES } from "@/constants/routes";
 import { VIEW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { ApprovalCommandCard } from "@/features/approvals/components/ApprovalCommandCard";
 import {
@@ -41,7 +43,18 @@ type FilterState = {
   search: string;
 };
 
-export function ExtensionApprovalsPage() {
+type ExtensionApprovalsPageProps = {
+  hrefPrefix?: string;
+};
+
+export function ExtensionApprovalsPage({ hrefPrefix }: ExtensionApprovalsPageProps = {}) {
+  const pathname = usePathname();
+  const effectiveHrefPrefix =
+    hrefPrefix ??
+    (pathname?.startsWith("/admin")
+      ? ROUTES.ADMIN_EXTENSION_APPROVALS
+      : ROUTES.SUPER_ADMIN_EXTENSION_APPROVALS);
+
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<FilterState>({
     status: "",
@@ -347,7 +360,7 @@ export function ExtensionApprovalsPage() {
             <ApprovalCommandCard
               key={item.id}
               item={item}
-              hrefPrefix="/super-admin/extension-approvals"
+              hrefPrefix={effectiveHrefPrefix}
               onActionComplete={() => mutate()}
             />
           ))

@@ -31,6 +31,14 @@ export type ApprovalQueueItem = {
     isParentApproval: boolean | null;
     approvalMethod: string | null;
   }>;
+  extension?: {
+    id: string;
+    extensionNumber: number;
+    reason: string;
+    status: string;
+    currentEndAt: Date | string | null;
+    requestedEndAt: Date | string | null;
+  } | null;
   leaveRequest: {
     id: string;
     status: string;
@@ -58,9 +66,9 @@ export function useApprovals(query?: Partial<ListApprovalsQuery>) {
     totalPages: data?.data?.totalPages ?? 1,
     /** Queue-wide waiting-on counts — see ApprovalStepBreakdownEntry. */
     stepBreakdown: (data?.data?.stepBreakdown ?? []) as ApprovalStepBreakdownEntry[],
+    stats: data?.data?.stats,
     isLoading,
     isError: !!error,
-    error,
     mutate,
   };
 }

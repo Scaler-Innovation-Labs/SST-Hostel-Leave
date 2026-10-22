@@ -33,6 +33,14 @@ export async function listExtensionApprovals(
       studentRollNumber: string | null;
       parentName: string | null;
       parentPhone: string | null;
+      extension?: {
+        id: string;
+        extensionNumber: number;
+        reason: string;
+        status: string;
+        currentEndAt: Date | null;
+        requestedEndAt: Date | null;
+      } | null;
       leaveRequest: {
         id: string;
         status: string;
@@ -60,6 +68,8 @@ export async function listExtensionApprovals(
   const result = await leaveApprovalRepository.findExtensionApprovals({
     status: query.status as LeaveRequestStatus | undefined,
     search: query.search,
+    leaveRequestId: query.leaveRequestId,
+    leaveExtensionId: query.leaveExtensionId,
     waitingOn: query.waitingOn,
     hostelId: query.hostelId,
     hostelIds,

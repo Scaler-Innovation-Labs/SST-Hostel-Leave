@@ -76,4 +76,19 @@ describe("GET /api/v1/extensions/approvals", () => {
     const res = await GET(new Request("http://localhost:3000/api/v1/extensions/approvals"));
     expect(res.status).toBe(401);
   });
+
+  it("passes leaveRequestId and leaveExtensionId through to the service", async () => {
+    const req = new Request(
+      "http://localhost:3000/api/v1/extensions/approvals?leaveRequestId=33333333-3333-4333-8333-333333333333"
+    );
+    const res = await GET(req);
+    expect(res.status).toBe(200);
+
+    expect(mockListExtensionApprovals).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leaveRequestId: "33333333-3333-4333-8333-333333333333",
+      }),
+      expect.anything()
+    );
+  });
 });
