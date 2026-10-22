@@ -12,7 +12,7 @@ import { requireAnyRole } from "@/lib/auth/authorization";
 import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
 import { transaction } from "@/lib/db/transaction";
-import { AuthorizationError, ConflictError, NotFoundError } from "@/lib/errors";
+import { ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 import { assertCanAccessLeave } from "@/services/shared/authorization.service";
@@ -35,7 +35,8 @@ export async function superadminOverrideLeave(
   comments?: string,
 ): Promise<SuperadminOverrideResult> {
   // Admins can use the same audited override flow for leaves in their scope.
-  // Parent approval steps remain explicitly non-overridable below.
+  // Parent approval steps are normally resolved through the parent approval link,
+  // but authorized administrators may override a parent approval step when operationally necessary.
   requireAnyRole(currentUser, [ROLES.ADMIN, ROLES.SUPER_ADMIN]);
 
   const userId = currentUser.id;
@@ -66,16 +67,6 @@ export async function superadminOverrideLeave(
       throw new ConflictError("No approvals to override");
     }
 
-    // Parent consent is the point of the SMS-link step — an override must
-    // never silently force through a step the parent rejected or never saw.
-    // Parent steps carry approverParentId; overriding them would defeat the
-    // whole parent-approval audit trail.
-    if (actionable.some((s) => s.approverParentId !== null)) {
-      throw new AuthorizationError(
-        "Parent approval steps cannot be overridden — resolve them via the parent approval link"
-      );
-    }
-
     // When recovering from rejection, revert leave status to PENDING
     if (isRejectedRecovery) {
       await leaveRepository.updateById(leaveId, { status: LEAVE_REQUEST_STATUS.PENDING }, tx);
@@ -84,6 +75,9 @@ export async function superadminOverrideLeave(
     const idsToProcess = mode === "ONE_STEP" ? [actionable[0]!.id] : actionable.map((s) => s.id);
 
     for (const approvalId of idsToProcess) {
+      const step = actionable.find((s) => s.id === approvalId);
+      const isParentOverride = step?.approverParentId !== null;
+
       const updated = await leaveApprovalRepository.updateDecisionById(
         approvalId,
         LEAVE_APPROVAL_DECISION.APPROVED,
@@ -96,7 +90,21 @@ export async function superadminOverrideLeave(
 
       if (!updated) continue;
 
-      await auditService.record(AUDIT_ACTION.OVERRIDE, AUDIT_ENTITY_TYPE.LEAVE_APPROVAL, approvalId, userId, { leaveRequestId: leaveId, mode, comments }, tx);
+      await auditService.record(
+        AUDIT_ACTION.OVERRIDE,
+        AUDIT_ENTITY_TYPE.LEAVE_APPROVAL,
+        approvalId,
+        userId,
+        {
+          leaveRequestId: leaveId,
+          mode,
+          comments,
+          isParentOverride,
+          stepKey: step?.stepKey,
+          stepOrder: step?.stepOrder,
+        },
+        tx,
+      );
     }
 
     // After override, check for remaining pending steps

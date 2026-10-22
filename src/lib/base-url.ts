@@ -24,7 +24,16 @@ function normalizeBaseUrl(value: string): string {
 }
 
 export function getPublicBaseUrl(): string {
-  const configuredUrl = process.env.NEXT_PUBLIC_BASE_URL?.trim() || undefined;
+  const rawUrl =
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_URL ||
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : undefined) ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+
+  const configuredUrl = rawUrl?.trim() || undefined;
 
   // A public configured URL always wins, including in local development.
   if (configuredUrl && !isLocalUrl(configuredUrl)) {

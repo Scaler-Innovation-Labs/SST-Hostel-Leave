@@ -292,6 +292,10 @@ Security properties verified in the implementation:
 - repeated decisions are rejected;
 - concurrent same-token decisions have exactly one winner in the tested race.
 
+### Administrative Overrides
+
+Parent approval steps are normally resolved through the parent approval link. Authorized administrators may override a parent approval step when operationally necessary; such overrides must be explicitly authorized and auditable.
+
 ---
 
 ## 9. QR and Physical Movement

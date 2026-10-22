@@ -106,3 +106,9 @@ sequenceDiagram
 2. **Token TTL Expiration**: `parent_approval_expires_at` is checked on every query. Expired tokens cannot execute decisions.
 3. **Pessimistic Locking**: Concurrent requests with the same token lock the row via `FOR UPDATE`, preventing double-execution.
 4. **Audit Attribution**: Audit records record `actorType: ACTOR_TYPE.PARENT` and `trigger: AUDIT_TRIGGER.SMS` to distinguish off-platform parent actions from authenticated staff operations.
+
+---
+
+## 5. Administrative Overrides
+
+Parent approval steps are normally resolved through the parent approval link. Authorized administrators may override a parent approval step when operationally necessary; such overrides must be explicitly authorized and auditable.

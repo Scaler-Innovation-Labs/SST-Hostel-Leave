@@ -105,7 +105,7 @@ describe("superadminOverrideLeave", () => {
     expect(mockFindByIdForUpdate).not.toHaveBeenCalled();
   });
 
-  it("rejects overriding a pending parent-approval step", async () => {
+  it("allows an authorized admin to override a pending parent-approval step and records audit", async () => {
     mockFindByIdForUpdate.mockResolvedValue({
       id: "L1",
       studentId: "S1",
@@ -121,11 +121,33 @@ describe("superadminOverrideLeave", () => {
         approverParentId: "PARENT-1",
       },
     ]);
+    mockFindByEntityAndDecision.mockResolvedValue([]);
 
-    await expect(
-      superadminOverrideLeave("L1", "ALL", SUPER, "forcing")
-    ).rejects.toThrow("Parent approval steps cannot be overridden");
-    expect(mockUpdateDecisionById).not.toHaveBeenCalled();
+    const result = await superadminOverrideLeave("L1", "ALL", SUPER, "forcing");
+
+    expect(mockUpdateDecisionById).toHaveBeenCalledWith(
+      "P1",
+      "APPROVED",
+      SUPER.id,
+      "forcing",
+      expect.any(Date),
+      expect.anything(),
+      "MANUAL",
+    );
+    expect(mockRecord).toHaveBeenCalledWith(
+      "OVERRIDE",
+      "LEAVE_APPROVAL",
+      "P1",
+      SUPER.id,
+      expect.objectContaining({
+        leaveRequestId: "L1",
+        isParentOverride: true,
+        comments: "forcing",
+      }),
+      expect.anything(),
+    );
+    expect(result.approvalsOverridden).toBe(1);
+    expect(result.newStatus).toBe("APPROVED");
   });
 
   it("overrides all pending steps and approves the leave as super-admin", async () => {

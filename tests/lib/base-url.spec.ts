@@ -83,4 +83,21 @@ describe("getPublicBaseUrl", () => {
 
     expect(getPublicBaseUrl()).toBe(PRODUCTION_BASE_URL);
   });
+
+  it("falls back to NEXT_PUBLIC_APP_URL when NEXT_PUBLIC_BASE_URL is not set", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_BASE_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://app.sst.scaler.com");
+
+    expect(getPublicBaseUrl()).toBe("https://app.sst.scaler.com");
+  });
+
+  it("falls back to VERCEL_PROJECT_PRODUCTION_URL when other envs are not set", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_BASE_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
+    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "sst-hostel.vercel.app");
+
+    expect(getPublicBaseUrl()).toBe("https://sst-hostel.vercel.app");
+  });
 });
