@@ -309,12 +309,12 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
           </div>
 
           {/* Actions */}
-          <div className="border-t border-border bg-surface-sunken/40 px-6 py-5">
-            <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="border-t border-border bg-surface-sunken/40 px-4 py-4 sm:px-6 sm:py-5">
+            <div className="flex flex-col gap-5 sm:flex-row sm:gap-4">
               <Button
                 size="lg"
                 variant="success"
-                className="flex-1 rounded-xl shadow-sm hover:shadow active:translate-y-px transition-all font-semibold gap-2"
+                className="min-h-[52px] sm:min-h-[56px] flex-1 rounded-xl shadow-sm hover:shadow active:translate-y-px transition-all font-semibold gap-2.5 py-3.5 px-4"
                 onClick={() => handleDecision(LEAVE_APPROVAL_DECISION.APPROVED)}
                 disabled={submitting}
                 loading={submitting && decision === LEAVE_APPROVAL_DECISION.APPROVED}
@@ -326,14 +326,14 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
 
               <Button
                 size="lg"
-                variant="outline"
-                className="flex-1 rounded-xl font-medium border-border-strong text-ink hover:text-danger hover:border-danger hover:bg-danger-light active:bg-danger-light transition-all gap-2"
+                variant="danger"
+                className="min-h-[52px] sm:min-h-[56px] flex-1 rounded-xl shadow-sm hover:shadow active:translate-y-px transition-all font-semibold gap-2.5 py-3.5 px-4"
                 onClick={() => setRejectConfirmOpen(true)}
                 disabled={submitting}
                 loading={submitting && decision === LEAVE_APPROVAL_DECISION.REJECTED}
                 loadingText="Rejecting…"
               >
-                <XCircle className="size-5 shrink-0 text-muted transition-colors group-hover:text-danger" aria-hidden />
+                <XCircle className="size-5 shrink-0" aria-hidden />
                 {isExtension ? "Reject Extension" : "Reject Leave"}
               </Button>
             </div>
