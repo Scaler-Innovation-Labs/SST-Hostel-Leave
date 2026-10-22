@@ -47,7 +47,7 @@ sequenceDiagram
     Note over Workflow: Steps: 1. POC_APPROVAL (Order 1)<br/>2. WARDEN_APPROVAL (Order 2)
 
     Svc->>DB: INSERT leave_requests (status: PENDING, currentStepKey: 'POC_APPROVAL')
-    Svc->>DB: INSERT leave_approvals (approver_user_id: pocId for Step 1)
+    Svc->>DB: INSERT leave_approvals (assigned_approver_user_id: pocId for Step 1)
     Svc->>Outbox: publish(LEAVE_CREATED)
     Svc->>Outbox: publish(LEAVE_POC_REVIEW_REQUIRED / Slack alert to mentor)
 

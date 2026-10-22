@@ -69,7 +69,7 @@ beforeEach(() => {
   mockUpdateById.mockResolvedValue({ id: "EXT1", status: "REJECTED" });
   mockFindById.mockResolvedValue({ id: "EXT1", status: "PENDING", leaveRequestId: "LR1" });
   mockFindByIdForUpdate.mockResolvedValue({ id: "EXT1", status: "PENDING", leaveRequestId: "LR1" });
-  mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null }]);
+  mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", assignedApproverUserId: null, approverRoleCode: null }]);
   mockLeaveFindById.mockResolvedValue({ id: "LR1", studentId: "S1", status: "APPROVED" });
   mockLeaveFindByIdForUpdate.mockResolvedValue({
     id: "LR1",
