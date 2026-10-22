@@ -158,15 +158,15 @@ export function StaffAnalytics({ description, extraCards = [], hidePageHeader = 
       {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
         <AnalyticsAreaChart
-          title={`Leaves Created (Last 7 Days)${statusFilter ? ` — ${activeLabel}` : ""}`}
+          title={`Leaves Submitted (Last 7 Days)${statusFilter ? ` — ${activeLabel}` : ""}`}
           description="Daily leave submissions over the past week."
           data={(s.leavesLast7Days as Array<{ date: string; value: number }>) ?? []}
           color={CHART.accent}
         />
 
         <AnalyticsAreaChart
-          title="Approvals (Last 7 Days)"
-          description="Daily approval decisions over the past week."
+          title="Approval Actions (Last 7 Days)"
+          description="Daily approval decisions across workflow steps over the past week."
           data={(s.approvalsLast7Days as Array<{ date: string; value: number }>) ?? []}
           color={CHART.success}
         />
@@ -174,7 +174,7 @@ export function StaffAnalytics({ description, extraCards = [], hidePageHeader = 
 
       <div className="grid gap-6 lg:grid-cols-2">
         <AnalyticsAreaChart
-          title={`Leaves Created (Last 30 Days)${statusFilter ? ` — ${activeLabel}` : ""}`}
+          title={`Leaves Submitted (Last 30 Days)${statusFilter ? ` — ${activeLabel}` : ""}`}
           description="Daily leave submissions over the past month."
           data={(s.leavesLast30Days as Array<{ date: string; value: number }>) ?? []}
           color={CHART.warning}

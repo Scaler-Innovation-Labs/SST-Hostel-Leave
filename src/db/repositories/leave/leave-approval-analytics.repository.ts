@@ -3,7 +3,8 @@ import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 
 import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
-import { hostels, leaveApprovals, leaveRequests, leaveTypes, students, users } from "@/db";
+import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import { hostels, leaveApprovals, leaveExtensions, leaveRequests, leaveTypes, students, users } from "@/db";
 import { db } from "@/lib/db";
 
 export type LeaveApproval = InferSelectModel<typeof leaveApprovals>;
@@ -297,6 +298,85 @@ export const leaveApprovalAnalyticsRepository = {
       name: row.name ?? "Unknown",
       count: Number(row.count ?? 0),
     }));
+  },
+
+  /**
+   * Counts unique leave requests currently awaiting decision at their current workflow step.
+   * Excludes extensions, future/inactive approval steps, and non-pending leaves.
+   */
+  async countActionablePendingLeaves(
+    options: { hostelIds?: string[] } = {},
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [
+      eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+      sql`${leaveApprovals.leaveExtensionId} IS NULL`,
+      eq(leaveRequests.status, LEAVE_REQUEST_STATUS.PENDING),
+      eq(leaveApprovals.stepOrder, leaveRequests.currentStepOrder),
+      eq(leaveApprovals.stepKey, leaveRequests.currentStepKey),
+    ];
+    conditions.push(...hostelCondition(options.hostelIds));
+
+    const result = await dbClient
+      .select({
+        count: sql<number>`count(distinct ${leaveApprovals.leaveRequestId})`,
+      })
+      .from(leaveApprovals)
+      .innerJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions));
+
+    return Number(result[0]?.count ?? 0);
+  },
+
+  /**
+   * Counts unique leave extensions currently awaiting decision at their current workflow step.
+   * Excludes primary leaves, future/inactive approval steps, and non-pending extensions.
+   */
+  async countActionablePendingExtensions(
+    options: { hostelIds?: string[] } = {},
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [
+      eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+      sql`${leaveApprovals.leaveExtensionId} IS NOT NULL`,
+      eq(leaveExtensions.status, LEAVE_REQUEST_STATUS.PENDING),
+      eq(leaveApprovals.stepOrder, leaveExtensions.currentStepOrder),
+      eq(leaveApprovals.stepKey, leaveExtensions.currentStepKey),
+    ];
+    conditions.push(...hostelCondition(options.hostelIds));
+
+    const result = await dbClient
+      .select({
+        count: sql<number>`count(distinct ${leaveApprovals.leaveExtensionId})`,
+      })
+      .from(leaveApprovals)
+      .innerJoin(leaveExtensions, eq(leaveApprovals.leaveExtensionId, leaveExtensions.id))
+      .innerJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions));
+
+    return Number(result[0]?.count ?? 0);
+  },
+
+  async countPendingStats(
+    options: { hostelIds?: string[] } = {},
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<{
+    pendingLeaves: number;
+    pendingExtensions: number;
+  }> {
+    const [pendingLeaves, pendingExtensions] = await Promise.all([
+      this.countActionablePendingLeaves(options, dbClient),
+      this.countActionablePendingExtensions(options, dbClient),
+    ]);
+
+    return {
+      pendingLeaves,
+      pendingExtensions,
+    };
   },
 };
 
