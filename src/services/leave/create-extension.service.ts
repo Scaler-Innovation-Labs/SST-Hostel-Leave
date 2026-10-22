@@ -229,8 +229,14 @@ export async function createExtension(
     const parentApprovalStep = approvalSteps.find((s) => s.isParentApproval);
     let parentId: string | null = null;
     if (parentApprovalStep) {
-      const parent = await parentRepository.findPrimaryByStudentId(leave.studentId, tx);
-      parentId = parent?.id ?? null;
+      const originalApprovals = await leaveApprovalRepository.findByLeaveRequestId(leaveRequestId, tx);
+      const originalParentApproval = originalApprovals.find((a) => a.approverParentId != null);
+      if (originalParentApproval?.approverParentId) {
+        parentId = originalParentApproval.approverParentId;
+      } else {
+        const parent = await parentRepository.findPrimaryByStudentId(leave.studentId, tx);
+        parentId = parent?.id ?? null;
+      }
     }
 
     const approvalsToCreate = approvalSteps.map((step) => ({
@@ -375,6 +381,7 @@ export async function createExtension(
             leaveDates,
             leaveReason: dto.reason,
             baseUrl,
+            parentId: parentId ?? undefined,
             approvalStepId: approvalId,
             approvalStepKey: step.stepKey,
           },
