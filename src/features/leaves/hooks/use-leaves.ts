@@ -22,6 +22,7 @@ export type RawLeaveItem = {
   };
   leaveType: {
     name: string;
+    qrMode?: "NONE" | "EXIT_ONLY" | "RETURN_ONLY" | "BOTH" | null;
     uiConfig?: Record<string, unknown> | null;
     requiredDocuments?:
       RequiredDocument[] | { documents: RequiredDocument[] } | null;
@@ -61,6 +62,7 @@ function flattenLeaveItem(item: RawLeaveItem) {
     destination: (item.leave.submittedForm as Record<string, unknown> | null)
       ?.destination as string | undefined,
     leaveTypeName: item.leaveType?.name,
+    qrMode: (item.leaveType?.qrMode ?? "BOTH") as "NONE" | "EXIT_ONLY" | "RETURN_ONLY" | "BOTH",
     leaveTypeUiConfig:
       (item.leaveType?.uiConfig as
         Record<string, unknown> | null | undefined) ?? null,

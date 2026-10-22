@@ -51,12 +51,20 @@ function ScanRow({ label, at }: { label: string; at: string | null }) {
  * only repairs a broken pass, so the emailed QR and the one here stay the
  * same code.
  */
-export function LeaveQrPass({ leaveId }: { leaveId: string }) {
+export function LeaveQrPass({
+  leaveId,
+  qrMode,
+}: {
+  leaveId: string;
+  qrMode?: "NONE" | "EXIT_ONLY" | "RETURN_ONLY" | "BOTH";
+}) {
   const [generating, setGenerating] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [passOpen, setPassOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const { qrPasses, mutate } = useQrPasses(leaveId);
+
+  if (qrMode === "NONE") return null;
 
   const activePass = qrPasses.find((pass) => pass.status === QR_STATUS.ACTIVE);
   const latestPass = qrPasses[0] ?? null;
@@ -73,7 +81,9 @@ export function LeaveQrPass({ leaveId }: { leaveId: string }) {
       // Repair keeps the pass's own type: a RETURN_ONLY credential must not
       // be re-issued as an exit QR.
       const qrType: "LEAVE_EXIT" | "LEAVE_RETURN" =
-        activePass?.qrType === "LEAVE_RETURN" ? "LEAVE_RETURN" : "LEAVE_EXIT";
+        activePass?.qrType === "LEAVE_RETURN" || qrMode === "RETURN_ONLY"
+          ? "LEAVE_RETURN"
+          : "LEAVE_EXIT";
       const result = (await generateQr(leaveId, qrType)) as {
         passId: string;
       } | null;

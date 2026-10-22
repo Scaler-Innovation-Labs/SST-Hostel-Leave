@@ -171,6 +171,7 @@ async function getStudentStats(userId: string): Promise<StudentDashboardStats> {
           startAt: activeLeave.leave.startAt.toISOString(),
           endAt: activeLeave.leave.endAt.toISOString(),
           status: activeLeave.leave.status,
+          qrMode: (activeLeave.leaveType?.qrMode ?? "BOTH") as "NONE" | "EXIT_ONLY" | "RETURN_ONLY" | "BOTH",
         }
       : null,
     currentLocation: latestMovement?.toState ?? student.currentLocationState ?? "UNKNOWN",
@@ -181,6 +182,7 @@ async function getStudentStats(userId: string): Promise<StudentDashboardStats> {
           startAt: upcomingLeave.leave.startAt.toISOString(),
           endAt: upcomingLeave.leave.endAt.toISOString(),
           status: upcomingLeave.leave.status,
+          qrMode: (upcomingLeave.leaveType?.qrMode ?? "BOTH") as "NONE" | "EXIT_ONLY" | "RETURN_ONLY" | "BOTH",
         }
       : null,
     activeQr: activeQr

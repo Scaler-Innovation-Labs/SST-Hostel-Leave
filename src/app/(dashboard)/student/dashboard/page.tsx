@@ -103,7 +103,9 @@ export default function StudentDashboardPage() {
   const qrImageUrl = activeQr ? `/api/v1/qr/${activeQr.passId}/image` : null;
   // Ensure a pass exists for the current leave (legacy leaves predate
   // approval-time creation), or repair one whose credential cannot render.
-  const needsEnsure = !!((!activeQr && activeLeave?.id) || (activeQr && qrImageFailed)) && !qrError;
+  // Never attempt to issue passes for leaves configured without QR (qrMode === "NONE").
+  const isQrApplicable = activeLeave?.qrMode ? activeLeave.qrMode !== "NONE" : true;
+  const needsEnsure = isQrApplicable && !!((!activeQr && activeLeave?.id) || (activeQr && qrImageFailed)) && !qrError;
 
   useEffect(() => {
     if (!needsEnsure || !activeLeave?.id || !userId || qrEnsuring) return;
@@ -116,7 +118,8 @@ export default function StudentDashboardPage() {
       // never-used) pass is re-issued, and that happens inside the service.
       setQrEnsuring(true);
       try {
-        const result = (await generateQr(activeLeave.id, "LEAVE_EXIT")) as {
+        const qrType = activeLeave.qrMode === "RETURN_ONLY" ? "LEAVE_RETURN" : "LEAVE_EXIT";
+        const result = (await generateQr(activeLeave.id, qrType)) as {
           passId: string;
         } | null;
         if (!cancelled && result?.passId) {
@@ -223,7 +226,13 @@ export default function StudentDashboardPage() {
         />
         <MetricTile
           label="Gate pass"
-          value={activeQr ? "Ready" : "None"}
+          value={
+            activeQr
+              ? "Ready"
+              : activeLeave?.qrMode === "NONE"
+              ? "Not required"
+              : "None"
+          }
           unit={
             activeQr?.expiresAt
               ? formatTimeRemaining(activeQr.expiresAt)
@@ -258,7 +267,12 @@ export default function StudentDashboardPage() {
           >
             {activeLeave ? (
               <div className="space-y-4">
-                {activeQr && (
+                {activeLeave.qrMode === "NONE" ? (
+                  <div className="flex items-center gap-3 rounded-xl border border-border bg-surface-sunken p-4 text-caption text-muted">
+                    <QrCode className="h-5 w-5 shrink-0 text-muted" aria-hidden />
+                    <p>No gate pass is required for this leave type.</p>
+                  </div>
+                ) : activeQr ? (
                   <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-surface-sunken p-4">
                     <div className="shrink-0">
                       {loadingQr ? (
@@ -301,7 +315,7 @@ export default function StudentDashboardPage() {
                       </p>
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 {approvalProgress && approvalProgress.length > 0 && (
                   <div className="space-y-2">

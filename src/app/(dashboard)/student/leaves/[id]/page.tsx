@@ -151,7 +151,9 @@ export default function StudentLeaveDetailPage() {
         leave={leave as unknown as Record<string, unknown>}
       />
 
-      {isExtendable && <LeaveQrPass leaveId={id} />}
+      {isExtendable && leave.qrMode !== "NONE" && (
+        <LeaveQrPass leaveId={id} qrMode={leave.qrMode} />
+      )}
 
       <AskAQuestionSection leaveId={id} canAnswer />
 

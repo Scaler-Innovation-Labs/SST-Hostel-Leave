@@ -21,6 +21,7 @@ export type StudentDashboardStats = {
     startAt: string;
     endAt: string;
     status: string;
+    qrMode?: "NONE" | "EXIT_ONLY" | "RETURN_ONLY" | "BOTH";
   } | null;
   /** Earliest APPROVED leave that starts in the future (contract §6). */
   upcomingLeave: {
@@ -29,6 +30,7 @@ export type StudentDashboardStats = {
     startAt: string;
     endAt: string;
     status: string;
+    qrMode?: "NONE" | "EXIT_ONLY" | "RETURN_ONLY" | "BOTH";
   } | null;
   currentLocation: string;
   /**

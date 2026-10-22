@@ -234,6 +234,43 @@ describe("getDashboardStats", () => {
     expect(result.activeLeave?.id).toBe("LR_A");
   });
 
+  it("reflects qrMode on activeLeave and upcomingLeave correctly", async () => {
+    const now = new Date();
+    mockFindByFilters.mockImplementation((filters) => {
+      if (filters.status === "PENDING") return { items: [], total: 0 };
+      return {
+        items: [
+          {
+            leave: {
+              id: "LR_NONE",
+              status: "APPROVED",
+              startAt: new Date(now.getTime() - 86400000),
+              endAt: new Date(now.getTime() + 86400000),
+            },
+            leaveType: { name: "Attendance Exception", qrMode: "NONE" },
+          },
+          {
+            leave: {
+              id: "LR_FUTURE",
+              status: "APPROVED",
+              startAt: new Date(now.getTime() + 2 * 86400000),
+              endAt: new Date(now.getTime() + 3 * 86400000),
+            },
+            leaveType: { name: "Home Pass", qrMode: "BOTH" },
+          },
+        ],
+        total: 2,
+      };
+    });
+
+    const result = await getDashboardStats(STUDENT_USER);
+    expect(result.activeLeave?.id).toBe("LR_NONE");
+    expect(result.activeLeave?.qrMode).toBe("NONE");
+    expect(result.activeQr).toBeNull();
+    expect(result.upcomingLeave?.id).toBe("LR_FUTURE");
+    expect(result.upcomingLeave?.qrMode).toBe("BOTH");
+  });
+
   it("returns staff stats and passes the status filter to countByLeaveType", async () => {
     mockCountAll.mockResolvedValue(100);
     mockCountByStatus.mockResolvedValue(10);
