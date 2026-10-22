@@ -92,6 +92,38 @@ describe("outboxRepository", () => {
     expect(rows[0]).not.toHaveProperty("event_type");
   });
 
+  it("claimNext converts raw timestamp strings to Dates", async () => {
+    // drizzle's node-postgres driver returns timestamptz as strings from execute()
+    const execute = vi.fn().mockResolvedValue({
+      rows: [
+        {
+          id: "OE1",
+          event_type: "NOTIFICATION_REQUESTED",
+          aggregate_type: "NOTIFICATION",
+          aggregate_id: "A1",
+          payload: {},
+          idempotency_key: null,
+          status: "PROCESSING",
+          attempt_count: 0,
+          last_error: null,
+          next_attempt_at: null,
+          lease_expires_at: "2026-10-22 07:07:46.123+00",
+          created_at: "2026-10-22 07:00:00.5+00",
+          processed_at: null,
+          claimed_at: "2026-10-22 07:02:46.123+00",
+          published_at: null,
+        },
+      ],
+    });
+
+    const [event] = await outboxRepository.claimNext(50, 300_000, { execute });
+
+    expect(event.claimedAt).toEqual(new Date("2026-10-22T07:02:46.123Z"));
+    expect(event.leaseExpiresAt).toEqual(new Date("2026-10-22T07:07:46.123Z"));
+    expect(event.createdAt).toEqual(new Date("2026-10-22T07:00:00.500Z"));
+    expect(event.nextAttemptAt).toBeNull();
+  });
+
   it("markProcessing claims with a claimedAt timestamp", async () => {
     await outboxRepository.markProcessing("OE1");
 

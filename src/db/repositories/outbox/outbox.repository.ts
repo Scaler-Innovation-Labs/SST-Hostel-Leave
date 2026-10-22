@@ -24,6 +24,12 @@ type OutboxDbClient = Pick<
 // claimNext uses a raw UPDATE ... RETURNING * so it can claim rows
 // atomically. Raw SQL results keep the database column names, so map them
 // back to the camelCase shape the rest of the app (and the worker) expects.
+// The node-postgres driver also returns raw timestamps as strings, and the
+// claim guard needs real Dates to compare against timestamp columns.
+function toDate(value: unknown): Date | null {
+  return value == null ? null : new Date(value as string | Date);
+}
+
 function mapRawOutboxRow(row: Record<string, unknown>): OutboxEvent {
   return {
     id: row.id as string,
@@ -35,12 +41,12 @@ function mapRawOutboxRow(row: Record<string, unknown>): OutboxEvent {
     status: row.status as OutboxEvent["status"],
     attemptCount: row.attempt_count as number,
     lastError: (row.last_error ?? null) as string | null,
-    nextAttemptAt: (row.next_attempt_at ?? null) as Date | null,
-    leaseExpiresAt: (row.lease_expires_at ?? null) as Date | null,
-    createdAt: row.created_at as Date,
-    processedAt: (row.processed_at ?? null) as Date | null,
-    claimedAt: (row.claimed_at ?? null) as Date | null,
-    publishedAt: (row.published_at ?? null) as Date | null,
+    nextAttemptAt: toDate(row.next_attempt_at),
+    leaseExpiresAt: toDate(row.lease_expires_at),
+    createdAt: toDate(row.created_at) as Date,
+    processedAt: toDate(row.processed_at),
+    claimedAt: toDate(row.claimed_at),
+    publishedAt: toDate(row.published_at),
   };
 }
 
