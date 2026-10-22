@@ -24,19 +24,15 @@ function normalizeBaseUrl(value: string): string {
 }
 
 export function getPublicBaseUrl(): string {
-  const rawUrl =
+  const explicitUrl =
     process.env.NEXT_PUBLIC_BASE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_URL ||
-    (process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : undefined) ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+    process.env.NEXT_PUBLIC_URL;
 
-  const configuredUrl = rawUrl?.trim() || undefined;
+  const configuredUrl = explicitUrl?.trim() || undefined;
 
-  // A public configured URL always wins, including in local development.
-  if (configuredUrl && !isLocalUrl(configuredUrl)) {
+  // An explicit custom domain always wins (unless localhost in production or an unbranded vercel.app alias)
+  if (configuredUrl && !isLocalUrl(configuredUrl) && !configuredUrl.includes("vercel.app")) {
     return normalizeBaseUrl(configuredUrl);
   }
 
@@ -51,6 +47,11 @@ export function getPublicBaseUrl(): string {
 
   if (localhostAllowed) {
     return normalizeBaseUrl(configuredUrl ?? LOCAL_DEV_BASE_URL);
+  }
+
+  // Preview environments on Vercel (PR previews) use the preview deployment URL
+  if (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL.replace(/\/+$/, "")}`;
   }
 
   return PRODUCTION_BASE_URL;

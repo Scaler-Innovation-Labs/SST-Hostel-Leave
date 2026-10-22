@@ -1,3 +1,4 @@
+import { getPublicBaseUrl } from "@/lib/base-url"
 import { logger } from "@/lib/logger"
 
 import type { EmailPayload, EmailProvider, EmailResult } from "./provider"
@@ -57,7 +58,7 @@ export class SstEmailProvider implements EmailProvider {
         variables: {
           title: escapeHtml(payload.subject),
           authorName: "SST Hostel Leave",
-          dashboardUrl: process.env.NEXT_PUBLIC_BASE_URL ?? "https://sst-hostel-leave.vercel.app",
+          dashboardUrl: `${getPublicBaseUrl()}/student/dashboard`,
           descriptionHtml,
           category: payload.template ? escapeHtml(payload.template.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())) : "Notification",
         },

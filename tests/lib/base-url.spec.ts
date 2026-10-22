@@ -92,12 +92,19 @@ describe("getPublicBaseUrl", () => {
     expect(getPublicBaseUrl()).toBe("https://app.sst.scaler.com");
   });
 
-  it("falls back to VERCEL_PROJECT_PRODUCTION_URL when other envs are not set", () => {
+  it("prefers canonical domain over unbranded vercel.app URLs in production", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("NEXT_PUBLIC_BASE_URL", "https://sst-hostel-leave.vercel.app");
+
+    expect(getPublicBaseUrl()).toBe(PRODUCTION_BASE_URL);
+  });
+
+  it("uses the preview URL when in VERCEL_ENV preview environment", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("NEXT_PUBLIC_BASE_URL", "");
-    vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
-    vi.stubEnv("VERCEL_PROJECT_PRODUCTION_URL", "sst-hostel.vercel.app");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    vi.stubEnv("VERCEL_URL", "sst-hostel-leave-git-feature.vercel.app");
 
-    expect(getPublicBaseUrl()).toBe("https://sst-hostel.vercel.app");
+    expect(getPublicBaseUrl()).toBe("https://sst-hostel-leave-git-feature.vercel.app");
   });
 });
