@@ -1,9 +1,9 @@
 import { ACTOR_TYPE, AUDIT_TRIGGER } from "@/constants/audit/actor";
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
-import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { PARENT_APPROVAL_TOKEN_EXPIRY_HOURS } from "@/constants/parent/parent-approval";
 import { leaveParentApprovalRepository } from "@/db/repositories/leave/leave-parent-approval.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
@@ -43,9 +43,9 @@ export async function generateParentApproval(
     return;
   }
   if (
-    existingApproval.parentApprovalToken &&
-    existingApproval.parentApprovalExpiresAt &&
-    existingApproval.parentApprovalExpiresAt > new Date()
+    existingApproval.parentDetails?.tokenHash &&
+    existingApproval.parentDetails?.tokenExpiresAt &&
+    existingApproval.parentDetails.tokenExpiresAt > new Date()
   ) {
     return;
   }
@@ -55,8 +55,8 @@ export async function generateParentApproval(
     parent = await parentRepository.findById(context.parentId);
   }
 
-  if (!parent && existingApproval.approverParentId) {
-    parent = await parentRepository.findById(existingApproval.approverParentId);
+  if (!parent && existingApproval.parentDetails?.parentId) {
+    parent = await parentRepository.findById(existingApproval.parentDetails.parentId);
   }
 
   if (!parent) {

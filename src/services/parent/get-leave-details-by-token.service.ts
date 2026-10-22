@@ -56,8 +56,8 @@ export async function getLeaveDetailsByToken(
   }
 
   if (
-    approval.parentApprovalExpiresAt &&
-    new Date(approval.parentApprovalExpiresAt) < new Date()
+    approval.parentDetails?.tokenExpiresAt &&
+    new Date(approval.parentDetails.tokenExpiresAt) < new Date()
   ) {
     logger.warn("Parent approval link lookup failed: link expired", {
       approvalId: approval.id,
@@ -72,7 +72,7 @@ export async function getLeaveDetailsByToken(
     throw new ValidationError("Unable to process this approval link")
   }
 
-  const parentId = approval.approverParentId
+  const parentId = approval.parentDetails?.parentId
   let parentName = ""
   let parentPhone = ""
   if (parentId) {

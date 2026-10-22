@@ -126,7 +126,6 @@ type ExtensionSeed = {
     stepKey: string;
     stepOrder: number;
     approverRoleId: string | null;
-    approverParentId: string | null;
     decision: string;
     approvalSource: string;
     actedAt: Date | null;
@@ -150,7 +149,7 @@ function approvalDecisionsForStep(
 
 function buildExtensionApprovals(
   steps: WorkflowStepRow[],
-  parentId: string | null,
+  _parentId: string | null,
   opts: {
     parkIndex: number | null; // pending at this step (earlier steps approved)
     approved: boolean; // every step approved
@@ -171,7 +170,6 @@ function buildExtensionApprovals(
       stepKey: step.stepKey,
       stepOrder: step.stepOrder,
       approverRoleId: step.approverRoleId,
-      approverParentId: step.isParentApproval ? parentId : null,
       decision,
       approvalSource: approvalDecisionsForStep(step).approvalSource,
       actedAt: decision === LEAVE_APPROVAL_DECISION.PENDING ? null : opts.actedAt,
@@ -1072,7 +1070,6 @@ async function main() {
         stepKey: a.stepKey,
         stepOrder: a.stepOrder,
         approverRoleId: a.approverRoleId,
-        approverParentId: a.approverParentId,
         decision: a.decision as never,
         approvalSource: a.approvalSource as never,
         actedAt: a.actedAt,

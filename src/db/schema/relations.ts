@@ -193,7 +193,6 @@ export const parentsRelations = relations(
       references: [students.id],
     }),
 
-    leaveApprovals: many(leaveApprovals),
     leaveApprovalParentDetails: many(leaveApprovalParentDetails),
 
     notificationLogs: many(notificationLogs),
@@ -374,11 +373,6 @@ export const leaveApprovalsRelations = relations(
       relationName: "leaveApprovalActor",
       fields: [leaveApprovals.actedByUserId],
       references: [users.id],
-    }),
-
-    approverParent: one(parents, {
-      fields: [leaveApprovals.approverParentId],
-      references: [parents.id],
     }),
 
     parentDetails: one(leaveApprovalParentDetails, {

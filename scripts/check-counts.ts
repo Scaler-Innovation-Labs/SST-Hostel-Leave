@@ -5,7 +5,7 @@ dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
 async function main() {
   const { db } = await import("@/lib/db");
-  const { leaveApprovals, leaveRequests, leaveExtensions, students, users, hostels } = await import("@/db");
+  const { leaveApprovalParentDetails, leaveApprovals, leaveRequests, leaveExtensions, students, users, hostels } = await import("@/db");
   const { sql, eq, and, isNotNull, isNull, lt, inArray, like } = await import("drizzle-orm");
 
   const hostelsRows = await db.select({ id: hostels.id, code: hostels.code }).from(hostels);
@@ -49,13 +49,17 @@ async function main() {
   const countExtPending = async (hostelIds?: string[]) => {
     const conds = [
       isNotNull(leaveApprovals.leaveExtensionId),
-      isNull(leaveApprovals.approverParentId),
+      isNull(leaveApprovalParentDetails.approvalId),
       eq(leaveApprovals.decision, "PENDING"),
     ];
     if (hostelIds?.length) conds.push(inArray(users.hostelId, hostelIds));
     const rows = await db
       .select({ count: sql<number>`count(*)` })
       .from(leaveApprovals)
+      .leftJoin(
+        leaveApprovalParentDetails,
+        eq(leaveApprovals.id, leaveApprovalParentDetails.approvalId)
+      )
       .innerJoin(leaveExtensions, eq(leaveApprovals.leaveExtensionId, leaveExtensions.id))
       .leftJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))

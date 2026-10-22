@@ -56,8 +56,8 @@ export async function parentApproveDecision(
     }
 
     if (
-      approvalBase.parentApprovalExpiresAt &&
-      new Date(approvalBase.parentApprovalExpiresAt) < new Date()
+      approvalBase.parentDetails?.tokenExpiresAt &&
+      new Date(approvalBase.parentDetails.tokenExpiresAt) < new Date()
     ) {
       throw new ConflictError("Approval link has expired");
     }
@@ -67,7 +67,6 @@ export async function parentApproveDecision(
     const updatedApproval =
       await leaveParentApprovalRepository.updateParentDecision(
         approvalBase.id,
-        approvalBase.approverParentId ?? "",
         dto.decision as LeaveApprovalDecision,
         dto.comments,
         tx

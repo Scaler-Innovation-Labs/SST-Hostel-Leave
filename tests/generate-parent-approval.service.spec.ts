@@ -66,9 +66,7 @@ beforeEach(() => {
   mockFindApprovalById.mockResolvedValue({
     id: "AP1",
     decision: "PENDING",
-    approverParentId: null,
-    parentApprovalToken: null,
-    parentApprovalExpiresAt: null,
+    parentDetails: null,
   });
   mockUpdateParentApprovalToken.mockResolvedValue({ id: "AP1" });
   mockAuditRecord.mockResolvedValue({});
@@ -100,9 +98,11 @@ describe("generateParentApproval service", () => {
     mockFindApprovalById.mockResolvedValue({
       id: "AP1",
       decision: "PENDING",
-      approverParentId: "P1",
-      parentApprovalToken: "existing-token-hash",
-      parentApprovalExpiresAt: new Date(Date.now() + 60_000),
+      parentDetails: {
+        parentId: "P1",
+        tokenHash: "existing-token-hash",
+        tokenExpiresAt: new Date(Date.now() + 60_000),
+      },
     });
 
     await generateParentApproval(VALID_CONTEXT, APPROVAL_STEP);

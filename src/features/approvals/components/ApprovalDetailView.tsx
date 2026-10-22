@@ -116,7 +116,6 @@ type LeaveApproval = {
   stepKey: string;
   stepOrder: number;
   approverRoleCode: string | null;
-  approverParentId?: string | null;
   approverName?: string | null;
   approverPhone?: string | null;
   approvalSource?: string | null;

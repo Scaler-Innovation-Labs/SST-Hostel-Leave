@@ -1,3 +1,5 @@
+import { eq } from "drizzle-orm";
+
 import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
 import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
@@ -8,15 +10,17 @@ import {
 import { getRejectionTemplateCode } from "@/constants/notification/rejection-template-code";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
+import { leaveApprovalParentDetails } from "@/db";
 import { hostelRepository } from "@/db/repositories/hostel/hostel.repository";
-import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 import { getPublicBaseUrl } from "@/lib/base-url";
 import { formatShortDate } from "@/lib/date-utils";
+import { db } from "@/lib/db";
 import { DeliveryError, NotFoundError, ValidationError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { recordMovement } from "@/services/movement/record-movement.service";
@@ -107,14 +111,21 @@ async function resolveContext(
         hostelId = user.hostelId ?? undefined;
       }
       // Resolve parent for parent notification delivery:
-      // Check the persisted approverParentId on the leave's approvals first,
+      // Check the persisted parent details on the leave's approvals first,
       // ensuring the exact selected parent receives subsequent notifications.
       if (leaveId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(leaveId)) {
         try {
           const approvals = await leaveApprovalRepository.findByLeaveRequestId(leaveId);
-          const parentApproval = approvals.find((a) => a.approverParentId);
-          if (parentApproval?.approverParentId) {
-            parentId = parentApproval.approverParentId;
+          const parentApproval = approvals.find((a) => a.stepKey === WORKFLOW_STEP_KEY.PARENT_APPROVAL);
+          if (parentApproval) {
+            const details = await db
+              .select({ parentId: leaveApprovalParentDetails.parentId })
+              .from(leaveApprovalParentDetails)
+              .where(eq(leaveApprovalParentDetails.approvalId, parentApproval.id))
+              .limit(1);
+            if (details[0]?.parentId) {
+              parentId = details[0].parentId;
+            }
           }
         } catch {
           // fallback to primary parent below

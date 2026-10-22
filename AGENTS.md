@@ -207,8 +207,8 @@ Parents approve through the tokenized link page (email or portal).
 
 Parent auth infrastructure:
 * The approval link token is sha256-hashed and matched against
-  `leave_approvals.parentApprovalToken`
-* `leave_approvals.parentApprovalExpiresAt` enforces token expiry
+  `leave_approval_parent_details.tokenHash`
+* `leave_approval_parent_details.tokenExpiresAt` enforces token expiry
 * No JWT/session cookies, no OTP, and no Clerk auth — the flow lives in
   `services/parent/*` (generate-parent-approval, get-leave-details-by-token,
   parent-approve-decision) and `app/parent-approve/[token]`

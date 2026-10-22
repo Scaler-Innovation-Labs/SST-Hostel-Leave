@@ -256,7 +256,6 @@ async function main() {
         if (pocIndex === -1) continue;
 
         const pocStep = steps[pocIndex]!;
-        const parentId = parentByStudent.get(student.id) ?? null;
         const createdAt = daysFromNow(-(ticketCount % 3), ticketCount % 4); // spread over 3 days
         const leaveId = randomUUID();
 
@@ -287,7 +286,6 @@ async function main() {
             approverRoleId: step.approverRoleId,
             assignedApproverUserId:
               step.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL ? pocUser.id : null,
-            approverParentId: step.isParentApproval ? parentId : null,
             decision: before
               ? step.stepKey === WORKFLOW_STEP_KEY.AUTO_APPROVAL
                 ? LEAVE_APPROVAL_DECISION.AUTO_APPROVED

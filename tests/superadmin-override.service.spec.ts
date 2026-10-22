@@ -79,7 +79,6 @@ const PENDING_APPROVALS = [
     stepOrder: 1,
     decision: "PENDING",
     assignedApproverUserId: "U9",
-    approverParentId: null,
   },
   {
     id: "A2",
@@ -87,7 +86,6 @@ const PENDING_APPROVALS = [
     stepOrder: 2,
     decision: "PENDING",
     assignedApproverUserId: "U8",
-    approverParentId: null,
   },
 ];
 
@@ -118,7 +116,6 @@ describe("superadminOverrideLeave", () => {
         stepOrder: 1,
         decision: "PENDING",
         assignedApproverUserId: null,
-        approverParentId: "PARENT-1",
       },
     ]);
     mockFindByEntityAndDecision.mockResolvedValue([]);

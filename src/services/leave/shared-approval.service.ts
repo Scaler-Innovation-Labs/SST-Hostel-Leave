@@ -8,6 +8,7 @@ import {
 } from "@/constants/leave/approval-override-type";
 import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
+import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { type leaveApprovals } from "@/db";
 import { auditRepository } from "@/db/repositories/audit/audit.repository";
 import type { LeaveApproval } from "@/db/repositories/leave/leave-approval.repository";
@@ -79,11 +80,11 @@ export function assertApprovalIsAtCurrentStep(
 }
 
 export function checkParentOverride(
-  current: { approverParentId: string | null; assignedApproverUserId: string | null; approverRoleCode: string | null; stepKey: string; stepOrder: number | null },
+  current: { assignedApproverUserId: string | null; approverRoleCode: string | null; stepKey: string; stepOrder: number | null },
   dto: { forceOverride?: boolean },
   currentUser: { id: string; roles: string[] }
 ): { isParentOverride: boolean; requiresConfirmation?: boolean; warning?: string; decision?: string; stepKey?: string; stepOrder?: number | null; newStatus?: null } | null {
-  const isParentApprovalStep = !!(current.approverParentId && !current.assignedApproverUserId);
+  const isParentApprovalStep = current.stepKey === WORKFLOW_STEP_KEY.PARENT_APPROVAL;
 
   if (isParentApprovalStep) {
     requireAnyRole(currentUser as CurrentUser, [ROLES.ADMIN, ROLES.SUPER_ADMIN]);

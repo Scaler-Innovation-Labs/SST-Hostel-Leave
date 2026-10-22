@@ -267,7 +267,6 @@ export async function createLeave(
         approverRoleId: step.approverRoleId ?? null,
         assignedApproverUserId,
         approverUserId: assignedApproverUserId,
-        approverParentId: step.isParentApproval ? parentId : null,
         decision: LEAVE_APPROVAL_DECISION.PENDING,
         approvalSource: resolveApprovalSource(step.approvalMethod ?? null, step.isParentApproval),
       };
@@ -275,7 +274,7 @@ export async function createLeave(
 
     const createdApprovals = await leaveApprovalRepository.createMany(approvalsToCreate, tx);
 
-    const parentApproval = createdApprovals.find((a) => a.approverParentId);
+    const parentApproval = createdApprovals.find((a) => a.stepKey === WORKFLOW_STEP_KEY.PARENT_APPROVAL);
     if (parentApproval && parentId && typeof (tx as any).insert === "function") {
       await (tx as any).insert(leaveApprovalParentDetails).values({
         approvalId: parentApproval.id,

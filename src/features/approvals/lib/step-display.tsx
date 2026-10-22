@@ -121,7 +121,7 @@ export function toWaitingOnStepKeys(entries: ApprovalStepBreakdownEntry[]): stri
 export type ApprovalActor = {
   approverName?: string | null;
   approverPhone?: string | null;
-  approverParentId?: string | null;
+  stepKey?: string | null;
   approverRoleCode?: string | null;
   overrideType?: ApprovalOverrideType | null;
 };
@@ -154,7 +154,9 @@ function toRoleLabel(roleCode: string | null | undefined): string | null {
  * information, so a parent step does not read "Parent (Parent)".
  */
 export function formatApprovalActor(approval: ApprovalActor): string {
-  const isParent = !!approval.approverParentId;
+  const isParent =
+    approval.stepKey === WORKFLOW_STEP_KEY.PARENT_APPROVAL ||
+    approval.approverRoleCode?.toUpperCase() === "PARENT";
   const roleLabel = isParent
     ? "Parent"
     : toRoleLabel(approval.approverRoleCode);

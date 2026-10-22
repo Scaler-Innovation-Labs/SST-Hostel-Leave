@@ -488,13 +488,6 @@ export const leaveApprovals = pgTable("leave_approvals", {
     }
   ),
 
-  approverParentId: uuid("approver_parent_id").references(
-    () => parents.id,
-    {
-      onDelete: "set null",
-    }
-  ),
-
   decision: leaveApprovalDecisionEnum("decision").notNull(),
 
   approvalSource: approvalSourceEnum("approval_source").notNull(),
@@ -506,14 +499,6 @@ export const leaveApprovals = pgTable("leave_approvals", {
 
   /** Structured reason category for rejections (e.g. incomplete, policy_violation). */
   rejectionCategory: text("rejection_category"),
-
-  parentApprovalToken: text("parent_approval_token")
-    .unique(),
-
-  parentApprovalExpiresAt: timestamp(
-    "parent_approval_expires_at",
-    { withTimezone: true }
-  ),
 
   actedAt: timestamp("acted_at", {
     withTimezone: true,
@@ -548,12 +533,8 @@ export const leaveApprovals = pgTable("leave_approvals", {
     actedByUserIdIndex: index("la_acted_by_user_id_idx").on(table.actedByUserId),
     approverUserIdIndex: index("la_approver_user_id_idx").on(table.approverUserId),
     decisionIndex: index("la_decision_idx").on(table.decision),
-    parentApprovalTokenIndex: index("la_parent_token_idx").on(table.parentApprovalToken),
-    approverParentIdIndex: index("la_approver_parent_id_idx").on(table.approverParentId),
-    parentExpiryIndex: index("la_parent_expiry_idx").on(table.parentApprovalExpiresAt),
     requestDecisionStepIdx: index("la_request_decision_step_idx").on(table.leaveRequestId, table.decision, table.stepOrder),
     extensionDecisionStepIdx: index("la_extension_decision_step_idx").on(table.leaveExtensionId, table.decision, table.stepOrder),
-    parentDecisionCreatedIdx: index("la_parent_decision_created_idx").on(table.approverParentId, table.decision, table.createdAt),
     createdAtIndex: index("la_created_at_idx").on(table.createdAt),
     actedAtIndex: index("la_acted_at_idx").on(table.actedAt),
   })

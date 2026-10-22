@@ -5,6 +5,7 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
@@ -76,7 +77,7 @@ export async function superadminOverrideLeave(
 
     for (const approvalId of idsToProcess) {
       const step = actionable.find((s) => s.id === approvalId);
-      const isParentOverride = step?.approverParentId !== null;
+      const isParentOverride = step?.stepKey === WORKFLOW_STEP_KEY.PARENT_APPROVAL;
 
       const updated = await leaveApprovalRepository.updateDecisionById(
         approvalId,

@@ -53,7 +53,6 @@ describe("getApprovalOverrideTypes", () => {
 
 describe("checkParentOverride", () => {
   const parentStep = {
-    approverParentId: "PARENT1",
     assignedApproverUserId: null,
     approverRoleCode: "PARENT",
     stepKey: "PARENT_APPROVAL",

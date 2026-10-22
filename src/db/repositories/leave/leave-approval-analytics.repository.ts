@@ -1,11 +1,21 @@
 import type { InferSelectModel } from "drizzle-orm";
-import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 
 import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
-import { hostels, leaveApprovals, leaveExtensions, leaveRequests, leaveTypes, roles, students, users } from "@/db";
+import {
+  hostels,
+  leaveApprovalParentDetails,
+  leaveApprovals,
+  leaveExtensions,
+  leaveRequests,
+  leaveTypes,
+  roles,
+  students,
+  users,
+} from "@/db";
 
 const actedByUser = alias(users, "acted_by_user");
 import { db } from "@/lib/db";
@@ -31,6 +41,10 @@ export const leaveApprovalAnalyticsRepository = {
     const result = await dbClient
       .select({ count: sql<number>`count(*)` })
       .from(leaveApprovals)
+      .leftJoin(
+        leaveApprovalParentDetails,
+        eq(leaveApprovals.id, leaveApprovalParentDetails.approvalId)
+      )
       .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
@@ -229,6 +243,10 @@ export const leaveApprovalAnalyticsRepository = {
         count: sql<number>`count(*)`,
       })
       .from(leaveApprovals)
+      .leftJoin(
+        leaveApprovalParentDetails,
+        eq(leaveApprovals.id, leaveApprovalParentDetails.approvalId)
+      )
       .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
@@ -395,7 +413,7 @@ export const leaveApprovalAnalyticsRepository = {
     averageTurnaroundHours: number | null;
   }> {
     const conditions: ReturnType<typeof and>[] = [
-      sql`${leaveApprovals.approverParentId} IS NULL`,
+      isNull(leaveApprovalParentDetails.approvalId),
       sql`${leaveApprovals.actedAt} IS NOT NULL`,
       inArray(leaveApprovals.decision, [
         LEAVE_APPROVAL_DECISION.APPROVED,
@@ -436,7 +454,7 @@ export const leaveApprovalAnalyticsRepository = {
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<number> {
     const conditions: ReturnType<typeof and>[] = [
-      sql`${leaveApprovals.approverParentId} IS NULL`,
+      isNull(leaveApprovalParentDetails.approvalId),
       eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
     ];
     conditions.push(...hostelCondition(hostelIds));
@@ -444,6 +462,10 @@ export const leaveApprovalAnalyticsRepository = {
     const result = await dbClient
       .select({ count: sql<number>`count(*)` })
       .from(leaveApprovals)
+      .leftJoin(
+        leaveApprovalParentDetails,
+        eq(leaveApprovals.id, leaveApprovalParentDetails.approvalId)
+      )
       .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
@@ -459,7 +481,7 @@ export const leaveApprovalAnalyticsRepository = {
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<Array<{ date: string; approved: number; rejected: number }>> {
     const conditions: ReturnType<typeof and>[] = [
-      sql`${leaveApprovals.approverParentId} IS NULL`,
+      isNull(leaveApprovalParentDetails.approvalId),
       sql`${leaveApprovals.actedAt} IS NOT NULL`,
       inArray(leaveApprovals.decision, [
         LEAVE_APPROVAL_DECISION.APPROVED,
@@ -504,7 +526,7 @@ export const leaveApprovalAnalyticsRepository = {
     averageTurnaroundHours: number | null;
   }>> {
     const conditions: ReturnType<typeof and>[] = [
-      sql`${leaveApprovals.approverParentId} IS NULL`,
+      isNull(leaveApprovalParentDetails.approvalId),
       sql`${leaveApprovals.actedAt} IS NOT NULL`,
       inArray(leaveApprovals.decision, [
         LEAVE_APPROVAL_DECISION.APPROVED,
@@ -524,6 +546,10 @@ export const leaveApprovalAnalyticsRepository = {
         avgHours: sql<number | null>`avg(extract(epoch from (${leaveApprovals.actedAt} - ${leaveApprovals.createdAt})) / 3600)`,
       })
       .from(leaveApprovals)
+      .leftJoin(
+        leaveApprovalParentDetails,
+        eq(leaveApprovals.id, leaveApprovalParentDetails.approvalId)
+      )
       .leftJoin(roles, eq(leaveApprovals.approverRoleId, roles.id))
       .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
@@ -559,7 +585,7 @@ export const leaveApprovalAnalyticsRepository = {
     averageTurnaroundHours: number | null;
   }>> {
     const conditions: ReturnType<typeof and>[] = [
-      sql`${leaveApprovals.approverParentId} IS NULL`,
+      isNull(leaveApprovalParentDetails.approvalId),
       sql`${leaveApprovals.actedByUserId} IS NOT NULL`,
       sql`${leaveApprovals.actedAt} IS NOT NULL`,
       inArray(leaveApprovals.decision, [
@@ -582,6 +608,10 @@ export const leaveApprovalAnalyticsRepository = {
         avgHours: sql<number | null>`avg(extract(epoch from (${leaveApprovals.actedAt} - ${leaveApprovals.createdAt})) / 3600)`,
       })
       .from(leaveApprovals)
+      .leftJoin(
+        leaveApprovalParentDetails,
+        eq(leaveApprovals.id, leaveApprovalParentDetails.approvalId)
+      )
       .leftJoin(actedByUser, eq(leaveApprovals.actedByUserId, actedByUser.id))
       .leftJoin(roles, eq(leaveApprovals.approverRoleId, roles.id))
       .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))

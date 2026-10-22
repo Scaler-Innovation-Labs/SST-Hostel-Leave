@@ -1,3 +1,5 @@
+import { eq } from "drizzle-orm";
+
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
@@ -237,10 +239,18 @@ export async function createExtension(
     if (parentApprovalStep || pocApprovalStep) {
       const originalApprovals = await leaveApprovalRepository.findByLeaveRequestId(leaveRequestId, tx);
       if (parentApprovalStep) {
-        const originalParentApproval = originalApprovals.find((a) => a.approverParentId != null);
-        if (originalParentApproval?.approverParentId) {
-          parentId = originalParentApproval.approverParentId;
-        } else {
+        const originalParentApproval = originalApprovals.find((a) => a.stepKey === WORKFLOW_STEP_KEY.PARENT_APPROVAL);
+        if (originalParentApproval) {
+          const details = await (tx as any)
+            .select({ parentId: leaveApprovalParentDetails.parentId })
+            .from(leaveApprovalParentDetails)
+            .where(eq(leaveApprovalParentDetails.approvalId, originalParentApproval.id))
+            .limit(1);
+          if (details[0]?.parentId) {
+            parentId = details[0].parentId;
+          }
+        }
+        if (!parentId) {
           const parent = await parentRepository.findPrimaryByStudentId(leave.studentId, tx);
           parentId = parent?.id ?? null;
         }
@@ -264,7 +274,6 @@ export async function createExtension(
         approverRoleId: step.approverRoleId ?? null,
         assignedApproverUserId,
         approverUserId: assignedApproverUserId, // Dual-write for backward-compatible rollbacks
-        approverParentId: step.isParentApproval ? parentId : null,
         decision: LEAVE_APPROVAL_DECISION.PENDING,
         approvalSource: resolveApprovalSource(step.approvalMethod ?? null, step.isParentApproval),
       };
@@ -272,7 +281,7 @@ export async function createExtension(
 
     const createdApprovals = await leaveApprovalRepository.createMany(approvalsToCreate, tx);
 
-    const parentApproval = createdApprovals.find((a) => a.approverParentId);
+    const parentApproval = createdApprovals.find((a) => a.stepKey === WORKFLOW_STEP_KEY.PARENT_APPROVAL);
     if (parentApproval && parentId && typeof (tx as any).insert === "function") {
       await (tx as any).insert(leaveApprovalParentDetails).values({
         approvalId: parentApproval.id,

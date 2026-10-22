@@ -28,6 +28,7 @@ import {
   academicGroups,
   departments,
   hostels,
+  leaveApprovalParentDetails,
   leaveApprovals,
   leaveConfigurationContexts,
   leaveExtensions,
@@ -496,7 +497,11 @@ export const leaveApprovalRepository = {
         actedByUser,
         eq(leaveApprovals.actedByUserId, actedByUser.id),
       )
-      .leftJoin(parents, eq(leaveApprovals.approverParentId, parents.id))
+      .leftJoin(
+        leaveApprovalParentDetails,
+        eq(leaveApprovals.id, leaveApprovalParentDetails.approvalId),
+      )
+      .leftJoin(parents, eq(leaveApprovalParentDetails.parentId, parents.id))
       .leftJoin(
         leaveRequests,
         eq(leaveApprovals.leaveRequestId, leaveRequests.id),
@@ -559,10 +564,10 @@ export const leaveApprovalRepository = {
       items: dedupedRows.map((row) => ({
         ...row.approval,
         approverRoleCode: row.roleCode,
-        approverName: row.approval.approverParentId
+        approverName: row.approverParentName
           ? row.approverParentName
           : row.actedByUserName ?? row.assignedApproverUserName,
-        approverPhone: row.approval.approverParentId
+        approverPhone: row.approverParentName
           ? row.approverParentPhone
           : null,
         // Prefer the frozen steps from the leave's execution context (what
@@ -1099,7 +1104,11 @@ export const leaveApprovalRepository = {
       .leftJoin(hostels, eq(users.hostelId, hostels.id))
       .leftJoin(academicGroups, eq(students.academicGroupId, academicGroups.id))
       .leftJoin(departments, eq(academicGroups.departmentId, departments.id))
-      .leftJoin(parents, eq(leaveApprovals.approverParentId, parents.id))
+      .leftJoin(
+        leaveApprovalParentDetails,
+        eq(leaveApprovals.id, leaveApprovalParentDetails.approvalId),
+      )
+      .leftJoin(parents, eq(leaveApprovalParentDetails.parentId, parents.id))
       .where(
         and(
           whereClause,
@@ -1131,10 +1140,10 @@ export const leaveApprovalRepository = {
       items: dedupedRows.map((row) => ({
         ...row.approval,
         approverRoleCode: row.roleCode,
-        approverName: row.approval.approverParentId
+        approverName: row.parentName
           ? row.parentName
           : row.actedByUserName ?? row.assignedApproverUserName,
-        approverPhone: row.approval.approverParentId ? row.parentPhone : null,
+        approverPhone: row.parentName ? row.parentPhone : null,
         // Frozen steps from the parent leave's execution context; fall back
         // to the live workflow for legacy leaves without a context.
         workflowSteps:

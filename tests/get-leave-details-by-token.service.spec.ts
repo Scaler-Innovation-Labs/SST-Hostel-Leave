@@ -42,8 +42,11 @@ const MOCK_APPROVAL_LEAVE = {
   leaveRequestId: "LR1",
   leaveExtensionId: null,
   decision: "PENDING",
-  parentApprovalExpiresAt: new Date("2099-01-01"),
-  approverParentId: "P1",
+  parentDetails: {
+    parentId: "P1",
+    tokenHash: "hashed-token",
+    tokenExpiresAt: new Date("2099-01-01"),
+  },
   stepOrder: 1,
   studentName: "John Doe",
   studentRollNumber: "R1",
@@ -94,7 +97,10 @@ describe("getLeaveDetailsByToken service", () => {
   it("throws generic NotFoundError when approval is expired", async () => {
     mockFindByParentApprovalToken.mockResolvedValue({
       ...MOCK_APPROVAL_LEAVE,
-      parentApprovalExpiresAt: new Date("2020-01-01"),
+      parentDetails: {
+        ...MOCK_APPROVAL_LEAVE.parentDetails,
+        tokenExpiresAt: new Date("2020-01-01"),
+      },
     });
 
     const failure = await getLeaveDetailsByToken("expired-token").catch((e: unknown) => e);

@@ -348,7 +348,6 @@ describe("createLeave service", () => {
         expect.arrayContaining([
           expect.objectContaining({
             stepKey: "PARENT_APPROVAL",
-            approverParentId: "P-MOTHER",
           }),
         ]),
         expect.anything()
@@ -423,7 +422,6 @@ describe("createLeave service", () => {
         expect.arrayContaining([
           expect.objectContaining({
             stepKey: "PARENT_APPROVAL",
-            approverParentId: "P-PRIMARY",
           }),
         ]),
         expect.anything()
