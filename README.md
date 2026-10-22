@@ -17,6 +17,10 @@
 
 ---
 
+> 📖 **Engineering Documentation**: See the comprehensive [Architecture & Engineering Documentation Pack](file:///c:/Users/Veda/Desktop/SST-Hostel-Leave/docs/architecture/README.md) covering high-level/low-level designs, database ERDs, request lifecycles, and interview defense guides.
+
+---
+
 # Project Overview
 
 SST Hostel Leave System is a production-grade leave and movement management platform for Scaler School of Technology (SST) hostel operations.
@@ -275,6 +279,9 @@ QR_TOKEN_ENC_ACTIVE_KEY_ID=k1
 # App settings
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+# Local dev only: allow localhost links in emails/SMS/QR. Never set on a
+# deployed app or worker host.
+ALLOW_LOCALHOST_LINKS=true
 LOG_LEVEL=info
 ```
 
@@ -309,6 +316,9 @@ A worker host drains the `outbox_events` table directly:
 - **Crash safety:** a killed run leaves rows `PROCESSING` with a 5-minute
   lease; the next pass requeues them after the 15-minute stale grace. No
   event can get permanently stuck as long as the timer keeps firing.
+- **Links:** notification links are built from the worker's
+  `NEXT_PUBLIC_BASE_URL`, not the web app's. Keep it on the public domain;
+  localhost is only emitted when `ALLOW_LOCALHOST_LINKS=true` (local dev).
 - **Inspecting failures:** query `outbox_events` by status, e.g.
   `scripts/check-outbox.ts` for pending/processing/failed counts.
 
