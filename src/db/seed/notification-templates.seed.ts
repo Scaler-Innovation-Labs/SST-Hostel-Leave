@@ -124,15 +124,78 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
     },
   ],
 
+  GENERAL_LEAVE: [
+    {
+      code: "leave_approved_email_general_leave",
+      eventKey: NOTIFICATION_EVENT.LEAVE_APPROVED,
+      channel: NOTIFICATION_CHANNEL.EMAIL,
+      subject: "General Leave Approved",
+      templateBody:
+        "Dear {{studentName}},\n\n" +
+        "Your General Leave for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "Please follow the approved leave dates and observe all hostel rules during your leave.\n\n" +
+        "<strong>Please note:</strong> This approval covers your hostel leave only. It does not exempt you from any classes, examinations, exam- or class-related requirements, or other academic obligations during this period. For any leave or exemption from academic requirements, please refer to the Student Policy and follow the process laid out there.\n\n" +
+        "We wish you a safe journey.\n\n" +
+        qrSectionFor("GENERAL_LEAVE") +
+        "Regards,\nHostel Administration\nScaler School of Technology",
+    },
+    {
+      code: "leave_rejected_email_general_leave_parent",
+      eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
+      channel: NOTIFICATION_CHANNEL.EMAIL,
+      subject: "General Leave Request Declined by Parent/Guardian",
+      templateBody:
+        "Dear {{studentName}},\n\n" +
+        "Your General Leave request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been declined by your parent/guardian.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please speak with your parent/guardian directly.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
+    },
+    {
+      code: "leave_rejected_email_general_leave_admin",
+      eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
+      channel: NOTIFICATION_CHANNEL.EMAIL,
+      subject: "General Leave Request Rejected",
+      templateBody:
+        "Dear {{studentName}},\n\n" +
+        "Your General Leave request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been reviewed by the Hostel Administration and has not been approved by the Hostel Warden.\n\n" +
+        "{{reviewCommentsSection}}" +
+        "For any clarification, please reach out to your Hostel Warden.\n\n" +
+        "Regards,\nHostel Administration\nScaler School of Technology",
+    },
+    {
+      code: "parent_approval_requested_sms_general_leave",
+      eventKey: NOTIFICATION_EVENT.PARENT_APPROVAL_REQUESTED,
+      channel: NOTIFICATION_CHANNEL.SMS,
+      subject: null,
+      templateBody:
+        "Dear Parent,{{StudentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
+    },
+    {
+      code: "leave_submitted_slack_general_leave",
+      eventKey: NOTIFICATION_EVENT.LEAVE_SUBMITTED,
+      channel: NOTIFICATION_CHANNEL.SLACK,
+      subject: null,
+      templateBody:
+        "Dear {{campus}} Hostel Warden,\n\n" +
+        "A new General Leave request has been submitted by {{studentName}} ({{rollNumber}}).\n" +
+        "Leave Duration: {{startDate}} to {{endDate}}\n" +
+        "Reason: {{reason}}\n\n" +
+        "Please review and approve or reject it using the link below:\n" +
+        "{{approvalLink}}",
+    },
+  ],
+
   LONG_LEAVE: [
     {
       code: "leave_approved_email_long_leave",
       eventKey: NOTIFICATION_EVENT.LEAVE_APPROVED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Long Leave Approved",
+      subject: "General Leave Approved",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "Your Long Leave for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
+        "Your General Leave for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
         "Please follow the approved leave dates and observe all hostel rules during your leave.\n\n" +
         "<strong>Please note:</strong> This approval covers your hostel leave only. It does not exempt you from any classes, examinations, exam- or class-related requirements, or other academic obligations during this period. For any leave or exemption from academic requirements, please refer to the Student Policy and follow the process laid out there.\n\n" +
@@ -144,10 +207,10 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       code: "leave_rejected_email_long_leave_parent",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Long Leave Request Declined by Parent/Guardian",
+      subject: "General Leave Request Declined by Parent/Guardian",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "Your Long Leave request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been declined by your parent/guardian.\n\n" +
+        "Your General Leave request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been declined by your parent/guardian.\n\n" +
         "{{reviewCommentsSection}}" +
         "For any clarification, please speak with your parent/guardian directly.\n\n" +
         "Regards,\nHostel Administration\nScaler School of Technology",
@@ -156,10 +219,10 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       code: "leave_rejected_email_long_leave_admin",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Long Leave Request Rejected",
+      subject: "General Leave Request Rejected",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "Your Long Leave request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been reviewed by the Hostel Administration and has not been approved by the Hostel Warden.\n\n" +
+        "Your General Leave request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been reviewed by the Hostel Administration and has not been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
         "For any clarification, please reach out to your Hostel Warden.\n\n" +
         "Regards,\nHostel Administration\nScaler School of Technology",
@@ -172,7 +235,6 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       templateBody:
         "Dear Parent,{{StudentApprovalName}} has applied for a Leave. Kindly click the link to review: {{approvalLink}} -Scaler School of Technology",
     },
-
     {
       code: "leave_submitted_slack_long_leave",
       eventKey: NOTIFICATION_EVENT.LEAVE_SUBMITTED,
@@ -180,7 +242,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       subject: null,
       templateBody:
         "Dear {{campus}} Hostel Warden,\n\n" +
-        "A new Long Leave request has been submitted by {{studentName}} ({{rollNumber}}).\n" +
+        "A new General Leave request has been submitted by {{studentName}} ({{rollNumber}}).\n" +
         "Leave Duration: {{startDate}} to {{endDate}}\n" +
         "Reason: {{reason}}\n\n" +
         "Please review and approve or reject it using the link below:\n" +

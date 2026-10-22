@@ -67,12 +67,12 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
     ],
   },
   {
-    leaveTypeCode: "LONG_LEAVE",
+    leaveTypeCode: "GENERAL_LEAVE",
     rules: [
       {
         // Parent approved → ADMIN step current.
         eventType: NOTIFICATION_EVENT.LEAVE_APPROVAL_REQUIRED,
-        templateCode: "leave_submitted_slack_long_leave",
+        templateCode: "leave_submitted_slack_general_leave",
         recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.HOSTEL_ADMIN],
         channels: [NOTIFICATION_CHANNEL.SLACK],
         enabled: true,
@@ -80,7 +80,7 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
       },
       {
         eventType: NOTIFICATION_EVENT.LEAVE_APPROVED,
-        templateCode: "leave_approved_email_long_leave",
+        templateCode: "leave_approved_email_general_leave",
         recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT, NOTIFICATION_RECIPIENT_TYPE.PARENT],
         channels: [NOTIFICATION_CHANNEL.EMAIL],
         enabled: true,
@@ -88,7 +88,37 @@ const LEAVE_TYPE_RULES: LeaveTypeRuleDraft[] = [
       },
       {
         eventType: NOTIFICATION_EVENT.PARENT_APPROVAL_REQUESTED,
-        templateCode: "parent_approval_requested_sms_long_leave",
+        templateCode: "parent_approval_requested_sms_general_leave",
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.PARENT],
+        channels: [NOTIFICATION_CHANNEL.SMS],
+        enabled: true,
+        customRecipients: null,
+      },
+    ],
+  },
+  {
+    leaveTypeCode: "LONG_LEAVE",
+    rules: [
+      {
+        // Parent approved → ADMIN step current.
+        eventType: NOTIFICATION_EVENT.LEAVE_APPROVAL_REQUIRED,
+        templateCode: "leave_submitted_slack_general_leave",
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.HOSTEL_ADMIN],
+        channels: [NOTIFICATION_CHANNEL.SLACK],
+        enabled: true,
+        customRecipients: null,
+      },
+      {
+        eventType: NOTIFICATION_EVENT.LEAVE_APPROVED,
+        templateCode: "leave_approved_email_general_leave",
+        recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.STUDENT, NOTIFICATION_RECIPIENT_TYPE.PARENT],
+        channels: [NOTIFICATION_CHANNEL.EMAIL],
+        enabled: true,
+        customRecipients: null,
+      },
+      {
+        eventType: NOTIFICATION_EVENT.PARENT_APPROVAL_REQUESTED,
+        templateCode: "parent_approval_requested_sms_general_leave",
         recipientTypes: [NOTIFICATION_RECIPIENT_TYPE.PARENT],
         channels: [NOTIFICATION_CHANNEL.SMS],
         enabled: true,

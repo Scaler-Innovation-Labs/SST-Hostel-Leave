@@ -13,7 +13,7 @@ async function main() {
   const detail = await db.execute(sql`
     SELECT code, template_body
     FROM notification_templates
-    WHERE code = 'leave_approved_email_long_leave'
+    WHERE code IN ('leave_approved_email_long_leave', 'leave_approved_email_general_leave')
   `);
   const detailData = Array.isArray(detail) ? detail : (detail as { rows?: unknown }).rows ?? [];
   console.log("\nLIVE BODY (leave_approved_email_long_leave):");

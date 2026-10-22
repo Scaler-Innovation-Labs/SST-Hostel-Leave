@@ -368,7 +368,8 @@ export async function createLeave(
 
 const POLICY_REJECTION_TEMPLATES: Record<string, string> = {
   EXAM_LEAVE: "leave_rejected_email_exam_leave_policy",
-  LONG_LEAVE: "leave_rejected_email_long_leave_admin",
+  GENERAL_LEAVE: "leave_rejected_email_general_leave_admin",
+  LONG_LEAVE: "leave_rejected_email_general_leave_admin",
   LATE_ENTRY: "leave_rejected_email_late_entry_admin",
   LATE_STAY_COLLEGE: "leave_rejected_email_late_stay_admin",
   DIFFERENT_HOSTEL: "leave_rejected_email_diff_hostel_admin",

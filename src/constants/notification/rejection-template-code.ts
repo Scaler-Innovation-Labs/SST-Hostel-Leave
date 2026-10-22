@@ -16,9 +16,13 @@ const REJECTION_TEMPLATE_CODES: Record<
     PARENT: "leave_rejected_email_exam_leave_parent",
     ADMIN: "leave_rejected_email_exam_leave_admin",
   },
+  GENERAL_LEAVE: {
+    PARENT: "leave_rejected_email_general_leave_parent",
+    ADMIN: "leave_rejected_email_general_leave_admin",
+  },
   LONG_LEAVE: {
-    PARENT: "leave_rejected_email_long_leave_parent",
-    ADMIN: "leave_rejected_email_long_leave_admin",
+    PARENT: "leave_rejected_email_general_leave_parent",
+    ADMIN: "leave_rejected_email_general_leave_admin",
   },
   LATE_ENTRY: {
     PARENT: "leave_rejected_email_late_entry_parent",
