@@ -3,8 +3,8 @@
  * ASSIGNED to the POC user(s) present in the database.
  *
  * Why this exists: `seed-all-leave-types.ts` creates the full stage matrix
- * with `approverRoleId` set but never `approverUserId`. The POC approvals
- * queue filters by `approverUserId = currentUser.id`
+ * with `approverRoleId` set but never `assignedApproverUserId`. The POC approvals
+ * queue filters by `assignedApproverUserId = currentUser.id`
  * (see `list-approvals.service.ts`), so those rows never surface in a POC's
  * queue. This script fills that gap:
  *
@@ -13,7 +13,7 @@
  *     POC is unscoped)
  *   - creates one pending leave per leave type that has a POC_APPROVAL
  *     workflow step, with the POC-step approval row carrying that POC user
- *     as `approverUserId` and earlier steps already approved
+ *     as `assignedApproverUserId` and earlier steps already approved
  *
  * Idempotent: existing leaves with requestNumber prefix `LR-POC-` are
  * deleted (cascade removes their approvals) and re-created.
@@ -285,7 +285,7 @@ async function main() {
             stepKey: step.stepKey,
             stepOrder: step.stepOrder,
             approverRoleId: step.approverRoleId,
-            approverUserId:
+            assignedApproverUserId:
               step.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL ? pocUser.id : null,
             approverParentId: step.isParentApproval ? parentId : null,
             decision: before

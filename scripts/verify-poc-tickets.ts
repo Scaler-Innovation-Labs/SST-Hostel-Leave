@@ -33,7 +33,7 @@ async function main() {
     // Same call list-approvals.service makes for a POC user.
     const result = await leaveApprovalRepository.findByFilters({
       status: LEAVE_APPROVAL_DECISION.PENDING,
-      approverUserId: pocUserId,
+      assignedApproverUserId: pocUserId,
       hostelIds: hostelIds.length > 0 ? hostelIds : undefined,
       excludeLeaveStatuses: [LEAVE_REQUEST_STATUS.CANCELLED],
       page: 1,
@@ -44,7 +44,7 @@ async function main() {
     console.log(`  Pending tickets in queue: ${result.total}`);
     for (const item of result.items) {
       console.log(
-        `    - ${item.leaveRequest?.requestNumber} | ${item.leaveRequest?.reason} | step=${item.stepKey}@${item.stepOrder} | decision=${item.decision} | approver=${item.approverUserId}`
+        `    - ${item.leaveRequest?.requestNumber} | ${item.leaveRequest?.reason} | step=${item.stepKey}@${item.stepOrder} | decision=${item.decision} | approver=${item.assignedApproverUserId}`
       );
     }
   }

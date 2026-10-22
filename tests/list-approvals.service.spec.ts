@@ -75,7 +75,7 @@ describe("listApprovals service", () => {
       expect.objectContaining({
         page: 1,
         limit: 20,
-        approverUserId: undefined,
+        assignedApproverUserId: undefined,
         excludeLeaveStatuses: undefined,
       })
     );
@@ -137,7 +137,7 @@ describe("listApprovals service", () => {
     );
 
     expect(mockFindByFilters).toHaveBeenCalledWith(
-      expect.objectContaining({ approverUserId: "POC1" })
+      expect.objectContaining({ assignedApproverUserId: "POC1" })
     );
   });
 
@@ -229,7 +229,7 @@ describe("listApprovals service", () => {
     );
 
     expect(mockFindByFilters).toHaveBeenCalledWith(
-      expect.objectContaining({ approverUserId: undefined })
+      expect.objectContaining({ assignedApproverUserId: undefined })
     );
   });
 });

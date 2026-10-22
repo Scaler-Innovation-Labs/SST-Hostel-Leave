@@ -78,7 +78,7 @@ const PENDING_APPROVALS = [
     stepKey: "POC_APPROVAL",
     stepOrder: 1,
     decision: "PENDING",
-    approverUserId: "U9",
+    assignedApproverUserId: "U9",
     approverParentId: null,
   },
   {
@@ -86,7 +86,7 @@ const PENDING_APPROVALS = [
     stepKey: "ADMIN_APPROVAL",
     stepOrder: 2,
     decision: "PENDING",
-    approverUserId: "U8",
+    assignedApproverUserId: "U8",
     approverParentId: null,
   },
 ];
@@ -117,7 +117,7 @@ describe("superadminOverrideLeave", () => {
         stepKey: "PARENT_APPROVAL",
         stepOrder: 1,
         decision: "PENDING",
-        approverUserId: null,
+        assignedApproverUserId: null,
         approverParentId: "PARENT-1",
       },
     ]);

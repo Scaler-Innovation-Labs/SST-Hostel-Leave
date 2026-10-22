@@ -85,7 +85,7 @@ describe("approveLeave service", () => {
   it("approves first step and activates next step", async () => {
     mockFindById.mockResolvedValue({ id: "L1", status: "PENDING" });
     mockFindByIdForUpdate.mockResolvedValue({ id: "L1", status: "PENDING" });
-    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null }]);
+    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", assignedApproverUserId: null, approverRoleCode: null }]);
     mockUpdateDecisionById.mockResolvedValue({ id: "A1", decision: "APPROVED" });
     mockFindNextByDecision.mockResolvedValue({ id: "A2", stepOrder: 2, stepKey: "S2" });
     mockUpdateCurrentStep.mockResolvedValue({ id: "L1" });
@@ -114,7 +114,7 @@ describe("approveLeave service", () => {
   it("approves final step and sets leave to APPROVED", async () => {
     mockFindById.mockResolvedValue({ id: "L2", status: "PENDING" });
     mockFindByIdForUpdate.mockResolvedValue({ id: "L2", status: "PENDING", studentId: "S1" });
-    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null }]);
+    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", assignedApproverUserId: null, approverRoleCode: null }]);
     mockUpdateDecisionById.mockResolvedValue({ id: "A1", decision: "APPROVED" });
     mockFindNextByDecision.mockResolvedValue(null);
     mockUpdateById.mockResolvedValue({ id: "L2", status: "APPROVED" });
@@ -137,7 +137,7 @@ describe("approveLeave service", () => {
   it("rejects current step and sets leave to REJECTED", async () => {
     mockFindById.mockResolvedValue({ id: "L3", status: "PENDING" });
     mockFindByIdForUpdate.mockResolvedValue({ id: "L3", status: "PENDING" });
-    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null }]);
+    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", assignedApproverUserId: null, approverRoleCode: null }]);
     mockUpdateDecisionById.mockResolvedValue({ id: "A1", decision: "REJECTED" });
     mockUpdateById.mockResolvedValue({ id: "L3", status: "REJECTED" });
 
@@ -174,8 +174,8 @@ describe("approveLeave service", () => {
     mockFindById.mockResolvedValue({ id: "L6", status: "PENDING" });
     mockFindByIdForUpdate.mockResolvedValue({ id: "L6", status: "PENDING" });
     mockFindPending.mockResolvedValue([
-      { id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null },
-      { id: "A2", stepOrder: 2, stepKey: "S2", approverUserId: null, approverRoleCode: null },
+      { id: "A1", stepOrder: 1, stepKey: "S1", assignedApproverUserId: null, approverRoleCode: null },
+      { id: "A2", stepOrder: 2, stepKey: "S2", assignedApproverUserId: null, approverRoleCode: null },
     ]);
     mockUpdateDecisionById.mockResolvedValue({ id: "A1", decision: "APPROVED" });
     mockFindNextByDecision.mockResolvedValue({ id: "A2", stepOrder: 2, stepKey: "S2" });
@@ -197,8 +197,8 @@ describe("approveLeave service", () => {
       studentId: "S1",
     });
     mockFindPending.mockResolvedValue([
-      { id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null },
-      { id: "A2", stepOrder: 2, stepKey: "S2", approverUserId: null, approverRoleCode: null },
+      { id: "A1", stepOrder: 1, stepKey: "S1", assignedApproverUserId: null, approverRoleCode: null },
+      { id: "A2", stepOrder: 2, stepKey: "S2", assignedApproverUserId: null, approverRoleCode: null },
     ]);
     mockUpdateDecisionById.mockResolvedValue({ id: "A2", decision: "APPROVED" });
     mockFindNextByDecision.mockResolvedValue(null);
@@ -227,7 +227,7 @@ describe("approveLeave service", () => {
       currentStepOrder: 2,
     });
     mockFindPending.mockResolvedValue([
-      { id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null },
+      { id: "A1", stepOrder: 1, stepKey: "S1", assignedApproverUserId: null, approverRoleCode: null },
     ]);
 
     await expect(
@@ -245,7 +245,7 @@ describe("approveLeave service", () => {
   it("throws AuthorizationError when approver lacks required role", async () => {
     mockFindById.mockResolvedValue({ id: "L7", status: "PENDING" });
     mockFindByIdForUpdate.mockResolvedValue({ id: "L7", status: "PENDING" });
-    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: "WARDEN" }]);
+    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", assignedApproverUserId: null, approverRoleCode: "WARDEN" }]);
 
     await expect(approveLeave("L7", { decision: "APPROVED" }, { id: "U1", roles: ["ADMIN"] }))
       .rejects.toBeInstanceOf(AuthorizationError);
@@ -254,7 +254,7 @@ describe("approveLeave service", () => {
   it("throws ConflictError when approval already processed concurrently", async () => {
     mockFindById.mockResolvedValue({ id: "L8", status: "PENDING" });
     mockFindByIdForUpdate.mockResolvedValue({ id: "L8", status: "PENDING" });
-    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null }]);
+    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", assignedApproverUserId: null, approverRoleCode: null }]);
     mockUpdateDecisionById.mockResolvedValue(null);
 
     await expect(approveLeave("L8", { decision: "APPROVED" }, { id: "U1", roles: ["ADMIN"] }))
@@ -264,7 +264,7 @@ describe("approveLeave service", () => {
   it("final approval completes successfully (movement recorded async by outbox handler)", async () => {
     mockFindById.mockResolvedValue({ id: "L9", status: "PENDING" });
     mockFindByIdForUpdate.mockResolvedValue({ id: "L9", status: "PENDING", studentId: "S1" });
-    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null }]);
+    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", assignedApproverUserId: null, approverRoleCode: null }]);
     mockUpdateDecisionById.mockResolvedValue({ id: "A1", decision: "APPROVED" });
     mockFindNextByDecision.mockResolvedValue(null);
     mockUpdateById.mockResolvedValue({ id: "L9", status: "APPROVED" });
@@ -278,7 +278,7 @@ describe("approveLeave service", () => {
   it("passes ccEmails into the LEAVE_APPROVED outbox payload", async () => {
     mockFindById.mockResolvedValue({ id: "L10", status: "PENDING" });
     mockFindByIdForUpdate.mockResolvedValue({ id: "L10", status: "PENDING", studentId: "S1" });
-    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null }]);
+    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", assignedApproverUserId: null, approverRoleCode: null }]);
     mockUpdateDecisionById.mockResolvedValue({ id: "A1", decision: "APPROVED" });
     mockFindNextByDecision.mockResolvedValue(null);
     mockUpdateById.mockResolvedValue({ id: "L10", status: "APPROVED" });
@@ -301,7 +301,7 @@ describe("approveLeave service", () => {
   it("passes approver comments into the LEAVE_APPROVED outbox payload", async () => {
     mockFindById.mockResolvedValue({ id: "L11", status: "PENDING" });
     mockFindByIdForUpdate.mockResolvedValue({ id: "L11", status: "PENDING", studentId: "S1" });
-    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", approverUserId: null, approverRoleCode: null }]);
+    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", assignedApproverUserId: null, approverRoleCode: null }]);
     mockUpdateDecisionById.mockResolvedValue({ id: "A1", decision: "APPROVED" });
     mockFindNextByDecision.mockResolvedValue(null);
     mockUpdateById.mockResolvedValue({ id: "L11", status: "APPROVED" });
