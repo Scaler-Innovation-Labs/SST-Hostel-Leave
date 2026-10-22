@@ -50,8 +50,6 @@ next-env.d.ts
 /performance/test-results/
 
 # scratch / notes
-*.md
-!README.md
 temp.md
 
 /data
