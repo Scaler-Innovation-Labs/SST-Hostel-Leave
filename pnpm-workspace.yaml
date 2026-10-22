@@ -9,17 +9,24 @@ ignoredBuiltDependencies:
   - msw
   - sharp
   - unrs-resolver
+minimumReleaseAgeExclude:
+  - '@boundaries/elements@3.1.2'
+  - eslint-plugin-boundaries@7.2.1
 # SCA: pin transitive deps past their HIGH advisories (pnpm audit).
 # postcss/nanoid ride with Next's bundled copies; the rest are dev
 # toolchain (eslint/shadcn/vitest). sharp native builds are disabled
 # above, but the version is still pinned past its libvips CVEs.
 overrides:
-  postcss: 8.5.18
+  postcss: 8.5.31
   nanoid: 3.3.18
-  fast-uri: 3.1.6
-  brace-expansion: 1.1.18
-  js-yaml: 4.3.1
+  fast-uri: 3.1.9
+  brace-expansion: 1.1.21
+  js-yaml: 4.3.2
   ip-address: 10.3.1
   browserslist: 4.28.7
-  undici: 7.29.0
-  sharp: 0.35.0
+  undici: 7.29.1
+  sharp: 0.35.5
+  source-map-js: 1.2.2
+  vite: 8.1.6
+  uuid: 11.1.1
+  esbuild: 0.25.12
