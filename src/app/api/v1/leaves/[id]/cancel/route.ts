@@ -3,6 +3,7 @@ import { ApiResponse } from "@/lib/api/response";
 import { requireRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
+import { rateLimit } from "@/lib/rate-limiter";
 import { cancelLeave } from "@/services/leave/cancel-leave.service";
 
 export async function POST(
@@ -11,6 +12,8 @@ export async function POST(
 ) {
   try {
     const currentUser = requireRole(await requireAuth(), ROLES.STUDENT);
+
+    await rateLimit(`cancel-leave:${currentUser.id}`, 30, 60_000);
 
     let body: Record<string, unknown>;
     try {

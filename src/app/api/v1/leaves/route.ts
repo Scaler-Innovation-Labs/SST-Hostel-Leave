@@ -5,6 +5,7 @@ import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
+import { rateLimit } from "@/lib/rate-limiter";
 import { createLeave } from "@/services/leave/create-leave.service";
 import { listLeaves } from "@/services/leave/list-leaves.service";
 
@@ -33,6 +34,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const currentUser = requireAnyRole(await requireAuth(), [ROLES.STUDENT]);
+
+    await rateLimit(`create-leave:${currentUser.id}`, 20, 60_000);
 
     const body = await readBoundedJson(request);
     const dto = createLeaveSchema.parse(body);

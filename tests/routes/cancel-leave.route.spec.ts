@@ -19,6 +19,10 @@ vi.mock("@/services/leave/cancel-leave.service", () => ({
   cancelLeave: (...args: any[]) => mockCancelLeave(...args),
 }));
 
+import { rateLimit } from "@/lib/rate-limiter";
+
+vi.mock("@/lib/rate-limiter", () => ({ rateLimit: vi.fn().mockResolvedValue(undefined) }));
+
 import { POST } from "@/app/api/v1/leaves/[id]/cancel/route";
 
 beforeEach(() => {
@@ -41,6 +45,7 @@ describe("POST /api/v1/leaves/[id]/cancel", () => {
     expect(res.status).toBe(200);
     expect(body.data.newStatus).toBe("CANCELLED");
     expect(mockCancelLeave).toHaveBeenCalled();
+    expect(rateLimit).toHaveBeenCalledWith("cancel-leave:U1", 30, 60_000);
   });
 
   it("works with empty body", async () => {
