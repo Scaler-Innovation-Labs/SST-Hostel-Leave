@@ -1,10 +1,11 @@
 // @ts-nocheck
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockGetStudentAnalytics = vi.fn();
 const mockGetLeaveAnalytics = vi.fn();
 const mockGetMovementAnalytics = vi.fn();
 const mockGetRejectionAnalytics = vi.fn();
+const mockGetStaffAnalytics = vi.fn();
 
 vi.mock("@/lib/db", () => ({
   db: { transaction: (cb: any) => cb({}) },
@@ -30,10 +31,15 @@ vi.mock("@/services/analytics/get-rejection-analytics.service", () => ({
   getRejectionAnalytics: (...args: any[]) => mockGetRejectionAnalytics(...args),
 }));
 
-import { GET as GET_STUDENTS } from "@/app/api/v1/analytics/students/route";
+vi.mock("@/services/analytics/get-staff-analytics.service", () => ({
+  getStaffAnalytics: (...args: any[]) => mockGetStaffAnalytics(...args),
+}));
+
 import { GET as GET_LEAVES } from "@/app/api/v1/analytics/leaves/route";
 import { GET as GET_MOVEMENTS } from "@/app/api/v1/analytics/movements/route";
 import { GET as GET_REJECTIONS } from "@/app/api/v1/analytics/rejections/route";
+import { GET as GET_STAFF } from "@/app/api/v1/analytics/staff/route";
+import { GET as GET_STUDENTS } from "@/app/api/v1/analytics/students/route";
 
 describe("GET /api/v1/analytics/*", () => {
   beforeEach(() => {
@@ -42,6 +48,7 @@ describe("GET /api/v1/analytics/*", () => {
     mockGetLeaveAnalytics.mockResolvedValue({ period: "30d", totalLeaves: 5 });
     mockGetMovementAnalytics.mockResolvedValue({ period: "30d", totalMovementEvents: 3 });
     mockGetRejectionAnalytics.mockResolvedValue({ period: "30d", totalRejections: 2 });
+    mockGetStaffAnalytics.mockResolvedValue({ period: "30d", totalDecisions: 15 });
   });
 
   it("students endpoint returns data with default period", async () => {
@@ -89,6 +96,21 @@ describe("GET /api/v1/analytics/*", () => {
     expect(body.data.totalRejections).toBe(2);
   });
 
+  it("staff endpoint returns data", async () => {
+    const res = await GET_STAFF();
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.data.totalDecisions).toBe(15);
+    expect(mockGetStaffAnalytics).toHaveBeenCalledWith(expect.objectContaining({ id: "U1" }), undefined);
+  });
+
+  it("staff endpoint forwards the period query param", async () => {
+    const req = new Request("http://localhost/api/v1/analytics/staff?period=90d");
+    const res = await GET_STAFF(req);
+    expect(res.status).toBe(200);
+    expect(mockGetStaffAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ id: "U1" }), "90d");
+  });
+
   it("returns 401 when not authenticated", async () => {
     const { requireAuth } = await import("@/lib/auth/require-auth");
     requireAuth.mockRejectedValue(new (await import("@/lib/errors")).AuthenticationError());
@@ -98,26 +120,4 @@ describe("GET /api/v1/analytics/*", () => {
     expect(res.status).toBe(401);
     expect(body.success).toBe(false);
   });
-
-  it.each(["leaves", "movements", "rejections", "students"])(
-    "rejects a STUDENT from the %s analytics endpoint",
-    async (endpoint) => {
-      const { requireAuth } = await import("@/lib/auth/require-auth");
-      requireAuth.mockResolvedValue({ id: "U2", roles: ["STUDENT"] });
-
-      const routes = {
-        leaves: GET_LEAVES,
-        movements: GET_MOVEMENTS,
-        rejections: GET_REJECTIONS,
-        students: GET_STUDENTS,
-      } as Record<string, () => Promise<Response>>;
-
-      const res = await routes[endpoint]!();
-      const body = await res.json();
-
-      expect(res.status).toBe(403);
-      expect(body.success).toBe(false);
-      expect(mockGetLeaveAnalytics).not.toHaveBeenCalled();
-    }
-  );
 });

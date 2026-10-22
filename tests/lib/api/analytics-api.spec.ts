@@ -4,6 +4,7 @@ import {
   getLeaveAnalyticsUrl,
   getMovementAnalyticsUrl,
   getRejectionAnalyticsUrl,
+  getStaffAnalyticsUrl,
   getStudentAnalyticsUrl,
 } from "@/lib/api/analytics-api";
 
@@ -22,5 +23,9 @@ describe("analytics-api", () => {
 
   it("builds rejection analytics URL", () => {
     expect(getRejectionAnalyticsUrl("all")).toBe("/api/v1/analytics/rejections?period=all");
+  });
+
+  it("builds staff analytics URL", () => {
+    expect(getStaffAnalyticsUrl("30d")).toBe("/api/v1/analytics/staff?period=30d");
   });
 });

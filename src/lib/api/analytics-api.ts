@@ -17,3 +17,7 @@ export function getMovementAnalyticsUrl(period: AnalyticsPeriod): string {
 export function getRejectionAnalyticsUrl(period: AnalyticsPeriod): string {
   return `${BASE}/analytics/rejections?period=${encodeURIComponent(period)}`;
 }
+
+export function getStaffAnalyticsUrl(period: AnalyticsPeriod): string {
+  return `${BASE}/analytics/staff?period=${encodeURIComponent(period)}`;
+}

@@ -6,11 +6,13 @@ import type { AnalyticsPeriod } from "@/dto/analytics/analytics-period.dto";
 import type { LeaveAnalytics } from "@/dto/analytics/leave-analytics.dto";
 import type { MovementAnalytics } from "@/dto/analytics/movement-analytics.dto";
 import type { RejectionAnalytics } from "@/dto/analytics/rejection-analytics.dto";
+import type { StaffAnalytics } from "@/dto/analytics/staff-analytics.dto";
 import type { StudentAnalytics } from "@/dto/analytics/student-analytics.dto";
 import {
   getLeaveAnalyticsUrl,
   getMovementAnalyticsUrl,
   getRejectionAnalyticsUrl,
+  getStaffAnalyticsUrl,
   getStudentAnalyticsUrl,
 } from "@/lib/api/analytics-api";
 
@@ -48,6 +50,14 @@ export function useMovementAnalytics(period: AnalyticsPeriod): SwrResponse<Movem
 export function useRejectionAnalytics(period: AnalyticsPeriod): SwrResponse<RejectionAnalytics> {
   const { data, error, isLoading, mutate } = useSWR<{ data: RejectionAnalytics }>(
     getRejectionAnalyticsUrl(period),
+    { keepPreviousData: true },
+  );
+  return { data: data?.data ?? null, isLoading, isError: !!error, mutate };
+}
+
+export function useStaffAnalytics(period: AnalyticsPeriod): SwrResponse<StaffAnalytics> {
+  const { data, error, isLoading, mutate } = useSWR<{ data: StaffAnalytics }>(
+    getStaffAnalyticsUrl(period),
     { keepPreviousData: true },
   );
   return { data: data?.data ?? null, isLoading, isError: !!error, mutate };

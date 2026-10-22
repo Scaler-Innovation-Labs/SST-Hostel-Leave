@@ -1,10 +1,13 @@
 import type { InferSelectModel } from "drizzle-orm";
 import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
 import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
-import { hostels, leaveApprovals, leaveExtensions, leaveRequests, leaveTypes, students, users } from "@/db";
+import { hostels, leaveApprovals, leaveExtensions, leaveRequests, leaveTypes, roles, students, users } from "@/db";
+
+const approverUser = alias(users, "approver_user");
 import { db } from "@/lib/db";
 
 export type LeaveApproval = InferSelectModel<typeof leaveApprovals>;
@@ -377,6 +380,233 @@ export const leaveApprovalAnalyticsRepository = {
       pendingLeaves,
       pendingExtensions,
     };
+  },
+
+  async staffDecisionsSummary(
+    startDate: Date,
+    endDate: Date,
+    hostelIds?: string[],
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<{
+    totalDecisions: number;
+    totalApproved: number;
+    totalRejected: number;
+    activeApproversCount: number;
+    averageTurnaroundHours: number | null;
+  }> {
+    const conditions: ReturnType<typeof and>[] = [
+      sql`${leaveApprovals.approverParentId} IS NULL`,
+      sql`${leaveApprovals.actedAt} IS NOT NULL`,
+      inArray(leaveApprovals.decision, [
+        LEAVE_APPROVAL_DECISION.APPROVED,
+        LEAVE_APPROVAL_DECISION.REJECTED,
+      ]),
+      gte(leaveApprovals.actedAt, startDate),
+      lte(leaveApprovals.actedAt, endDate),
+    ];
+    conditions.push(...hostelCondition(hostelIds));
+
+    const result = await dbClient
+      .select({
+        totalDecisions: sql<number>`count(*)`,
+        totalApproved: sql<number>`count(*) filter (where ${leaveApprovals.decision} = ${LEAVE_APPROVAL_DECISION.APPROVED})`,
+        totalRejected: sql<number>`count(*) filter (where ${leaveApprovals.decision} = ${LEAVE_APPROVAL_DECISION.REJECTED})`,
+        activeApproversCount: sql<number>`count(distinct ${leaveApprovals.approverUserId}) filter (where ${leaveApprovals.approverUserId} is not null)`,
+        avgHours: sql<number | null>`avg(extract(epoch from (${leaveApprovals.actedAt} - ${leaveApprovals.createdAt})) / 3600)`,
+      })
+      .from(leaveApprovals)
+      .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions));
+
+    const row = result[0];
+    const avg = row?.avgHours != null ? Number(row.avgHours) : null;
+    return {
+      totalDecisions: Number(row?.totalDecisions ?? 0),
+      totalApproved: Number(row?.totalApproved ?? 0),
+      totalRejected: Number(row?.totalRejected ?? 0),
+      activeApproversCount: Number(row?.activeApproversCount ?? 0),
+      averageTurnaroundHours: avg != null ? Math.round(avg * 10) / 10 : null,
+    };
+  },
+
+  async staffPendingCount(
+    hostelIds?: string[],
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [
+      sql`${leaveApprovals.approverParentId} IS NULL`,
+      eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+    ];
+    conditions.push(...hostelCondition(hostelIds));
+
+    const result = await dbClient
+      .select({ count: sql<number>`count(*)` })
+      .from(leaveApprovals)
+      .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions));
+
+    return Number(result[0]?.count ?? 0);
+  },
+
+  async staffActivityTrend(
+    startDate: Date,
+    endDate: Date,
+    hostelIds?: string[],
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<Array<{ date: string; approved: number; rejected: number }>> {
+    const conditions: ReturnType<typeof and>[] = [
+      sql`${leaveApprovals.approverParentId} IS NULL`,
+      sql`${leaveApprovals.actedAt} IS NOT NULL`,
+      inArray(leaveApprovals.decision, [
+        LEAVE_APPROVAL_DECISION.APPROVED,
+        LEAVE_APPROVAL_DECISION.REJECTED,
+      ]),
+      gte(leaveApprovals.actedAt, startDate),
+      lte(leaveApprovals.actedAt, endDate),
+    ];
+    conditions.push(...hostelCondition(hostelIds));
+
+    const rows = await dbClient
+      .select({
+        date: sql<string>`DATE(${leaveApprovals.actedAt})`,
+        approved: sql<number>`count(*) filter (where ${leaveApprovals.decision} = ${LEAVE_APPROVAL_DECISION.APPROVED})`,
+        rejected: sql<number>`count(*) filter (where ${leaveApprovals.decision} = ${LEAVE_APPROVAL_DECISION.REJECTED})`,
+      })
+      .from(leaveApprovals)
+      .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions))
+      .groupBy(sql`DATE(${leaveApprovals.actedAt})`)
+      .orderBy(sql`DATE(${leaveApprovals.actedAt})`);
+
+    return rows.map((r) => ({
+      date: String(r.date),
+      approved: Number(r.approved ?? 0),
+      rejected: Number(r.rejected ?? 0),
+    }));
+  },
+
+  async staffDecisionsByRole(
+    startDate: Date,
+    endDate: Date,
+    hostelIds?: string[],
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<Array<{
+    role: string;
+    approvedCount: number;
+    rejectedCount: number;
+    totalDecisions: number;
+    averageTurnaroundHours: number | null;
+  }>> {
+    const conditions: ReturnType<typeof and>[] = [
+      sql`${leaveApprovals.approverParentId} IS NULL`,
+      sql`${leaveApprovals.actedAt} IS NOT NULL`,
+      inArray(leaveApprovals.decision, [
+        LEAVE_APPROVAL_DECISION.APPROVED,
+        LEAVE_APPROVAL_DECISION.REJECTED,
+      ]),
+      gte(leaveApprovals.actedAt, startDate),
+      lte(leaveApprovals.actedAt, endDate),
+    ];
+    conditions.push(...hostelCondition(hostelIds));
+
+    const rows = await dbClient
+      .select({
+        roleName: sql<string>`COALESCE(${roles.name}, ${roles.code}, ${leaveApprovals.stepKey})`,
+        approved: sql<number>`count(*) filter (where ${leaveApprovals.decision} = ${LEAVE_APPROVAL_DECISION.APPROVED})`,
+        rejected: sql<number>`count(*) filter (where ${leaveApprovals.decision} = ${LEAVE_APPROVAL_DECISION.REJECTED})`,
+        total: sql<number>`count(*)`,
+        avgHours: sql<number | null>`avg(extract(epoch from (${leaveApprovals.actedAt} - ${leaveApprovals.createdAt})) / 3600)`,
+      })
+      .from(leaveApprovals)
+      .leftJoin(roles, eq(leaveApprovals.approverRoleId, roles.id))
+      .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions))
+      .groupBy(sql`COALESCE(${roles.name}, ${roles.code}, ${leaveApprovals.stepKey})`)
+      .orderBy(sql`count(*) desc`);
+
+    return rows.map((r) => {
+      const avg = r.avgHours != null ? Number(r.avgHours) : null;
+      return {
+        role: r.roleName,
+        approvedCount: Number(r.approved ?? 0),
+        rejectedCount: Number(r.rejected ?? 0),
+        totalDecisions: Number(r.total ?? 0),
+        averageTurnaroundHours: avg != null ? Math.round(avg * 10) / 10 : null,
+      };
+    });
+  },
+
+  async staffApproverBreakdown(
+    startDate: Date,
+    endDate: Date,
+    hostelIds?: string[],
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<Array<{
+    userId: string;
+    name: string;
+    role: string;
+    approvedCount: number;
+    rejectedCount: number;
+    totalDecisions: number;
+    averageTurnaroundHours: number | null;
+  }>> {
+    const conditions: ReturnType<typeof and>[] = [
+      sql`${leaveApprovals.approverParentId} IS NULL`,
+      sql`${leaveApprovals.approverUserId} IS NOT NULL`,
+      sql`${leaveApprovals.actedAt} IS NOT NULL`,
+      inArray(leaveApprovals.decision, [
+        LEAVE_APPROVAL_DECISION.APPROVED,
+        LEAVE_APPROVAL_DECISION.REJECTED,
+      ]),
+      gte(leaveApprovals.actedAt, startDate),
+      lte(leaveApprovals.actedAt, endDate),
+    ];
+    conditions.push(...hostelCondition(hostelIds));
+
+    const rows = await dbClient
+      .select({
+        userId: leaveApprovals.approverUserId,
+        name: sql<string>`COALESCE(${approverUser.fullName}, 'Staff Member')`,
+        role: sql<string>`COALESCE(${roles.name}, ${roles.code}, 'Staff')`,
+        approved: sql<number>`count(*) filter (where ${leaveApprovals.decision} = ${LEAVE_APPROVAL_DECISION.APPROVED})`,
+        rejected: sql<number>`count(*) filter (where ${leaveApprovals.decision} = ${LEAVE_APPROVAL_DECISION.REJECTED})`,
+        total: sql<number>`count(*)`,
+        avgHours: sql<number | null>`avg(extract(epoch from (${leaveApprovals.actedAt} - ${leaveApprovals.createdAt})) / 3600)`,
+      })
+      .from(leaveApprovals)
+      .leftJoin(approverUser, eq(leaveApprovals.approverUserId, approverUser.id))
+      .leftJoin(roles, eq(leaveApprovals.approverRoleId, roles.id))
+      .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions))
+      .groupBy(
+        leaveApprovals.approverUserId,
+        approverUser.fullName,
+        sql`COALESCE(${roles.name}, ${roles.code}, 'Staff')`
+      )
+      .orderBy(sql`count(*) desc`);
+
+    return rows.map((r) => {
+      const avg = r.avgHours != null ? Number(r.avgHours) : null;
+      return {
+        userId: r.userId ?? "",
+        name: r.name,
+        role: r.role,
+        approvedCount: Number(r.approved ?? 0),
+        rejectedCount: Number(r.rejected ?? 0),
+        totalDecisions: Number(r.total ?? 0),
+        averageTurnaroundHours: avg != null ? Math.round(avg * 10) / 10 : null,
+      };
+    });
   },
 };
 

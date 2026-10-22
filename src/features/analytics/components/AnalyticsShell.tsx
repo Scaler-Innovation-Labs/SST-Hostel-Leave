@@ -10,6 +10,7 @@ import { LeavesTab } from "@/features/analytics/components/LeavesTab";
 import { MovementQrTab } from "@/features/analytics/components/MovementQrTab";
 import { PeriodSelect } from "@/features/analytics/components/PeriodSelect";
 import { RejectionsTab } from "@/features/analytics/components/RejectionsTab";
+import { StaffTab } from "@/features/analytics/components/StaffTab";
 import { StudentsTab } from "@/features/analytics/components/StudentsTab";
 
 type AnalyticsShellProps = {
@@ -41,6 +42,7 @@ export function AnalyticsShell({ description, headerExtra, overall }: AnalyticsS
           <TabsTrigger value="leaves">Leaves</TabsTrigger>
           <TabsTrigger value="movement">Movement &amp; QR</TabsTrigger>
           <TabsTrigger value="rejections">Rejections</TabsTrigger>
+          <TabsTrigger value="staff">Staff</TabsTrigger>
         </TabsList>
 
         {overall && (
@@ -59,6 +61,9 @@ export function AnalyticsShell({ description, headerExtra, overall }: AnalyticsS
         </TabsContent>
         <TabsContent value="rejections">
           <RejectionsTab period={period} />
+        </TabsContent>
+        <TabsContent value="staff">
+          <StaffTab period={period} />
         </TabsContent>
       </Tabs>
     </div>
