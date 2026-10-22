@@ -13,8 +13,10 @@ import {
   time,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm/sql/sql";
 
 import { students } from "./academics";
 
@@ -123,6 +125,10 @@ isPrimary: boolean("is_primary")
     studentPhoneUnique: unique(
       "parent_student_phone_unq"
     ).on(table.studentId, table.phone),
+
+    onePrimaryPerStudent: uniqueIndex(
+      "parents_one_primary_per_student"
+    ).on(table.studentId).where(sql`${table.isPrimary} = true`),
   })
 );
 

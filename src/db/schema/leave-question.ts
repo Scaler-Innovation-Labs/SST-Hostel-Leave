@@ -1,33 +1,39 @@
-import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { users } from "./auth";
 import { leaveRequests } from "./leave";
 
-export const leaveQuestions = pgTable("leave_questions", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const leaveQuestions = pgTable(
+  "leave_questions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
 
-  leaveRequestId: uuid("leave_request_id")
-    .notNull()
-    .references(() => leaveRequests.id, { onDelete: "cascade" }),
+    leaveRequestId: uuid("leave_request_id")
+      .notNull()
+      .references(() => leaveRequests.id, { onDelete: "cascade" }),
 
-  askedBy: uuid("asked_by")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+    askedBy: uuid("asked_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
 
-  askedByRole: text("asked_by_role").notNull(),
+    askedByRole: text("asked_by_role").notNull(),
 
-  askedByName: text("asked_by_name").notNull(),
+    askedByName: text("asked_by_name").notNull(),
 
-  question: text("question").notNull(),
+    question: text("question").notNull(),
 
-  answer: text("answer"),
+    answer: text("answer"),
 
-  status: text("status", { enum: ["pending", "answered"] }).notNull().default("pending"),
+    status: text("status", { enum: ["pending", "answered"] }).notNull().default("pending"),
 
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 
-  answeredAt: timestamp("answered_at", { withTimezone: true }),
-});
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+  },
+  (table) => ({
+    leaveRequestIdIdx: index("leave_questions_leave_request_id_idx").on(table.leaveRequestId),
+  })
+);
 
 export type LeaveQuestion = typeof leaveQuestions.$inferSelect;
 export type NewLeaveQuestion = typeof leaveQuestions.$inferInsert;

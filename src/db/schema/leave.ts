@@ -13,6 +13,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm/sql/sql";
@@ -336,6 +337,14 @@ export const leaveRequests = pgTable("leave_requests", {
     .notNull(),
 },
 (table) => ({
+  datesValidChk: check(
+    "leave_requests_dates_valid_chk",
+    sql`${table.endAt} >= ${table.startAt}`
+  ),
+  actualReturnValidChk: check(
+    "leave_requests_actual_return_valid_chk",
+    sql`${table.actualReturnAt} IS NULL OR ${table.actualReturnAt} >= ${table.startAt}`
+  ),
   studentIdIndex: index("leave_requests_student_id_idx").on(table.studentId),
   leaveTypeIdIndex: index("leave_requests_leave_type_id_idx").on(table.leaveTypeId),
   statusIndex: index("leave_requests_status_idx").on(table.status),
@@ -526,6 +535,12 @@ export const leaveApprovals = pgTable("leave_approvals", {
         ) = 1
       `
     ),
+    requestStepUnq: uniqueIndex("leave_approvals_request_step_unq")
+      .on(table.leaveRequestId, table.stepOrder)
+      .where(sql`${table.leaveRequestId} IS NOT NULL`),
+    extensionStepUnq: uniqueIndex("leave_approvals_extension_step_unq")
+      .on(table.leaveExtensionId, table.stepOrder)
+      .where(sql`${table.leaveExtensionId} IS NOT NULL`),
     leaveRequestIdIndex: index("la_leave_request_id_idx").on(table.leaveRequestId),
     leaveExtensionIdIndex: index("la_leave_extension_id_idx").on(table.leaveExtensionId),
     approverRoleIdIndex: index("la_approver_role_id_idx").on(table.approverRoleId),

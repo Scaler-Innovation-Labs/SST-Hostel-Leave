@@ -5,6 +5,7 @@
 
 import {
   boolean,
+  check,
   index,
   jsonb,
   pgTable,
@@ -13,6 +14,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm/sql/sql";
 
 import { genderEnum } from "./enums";
 import { hostels } from "./hostel";
@@ -138,6 +140,23 @@ export const userRoles = pgTable(
   (table) => ({
     // A user may hold the same role multiple times with different scopes
     // (e.g. ADMIN over Hostel A and Hostel B).
+    scopeConsistencyChk: check(
+      "user_roles_scope_consistency_chk",
+      sql`
+        (${table.scopeType} IS NULL AND ${table.scopeId} IS NULL)
+        OR
+        (${table.scopeType} IS NOT NULL AND ${table.scopeId} IS NOT NULL)
+      `
+    ),
+
+    userRolesUnrestrictedUnq: uniqueIndex("user_roles_unrestricted_unq")
+      .on(table.userId, table.roleId)
+      .where(sql`${table.scopeType} IS NULL`),
+
+    userRolesScopedUnq: uniqueIndex("user_roles_scoped_unq")
+      .on(table.userId, table.roleId, table.scopeType, table.scopeId)
+      .where(sql`${table.scopeType} IS NOT NULL`),
+
     userRoleScopeUnq: uniqueIndex("user_roles_user_role_scope_unq").on(
       table.userId,
       table.roleId,
