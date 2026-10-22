@@ -267,7 +267,7 @@ export default function SuperAdminParentsPage() {
               <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
               <input
                 type="text"
-                placeholder="Search parents..."
+                placeholder="Search by parent or student name, phone, email, roll number..."
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);

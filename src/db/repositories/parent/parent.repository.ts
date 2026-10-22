@@ -102,7 +102,9 @@ export const parentRepository = {
         or(
           ilike(parents.name, pattern),
           ilike(parents.phone, pattern),
-          ilike(parents.email ?? "", pattern)
+          ilike(parents.email ?? "", pattern),
+          ilike(users.fullName, pattern),
+          ilike(students.rollNumber, pattern)
         )
       );
     }
@@ -112,6 +114,8 @@ export const parentRepository = {
     const countResult = await dbClient
       .select({ count: sql<number>`count(*)` })
       .from(parents)
+      .leftJoin(students, eq(parents.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
       .where(whereClause);
 
     const total = Number(countResult[0]?.count ?? 0);
