@@ -12,7 +12,8 @@ export function useApprovalChain(leaveRequestId: string) {
     approvals: (data?.data?.items as Array<{
       id: string;
       leaveRequestId: string;
-      approverUserId: string | null;
+      assignedApproverUserId: string | null;
+      actedByUserId: string | null;
       approverRoleId: string;
       approverRoleCode: string | null;
       approverParentId?: string | null;

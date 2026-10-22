@@ -166,9 +166,9 @@ async function resolveRecipientContacts(
 			const approvals = await leaveApprovalRepository.findByLeaveRequestId(context.leaveRequestId);
 			const pending = approvals.filter((a) => a.decision === LEAVE_APPROVAL_DECISION.PENDING);
 			if (pending.length === 0) return [];
-			const approverUserId = pending[0]!.approverUserId;
-			if (!approverUserId) return [];
-			const users = await userRepository.findByIds([approverUserId]);
+			const assignedApproverUserId = pending[0]!.assignedApproverUserId;
+			if (!assignedApproverUserId) return [];
+			const users = await userRepository.findByIds([assignedApproverUserId]);
 			return users.length > 0
 				? [{ email: users[0]!.email ?? undefined, phone: users[0]!.phone ?? undefined, userId: users[0]!.id }]
 				: [];
@@ -177,11 +177,11 @@ async function resolveRecipientContacts(
 		case NOTIFICATION_RECIPIENT_TYPE.PREVIOUS_APPROVER: {
 			if (!context.leaveRequestId) return [];
 			const approvals = await leaveApprovalRepository.findByLeaveRequestId(context.leaveRequestId);
-			const decided = approvals.filter((a): a is typeof a & { approverUserId: string } => a.decision !== LEAVE_APPROVAL_DECISION.PENDING && a.approverUserId !== null);
+			const decided = approvals.filter((a): a is typeof a & { actedByUserId: string } => a.decision !== LEAVE_APPROVAL_DECISION.PENDING && a.actedByUserId !== null);
 			const sorted = [...decided].sort((a, b) => b.stepOrder - a.stepOrder);
 			if (sorted.length === 0) return [];
-			const approverUserId = sorted[0]!.approverUserId;
-			const users = await userRepository.findByIds([approverUserId]);
+			const actedByUserId = sorted[0]!.actedByUserId;
+			const users = await userRepository.findByIds([actedByUserId]);
 			return users.length > 0
 				? [{ email: users[0]!.email ?? undefined, phone: users[0]!.phone ?? undefined, userId: users[0]!.id }]
 				: [];
@@ -190,7 +190,9 @@ async function resolveRecipientContacts(
 		case NOTIFICATION_RECIPIENT_TYPE.ALL_APPROVERS: {
 			if (!context.leaveRequestId) return [];
 			const approvals = await leaveApprovalRepository.findByLeaveRequestId(context.leaveRequestId);
-			const userIds = approvals.map((a) => a.approverUserId).filter((id): id is string => id !== null);
+			const userIds = approvals
+        .map((a) => a.actedByUserId ?? a.assignedApproverUserId)
+        .filter((id): id is string => id !== null);
 			if (userIds.length === 0) return [];
 			const users = await userRepository.findByIds(userIds);
 			return users.map((u) => ({

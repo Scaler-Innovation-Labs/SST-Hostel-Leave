@@ -145,7 +145,8 @@ erDiagram
   * `step_key`: TEXT, NOT NULL
   * `step_order`: INTEGER, NOT NULL
   * `approver_role_id`: UUID, FK → `roles.id`
-  * `approver_user_id`: UUID, FK → `users.id`
+  * `assigned_approver_user_id`: UUID, FK → `users.id`, nullable assigned reviewer
+  * `acted_by_user_id`: UUID, FK → `users.id`, nullable user who recorded the decision
   * `approver_parent_id`: UUID, FK → `parents.id`
   * `decision`: `leave_approval_decision` ENUM ('PENDING', 'APPROVED', 'REJECTED', 'AUTO_APPROVED', 'CANCELLED')
   * `approval_source`: `approval_source` ENUM ('WEB', 'SMS', 'MANUAL', 'SYSTEM', 'PORTAL', 'SMS_REPLY', 'EMAIL_LINK')

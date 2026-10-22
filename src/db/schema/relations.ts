@@ -70,7 +70,13 @@ import {
 export const usersRelations = relations(users, ({ many }) => ({
   userRoles: many(userRoles),
 
-  leaveApprovals: many(leaveApprovals),
+  assignedLeaveApprovals: many(leaveApprovals, {
+    relationName: "leaveApprovalAssignedApprover",
+  }),
+
+  actedLeaveApprovals: many(leaveApprovals, {
+    relationName: "leaveApprovalActor",
+  }),
 
   leaveTypeVersions: many(leaveTypeVersions),
 
@@ -356,8 +362,15 @@ export const leaveApprovalsRelations = relations(
       references: [roles.id],
     }),
 
-    approverUser: one(users, {
-      fields: [leaveApprovals.approverUserId],
+    assignedApproverUser: one(users, {
+      relationName: "leaveApprovalAssignedApprover",
+      fields: [leaveApprovals.assignedApproverUserId],
+      references: [users.id],
+    }),
+
+    actedByUser: one(users, {
+      relationName: "leaveApprovalActor",
+      fields: [leaveApprovals.actedByUserId],
       references: [users.id],
     }),
 

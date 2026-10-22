@@ -50,7 +50,8 @@ type LeaveApprovalDbClient = Pick<typeof db, "insert" | "select" | "update">;
  * `users` is already joined for the student, so the approver needs its own
  * alias. `parents` needs no alias: only the approver parent is joined.
  */
-const approverUser = alias(users, "approver_user");
+const assignedApproverUser = alias(users, "assigned_approver_user");
+const actedByUser = alias(users, "acted_by_user");
 
 export type LeaveApproval = InferSelectModel<typeof leaveApprovals>;
 
@@ -238,7 +239,7 @@ export const leaveApprovalRepository = {
       /** Restrict to a single student's leave requests. */
       studentId?: string;
       leaveTypeId?: string;
-      approverUserId?: string;
+      assignedApproverUserId?: string;
       /**
        * Queue mode (the default): one row per leave request, paginated over
        * requests. Pass false to get every matching approval row instead —
@@ -344,9 +345,9 @@ export const leaveApprovalRepository = {
     if (filters.leaveTypeId) {
       baseConditions.push(eq(leaveRequests.leaveTypeId, filters.leaveTypeId));
     }
-    if (filters.approverUserId) {
+    if (filters.assignedApproverUserId) {
       baseConditions.push(
-        eq(leaveApprovals.approverUserId, filters.approverUserId),
+        eq(leaveApprovals.assignedApproverUserId, filters.assignedApproverUserId),
       );
     }
 
@@ -448,7 +449,8 @@ export const leaveApprovalRepository = {
         approval: leaveApprovals,
         stepOrder: leaveApprovals.stepOrder,
         roleCode: roles.code,
-        approverUserName: approverUser.fullName,
+        assignedApproverUserName: assignedApproverUser.fullName,
+        actedByUserName: actedByUser.fullName,
         approverParentName: parents.name,
         approverParentPhone: parents.phone,
         leaveReqId: leaveRequests.id,
@@ -476,8 +478,12 @@ export const leaveApprovalRepository = {
       .from(leaveApprovals)
       .leftJoin(roles, eq(leaveApprovals.approverRoleId, roles.id))
       .leftJoin(
-        approverUser,
-        eq(leaveApprovals.approverUserId, approverUser.id),
+        assignedApproverUser,
+        eq(leaveApprovals.assignedApproverUserId, assignedApproverUser.id),
+      )
+      .leftJoin(
+        actedByUser,
+        eq(leaveApprovals.actedByUserId, actedByUser.id),
       )
       .leftJoin(parents, eq(leaveApprovals.approverParentId, parents.id))
       .leftJoin(
@@ -544,7 +550,7 @@ export const leaveApprovalRepository = {
         approverRoleCode: row.roleCode,
         approverName: row.approval.approverParentId
           ? row.approverParentName
-          : row.approverUserName,
+          : row.actedByUserName ?? row.assignedApproverUserName,
         approverPhone: row.approval.approverParentId
           ? row.approverParentPhone
           : null,
@@ -704,7 +710,7 @@ export const leaveApprovalRepository = {
   async updateDecisionById(
     id: string,
     decision: LeaveApprovalDecision,
-    approverUserId: string | null,
+    actedByUserId: string | null,
     comments: string | undefined,
     actedAt: Date,
     dbClient: Pick<typeof db, "update"> = db,
@@ -713,7 +719,7 @@ export const leaveApprovalRepository = {
   ): Promise<LeaveApproval | null> {
     const setData: Partial<InferInsertModel<typeof leaveApprovals>> = {
       decision,
-      approverUserId,
+      actedByUserId,
       comments,
       actedAt,
     };
@@ -1011,7 +1017,8 @@ export const leaveApprovalRepository = {
       .select({
         approval: leaveApprovals,
         roleCode: roles.code,
-        approverUserName: approverUser.fullName,
+        assignedApproverUserName: assignedApproverUser.fullName,
+        actedByUserName: actedByUser.fullName,
         extId: leaveExtensions.id,
         extReason: leaveExtensions.reason,
         extStatus: leaveExtensions.status,
@@ -1047,8 +1054,12 @@ export const leaveApprovalRepository = {
       .from(leaveApprovals)
       .leftJoin(roles, eq(leaveApprovals.approverRoleId, roles.id))
       .leftJoin(
-        approverUser,
-        eq(leaveApprovals.approverUserId, approverUser.id),
+        assignedApproverUser,
+        eq(leaveApprovals.assignedApproverUserId, assignedApproverUser.id),
+      )
+      .leftJoin(
+        actedByUser,
+        eq(leaveApprovals.actedByUserId, actedByUser.id),
       )
       .innerJoin(
         leaveExtensions,
@@ -1110,7 +1121,7 @@ export const leaveApprovalRepository = {
         approverRoleCode: row.roleCode,
         approverName: row.approval.approverParentId
           ? row.parentName
-          : row.approverUserName,
+          : row.actedByUserName ?? row.assignedApproverUserName,
         approverPhone: row.approval.approverParentId ? row.parentPhone : null,
         // Frozen steps from the parent leave's execution context; fall back
         // to the live workflow for legacy leaves without a context.

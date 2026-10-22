@@ -7,7 +7,7 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { hostels, leaveApprovals, leaveExtensions, leaveRequests, leaveTypes, roles, students, users } from "@/db";
 
-const approverUser = alias(users, "approver_user");
+const actedByUser = alias(users, "acted_by_user");
 import { db } from "@/lib/db";
 
 export type LeaveApproval = InferSelectModel<typeof leaveApprovals>;
@@ -411,7 +411,7 @@ export const leaveApprovalAnalyticsRepository = {
         totalDecisions: sql<number>`count(*)`,
         totalApproved: sql<number>`count(*) filter (where ${leaveApprovals.decision} = ${LEAVE_APPROVAL_DECISION.APPROVED})`,
         totalRejected: sql<number>`count(*) filter (where ${leaveApprovals.decision} = ${LEAVE_APPROVAL_DECISION.REJECTED})`,
-        activeApproversCount: sql<number>`count(distinct ${leaveApprovals.approverUserId}) filter (where ${leaveApprovals.approverUserId} is not null)`,
+        activeApproversCount: sql<number>`count(distinct ${leaveApprovals.actedByUserId}) filter (where ${leaveApprovals.actedByUserId} is not null)`,
         avgHours: sql<number | null>`avg(extract(epoch from (${leaveApprovals.actedAt} - ${leaveApprovals.createdAt})) / 3600)`,
       })
       .from(leaveApprovals)
@@ -560,7 +560,7 @@ export const leaveApprovalAnalyticsRepository = {
   }>> {
     const conditions: ReturnType<typeof and>[] = [
       sql`${leaveApprovals.approverParentId} IS NULL`,
-      sql`${leaveApprovals.approverUserId} IS NOT NULL`,
+      sql`${leaveApprovals.actedByUserId} IS NOT NULL`,
       sql`${leaveApprovals.actedAt} IS NOT NULL`,
       inArray(leaveApprovals.decision, [
         LEAVE_APPROVAL_DECISION.APPROVED,
@@ -573,8 +573,8 @@ export const leaveApprovalAnalyticsRepository = {
 
     const rows = await dbClient
       .select({
-        userId: leaveApprovals.approverUserId,
-        name: sql<string>`COALESCE(${approverUser.fullName}, 'Staff Member')`,
+        userId: leaveApprovals.actedByUserId,
+        name: sql<string>`COALESCE(${actedByUser.fullName}, 'Staff Member')`,
         role: sql<string>`COALESCE(${roles.name}, ${roles.code}, 'Staff')`,
         approved: sql<number>`count(*) filter (where ${leaveApprovals.decision} = ${LEAVE_APPROVAL_DECISION.APPROVED})`,
         rejected: sql<number>`count(*) filter (where ${leaveApprovals.decision} = ${LEAVE_APPROVAL_DECISION.REJECTED})`,
@@ -582,15 +582,15 @@ export const leaveApprovalAnalyticsRepository = {
         avgHours: sql<number | null>`avg(extract(epoch from (${leaveApprovals.actedAt} - ${leaveApprovals.createdAt})) / 3600)`,
       })
       .from(leaveApprovals)
-      .leftJoin(approverUser, eq(leaveApprovals.approverUserId, approverUser.id))
+      .leftJoin(actedByUser, eq(leaveApprovals.actedByUserId, actedByUser.id))
       .leftJoin(roles, eq(leaveApprovals.approverRoleId, roles.id))
       .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .where(and(...conditions))
       .groupBy(
-        leaveApprovals.approverUserId,
-        approverUser.fullName,
+        leaveApprovals.actedByUserId,
+        actedByUser.fullName,
         sql`COALESCE(${roles.name}, ${roles.code}, 'Staff')`
       )
       .orderBy(sql`count(*) desc`);
