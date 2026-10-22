@@ -79,11 +79,11 @@ export function assertApprovalIsAtCurrentStep(
 }
 
 export function checkParentOverride(
-  current: { approverParentId: string | null; approverUserId: string | null; approverRoleCode: string | null; stepKey: string; stepOrder: number | null },
+  current: { approverParentId: string | null; assignedApproverUserId: string | null; approverRoleCode: string | null; stepKey: string; stepOrder: number | null },
   dto: { forceOverride?: boolean },
   currentUser: { id: string; roles: string[] }
 ): { isParentOverride: boolean; requiresConfirmation?: boolean; warning?: string; decision?: string; stepKey?: string; stepOrder?: number | null; newStatus?: null } | null {
-  const isParentApprovalStep = !!(current.approverParentId && !current.approverUserId);
+  const isParentApprovalStep = !!(current.approverParentId && !current.assignedApproverUserId);
 
   if (isParentApprovalStep) {
     requireAnyRole(currentUser as CurrentUser, [ROLES.ADMIN, ROLES.SUPER_ADMIN]);

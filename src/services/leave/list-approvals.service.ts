@@ -133,7 +133,7 @@ export async function listApprovals(
     hostelId: query.hostelId,
     hostelIds,
     leaveTypeId: query.leaveTypeId,
-    approverUserId: isPocOnly && !isChainRequest ? currentUser.id : undefined,
+    assignedApproverUserId: isPocOnly && !isChainRequest ? currentUser.id : undefined,
     // Admin queues provide full oversight, including CANCELLED requests. A
     // POC-only queue remains focused on actionable work by hiding them.
     excludeLeaveStatuses: query.status

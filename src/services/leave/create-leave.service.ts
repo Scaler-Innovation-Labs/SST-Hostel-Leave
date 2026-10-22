@@ -254,9 +254,9 @@ export async function createLeave(
     }
 
     const approvalsToCreate = approvalSteps.map((step) => {
-      let approverUserId: string | null = null;
+      let assignedApproverUserId: string | null = null;
       if (step.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL && dto.pocId) {
-        approverUserId = dto.pocId;
+        assignedApproverUserId = dto.pocId;
       }
 
       return {
@@ -264,7 +264,7 @@ export async function createLeave(
         stepKey: step.stepKey,
         stepOrder: step.stepOrder,
         approverRoleId: step.approverRoleId ?? null,
-        approverUserId,
+        assignedApproverUserId,
         approverParentId: step.isParentApproval ? parentId : null,
         decision: LEAVE_APPROVAL_DECISION.PENDING,
         approvalSource: resolveApprovalSource(step.approvalMethod ?? null, step.isParentApproval),

@@ -454,7 +454,14 @@ export const leaveApprovals = pgTable("leave_approvals", {
     }
   ),
 
-  approverUserId: uuid("approver_user_id").references(
+  assignedApproverUserId: uuid("assigned_approver_user_id").references(
+    () => users.id,
+    {
+      onDelete: "set null",
+    }
+  ),
+
+  actedByUserId: uuid("acted_by_user_id").references(
     () => users.id,
     {
       onDelete: "set null",
@@ -511,7 +518,8 @@ export const leaveApprovals = pgTable("leave_approvals", {
     leaveRequestIdIndex: index("la_leave_request_id_idx").on(table.leaveRequestId),
     leaveExtensionIdIndex: index("la_leave_extension_id_idx").on(table.leaveExtensionId),
     approverRoleIdIndex: index("la_approver_role_id_idx").on(table.approverRoleId),
-    approverUserIdIndex: index("la_approver_user_id_idx").on(table.approverUserId),
+    assignedApproverUserIdIndex: index("la_assigned_approver_user_id_idx").on(table.assignedApproverUserId),
+    actedByUserIdIndex: index("la_acted_by_user_id_idx").on(table.actedByUserId),
     decisionIndex: index("la_decision_idx").on(table.decision),
     parentApprovalTokenIndex: index("la_parent_token_idx").on(table.parentApprovalToken),
     approverParentIdIndex: index("la_approver_parent_id_idx").on(table.approverParentId),
