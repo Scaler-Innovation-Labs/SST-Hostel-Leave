@@ -1,4 +1,4 @@
-import { inArray, isNotNull } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 
 import { NOTIFICATION_CHANNEL } from "@/constants/notification/notification-channel";
 import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event";
@@ -337,8 +337,7 @@ const GLOBAL_RULES: RuleDraft[] = [
 export async function seedNotificationRules() {
   const existingRules = await db
     .select()
-    .from(notificationRules)
-    .where(isNotNull(notificationRules.leaveTypeId));
+    .from(notificationRules);
 
   // Wipe existing rules to allow re-seeding after template changes
   if (existingRules.length > 0) {
