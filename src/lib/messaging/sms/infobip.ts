@@ -54,16 +54,17 @@ export class InfobipSmsProvider implements SmsProvider {
         to = testRecipient.startsWith("+") ? testRecipient.slice(1) : testRecipient
       }
 
-      // Parent approval URLs contain a bearer token. Do not rewrite them
-      // through a third-party short domain: preserve the canonical application
-      // URL and avoid exposing click-through credentials to URL tracking.
-      const hasParentApprovalLink = Boolean(payload.variables?.approvalLink)
-      const trackingOptions: Record<string, unknown> = hasParentApprovalLink
-        ? { shortenUrl: false, trackClicks: false }
-        : { shortenUrl: true, trackClicks: true }
+      // TRAI DLT compliance: In India, any URL in commercial SMS must match
+      // a whitelisted DLT CTA domain registered for this entity. Infobip's
+      // shortener domain (wwk.nu) is whitelisted in DLT; raw application
+      // domains will be rejected by telecom operators with EC_CTA_NOT_WHITELISTED.
+      const trackingOptions: Record<string, unknown> = {
+        shortenUrl: true,
+        trackClicks: true,
+      }
 
       const customDomain = process.env.INFOBIP_CUSTOM_DOMAIN
-      if (customDomain && !hasParentApprovalLink) {
+      if (customDomain) {
         trackingOptions.customDomain = customDomain
       }
 

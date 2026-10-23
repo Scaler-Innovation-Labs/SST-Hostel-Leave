@@ -84,7 +84,7 @@ describe("InfobipSmsProvider", () => {
     expect(body.options.tracking).toEqual({ shortenUrl: true, trackClicks: true });
   });
 
-  it("does not shorten or track parent approval bearer links", async () => {
+  it("shortens URLs for parent approval links for DLT compliance", async () => {
     vi.mocked(fetch).mockResolvedValue(acceptedResponse("infobip-parent-link"));
 
     const approvalLink = "https://leave.sst-dashboard.com/parent-approve/hex-token";
@@ -101,8 +101,8 @@ describe("InfobipSmsProvider", () => {
     const parsed = JSON.parse(init.body);
     expect(parsed.messages[0].content.text).toBe(body);
     expect(parsed.options.tracking).toEqual({
-      shortenUrl: false,
-      trackClicks: false,
+      shortenUrl: true,
+      trackClicks: true,
     });
   });
 
