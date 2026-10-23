@@ -135,7 +135,10 @@ export async function rejectExtension(
       payload: {
         leaveId: extensionInTx.leaveRequestId,
         extensionId,
+        decision: LEAVE_APPROVAL_DECISION.REJECTED,
+        comments: dto.comments ?? "",
         reason: dto.comments ?? "",
+        rejectionCategory: dto.rejectionCategory,
       },
     }, tx);
 

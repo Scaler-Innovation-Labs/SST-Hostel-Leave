@@ -154,7 +154,14 @@ export async function superadminOverrideLeave(
         eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVED,
         aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
         aggregateId: leaveId,
-        payload: { leaveId, studentId: leave.studentId, decision: LEAVE_APPROVAL_DECISION.APPROVED, overridden: true, mode },
+        payload: {
+          leaveId,
+          studentId: leave.studentId,
+          decision: LEAVE_APPROVAL_DECISION.APPROVED,
+          comments: comments ?? "",
+          overridden: true,
+          mode,
+        },
       },
       tx,
     );

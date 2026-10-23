@@ -27,6 +27,7 @@ export function useApprovalChain(leaveRequestId: string) {
       createdAt: string;
       stepOrder: number;
       stepKey: string;
+      rejectionCategory?: string | null;
     }>) ?? [],
     total: data?.data?.total ?? 0,
     isLoading,

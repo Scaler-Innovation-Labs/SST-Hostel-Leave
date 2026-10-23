@@ -36,6 +36,8 @@ type TimelineEvent = {
   status: EventStatus;
   actor: string | null;
   time: string | null;
+  comment?: string | null;
+  rejectionCategory?: string | null;
 };
 
 const MARKER: Record<EventStatus, { ring: string; icon: string }> = {
@@ -155,6 +157,8 @@ export function LeaveTimeline({
         time: isActed
           ? ((approval.actedAt ?? approval.createdAt) as string | null)
           : null,
+        comment: isActed ? approval.comments : null,
+        rejectionCategory: isActed ? approval.rejectionCategory : null,
       };
     });
 
@@ -172,6 +176,8 @@ export function LeaveTimeline({
         status: "rejected",
         actor: formatApprovalActor(rejected),
         time: (rejected.actedAt ?? rejected.createdAt) as string | null,
+        comment: rejected.comments,
+        rejectionCategory: rejected.rejectionCategory,
       });
     }
 
@@ -328,6 +334,16 @@ export function LeaveTimeline({
                     {event.actor && event.time && <span aria-hidden>·</span>}
                     {event.time && <span>{formatRelative(event.time)}</span>}
                   </p>
+                  {event.rejectionCategory && (
+                    <p className="mt-1 text-caption font-medium text-danger">
+                      Category: {event.rejectionCategory.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </p>
+                  )}
+                  {event.comment && (
+                    <div className="mt-1.5 rounded-lg border border-border/70 bg-surface-sunken/60 px-3 py-2 text-caption text-ink italic">
+                      &ldquo;{event.comment}&rdquo;
+                    </div>
+                  )}
                 </div>
               </li>
             );

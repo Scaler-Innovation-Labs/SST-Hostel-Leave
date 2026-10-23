@@ -121,6 +121,7 @@ type LeaveApproval = {
   approvalSource?: string | null;
   overrideType?: ApprovalOverrideType | null;
   comments: string | null;
+  rejectionCategory?: string | null;
   actedAt?: string | null;
   createdAt: string;
 };
@@ -930,7 +931,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
             <TabsContent value="timeline" className="mt-5">
               <SectionCard title="Activity Timeline" Icon={Clock}>
                 {(() => {
-                  const events: Array<{ id: string; type: string; label: string; timestamp: string; actor?: string }> = [];
+                  const events: Array<{ id: string; type: string; label: string; timestamp: string; actor?: string; comment?: string | null; rejectionCategory?: string | null }> = [];
 
                   // Build events from all available data
                   if (createdAt) {
@@ -957,6 +958,8 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                       type: decision === "approved" ? "approved" : decision === "rejected" ? "rejected" : "comment",
                       label,
                       timestamp: app.actedAt ?? app.createdAt,
+                      comment: app.comments,
+                      rejectionCategory: app.rejectionCategory,
                     });
                   });
 
@@ -1025,6 +1028,16 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                                 {formatDateTime(event.timestamp)}
                                 {event.actor && <span> · by {event.actor}</span>}
                               </p>
+                              {event.rejectionCategory && (
+                                <p className="mt-1 text-caption font-medium text-danger">
+                                  Category: {event.rejectionCategory.replace(/_/g, " ")}
+                                </p>
+                              )}
+                              {event.comment && (
+                                <div className="mt-1.5 rounded-lg border border-border/70 bg-surface-sunken/60 px-3 py-2 text-caption text-ink italic">
+                                  &ldquo;{event.comment}&rdquo;
+                                </div>
+                              )}
                             </div>
                           </div>
                         );

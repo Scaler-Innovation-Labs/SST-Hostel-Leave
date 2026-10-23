@@ -327,6 +327,9 @@ async function handleExtensionDecision(
       payload: {
         leaveId: leaveRequestId,
         extensionId,
+        decision: LEAVE_APPROVAL_DECISION.REJECTED,
+        rejectedBy: "PARENT",
+        comments: dto.comments ?? "",
         reason: dto.comments ?? "",
       },
     }, tx);

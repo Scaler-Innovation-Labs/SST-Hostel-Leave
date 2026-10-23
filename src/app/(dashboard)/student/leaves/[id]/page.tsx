@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Repeat, X } from "lucide-react";
+import { ArrowLeft, Repeat, X, XCircle } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import {
   SectionCard,
   Skeleton,
 } from "@/design-system/sst";
+import { useApprovalChain } from "@/features/approvals/hooks/use-approval-chain";
 import { ExtensionForm } from "@/features/extensions/components/ExtensionForm";
 import { AskAQuestionSection } from "@/features/leaves/components/AskAQuestionSection";
 import { DocumentList } from "@/features/leaves/components/DocumentList";
@@ -33,6 +34,8 @@ export default function StudentLeaveDetailPage() {
   const router = useRouter();
   const id = params.id as string;
   const { leave, isLoading, isError, mutate } = useLeave(id);
+  const { approvals } = useApprovalChain(id);
+  const rejectingApproval = approvals.find((a) => a.decision?.toLowerCase() === "rejected");
 
   const [cancelling, setCancelling] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
@@ -129,6 +132,27 @@ export default function StudentLeaveDetailPage() {
           </div>
         }
       />
+
+      {status === LEAVE_REQUEST_STATUS.REJECTED && (
+        <div className="rounded-2xl border border-danger/30 bg-danger-light p-5 text-ink shadow-sm">
+          <div className="flex items-start gap-3.5">
+            <XCircle className="h-5 w-5 text-danger shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h3 className="text-body font-semibold text-danger">Leave Request Rejected</h3>
+              {rejectingApproval?.rejectionCategory && (
+                <p className="text-caption font-medium text-ink">
+                  Reason category: <span className="capitalize">{rejectingApproval.rejectionCategory.replace(/_/g, " ")}</span>
+                </p>
+              )}
+              {rejectingApproval?.comments && (
+                <p className="text-body text-ink/90 italic mt-1">
+                  &ldquo;{rejectingApproval.comments}&rdquo;
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <LeaveSummary leave={leave as unknown as Record<string, unknown>} />
 

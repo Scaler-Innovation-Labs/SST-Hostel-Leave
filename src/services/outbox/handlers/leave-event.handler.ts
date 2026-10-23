@@ -177,12 +177,21 @@ async function resolveContext(
   // leave reason. Templates embed {{reviewCommentsSection}}, pre-rendered
   // here because the template engine has no conditionals: empty when the
   // reviewer left no comments, so the line vanishes from the email.
+  // Reviewer comments in decision emails:
+  // Policy: Approval emails NEVER include internal reviewer comments.
+  // Rejection emails include the reviewer comments / reason so the student/parent
+  // understands why the decision was taken.
+  const isRejectionEvent =
+    eventType === OUTBOX_EVENT_TYPE.LEAVE_REJECTED ||
+    eventType === OUTBOX_EVENT_TYPE.LEAVE_EXTENSION_REJECTED;
+
   const rawComments =
     typeof payload.comments === "string" ? payload.comments.trim() : "";
   if (rawComments) variables.reviewComments = rawComments;
-  variables.reviewCommentsSection = rawComments
-    ? `Reviewer comments: "${rawComments}"\n\n`
-    : "";
+  variables.reviewCommentsSection =
+    isRejectionEvent && rawComments
+      ? `Reviewer comments: "${rawComments}"\n\n`
+      : "";
 
   // Communication-kit placeholders. submittedForm carries per-type fields
   // (destination hostel, expected entry time, POC name); the hostel row
