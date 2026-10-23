@@ -103,13 +103,13 @@ export function LeaveTimeline({
   const { qrPasses, isLoading: loadingPasses } = useQrPasses(leaveId);
 
   const events = useMemo<TimelineEvent[]>(() => {
-    const items: TimelineEvent[] = [];
+    const initialEvents: TimelineEvent[] = [];
     const submittedAt = (leave?.submittedAt ?? leave?.createdAt) as
       | string
       | null;
 
-    if (submittedAt) {
-      items.push({
+    if (submittedAt || leave) {
+      initialEvents.push({
         id: "submitted",
         label: "Request submitted",
         status: "done",
@@ -123,7 +123,7 @@ export function LeaveTimeline({
       (leave?.policyResult as { checks?: PolicyCheck[] } | null)?.checks ?? [];
     if (checks.length > 0) {
       const passed = checks.filter((check) => check.passed).length;
-      items.push({
+      initialEvents.push({
         id: "policy-check",
         label: `Policy check — ${passed} of ${checks.length} passed`,
         status: passed === checks.length ? "done" : "rejected",
@@ -132,14 +132,19 @@ export function LeaveTimeline({
       });
     }
 
-    const sorted = [...approvals].sort(
+    const sortedApprovals = [...approvals].sort(
       (a, b) => (a.stepOrder ?? 0) - (b.stepOrder ?? 0)
     );
-    for (const approval of sorted) {
+    const approvalEvents: TimelineEvent[] = sortedApprovals.map((approval) => {
       const decision = (approval.decision ?? "pending").toLowerCase();
-      items.push({
+      const isActed =
+        decision === "approved" ||
+        decision === "auto_approved" ||
+        decision === "rejected";
+      return {
         id: `app-${approval.id}`,
-        label: approval.stepKey?.replace(/_/g, " ") ?? `Step ${approval.stepOrder}`,
+        label:
+          approval.stepKey?.replace(/_/g, " ") ?? `Step ${approval.stepOrder}`,
         status:
           decision === "approved" || decision === "auto_approved"
             ? "done"
@@ -147,17 +152,21 @@ export function LeaveTimeline({
               ? "rejected"
               : "waiting",
         actor: formatApprovalActor(approval),
-        time: (approval.actedAt ?? approval.createdAt) as string | null,
-      });
-    }
+        time: isActed
+          ? ((approval.actedAt ?? approval.createdAt) as string | null)
+          : null,
+      };
+    });
+
+    const downstreamEvents: TimelineEvent[] = [];
 
     // Only surfaced on rejection: an approved request already shows every step
     // done, so a trailing "Approved" node repeats what is above it.
-    const rejected = sorted.find(
+    const rejected = sortedApprovals.find(
       (approval) => (approval.decision ?? "").toLowerCase() === "rejected"
     );
     if (rejected) {
-      items.push({
+      downstreamEvents.push({
         id: "decision",
         label: "Request rejected",
         status: "rejected",
@@ -169,7 +178,7 @@ export function LeaveTimeline({
     for (const pass of qrPasses) {
       const time = (pass.createdAt ?? pass.generatedAt) as string | null;
       if (!time) continue;
-      items.push({
+      downstreamEvents.push({
         id: `qr-${pass.id}`,
         label: QR_LABEL[pass.status] ?? "Gate pass updated",
         status:
@@ -185,7 +194,7 @@ export function LeaveTimeline({
       const row = movement as Record<string, unknown>;
       if (!row.createdAt) continue;
       const event = (row.eventType as string) ?? "";
-      items.push({
+      downstreamEvents.push({
         id: `mov-${row.id as string}`,
         label: MOVEMENT_LABEL[event] ?? event.replace(/_/g, " ").toLowerCase(),
         status: event.includes("ENTER")
@@ -199,7 +208,7 @@ export function LeaveTimeline({
     }
 
     for (const question of questionData?.data?.items ?? []) {
-      items.push({
+      downstreamEvents.push({
         id: `q-${question.id}`,
         label: `Asked: ${question.question.length > 60 ? `${question.question.slice(0, 60)}…` : question.question}`,
         status: question.status === "answered" ? "done" : "waiting",
@@ -207,7 +216,7 @@ export function LeaveTimeline({
         time: question.createdAt,
       });
       if (question.answer && question.answeredAt) {
-        items.push({
+        downstreamEvents.push({
           id: `qa-${question.id}`,
           label: "You answered",
           status: "done",
@@ -222,7 +231,7 @@ export function LeaveTimeline({
       const number = raw.extensionNumber as number;
       const status = ((raw.status as string) ?? "").toLowerCase();
       if (raw.createdAt) {
-        items.push({
+        downstreamEvents.push({
           id: `ext-${raw.id as string}`,
           label: `Extension ${number} requested`,
           status: "waiting",
@@ -233,7 +242,7 @@ export function LeaveTimeline({
       const approvedAt = raw.approvedAt as string | null;
       const rejectedAt = raw.rejectedAt as string | null;
       if (status === "approved" && approvedAt) {
-        items.push({
+        downstreamEvents.push({
           id: `ext-approved-${raw.id as string}`,
           label: `Extension ${number} approved`,
           status: "done",
@@ -242,7 +251,7 @@ export function LeaveTimeline({
         });
       }
       if (status === "rejected" && rejectedAt) {
-        items.push({
+        downstreamEvents.push({
           id: `ext-rejected-${raw.id as string}`,
           label: `Extension ${number} rejected`,
           status: "rejected",
@@ -254,7 +263,7 @@ export function LeaveTimeline({
 
     const leaveStatus = ((leave?.status as string) ?? "").toLowerCase();
     if (leaveStatus === "completed" || leaveStatus === "expired") {
-      items.push({
+      downstreamEvents.push({
         id: "complete",
         label: leaveStatus === "completed" ? "Leave completed" : "Leave expired",
         status: leaveStatus === "completed" ? "done" : "info",
@@ -263,9 +272,11 @@ export function LeaveTimeline({
       });
     }
 
-    return items.sort(
+    downstreamEvents.sort(
       (a, b) => new Date(a.time ?? 0).getTime() - new Date(b.time ?? 0).getTime()
     );
+
+    return [...initialEvents, ...approvalEvents, ...downstreamEvents];
   }, [approvals, movements, qrPasses, questionData, extensionData, leave]);
 
   const loading =
