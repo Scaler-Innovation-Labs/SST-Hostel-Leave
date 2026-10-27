@@ -13,27 +13,88 @@ describe("OpenAPI Specification & Scalar Docs", () => {
     expect(doc.info.version).toBe("1.0.0");
     expect(doc.paths).toBeDefined();
     expect(doc.components?.securitySchemes).toHaveProperty("BearerAuth");
+    expect(doc.tags?.length).toBe(10);
   });
 
-  it("documents all 8 Phase 1 endpoints", () => {
+  it("documents comprehensive production operations across all 10 domains (>45 operations)", () => {
     const doc = getOpenApiDocument();
     const paths = doc.paths ?? {};
 
-    // 1. Leave creation & listing
+    let totalOperations = 0;
+    const methods = ["get", "post", "put", "delete", "patch"] as const;
+
+    for (const pathItem of Object.values(paths)) {
+      for (const m of methods) {
+        if ((pathItem as any)[m]) {
+          totalOperations++;
+        }
+      }
+    }
+
+    expect(totalOperations).toBe(58);
+
+    // 1. Auth & Identity
+    expect(paths["/api/v1/me/roles"]?.get).toBeDefined();
+    expect(paths["/api/v1/me/active-role"]?.get).toBeDefined();
+    expect(paths["/api/v1/me/active-role"]?.post).toBeDefined();
+
+    // 2. Students & Contacts
+    expect(paths["/api/v1/students/contacts"]?.get).toBeDefined();
+    expect(paths["/api/v1/students"]?.get).toBeDefined();
+    expect(paths["/api/v1/students"]?.post).toBeDefined();
+    expect(paths["/api/v1/students/{id}"]?.get).toBeDefined();
+    expect(paths["/api/v1/students/bulk"]?.post).toBeDefined();
+
+    // 3. Leaves & Documents & Questions
     expect(paths["/api/v1/leaves"]?.post).toBeDefined();
     expect(paths["/api/v1/leaves"]?.get).toBeDefined();
-
-    // 2. Leave actions (approve, cancel)
+    expect(paths["/api/v1/leaves/{id}"]?.get).toBeDefined();
     expect(paths["/api/v1/leaves/{id}/approve"]?.post).toBeDefined();
     expect(paths["/api/v1/leaves/{id}/cancel"]?.post).toBeDefined();
+    expect(paths["/api/v1/leaves/{id}/documents"]?.get).toBeDefined();
+    expect(paths["/api/v1/leaves/{id}/documents"]?.post).toBeDefined();
+    expect(paths["/api/v1/leaves/{id}/questions"]?.get).toBeDefined();
+    expect(paths["/api/v1/leaves/{id}/questions/{questionId}/answer"]?.post).toBeDefined();
 
-    // 3. Movement & QR (generate-qr, preview, commit)
+    // 4. Leave Extensions
+    expect(paths["/api/v1/leaves/{id}/extensions"]?.get).toBeDefined();
+    expect(paths["/api/v1/leaves/{id}/extensions"]?.post).toBeDefined();
+    expect(paths["/api/v1/extensions/approvals"]?.get).toBeDefined();
+    expect(paths["/api/v1/extensions/{id}/approve"]?.post).toBeDefined();
+
+    // 5. Approvals Queue
+    expect(paths["/api/v1/approvals"]?.get).toBeDefined();
+
+    // 6. Movement & Gate Control
     expect(paths["/api/v1/movements/generate-qr"]?.post).toBeDefined();
     expect(paths["/api/v1/movements/scan/preview"]?.post).toBeDefined();
     expect(paths["/api/v1/movements/scan"]?.post).toBeDefined();
+    expect(paths["/api/v1/movements"]?.get).toBeDefined();
+    expect(paths["/api/v1/overdue"]?.get).toBeDefined();
+    expect(paths["/api/v1/overdue/count"]?.get).toBeDefined();
 
-    // 4. Parent decision
+    // 7. Parent Portal & Management
     expect(paths["/api/parent-approve/{token}/decision"]?.post).toBeDefined();
+    expect(paths["/api/v1/parents"]?.get).toBeDefined();
+    expect(paths["/api/v1/parents"]?.post).toBeDefined();
+
+    // 8. Dashboard & Analytics
+    expect(paths["/api/v1/dashboard/stats"]?.get).toBeDefined();
+    expect(paths["/api/v1/badges"]?.get).toBeDefined();
+    expect(paths["/api/v1/analytics/leaves"]?.get).toBeDefined();
+    expect(paths["/api/v1/analytics/movements"]?.get).toBeDefined();
+
+    // 9. Hostel & Academic Structure
+    expect(paths["/api/v1/hostels"]?.get).toBeDefined();
+    expect(paths["/api/v1/departments"]?.get).toBeDefined();
+    expect(paths["/api/v1/academic-groups"]?.get).toBeDefined();
+
+    // 10. Administration & System
+    expect(paths["/api/v1/leave-types"]?.get).toBeDefined();
+    expect(paths["/api/v1/admin/leave-types"]?.get).toBeDefined();
+    expect(paths["/api/v1/policies"]?.get).toBeDefined();
+    expect(paths["/api/v1/audit"]?.get).toBeDefined();
+    expect(paths["/api/health"]?.get).toBeDefined();
   });
 
   it("documents approvalContactId and security behavior on POST /api/v1/leaves", () => {
@@ -42,7 +103,6 @@ describe("OpenAPI Specification & Scalar Docs", () => {
 
     expect(createLeavePost).toBeDefined();
 
-    // Check request schema
     const schemaRef =
       createLeavePost?.requestBody?.content?.["application/json"]?.schema;
     expect(schemaRef).toBeDefined();
@@ -56,15 +116,14 @@ describe("OpenAPI Specification & Scalar Docs", () => {
       "Contact ID belonging to the authenticated student"
     );
 
-    // Check responses (400 validation error mentions approvalContactId security check)
     expect(createLeavePost?.responses?.["400"]?.description).toContain(
       "approvalContactId"
     );
     expect(createLeavePost?.responses?.["403"]?.description).toContain(
-      "Only students"
+      "contact does not belong"
     );
     expect(createLeavePost?.responses?.["409"]?.description).toContain(
-      "Conflict"
+      "Overlapping"
     );
   });
 
@@ -76,6 +135,8 @@ describe("OpenAPI Specification & Scalar Docs", () => {
     expect(json.openapi).toBe("3.1.0");
     expect(json.info.title).toContain("SST Hostel Leave");
     expect(json.paths["/api/v1/leaves"]).toBeDefined();
+    expect(json.paths["/api/v1/approvals"]).toBeDefined();
+    expect(json.paths["/api/health"]).toBeDefined();
   });
 
   it("renders Scalar UI at /api/docs", async () => {
