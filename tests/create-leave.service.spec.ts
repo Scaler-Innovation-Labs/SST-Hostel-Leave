@@ -289,13 +289,28 @@ describe("createLeave service", () => {
     ).rejects.toBeInstanceOf(ValidationError);
   });
 
-  it("rejects a leave that starts before today in IST", async () => {
+  it("rejects a QR-enabled leave that starts before today in IST", async () => {
+    mockFindLeaveTypeById.mockResolvedValueOnce({
+      id: "LT1", code: "HOME_PASS", defaultWorkflowId: "WF1", allowExtensions: true, maxExtensionCount: 2, qrMode: "BOTH",
+    });
     await expect(
       createLeave(
         { leaveTypeId: "LT1", reason: "Test", startAt: "2026-05-31T18:00:00Z", endAt: "2026-06-02T18:00:00Z" },
         { id: "U1" }
       )
     ).rejects.toThrow("Leave cannot start in the past");
+  });
+
+  it("allows a non-QR leave that starts before today in IST", async () => {
+    mockFindLeaveTypeById.mockResolvedValueOnce({
+      id: "LT1", code: "MEDICAL_LEAVE", defaultWorkflowId: "WF1", allowExtensions: true, maxExtensionCount: 2, qrMode: "NONE",
+    });
+    const res = await createLeave(
+      { leaveTypeId: "LT1", reason: "Test past non-QR leave", startAt: "2026-05-20T10:00:00Z", endAt: "2026-05-22T10:00:00Z" },
+      { id: "U1" }
+    );
+    expect(res).toBeDefined();
+    expect(mockLeaveCreate).toHaveBeenCalled();
   });
 
   it("allows a leave that started earlier today in IST", async () => {

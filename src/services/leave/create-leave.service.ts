@@ -3,6 +3,7 @@ import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REJECTION_SOURCE } from "@/constants/leave/leave-rejection-source";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import { QR_MODE } from "@/constants/leave/qr-mode";
 import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
@@ -56,7 +57,7 @@ export async function createLeave(
     throw new NotFoundError("LeaveType");
   }
 
-  if (new Date(dto.startAt) < startOfTodayIst()) {
+  if (leaveType.qrMode !== QR_MODE.NONE && new Date(dto.startAt) < startOfTodayIst()) {
     throw new ValidationError("Leave cannot start in the past");
   }
 
