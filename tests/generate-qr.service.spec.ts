@@ -32,6 +32,7 @@ const mockLeaveTypeFindById = vi.fn();
 const mockStudentFindByUserId = vi.fn();
 const mockQrPassCreate = vi.fn();
 const mockQrPassRegenerate = vi.fn();
+const mockQrPassRotateToken = vi.fn();
 const mockFindUsableExitPass = vi.fn();
 const mockAuditRecord = vi.fn().mockResolvedValue({});
 const mockOutboxPublish = vi.fn().mockResolvedValue({});
@@ -41,6 +42,7 @@ vi.mock("@/db/repositories/movement/qr-pass.repository", () => ({
     findByLeaveRequestId: (...args: any[]) => mockFindByLeaveRequestId(...args),
     create: (...args: any[]) => mockQrPassCreate(...args),
     regenerate: (...args: any[]) => mockQrPassRegenerate(...args),
+    rotateToken: (...args: any[]) => mockQrPassRotateToken(...args),
     findUsableExitPassForStudent: (...args: any[]) => mockFindUsableExitPass(...args),
   },
 }));
@@ -112,6 +114,14 @@ beforeEach(async () => {
     qrType: "LEAVE_EXIT",
     expiresAt: null,
   });
+  mockQrPassRotateToken.mockImplementation(async (id, input) => ({
+    id,
+    tokenHash: input.tokenHash,
+    tokenEnc: input.tokenEnc,
+    qrType: "LEAVE_EXIT",
+    expiresAt: null,
+    status: "ACTIVE",
+  }));
 });
 
 afterEach(() => {
@@ -139,6 +149,44 @@ describe("generateQrPass service", () => {
       expect(mockFindByLeaveRequestId).toHaveBeenCalledWith("LR1", expect.any(Object));
       expect(mockQrPassCreate).not.toHaveBeenCalled();
       expect(mockQrPassRegenerate).not.toHaveBeenCalled();
+    });
+
+    it("rotates token when regenerate is true on an existing active pass", async () => {
+      mockFindByLeaveRequestId.mockResolvedValue({
+        id: "QP-EXISTING",
+        status: "ACTIVE",
+        tokenHash: "existing-hash",
+        tokenEnc: stableTokenEnc,
+        qrType: "LEAVE_EXIT",
+        expiresAt: null,
+      });
+
+      const result = await generateQrPass({ ...VALID_INPUT, regenerate: true });
+
+      expect(result.passId).toBe("QP-EXISTING");
+      expect(mockQrPassRotateToken).toHaveBeenCalledWith(
+        "QP-EXISTING",
+        expect.objectContaining({
+          tokenHash: expect.any(String),
+          tokenEnc: expect.stringMatching(/^v1:/),
+        }),
+        expect.any(Object)
+      );
+      expect(mockAuditRecord).toHaveBeenCalledWith(
+        "UPDATE",
+        "QR_PASS",
+        "QP-EXISTING",
+        "U1",
+        expect.objectContaining({ reason: "rotated active pass token" }),
+        expect.any(Object)
+      );
+      expect(mockOutboxPublish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          eventType: "QR_GENERATED",
+          aggregateId: "QP-EXISTING",
+        }),
+        expect.any(Object)
+      );
     });
 
     it("writes an encrypted token once for a legacy active pass (repair, not re-issue)", async () => {

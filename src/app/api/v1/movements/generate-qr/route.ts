@@ -19,6 +19,7 @@ export async function POST(request: Request) {
       leaveRequestId: dto.leaveRequestId,
       userId: currentUser.id,
       qrType: dto.qrType,
+      regenerate: dto.regenerate,
     });
 
     return ApiResponse.created(result);

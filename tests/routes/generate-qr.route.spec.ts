@@ -53,6 +53,27 @@ describe("POST /api/v1/movements/generate-qr", () => {
     );
   });
 
+  it("passes regenerate flag to service", async () => {
+    const req = new Request("http://localhost:3000/api/v1/movements/generate-qr", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        leaveRequestId: "550e8400-e29b-41d4-a716-446655440000",
+        qrType: "LEAVE_EXIT",
+        regenerate: true,
+      }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+    expect(mockGenerateQrPass).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leaveRequestId: "550e8400-e29b-41d4-a716-446655440000",
+        userId: "U1",
+        regenerate: true,
+      })
+    );
+  });
+
   it("returns 400 for invalid body", async () => {
     const req = new Request("http://localhost:3000/api/v1/movements/generate-qr", {
       method: "POST",

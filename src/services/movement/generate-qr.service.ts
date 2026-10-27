@@ -21,6 +21,7 @@ export type GenerateQrInput = {
 	leaveRequestId: string;
 	userId: string;
 	qrType: QrType;
+	regenerate?: boolean;
 }
 
 export type QrPassResult = {
@@ -108,15 +109,58 @@ export async function generateQrPass(
 			existingPass?.status === QR_STATUS.ACTIVE &&
 			existingPass.tokenEnc
 		) {
-			// One QR pass per leave: an ACTIVE pass is returned as-is so
-			// the student sees the exact same QR again (rendered from the
-			// stored credential via the image endpoint). No new credential
-			// is minted here, so this path needs no encryption key.
+			if (!input.regenerate) {
+				return {
+					passId: existingPass.id,
+					tokenHash: existingPass.tokenHash,
+					qrType: existingPass.qrType,
+					expiresAt: existingPass.expiresAt,
+				};
+			}
+
+			// When regenerate is requested on an active pass, rotate the credential:
+			// mints a new secret token and encrypted envelope, invalidating prior
+			// tokens/screenshots while preserving scan state (e.g. firstScanAt).
+			const token = generateToken();
+			const tokenHash = await sha256(token);
+			const tokenEnc = await encryptQrToken(token);
+
+			const pass = await qrPassRepository.rotateToken(
+				existingPass.id,
+				{ tokenHash, tokenEnc },
+				tx
+			);
+
+			await auditService.record(
+				AUDIT_ACTION.UPDATE,
+				AUDIT_ENTITY_TYPE.QR_PASS,
+				pass.id,
+				input.userId,
+				{
+					qrType: pass.qrType,
+					leaveRequestId: input.leaveRequestId,
+					reason: "rotated active pass token",
+				},
+				tx
+			);
+
+			await outboxService.publish({
+				eventType: OUTBOX_EVENT_TYPE.QR_GENERATED,
+				aggregateType: AGGREGATE_TYPE.QR_PASS,
+				aggregateId: pass.id,
+				payload: {
+					qrPassId: pass.id,
+					leaveRequestId: input.leaveRequestId,
+					studentId: student.id,
+					qrType: pass.qrType,
+				},
+			}, tx);
+
 			return {
-				passId: existingPass.id,
-				tokenHash: existingPass.tokenHash,
-				qrType: existingPass.qrType,
-				expiresAt: existingPass.expiresAt,
+				passId: pass.id,
+				tokenHash,
+				qrType: pass.qrType,
+				expiresAt: pass.expiresAt,
 			};
 		}
 

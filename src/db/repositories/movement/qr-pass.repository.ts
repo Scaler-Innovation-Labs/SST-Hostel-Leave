@@ -61,6 +61,27 @@ export const qrPassRepository = {
 		return rows[0]!;
 	},
 
+	async rotateToken(
+		id: string,
+		input: {
+			tokenHash: string;
+			tokenEnc: string;
+		},
+		dbClient: QrPassDbClient = db
+	): Promise<QrPass> {
+		const rows = await dbClient
+			.update(qrPasses)
+			.set({
+				tokenHash: input.tokenHash,
+				tokenEnc: input.tokenEnc,
+				generatedAt: new Date(),
+			})
+			.where(eq(qrPasses.id, id))
+			.returning();
+
+		return rows[0]!;
+	},
+
 	async findById(
 		id: string,
 		dbClient: Pick<typeof db, "select"> = db

@@ -8,10 +8,12 @@ import {
   History,
   Maximize2,
   QrCode,
+  RefreshCw,
   ScanLine,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { QrCodeDisplay } from "@/components/qr/QrCodeDisplay";
 import type { MovementState } from "@/constants/movement/movement-state";
@@ -38,6 +40,7 @@ import { ApprovalTrail } from "@/features/dashboard/components/ApprovalTrail";
 import { QrPassDialog } from "@/features/dashboard/components/QrPassDialog";
 import { useDashboardStats } from "@/features/dashboard/hooks/use-dashboard-stats";
 import { useLeaves } from "@/features/leaves/hooks/use-leaves";
+import { useQrCountdown } from "@/features/leaves/hooks/use-qr-countdown";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { generateQr } from "@/lib/api/movement-api";
 import {
@@ -88,6 +91,9 @@ export default function StudentDashboardPage() {
   const [passOpen, setPassOpen] = useState(false);
   const [qrImageFailed, setQrImageFailed] = useState(false);
 
+  const [regenerating, setRegenerating] = useState(false);
+  const { timeLeft, isExpired, resetCountdown, tokenVersion } = useQrCountdown();
+
   const s = stats as StudentDashboardStats | null;
   const activeLeave = s?.activeLeave ?? null;
   const upcomingLeave = s?.upcomingLeave ?? null;
@@ -100,7 +106,25 @@ export default function StudentDashboardPage() {
 
   // The QR renders server-side from the encrypted credential — the same
   // bytes as the approval email. The raw token never reaches the browser.
-  const qrImageUrl = activeQr ? `/api/v1/qr/${activeQr.passId}/image` : null;
+  const qrImageUrl = activeQr
+    ? `/api/v1/qr/${activeQr.passId}/image?v=${tokenVersion}`
+    : null;
+
+  const handleRegenerate = async () => {
+    if (!activeLeave?.id) return;
+    setRegenerating(true);
+    try {
+      const qrType = activeLeave.qrMode === "RETURN_ONLY" ? "LEAVE_RETURN" : "LEAVE_EXIT";
+      await generateQr(activeLeave.id, qrType, true);
+      resetCountdown();
+      toast.success("Gate pass regenerated");
+      await retryStats();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to regenerate pass");
+    } finally {
+      setRegenerating(false);
+    }
+  };
   // Ensure a pass exists for the current leave (legacy leaves predate
   // approval-time creation), or repair one whose credential cannot render.
   // Never attempt to issue passes for leaves configured without QR (qrMode === "NONE").
@@ -281,37 +305,74 @@ export default function StudentDashboardPage() {
                         <div className="flex h-[140px] w-[140px] items-center justify-center rounded-xl border border-danger/30 bg-danger-light p-3 text-center">
                           <p className="text-caption text-danger">{qrError}</p>
                         </div>
+                      ) : isExpired ? (
+                        <div className="flex h-[156px] w-[156px] flex-col items-center justify-center gap-1.5 rounded-xl border border-border bg-surface p-2 text-center">
+                          <RefreshCw className="h-4 w-4 text-accent" aria-hidden />
+                          <p className="text-caption font-semibold text-ink">Pass hidden</p>
+                          <p className="text-micro text-muted">Expired (20s)</p>
+                          <Button
+                            size="sm"
+                            onClick={handleRegenerate}
+                            loading={regenerating}
+                            loadingText="Generating…"
+                          >
+                            <RefreshCw className="h-3 w-3" aria-hidden />
+                            Regenerate
+                          </Button>
+                        </div>
                       ) : hasQr ? (
-                        <button
-                          type="button"
-                          onClick={() => setPassOpen(true)}
-                          aria-label="Show the gate pass full screen"
-                          className={cn(
-                            "group relative rounded-xl bg-white p-2",
-                            "transition-transform duration-fast ease-standard active:translate-y-px",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-                          )}
-                        >
-                          <QrCodeDisplay imageUrl={qrImageUrl!} size={140} onError={() => setQrImageFailed(true)} />
-                          <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl bg-surface-ink/0 transition-colors duration-fast ease-standard group-hover:bg-surface-ink/40">
-                            <Maximize2
-                              className="h-5 w-5 text-white opacity-0 transition-opacity duration-fast ease-standard group-hover:opacity-100"
-                              aria-hidden
-                            />
+                        <div className="flex flex-col items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setPassOpen(true)}
+                            aria-label="Show the gate pass full screen"
+                            className={cn(
+                              "group relative rounded-xl bg-white p-2",
+                              "transition-transform duration-fast ease-standard active:translate-y-px",
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                            )}
+                          >
+                            <QrCodeDisplay imageUrl={qrImageUrl!} size={140} onError={() => setQrImageFailed(true)} />
+                            <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-xl bg-surface-ink/0 transition-colors duration-fast ease-standard group-hover:bg-surface-ink/40">
+                              <Maximize2
+                                className="h-5 w-5 text-white opacity-0 transition-opacity duration-fast ease-standard group-hover:opacity-100"
+                                aria-hidden
+                              />
+                            </span>
+                          </button>
+                          <span className="flex items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-micro font-medium text-ink">
+                            <Clock className="h-3 w-3 text-accent" aria-hidden />
+                            Valid for {timeLeft}s
                           </span>
-                        </button>
+                        </div>
                       ) : null}
                     </div>
 
                     <div className="min-w-0 space-y-1">
-                      <p className={TECH_LABEL}>Gate pass</p>
+                      <div className="flex items-center gap-2">
+                        <p className={TECH_LABEL}>Gate pass</p>
+                        {!isExpired && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRegenerate}
+                            loading={regenerating}
+                            disabled={regenerating}
+                          >
+                            <RefreshCw className="h-3 w-3" aria-hidden />
+                            Regenerate
+                          </Button>
+                        )}
+                      </div>
                       {activeQr.expiresAt && (
                         <p className="text-body font-semibold text-ink">
                           {formatTimeRemaining(activeQr.expiresAt)}
                         </p>
                       )}
                       <p className="text-caption text-muted">
-                        Tap the code to show it full screen at the gate.
+                        {isExpired
+                          ? "Tap Regenerate before showing the code to the guard."
+                          : "Tap the code to show it full screen at the gate."}
                       </p>
                     </div>
                   </div>
@@ -458,6 +519,10 @@ export default function StudentDashboardPage() {
               ? `Valid for ${formatTimeRemaining(activeQr.expiresAt)}.`
               : undefined
           }
+          timeLeft={timeLeft}
+          isExpired={isExpired}
+          onRegenerate={handleRegenerate}
+          regenerating={regenerating}
         />
       )}
     </div>

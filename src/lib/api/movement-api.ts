@@ -25,11 +25,12 @@ export function getQrPassesUrl(leaveRequestId: string): string {
 export async function generateQr(
   leaveRequestId: string,
   qrType: "LEAVE_EXIT" | "LEAVE_RETURN",
+  regenerate?: boolean,
 ): Promise<unknown> {
   const res = await fetch(`${BASE}/movements/generate-qr`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ leaveRequestId, qrType }),
+    body: JSON.stringify({ leaveRequestId, qrType, regenerate }),
   });
   const json: ApiResponse = await res.json();
   if (!res.ok || !json.success) {
