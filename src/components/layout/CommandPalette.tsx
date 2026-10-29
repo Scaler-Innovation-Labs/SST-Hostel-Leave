@@ -81,6 +81,14 @@ export function CommandPalette({
   const go = React.useCallback(
     (href: string) => {
       onOpenChange(false);
+      if (
+        href.startsWith("mailto:") ||
+        href.startsWith("http://") ||
+        href.startsWith("https://")
+      ) {
+        window.location.href = href;
+        return;
+      }
       router.push(href);
     },
     [onOpenChange, router]

@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   BarChart3,
   Bell,
+  Bug,
   Building2,
   CalendarPlus,
   ClipboardList,
@@ -15,7 +16,6 @@ import {
   Mail,
   Scale,
   ScanLine,
-  Settings,
   ShieldCheck,
   Users,
   UsersRound,
@@ -34,10 +34,10 @@ export type NavigationItem = {
 /**
  * Grouping is the point.
  *
- * The super-admin console has seventeen destinations. A horizontal strip could
+ * The super-admin console has sixteen destinations. A horizontal strip could
  * not hold them — they rendered inside a scrolling box with most of them
  * off-screen. A vertical column has the room, and the group headings are what
- * make seventeen scannable rather than a list to read top to bottom.
+ * make sixteen scannable rather than a list to read top to bottom.
  */
 export type NavigationGroup = {
   heading: string;
@@ -65,6 +65,16 @@ const STUDENT: NavigationGroup[] = [
         label: "Request leave",
         href: ROUTES.STUDENT_LEAVE_NEW,
         Icon: CalendarPlus,
+      },
+    ],
+  },
+  {
+    heading: "Support",
+    items: [
+      {
+        label: "Report bug",
+        href: "mailto:neerasa.24bcs10005@sst.scaler.com?subject=Bug%20Report%20-%20SST%20Hostel%20Leave",
+        Icon: Bug,
       },
     ],
   },
@@ -217,12 +227,6 @@ const SUPER_ADMIN: NavigationGroup[] = [
         href: ROUTES.SUPER_ADMIN_DELIVERY_LOGS,
         Icon: FileText,
       },
-    ],
-  },
-  {
-    heading: "System",
-    items: [
-      { label: "Settings", href: ROUTES.SUPER_ADMIN_SETTINGS, Icon: Settings },
     ],
   },
 ];
