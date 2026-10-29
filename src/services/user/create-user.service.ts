@@ -4,6 +4,7 @@ import { ROLE_SCOPE_TYPE } from "@/constants/auth/role-scope";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
 import { userRepository, type UserWithRoles } from "@/db/repositories/user/user.repository";
 import type { CreateUserDto } from "@/dto/user/create-user.dto";
+import { assertNoConflictingRoles } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { ConflictError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
@@ -45,6 +46,14 @@ export async function createUser(dto: CreateUserDto, actorUserId: string | null 
       }
       throw err;
     }
+
+    const allRoleCodes = [
+      ...new Set([
+        ...(dto.roleCodes ?? []),
+        ...(dto.roleScopes?.map((s) => s.roleCode) ?? []),
+      ]),
+    ];
+    assertNoConflictingRoles(allRoleCodes);
 
     const roleIdsByCode = new Map<string, string>(
       (await userRoleRepository.findRolesByCodes(

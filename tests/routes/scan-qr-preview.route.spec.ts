@@ -21,7 +21,7 @@ vi.mock("@/services/movement/scan-qr.service", () => ({
   previewQrScan: (...args: any[]) => mockPreviewQrScan(...args),
 }));
 
-import { GET } from "@/app/api/v1/movements/scan/preview/route";
+import { GET, POST } from "@/app/api/v1/movements/scan/preview/route";
 
 const VALID_PREVIEW = {
   valid: true,
@@ -92,5 +92,30 @@ describe("GET /api/v1/movements/scan/preview", () => {
     );
     const res = await GET(req);
     expect(res.status).toBe(401);
+  });
+});
+describe("POST /api/v1/movements/scan/preview (S2 secure body)", () => {
+  it("previews a scannable QR token passed via request body", async () => {
+    const req = new Request("http://localhost:3000/api/v1/movements/scan/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: "qr-token-secure-123" }),
+    });
+    const res = await POST(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.data.valid).toBe(true);
+    expect(mockPreviewQrScan).toHaveBeenCalledWith("qr-token-secure-123");
+  });
+
+  it("returns 400 when token is missing in body", async () => {
+    const req = new Request("http://localhost:3000/api/v1/movements/scan/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
   });
 });

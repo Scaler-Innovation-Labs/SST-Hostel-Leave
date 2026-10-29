@@ -39,12 +39,24 @@ function getOrCreatePool(): Pool {
 		// So `sslmode`/`channel_binding` (Neon-only) are stripped from the URL
 		// and TLS-without-CA-verification is configured explicitly instead.
 		const { url, ssl } = sanitizeConnectionString(databaseUrl);
+		const isInsecureSsl = process.env.DB_SSL_INSECURE === "true";
+		const isProd = process.env.NODE_ENV === "production";
+		const rejectUnauthorized = isProd ? !isInsecureSsl : false;
+		const ca = process.env.DB_CA_CERT;
+
 		globalForDb.pool = new Pool({
 			connectionString: url,
 			max: 10,
 			idleTimeoutMillis: 30_000,
 			connectionTimeoutMillis: 10_000,
-			...(ssl ? { ssl: { rejectUnauthorized: false } } : {}),
+			...(ssl
+				? {
+						ssl: {
+							rejectUnauthorized,
+							...(ca ? { ca } : {}),
+						},
+				  }
+				: {}),
 		});
 		globalForDb.pool.on("error", (err: unknown) => {
 			logger.error("[db] Pool error", {

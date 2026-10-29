@@ -93,6 +93,14 @@ vi.mock("@/db/repositories/parent/parent.repository", () => ({
   },
 }));
 
+
+const mockFindRoleCodesByUserId = vi.fn().mockResolvedValue(["POC"]);
+vi.mock("@/db/repositories/auth/user-role.repository", () => ({
+  userRoleRepository: {
+    findRoleCodesByUserId: (...args: any[]) => mockFindRoleCodesByUserId(...args),
+  },
+}));
+
 const mockPolicyEvaluate = vi.fn();
 vi.mock("@/services/policy/policy-engine", () => ({
   policyEngine: {
@@ -148,9 +156,10 @@ vi.mock("@/db/repositories/policy/policy-evaluation.repository", () => ({
   },
 }));
 
+const mockUserFindById = vi.fn().mockResolvedValue({ id: "U_POC", fullName: "Test POC", isActive: true, deletedAt: null });
 vi.mock("@/db/repositories/user/user.repository", () => ({
   userRepository: {
-    findById: vi.fn().mockResolvedValue({ id: "U1", fullName: "Test Student" }),
+    findById: (...args: any[]) => mockUserFindById(...args),
   },
 }));
 
@@ -175,6 +184,8 @@ describe("Workflow Step Activation (B2: AUTO activation & B3: Parent timing)", (
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUserFindById.mockResolvedValue({ id: "U_POC", fullName: "Test POC", isActive: true, deletedAt: null });
+    mockFindRoleCodesByUserId.mockResolvedValue(["POC"]);
     mockStudentFindByUserId.mockResolvedValue(baseStudent);
     mockStudentFindByIdForUpdate.mockResolvedValue(baseStudent);
     mockStudentFindById.mockResolvedValue(baseStudent);

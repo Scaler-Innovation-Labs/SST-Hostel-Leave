@@ -9,6 +9,7 @@ import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { leaveApprovalParentDetails } from "@/db";
+import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
 import type { LeaveRequest } from "@/db/repositories/leave/leave.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
@@ -20,6 +21,7 @@ import { policyEvaluationRepository } from "@/db/repositories/policy/policy-eval
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 import type { CreateLeaveDto } from "@/dto/leave/create-leave.dto";
+import { ROLES } from "@/lib/auth/roles";
 import { startOfTodayIst } from "@/lib/date-utils";
 import { db } from "@/lib/db";
 import { AuthorizationError, ConflictError, NotFoundError,
@@ -252,6 +254,17 @@ export async function createLeave(
       } else {
         const parent = await parentRepository.findPrimaryByStudentId(student.id, tx);
         parentId = parent?.id ?? null;
+      }
+    }
+
+    if (dto.pocId) {
+      const pocUser = await userRepository.findById(dto.pocId, tx);
+      if (!pocUser || !pocUser.isActive || pocUser.deletedAt) {
+        throw new ValidationError("Selected POC user does not exist or is inactive");
+      }
+      const pocRoles = await userRoleRepository.findRoleCodesByUserId(dto.pocId, tx);
+      if (!pocRoles.includes(ROLES.POC)) {
+        throw new ValidationError("Selected user does not have the POC role");
       }
     }
 

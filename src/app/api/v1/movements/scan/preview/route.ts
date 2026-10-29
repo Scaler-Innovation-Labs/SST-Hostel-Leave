@@ -6,6 +6,28 @@ import { ROLES } from "@/lib/auth/roles";
 import { rateLimit } from "@/lib/rate-limiter";
 import { previewQrScan } from "@/services/movement/scan-qr.service";
 
+export async function POST(request: Request) {
+  try {
+    const currentUser = requireAnyRole(await requireAuth(), [
+      ROLES.GUARD,
+      ROLES.POC,
+      ROLES.ADMIN,
+      ROLES.SUPER_ADMIN,
+    ]);
+
+    await rateLimit(`scan:${currentUser.id}`, 120, 60_000);
+
+    const body = await request.json().catch(() => ({}));
+    const { token } = scanQrPreviewSchema.parse(body);
+
+    const result = await previewQrScan(token);
+
+    return ApiResponse.success(result);
+  } catch (error) {
+    return ApiResponse.fromError(error);
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const currentUser = requireAnyRole(await requireAuth(), [

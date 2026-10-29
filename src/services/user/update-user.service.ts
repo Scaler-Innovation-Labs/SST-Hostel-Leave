@@ -4,7 +4,7 @@ import { ROLE_SCOPE_TYPE } from "@/constants/auth/role-scope";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
 import { userRepository, type UserWithRoles } from "@/db/repositories/user/user.repository";
 import type { UpdateUserDto } from "@/dto/user/update-user.dto";
-import { ROLES } from "@/lib/auth/roles";
+import { assertNoConflictingRoles,ROLES } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
@@ -33,6 +33,13 @@ export async function updateUser(id: string, dto: UpdateUserDto, actorUserId: st
       hostelId: dto.hostelId,
       isActive: dto.isActive,
     }, tx);
+
+    if (dto.roleCodes !== undefined || dto.roleScopes !== undefined) {
+      const existingRoleCodes = await userRoleRepository.findRoleCodesByUserId(id, tx);
+      const newRoleCodes = dto.roleCodes !== undefined ? dto.roleCodes : existingRoleCodes;
+      const scopeRoleCodes = dto.roleScopes?.map((s) => s.roleCode) ?? [];
+      assertNoConflictingRoles([...new Set([...newRoleCodes, ...scopeRoleCodes])]);
+    }
 
     if (dto.roleCodes !== undefined) {
       // Guard: never remove the last super admin (would lock everyone out).
