@@ -427,4 +427,127 @@ describe("createExtension service", () => {
       )
     ).rejects.toBeInstanceOf((await import("@/lib/errors")).AuthorizationError);
   });
+
+  it("rejects extension when a pending extension already exists (B5)", async () => {
+    mockLeaveFindById.mockResolvedValue({
+      id: "L1",
+      status: "APPROVED",
+      startAt: new Date("2026-06-10"),
+      endAt: new Date("2026-06-15"),
+      leaveTypeId: "LT1",
+    });
+    mockExtensionFindByLeaveRequestId.mockResolvedValue([
+      { id: "EXT-PENDING", status: "PENDING", extensionNumber: 1 },
+    ]);
+
+    await expect(
+      createExtension(
+        "L1",
+        { requestedEndAt: "2026-06-20T23:59:59Z", reason: "Second extension" },
+        { id: "U1", roles: ["ADMIN"] }
+      )
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("rejects extension when maximum extension count is reached (B5)", async () => {
+    mockLeaveFindById.mockResolvedValue({
+      id: "L1",
+      status: "APPROVED",
+      startAt: new Date("2026-06-10"),
+      endAt: new Date("2026-06-15"),
+      leaveTypeId: "LT1",
+    });
+    mockExtensionFindByLeaveRequestId.mockResolvedValue([
+      { id: "EXT-1", status: "APPROVED", extensionNumber: 1 },
+      { id: "EXT-2", status: "APPROVED", extensionNumber: 2 },
+      { id: "EXT-3", status: "APPROVED", extensionNumber: 3 },
+    ]);
+    const { leaveTypeRepository } = await import("@/db/repositories/leave/leave-type.repository");
+    (leaveTypeRepository.findById as any).mockResolvedValue({
+      id: "LT1",
+      code: "HOME_PASS",
+      allowExtensions: true,
+      maxExtensionCount: 3,
+      defaultWorkflowId: "WF1",
+      qrMode: "NONE",
+    });
+
+    await expect(
+      createExtension(
+        "L1",
+        { requestedEndAt: "2026-06-20T23:59:59Z", reason: "Fourth extension" },
+        { id: "U1", roles: ["ADMIN"] }
+      )
+    ).rejects.toBeInstanceOf(ValidationError);
+  });
+
+  it("evaluates policy using full duration from original startAt to requestedEndAt (B5)", async () => {
+    mockLeaveFindById.mockResolvedValue({
+      id: "L1",
+      status: "APPROVED",
+      startAt: new Date("2026-06-10T00:00:00Z"),
+      endAt: new Date("2026-06-15T00:00:00Z"),
+      leaveTypeId: "LT1",
+    });
+    mockLeaveFindByIdForUpdate.mockResolvedValue({
+      id: "L1",
+      status: "APPROVED",
+      startAt: new Date("2026-06-10T00:00:00Z"),
+      endAt: new Date("2026-06-15T00:00:00Z"),
+      leaveTypeId: "LT1",
+    });
+    mockExtensionFindByLeaveRequestId.mockResolvedValue([]);
+
+    await createExtension(
+      "L1",
+      { requestedEndAt: "2026-06-25T00:00:00Z", reason: "Extend 10 days" },
+      { id: "U1", roles: ["ADMIN"] }
+    );
+
+    expect(mockPolicyEvaluate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leaveDurationDays: 15, // 10 days original + 10 days more (June 10 to June 25 = 15 days)
+        startAt: new Date("2026-06-10T00:00:00Z"),
+        endAt: new Date("2026-06-25T00:00:00Z"),
+      })
+    );
+  });
+
+  it("validates submitted form against leave type form schema (B8)", async () => {
+    mockLeaveFindById.mockResolvedValue({
+      id: "L1",
+      status: "APPROVED",
+      startAt: new Date("2026-06-10"),
+      endAt: new Date("2026-06-15"),
+      leaveTypeId: "LT1",
+    });
+    const { leaveTypeRepository } = await import("@/db/repositories/leave/leave-type.repository");
+    (leaveTypeRepository.findById as any).mockResolvedValue({
+      id: "LT1",
+      code: "HOME_PASS",
+      allowExtensions: true,
+      maxExtensionCount: 3,
+      defaultWorkflowId: "WF1",
+      qrMode: "NONE",
+      formSchema: {
+        fields: [
+          { key: "emergencyContact", label: "Emergency Contact", type: "text", required: true },
+        ],
+      },
+    });
+
+    // Missing required field
+    await expect(
+      createExtension(
+        "L1",
+        {
+          requestedEndAt: "2026-06-20T23:59:59Z",
+          reason: "Need extension",
+          submittedForm: {},
+        },
+        { id: "U1", roles: ["ADMIN"] }
+      )
+    ).rejects.toThrow("Emergency Contact is required");
+  });
+
 });

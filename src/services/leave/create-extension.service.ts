@@ -30,6 +30,7 @@ import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { resolveApprovalSource } from "@/lib/workflows/resolve-approval-source";
 import { auditService } from "@/services/audit/audit.service";
 import { assertNoConflictingOverlap } from "@/services/leave/overlap-guard.service";
+import { validateLeaveSubmittedForm } from "@/services/leave/validate-leave-form.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 import { policyEngine } from "@/services/policy/policy-engine";
 import { assertCanAccessLeave } from "@/services/shared/authorization.service";
@@ -80,8 +81,46 @@ export async function createExtension(
     throw new ValidationError("Leave type has no default workflow configured");
   }
 
+  const requestedEnd = new Date(dto.requestedEndAt);
+  if (requestedEnd <= leave.endAt) {
+    throw new ValidationError(
+      "Extension end date must be after current leave end date"
+    );
+  }
+
+  // Validate submitted form against leave type form schema (B8)
+  const validatedForm = validateLeaveSubmittedForm(
+    leaveType.formSchema,
+    dto.submittedForm
+  );
+
+  // Check existing extensions: block multiple pending extensions & count active (B5)
   const existingExtensions = await leaveExtensionRepository.findByLeaveRequestId(leaveRequestId);
-  const extensionCount = existingExtensions.length;
+  const hasPendingExtension = existingExtensions.some(
+    (ext) => ext.status === LEAVE_REQUEST_STATUS.PENDING
+  );
+  if (hasPendingExtension) {
+    throw new ConflictError(
+      "A pending extension already exists for this leave request"
+    );
+  }
+
+  const activeExtensions = existingExtensions.filter(
+    (ext) =>
+      ext.status === LEAVE_REQUEST_STATUS.APPROVED ||
+      ext.status === LEAVE_REQUEST_STATUS.PENDING
+  );
+  const extensionCount = activeExtensions.length;
+
+  if (
+    leaveType.maxExtensionCount !== null &&
+    leaveType.maxExtensionCount !== undefined &&
+    extensionCount >= leaveType.maxExtensionCount
+  ) {
+    throw new ValidationError(
+      `Maximum ${leaveType.maxExtensionCount} extensions allowed for this leave type`
+    );
+  }
 
   // Get student details for full policy context
   const student = await studentRepository.findById(leave.studentId);
@@ -98,8 +137,10 @@ export async function createExtension(
     }
   }
 
+  // Evaluate full leave duration: from original start date to requested new end date (B5)
+  const originalStart = leave.startAt ? new Date(leave.startAt) : new Date();
   const leaveDurationDays = Math.ceil(
-    (new Date(leave.endAt).getTime() - new Date(leave.startAt).getTime()) / (1000 * 60 * 60 * 24)
+    (requestedEnd.getTime() - originalStart.getTime()) / (1000 * 60 * 60 * 24)
   );
 
   const policyResult = await policyEngine.evaluate({
@@ -113,8 +154,8 @@ export async function createExtension(
     leaveDurationDays,
     extensionCount,
     studentBatchYear,
-    startAt: leave.startAt,
-    endAt: leave.endAt,
+    startAt: originalStart,
+    endAt: requestedEnd,
     hostelId: user?.hostelId ?? null,
     studentDepartmentId,
   });
@@ -135,18 +176,11 @@ export async function createExtension(
       rejectionSource: LEAVE_REJECTION_SOURCE.POLICY,
       reason: policyResult.restrictions.join("; "),
       restrictions: policyResult.restrictions,
-      startAt: leave.startAt,
-      endAt: new Date(dto.requestedEndAt),
+      startAt: originalStart,
+      endAt: requestedEnd,
     });
     throw new ValidationError(
       `Policy restriction: ${policyResult.restrictions.join("; ")}`
-    );
-  }
-
-  const requestedEnd = new Date(dto.requestedEndAt);
-  if (requestedEnd <= leave.endAt) {
-    throw new ValidationError(
-      "Extension end date must be after current leave end date"
     );
   }
 
@@ -193,7 +227,7 @@ export async function createExtension(
             requestedEndAt: requestedEnd,
             reason: dto.reason,
             status: LEAVE_REQUEST_STATUS.PENDING,
-            submittedForm: dto.submittedForm ?? null,
+            submittedForm: Object.keys(validatedForm).length > 0 ? validatedForm : (dto.submittedForm ?? null),
             policyResult: policyResultSummary,
             submittedAt: new Date(),
           },
