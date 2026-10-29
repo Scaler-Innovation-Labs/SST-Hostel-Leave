@@ -67,7 +67,7 @@ describe("getCurrentUser account status", () => {
       roles: ["STUDENT"],
       roleScopes: ["HOSTEL"],
     });
-    expect(mockTouchLastLogin).toHaveBeenCalledWith("U1");
+    expect(mockTouchLastLogin).not.toHaveBeenCalled();
   });
 
   it("denies a deactivated user even with a valid Clerk session", async () => {

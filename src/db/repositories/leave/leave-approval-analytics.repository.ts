@@ -433,6 +433,10 @@ export const leaveApprovalAnalyticsRepository = {
         avgHours: sql<number | null>`avg(extract(epoch from (${leaveApprovals.actedAt} - ${leaveApprovals.createdAt})) / 3600)`,
       })
       .from(leaveApprovals)
+      .leftJoin(
+        leaveApprovalParentDetails,
+        eq(leaveApprovals.id, leaveApprovalParentDetails.approvalId)
+      )
       .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
@@ -499,6 +503,10 @@ export const leaveApprovalAnalyticsRepository = {
         rejected: sql<number>`count(*) filter (where ${leaveApprovals.decision} = ${LEAVE_APPROVAL_DECISION.REJECTED})`,
       })
       .from(leaveApprovals)
+      .leftJoin(
+        leaveApprovalParentDetails,
+        eq(leaveApprovals.id, leaveApprovalParentDetails.approvalId)
+      )
       .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))

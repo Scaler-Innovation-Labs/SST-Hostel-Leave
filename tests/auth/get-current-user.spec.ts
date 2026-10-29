@@ -4,6 +4,7 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 const mockFindRoles = vi.fn();
 const mockFindRoleScopes = vi.fn();
 const mockFindByClerkId = vi.fn();
+const mockTouchLastLogin = vi.fn();
 
 vi.mock("@/db/repositories/auth/user-role.repository", () => ({
   userRoleRepository: {
@@ -15,7 +16,7 @@ vi.mock("@/db/repositories/auth/user-role.repository", () => ({
 vi.mock("@/db/repositories/user/user.repository", () => ({
   userRepository: {
     findByClerkId: (...args: any[]) => mockFindByClerkId(...args),
-    touchLastLogin: vi.fn().mockResolvedValue(undefined),
+    touchLastLogin: (...args: any[]) => mockTouchLastLogin(...args),
   },
 }));
 
@@ -80,5 +81,24 @@ describe("getCurrentUser", () => {
     expect(res?.roleScopes).toEqual([
       { roleCode: "ADMIN", scopeType: "HOSTEL", scopeId: "H1" },
     ]);
+  });
+
+  it("does not call touchLastLogin during authentication resolution", async () => {
+    const clerkUser = { id: "C3", emailAddresses: [{ emailAddress: "c@example.com" }] };
+    const { currentUser } = await import("@clerk/nextjs/server");
+    currentUser.mockResolvedValue(clerkUser);
+
+    mockFindByClerkId.mockResolvedValue({
+      id: "U3",
+      clerkId: "C3",
+      isActive: true,
+      deletedAt: null,
+    });
+    mockFindRoles.mockResolvedValue(["STUDENT"]);
+    mockFindRoleScopes.mockResolvedValue([]);
+
+    await getCurrentUser();
+
+    expect(mockTouchLastLogin).not.toHaveBeenCalled();
   });
 });

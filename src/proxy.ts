@@ -9,6 +9,7 @@ const isAuthenticatedRoute = createRouteMatcher([
   "/student(.*)",
   "/admin(.*)",
   "/poc(.*)",
+  "/guard(.*)",
   "/super-admin(.*)",
   "/api/v1(.*)",
 ]);
