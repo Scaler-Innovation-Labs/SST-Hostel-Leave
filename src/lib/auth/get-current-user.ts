@@ -1,4 +1,4 @@
-import { currentUser } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { cache } from "react";
 
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
@@ -9,42 +9,50 @@ import { isRole } from "./roles";
 import type { CurrentUser } from "./types";
 
 export const getCurrentUser = cache(async function getCurrentUser(): Promise<CurrentUser | null> {
-  const clerkUser = await currentUser();
+  const { userId: clerkUserId } = await auth();
 
-  if (!clerkUser) {
+  if (!clerkUserId) {
     return null;
   }
 
-  const email = clerkUser.emailAddresses[0]?.emailAddress ?? null;
-  // Only a VERIFIED Clerk email may claim a pre-provisioned DB account.
-  // Linking on an unverified address would let anyone registering the
-  // victim's email inherit their roles/scopes (A07).
-  const isEmailVerified =
-    clerkUser.emailAddresses[0]?.verification?.status === "verified";
-
   let dbUser: Awaited<ReturnType<typeof userRepository.findByClerkId>> | null = null;
+  let email: string | null = null;
 
   try {
-    dbUser = await userRepository.findByClerkId(clerkUser.id);
-
-    if (!dbUser && email && isEmailVerified) {
-      dbUser = await userRepository.findByEmail(email);
-      if (dbUser) {
-        await userRepository.updateClerkId(dbUser.id, clerkUser.id);
+    dbUser = await userRepository.findByClerkId(clerkUserId);
+    if (dbUser) {
+      email = dbUser.email;
+    } else {
+      // First-time login / unlinked user: call currentUser() once to fetch full profile and email for linking/provisioning
+      const clerkUser = await currentUser();
+      if (!clerkUser) {
+        return null;
       }
-    }
 
-    if (!dbUser && email) {
-      const fullName = clerkUser.firstName && clerkUser.lastName
-        ? `${clerkUser.firstName} ${clerkUser.lastName}`
-        : clerkUser.firstName ?? clerkUser.username ?? "Unknown";
+      email = clerkUser.emailAddresses[0]?.emailAddress ?? null;
+      const isEmailVerified =
+        clerkUser.emailAddresses[0]?.verification?.status === "verified";
 
-      dbUser = await userRepository.create({
-        clerkId: clerkUser.id,
-        fullName,
-        email,
-        profileImageUrl: clerkUser.imageUrl,
-      });
+      if (email && isEmailVerified) {
+        dbUser = await userRepository.findByEmail(email);
+        if (dbUser) {
+          await userRepository.updateClerkId(dbUser.id, clerkUser.id);
+        }
+      }
+
+      if (!dbUser && email) {
+        const fullName =
+          clerkUser.firstName && clerkUser.lastName
+            ? `${clerkUser.firstName} ${clerkUser.lastName}`
+            : clerkUser.firstName ?? clerkUser.username ?? "Unknown";
+
+        dbUser = await userRepository.create({
+          clerkId: clerkUser.id,
+          fullName,
+          email,
+          profileImageUrl: clerkUser.imageUrl,
+        });
+      }
     }
   } catch (err) {
     logger.error("[getCurrentUser] DB query failed", {
@@ -75,8 +83,8 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
 
   const currentUserValue: CurrentUser = {
     id: dbUser.id,
-    clerkId: clerkUser.id,
-    email,
+    clerkId: clerkUserId,
+    email: email ?? dbUser.email,
     roles,
     roleScopes,
   };
