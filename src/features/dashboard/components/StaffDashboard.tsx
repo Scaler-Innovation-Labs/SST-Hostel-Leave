@@ -120,7 +120,7 @@ export function StaffDashboard({ basePath, title, description, actions, extraAct
         <SectionHeader title="Students">
           <StatProgress
             label="Occupancy"
-            value={s.activeStudents}
+            value={s.inHostel ?? s.activeStudents}
             total={s.totalStudents}
             tone="success"
             className="w-40"

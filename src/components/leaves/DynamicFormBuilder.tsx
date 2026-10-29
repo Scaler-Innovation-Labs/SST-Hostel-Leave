@@ -37,8 +37,7 @@ function toKey(label: string | undefined | null): string {
   return (label ?? "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_|_$/g, "")
-    || `field_${Date.now()}`;
+    .replace(/^_|_$/g, "");
 }
 
 export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps) {
@@ -74,8 +73,17 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
     const next = fields.map((field, i) => {
       if (i !== index) return field;
       const updated = { ...field, ...patch };
-      if (patch.label && patch.label !== field.label) {
-        updated.key = toKey(patch.label);
+      if (patch.label !== undefined && patch.label !== field.label) {
+        const isDefaultKey =
+          !field.key ||
+          field.key.startsWith("field_") ||
+          field.key === toKey(field.label);
+        if (isDefaultKey) {
+          const derived = toKey(patch.label);
+          if (derived) {
+            updated.key = derived;
+          }
+        }
       }
       return updated;
     });
@@ -126,7 +134,7 @@ export function DynamicFormBuilder({ schema, onChange }: DynamicFormBuilderProps
       <div className="space-y-2">
         {fields.map((field, index) => (
           <div
-            key={`${field.key}-${index}`}
+            key={index}
             className="rounded-xl border bg-surface p-4 space-y-3"
           >
             {/* Field header */}

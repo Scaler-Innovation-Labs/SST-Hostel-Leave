@@ -4,6 +4,7 @@ import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import type { MovementState } from "@/constants/movement";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { QR_STATUS } from "@/constants/movement/qr-status";
+import { getQrExitExpiry, getQrReturnExpiry } from "@/constants/movement/qr-window";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { hostelRepository } from "@/db/repositories/hostel/hostel.repository";
@@ -14,6 +15,7 @@ import { qrScanLogRepository } from "@/db/repositories/movement/qr-scan-log.repo
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 import { sha256 } from "@/lib/crypto";
+import { endOfDayIst, startOfDayIst } from "@/lib/date-utils";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
@@ -110,19 +112,46 @@ export async function previewQrScan(token: string): Promise<QrScanPreview> {
 		return { valid: false, reason: "QR pass has already been fully used" };
 	}
 
-	// EXIT is window-gated; a RETURN by an already-exited student is not
-	// (overdue returns must still work after expires_at). Neither scan may
-	// happen before the pass window opens.
-	const now = new Date();
+	const leave = await leaveRepository.findById(pass.leaveRequestId);
 
-	if (pass.validFrom && now < pass.validFrom) {
+	if (
+		leave &&
+		leave.status !== LEAVE_REQUEST_STATUS.APPROVED &&
+		leave.status !== LEAVE_REQUEST_STATUS.OVERDUE
+	) {
 		return {
 			valid: false,
-			reason: `QR pass is not valid until ${pass.validFrom.toISOString()}`,
+			reason: `Leave is ${leave.status}`,
 		};
 	}
 
-	if (scanType === "EXIT_SCAN" && pass.expiresAt && now > pass.expiresAt) {
+	const now = new Date();
+	const validFrom = pass.validFrom ?? leave?.startAt;
+
+	// Neither scan may happen before the pass window opens on the departure date.
+	if (validFrom && now < startOfDayIst(validFrom)) {
+		return {
+			valid: false,
+			reason: `QR pass is not valid until ${validFrom.toISOString()}`,
+		};
+	}
+
+	// EXIT is window-gated: usable from departure day till the day before the return date.
+	// For same-day leaves, exit is allowed through the end of that day.
+	const isExitExpired =
+		(pass.expiresAt && now > endOfDayIst(pass.expiresAt)) ||
+		(Boolean(leave?.startAt && leave?.endAt) && now > getQrExitExpiry(leave!.startAt, leave!.endAt));
+
+	if (scanType === "EXIT_SCAN" && isExitExpired) {
+		return { valid: false, reason: "QR pass has expired" };
+	}
+
+	// RETURN is window-gated: usable from leave date through return date (23:59:59.999 IST of endAt).
+	const returnExpiry = leave?.endAt
+		? getQrReturnExpiry(leave.endAt)
+		: (pass.expiresAt ? endOfDayIst(pass.expiresAt) : null);
+
+	if (scanType === "RETURN_SCAN" && returnExpiry && now > returnExpiry) {
 		return { valid: false, reason: "QR pass has expired" };
 	}
 
@@ -140,18 +169,6 @@ export async function previewQrScan(token: string): Promise<QrScanPreview> {
 	const student = await studentRepository.findById(pass.studentId);
 	const user = student ? await userRepository.findById(student.userId) : null;
 	const hostel = user?.hostelId ? await hostelRepository.findById(user.hostelId) : null;
-	const leave = await leaveRepository.findById(pass.leaveRequestId);
-
-	if (
-		leave &&
-		leave.status !== LEAVE_REQUEST_STATUS.APPROVED &&
-		leave.status !== LEAVE_REQUEST_STATUS.OVERDUE
-	) {
-		return {
-			valid: false,
-			reason: `Leave is ${leave.status}`,
-		};
-	}
 	const leaveType = leave ? await leaveTypeRepository.findById(leave.leaveTypeId) : null;
 
 	return {
@@ -309,8 +326,11 @@ export async function scanQrPass(
 	}
 
 	if (input.scanType === "RETURN_SCAN") {
-		if (pass.validFrom && new Date() < pass.validFrom) {
-			const reason = `QR pass is not valid until ${pass.validFrom.toISOString()}`;
+		const leave = await leaveRepository.findById(pass.leaveRequestId);
+		const validFrom = leave?.startAt ?? pass.validFrom;
+
+		if (validFrom && new Date() < startOfDayIst(validFrom)) {
+			const reason = `QR pass is not valid until ${validFrom.toISOString()}`;
 			const log = await qrScanLogRepository.create({
 				qrPassId: pass.id,
 				scannedBy: input.scannedBy,
@@ -324,6 +344,29 @@ export async function scanQrPass(
 				success: false,
 				scanType: "RETURN_SCAN",
 				failureReason: reason,
+			};
+		}
+
+		const returnExpiry = leave?.endAt
+			? getQrReturnExpiry(leave.endAt)
+			: (pass.expiresAt ? endOfDayIst(pass.expiresAt) : null);
+
+		if (returnExpiry && new Date() > returnExpiry) {
+			await qrPassRepository.invalidate(pass.id);
+
+			const log = await qrScanLogRepository.create({
+				qrPassId: pass.id,
+				scannedBy: input.scannedBy,
+				scanType: "RETURN_SCAN",
+				scanResult: "FAILED",
+				failureReason: "QR pass has expired",
+			});
+
+			return {
+				scanLogId: log.id,
+				success: false,
+				scanType: "RETURN_SCAN",
+				failureReason: "QR pass has expired",
 			};
 		}
 
@@ -350,27 +393,31 @@ export async function scanQrPass(
 	}
 
 	if (input.scanType === "EXIT_SCAN") {
-		// Contract §2: usable-for-exit ⟺ ACTIVE + valid_from <= now <= expires_at.
-		// A future approved leave's pass is ACTIVE but outside its window — the
-		// token is not scannable until the leave starts.
-		if (pass.validFrom && new Date() < pass.validFrom) {
+		const leave = await leaveRepository.findById(pass.leaveRequestId);
+		const validFrom = leave?.startAt ?? pass.validFrom;
+		const isExitExpired =
+			(pass.expiresAt && new Date() > endOfDayIst(pass.expiresAt)) ||
+			(Boolean(leave?.startAt && leave?.endAt) && new Date() > getQrExitExpiry(leave!.startAt, leave!.endAt));
+
+		// Exit is allowed from the departure day till the day before the return date.
+		if (validFrom && new Date() < startOfDayIst(validFrom)) {
 			const log = await qrScanLogRepository.create({
 				qrPassId: pass.id,
 				scannedBy: input.scannedBy,
 				scanType: "EXIT_SCAN",
 				scanResult: "FAILED",
-				failureReason: `QR pass is not valid until ${pass.validFrom.toISOString()}`,
+				failureReason: `QR pass is not valid until ${validFrom.toISOString()}`,
 			});
 
 			return {
 				scanLogId: log.id,
 				success: false,
 				scanType: "EXIT_SCAN",
-				failureReason: `QR pass is not valid until ${pass.validFrom.toISOString()}`,
+				failureReason: `QR pass is not valid until ${validFrom.toISOString()}`,
 			};
 		}
 
-		if (pass.expiresAt && new Date() > pass.expiresAt) {
+		if (isExitExpired) {
 			await qrPassRepository.invalidate(pass.id);
 
 			const log = await qrScanLogRepository.create({
@@ -461,21 +508,6 @@ export async function scanQrPass(
 				throw new ConflictError("QR pass has already been used for return");
 			}
 
-			// Re-check the window inside the transaction: the snapshot check
-			// above is advisory, and an exit must never commit outside
-			// [valid_from, expires_at].
-			const now = new Date();
-
-			if (passInTx.validFrom && now < passInTx.validFrom) {
-				throw new ConflictError(
-					`QR pass is not valid until ${passInTx.validFrom.toISOString()}`
-				);
-			}
-
-			if (passInTx.expiresAt && now > passInTx.expiresAt) {
-				throw new ConflictError("QR pass has expired");
-			}
-
 			// Serialize with expire/cancel on the leave row (mirrors the
 			// RETURN path): without the lock, an expiry racing an exit
 			// could leave an exit movement on a non-approved leave.
@@ -486,6 +518,24 @@ export async function scanQrPass(
 
 			if (!exitLeave) {
 				throw new NotFoundError("LeaveRequest");
+			}
+
+			// Re-check the window inside the transaction: exit allowed from
+			// departure day till the day before return date.
+			const now = new Date();
+			const validFrom = exitLeave.startAt ?? passInTx.validFrom;
+			const isExitExpired =
+				(passInTx.expiresAt && now > endOfDayIst(passInTx.expiresAt)) ||
+				(Boolean(exitLeave.startAt && exitLeave.endAt) && now > getQrExitExpiry(exitLeave.startAt, exitLeave.endAt));
+
+			if (validFrom && now < startOfDayIst(validFrom)) {
+				throw new ConflictError(
+					`QR pass is not valid until ${validFrom.toISOString()}`
+				);
+			}
+
+			if (isExitExpired) {
+				throw new ConflictError("QR pass has expired");
 			}
 
 			if (
@@ -590,25 +640,6 @@ export async function scanQrPass(
 				throw new ConflictError("QR pass has already been used for return");
 			}
 
-			const now = new Date();
-
-			if (passInTx.validFrom && now < passInTx.validFrom) {
-				throw new ConflictError(
-					`QR pass is not valid until ${passInTx.validFrom.toISOString()}`
-				);
-			}
-
-			const openSession =
-				await qrPassRepository.findOpenSessionPassForStudent(
-					pass.studentId,
-					tx
-				);
-			const sessionError = returnSessionError(openSession, passInTx);
-
-			if (sessionError) {
-				throw new ConflictError(sessionError);
-			}
-
 			// Serialize with cancel/expire/override on the leave row. Without
 			// this lock, a RETURN scan racing a cancel could resurrect a
 			// CANCELLED leave as COMPLETED (the old code wrote COMPLETED with
@@ -620,6 +651,34 @@ export async function scanQrPass(
 
 			if (!leave) {
 				throw new NotFoundError("LeaveRequest");
+			}
+
+			const now = new Date();
+			const validFrom = leave.startAt ?? passInTx.validFrom;
+
+			if (validFrom && now < startOfDayIst(validFrom)) {
+				throw new ConflictError(
+					`QR pass is not valid until ${validFrom.toISOString()}`
+				);
+			}
+
+			const returnExpiry = leave.endAt
+				? getQrReturnExpiry(leave.endAt)
+				: (passInTx.expiresAt ? endOfDayIst(passInTx.expiresAt) : null);
+
+			if (returnExpiry && now > returnExpiry) {
+				throw new ConflictError("QR pass has expired");
+			}
+
+			const openSession =
+				await qrPassRepository.findOpenSessionPassForStudent(
+					pass.studentId,
+					tx
+				);
+			const sessionError = returnSessionError(openSession, passInTx);
+
+			if (sessionError) {
+				throw new ConflictError(sessionError);
 			}
 
 			if (

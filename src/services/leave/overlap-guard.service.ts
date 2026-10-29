@@ -15,13 +15,9 @@ export function isMovementCapable(
 }
 
 /**
- * Contract §4 (MVP overlap policy) — deterministic, applies at submission and
- * extension approval, never at scan time:
- *
- *   QR-enabled new leave  × any overlapping live leave  → reject
- *   non-QR new leave      × overlapping QR-enabled leave → reject
- *   non-QR new leave      × overlapping non-QR leave     → allow, unless the
- *     overlapping leave is the SAME leave type (legacy guard preserved).
+ * Overlap policy:
+ * Overlapping leaves of DIFFERENT types/kinds CAN be raised.
+ * Only overlapping leaves of the SAME leave type are rejected.
  *
  * Overlap = `new.startAt <= existing.endAt AND existing.startAt <= new.endAt`
  * over PENDING / APPROVED / OVERDUE leaves of the same student.
@@ -31,7 +27,7 @@ export async function assertNoConflictingOverlap(params: {
   startAt: Date;
   endAt: Date;
   /** qrMode of the leave being created / extended. */
-  qrMode: string | null | undefined;
+  qrMode?: string | null | undefined;
   /** leaveTypeId of the leave being created / extended (same-type guard). */
   leaveTypeId: string;
   /** For extensions: the leave whose own window is being widened. */
@@ -50,23 +46,8 @@ export async function assertNoConflictingOverlap(params: {
 
   if (overlapping.length === 0) return;
 
-  const newMovementCapable = isMovementCapable(params.qrMode);
-
-  if (newMovementCapable) {
-    throw new ConflictError(
-      "Overlapping leave exists: another leave overlaps this QR-enabled leave's window"
-    );
-  }
-
-  const qrConflict = overlapping.find((row) =>
-    isMovementCapable(row.leaveType?.qrMode)
-  );
-  if (qrConflict) {
-    throw new ConflictError(
-      "Overlapping QR-enabled leave exists"
-    );
-  }
-
+  // Overlapping leaves of different types/kinds can be raised.
+  // Reject only when there is an overlapping leave of the same type.
   const sameType = overlapping.find(
     (row) => row.leave.leaveTypeId === params.leaveTypeId
   );

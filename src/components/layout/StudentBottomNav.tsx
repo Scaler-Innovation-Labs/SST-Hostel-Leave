@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { STUDENT_BOTTOM_NAV } from "@/constants/navigation";
+import { openMailto } from "@/lib/mailto";
 import { cn } from "@/lib/utils";
 
 /**
@@ -28,19 +29,20 @@ export function StudentBottomNav() {
     >
       {STUDENT_BOTTOM_NAV.map(({ label, href, Icon }) => {
         const active = pathname === href || pathname.startsWith(`${href}/`);
+        const isExternal =
+          href.startsWith("mailto:") ||
+          href.startsWith("http://") ||
+          href.startsWith("https://");
 
-        return (
-          <Link
-            key={href}
-            href={href}
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "relative flex min-h-tap flex-1 flex-col items-center justify-center gap-1 px-2 py-2",
-              "text-micro font-medium transition-colors duration-fast ease-standard",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent",
-              active ? "text-accent" : "text-muted hover:text-ink"
-            )}
-          >
+        const className = cn(
+          "relative flex min-h-tap flex-1 flex-col items-center justify-center gap-1 px-2 py-2",
+          "text-micro font-medium transition-colors duration-fast ease-standard",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent",
+          active ? "text-accent" : "text-muted hover:text-ink"
+        );
+
+        const inner = (
+          <>
             {active && (
               <span
                 aria-hidden
@@ -49,6 +51,36 @@ export function StudentBottomNav() {
             )}
             <Icon className="h-5 w-5 shrink-0" aria-hidden />
             <span className="truncate">{label}</span>
+          </>
+        );
+
+        if (isExternal) {
+          return (
+            <a
+              key={href}
+              href={href}
+              onClick={(e) => {
+                if (href.startsWith("mailto:")) {
+                  e.preventDefault();
+                  openMailto(href);
+                }
+              }}
+              className={className}
+              rel="noopener noreferrer"
+            >
+              {inner}
+            </a>
+          );
+        }
+
+        return (
+          <Link
+            key={href}
+            href={href}
+            aria-current={active ? "page" : undefined}
+            className={className}
+          >
+            {inner}
           </Link>
         );
       })}

@@ -396,7 +396,7 @@ describe("createExtension service", () => {
       qrMode: "BOTH",
     });
     mockLeaveFindOverlapping.mockResolvedValue([
-      { leave: { id: "LR-OTHER", leaveTypeId: "LT-OTHER" }, leaveType: { qrMode: "BOTH" } },
+      { leave: { id: "LR-OTHER", leaveTypeId: "LT1" }, leaveType: { qrMode: "BOTH" } },
     ]);
 
     await expect(

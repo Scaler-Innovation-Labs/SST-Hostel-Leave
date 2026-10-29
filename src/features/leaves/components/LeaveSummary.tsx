@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 
 import type { LeaveRequestStatus } from "@/constants/leave/leave-status";
+import { PARENT_APPROVAL_TOKEN_EXPIRY_HOURS } from "@/constants/parent/parent-approval";
 import { VIEW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import {
   Badge,
@@ -103,6 +104,9 @@ export function LeaveSummary({ leave }: { leave: Record<string, unknown> }) {
                   <Badge tone="warning">
                     <Clock className="h-3 w-3 shrink-0" aria-hidden />
                     Waiting on {pendingWith}
+                    {pendingWith.includes("parent")
+                      ? ` · Link expires in ${PARENT_APPROVAL_TOKEN_EXPIRY_HOURS}h`
+                      : ""}
                   </Badge>
                 )}
                 {checks.length > 0 && (

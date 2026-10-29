@@ -249,7 +249,8 @@ async function getStaffStats(
 
   return {
     totalStudents: locationStats.total,
-    activeStudents: locationStats.inHostel,
+    activeStudents: locationStats.active,
+    inHostel: locationStats.inHostel,
     studentsOnLeave: locationStats.outsideHostel,
     pendingApprovals: pendingStats.pendingLeaves,
     pendingExtensions: pendingStats.pendingExtensions,

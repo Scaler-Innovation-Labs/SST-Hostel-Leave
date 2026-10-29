@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 const mockFindByTokenHash = vi.fn();
 const mockFindOpenSessionPass = vi.fn();
@@ -106,6 +106,8 @@ const LEAVE = {
 const LEAVE_TYPE = { id: "LT1", name: "Home Visit" };
 
 beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-08-20T11:00:00.000Z"));
   vi.clearAllMocks();
   mockFindByTokenHash.mockResolvedValue(ACTIVE_UNSCANNED_PASS);
   mockFindOpenSessionPass.mockResolvedValue(null);
@@ -116,6 +118,10 @@ beforeEach(() => {
   mockLeaveTypeFindById.mockResolvedValue(LEAVE_TYPE);
 });
 
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 describe("previewQrScan", () => {
   it("returns student details for an unscanned EXIT pass", async () => {
     const result = await previewQrScan("raw-token");
@@ -233,5 +239,94 @@ describe("previewQrScan", () => {
 
     expect(mockQrScanLogCreate).not.toHaveBeenCalled();
     expect(mockRecordMovement).not.toHaveBeenCalled();
+  });
+
+  it("allows EXIT preview on the leaving date even before validFrom time of day", async () => {
+    vi.useFakeTimers();
+    // 09:30 AM IST on 2026-06-15 (04:00:00.000Z)
+    vi.setSystemTime(new Date("2026-06-15T04:00:00.000Z"));
+    try {
+      mockFindByTokenHash.mockResolvedValue({
+        ...ACTIVE_UNSCANNED_PASS,
+        // 18:00 IST on 2026-06-15 (12:30:00.000Z)
+        validFrom: new Date("2026-06-15T12:30:00.000Z"),
+      });
+
+      const result = await previewQrScan("raw-token");
+      expect(result.valid).toBe(true);
+      expect(result.scanType).toBe("EXIT_SCAN");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("allows EXIT preview for a multi-day leave on the day before return date, but rejects on return date", async () => {
+    vi.useFakeTimers();
+    // Day before return date: 2026-06-14 18:00 IST (12:30:00.000Z)
+    vi.setSystemTime(new Date("2026-06-14T12:30:00.000Z"));
+    try {
+      mockFindByTokenHash.mockResolvedValue(ACTIVE_UNSCANNED_PASS);
+      mockLeaveFindById.mockResolvedValue({
+        ...LEAVE,
+        startAt: new Date("2026-06-10T04:30:00.000Z"),
+        endAt: new Date("2026-06-15T14:30:00.000Z"),
+      });
+
+      const dayBeforeResult = await previewQrScan("raw-token");
+      expect(dayBeforeResult.valid).toBe(true);
+      expect(dayBeforeResult.scanType).toBe("EXIT_SCAN");
+
+      // On return date: 2026-06-15 09:00 IST (03:30:00.000Z)
+      vi.setSystemTime(new Date("2026-06-15T03:30:00.000Z"));
+      const returnDateResult = await previewQrScan("raw-token");
+      expect(returnDateResult.valid).toBe(false);
+      expect(returnDateResult.reason).toBe("QR pass has expired");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("allows RETURN preview from leave date through return date, and rejects after return date", async () => {
+    vi.useFakeTimers();
+    try {
+      mockFindByTokenHash.mockResolvedValue(ACTIVE_RETURN_PASS);
+      mockLeaveFindById.mockResolvedValue({
+        ...LEAVE,
+        startAt: new Date("2026-06-10T04:30:00.000Z"),
+        endAt: new Date("2026-06-15T14:30:00.000Z"),
+      });
+
+      // 1. Before leave date: 2026-06-09 18:00 IST (12:30:00.000Z)
+      vi.setSystemTime(new Date("2026-06-09T12:30:00.000Z"));
+      const beforeLeaveResult = await previewQrScan("raw-token");
+      expect(beforeLeaveResult.valid).toBe(false);
+      expect(beforeLeaveResult.reason).toContain("not valid until");
+
+      // 2. On leave date: 2026-06-10 09:00 IST (03:30:00.000Z)
+      vi.setSystemTime(new Date("2026-06-10T03:30:00.000Z"));
+      const onLeaveDateResult = await previewQrScan("raw-token");
+      expect(onLeaveDateResult.valid).toBe(true);
+      expect(onLeaveDateResult.scanType).toBe("RETURN_SCAN");
+
+      // 3. Between leave and return date: 2026-06-12 12:00 IST (06:30:00.000Z)
+      vi.setSystemTime(new Date("2026-06-12T06:30:00.000Z"));
+      const midLeaveResult = await previewQrScan("raw-token");
+      expect(midLeaveResult.valid).toBe(true);
+      expect(midLeaveResult.scanType).toBe("RETURN_SCAN");
+
+      // 4. On return date: 2026-06-15 22:00 IST (16:30:00.000Z)
+      vi.setSystemTime(new Date("2026-06-15T16:30:00.000Z"));
+      const returnDateResult = await previewQrScan("raw-token");
+      expect(returnDateResult.valid).toBe(true);
+      expect(returnDateResult.scanType).toBe("RETURN_SCAN");
+
+      // 5. Day after return date: 2026-06-16 01:00 IST (2026-06-15T19:30:00.000Z)
+      vi.setSystemTime(new Date("2026-06-15T19:30:00.000Z"));
+      const expiredResult = await previewQrScan("raw-token");
+      expect(expiredResult.valid).toBe(false);
+      expect(expiredResult.reason).toBe("QR pass has expired");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

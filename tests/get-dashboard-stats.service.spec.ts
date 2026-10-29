@@ -122,7 +122,7 @@ beforeEach(() => {
   mockCountActive.mockResolvedValue(0);
   mockCountUsers.mockResolvedValue(0);
   mockCountByLocationState.mockResolvedValue(0);
-  mockCountLocationStats.mockResolvedValue({ total: 100, inHostel: 80, outsideHostel: 15, overdue: 5 });
+  mockCountLocationStats.mockResolvedValue({ total: 100, active: 85, inHostel: 80, outsideHostel: 15, overdue: 5 });
   mockCountStatusStats.mockResolvedValue({ total: 200, approved: 150, rejected: 10 });
   mockCountPendingStats.mockResolvedValue({ pendingLeaves: 4, pendingExtensions: 1 });
 });
@@ -280,6 +280,8 @@ describe("getDashboardStats", () => {
     const result = await getDashboardStats(ADMIN_USER, "APPROVED");
 
     expect(result.totalStudents).toBe(100);
+    expect(result.activeStudents).toBe(85);
+    expect(result.inHostel).toBe(80);
     expect(result.pendingApprovals).toBe(4);
     expect(mockCountByLeaveType).toHaveBeenCalledWith(undefined, "APPROVED");
   });

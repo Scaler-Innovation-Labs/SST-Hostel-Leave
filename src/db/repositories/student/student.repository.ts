@@ -277,11 +277,29 @@ export const studentRepository = {
       .where(and(...conditions));
     return Number(result[0]?.count ?? 0);
   },
+  async countActive(
+    hostelIds?: string[],
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [eq(users.isActive, true)];
+    if (hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, hostelIds));
+    }
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const result = await dbClient
+      .select({ count: sql<number>`count(*)` })
+      .from(students)
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(whereClause);
+    return Number(result[0]?.count ?? 0);
+  },
+
   async countLocationStats(
     hostelIds?: string[],
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<{
     total: number;
+    active: number;
     inHostel: number;
     outsideHostel: number;
     overdue: number;
@@ -294,6 +312,7 @@ export const studentRepository = {
     const result = await dbClient
       .select({
         total: sql<number>`count(*)`,
+        active: sql<number>`count(*) filter (where ${users.isActive} is true)`,
         inHostel: sql<number>`count(*) filter (where ${students.currentLocationState} = ${MOVEMENT_STATE.IN_HOSTEL})`,
         outsideHostel: sql<number>`count(*) filter (where ${students.currentLocationState} = ${MOVEMENT_STATE.OUTSIDE_HOSTEL})`,
         overdue: sql<number>`count(*) filter (where ${students.currentLocationState} = ${MOVEMENT_STATE.OVERDUE})`,
@@ -305,6 +324,7 @@ export const studentRepository = {
     const row = result[0];
     return {
       total: Number(row?.total ?? 0),
+      active: Number(row?.active ?? 0),
       inHostel: Number(row?.inHostel ?? 0),
       outsideHostel: Number(row?.outsideHostel ?? 0),
       overdue: Number(row?.overdue ?? 0),

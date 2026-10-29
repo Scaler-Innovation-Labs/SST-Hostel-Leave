@@ -147,14 +147,27 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
           value={locationState?.name ?? locationCode.replace(/_/g, " ").toLowerCase()}
           icon={<MapPin className="h-4 w-4" />}
           tone={isInHostel ? "success" : isOverdue ? "danger" : "warning"}
+          valueClassName="text-h3 font-semibold capitalize"
           className={cn(
             isInHostel && "border-success/30",
             isOnLeave && "border-accent/30",
             isOverdue && "border-danger/30",
           )}
         />
-        <InfoCard label="Email" value={userData?.email ?? "—"} icon={<Mail className="h-4 w-4" />} tone="accent" />
-        <InfoCard label="Phone" value={userData?.phone ?? "—"} icon={<Phone className="h-4 w-4" />} tone="accent" />
+        <InfoCard
+          label="Email"
+          value={userData?.email ?? "—"}
+          icon={<Mail className="h-4 w-4" />}
+          tone="accent"
+          valueClassName="text-body font-medium"
+        />
+        <InfoCard
+          label="Phone"
+          value={userData?.phone ?? "—"}
+          icon={<Phone className="h-4 w-4" />}
+          tone="accent"
+          valueClassName="text-h3 font-semibold"
+        />
         <InfoCard
           label="Status"
           value={userData?.isActive ? "Active" : "Inactive"}
@@ -171,29 +184,39 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
             <h3 className="text-body-lg font-semibold">Profile</h3>
           </div>
           <dl className="space-y-4 text-body">
-            <div className="flex justify-between">
-              <dt className="text-muted">Full Name</dt>
-              <dd className="font-medium">{userData?.fullName ?? "—"}</dd>
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <dt className="shrink-0 text-muted">Full Name</dt>
+              <dd className="min-w-0 truncate text-right font-medium" title={userData?.fullName ?? undefined}>
+                {userData?.fullName ?? "—"}
+              </dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-muted">Roll Number</dt>
-              <dd className="font-mono text-caption font-medium">{studentData.rollNumber ?? "—"}</dd>
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <dt className="shrink-0 text-muted">Roll Number</dt>
+              <dd className="shrink-0 font-mono text-caption font-medium text-right">
+                {studentData.rollNumber ?? "—"}
+              </dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-muted">Gender</dt>
-              <dd className="font-medium capitalize">{userData?.gender ?? "—"}</dd>
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <dt className="shrink-0 text-muted">Gender</dt>
+              <dd className="font-medium capitalize text-right">
+                {userData?.gender ?? "—"}
+              </dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-muted">Email</dt>
-              <dd className="font-medium">{userData?.email ?? "—"}</dd>
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <dt className="shrink-0 text-muted">Email</dt>
+              <dd className="min-w-0 truncate text-right font-medium" title={userData?.email ?? undefined}>
+                {userData?.email ?? "—"}
+              </dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-muted">Phone</dt>
-              <dd className="font-medium">{userData?.phone ?? "—"}</dd>
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <dt className="shrink-0 text-muted">Phone</dt>
+              <dd className="font-medium text-right">
+                {userData?.phone ?? "—"}
+              </dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-muted">Active</dt>
-              <dd>
+            <div className="flex items-center justify-between gap-3 min-w-0">
+              <dt className="shrink-0 text-muted">Active</dt>
+              <dd className="text-right">
                 {userData?.isActive ? (
                   <span className="text-success">Active</span>
                 ) : (

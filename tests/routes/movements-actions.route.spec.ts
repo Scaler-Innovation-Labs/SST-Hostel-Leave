@@ -140,6 +140,19 @@ describe("POST /api/v1/movements/mark-overdue", () => {
     });
   });
 
+  it("allows a GUARD caller to mark a student overdue", async () => {
+    mockRequireAnyRole.mockReturnValueOnce({ id: "G1", roles: ["GUARD"] });
+    const res = await MARK_OVERDUE(jsonReq({ studentId: UUID }, "http://localhost:3000/api/v1/movements/mark-overdue"));
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(mockMarkOverdue).toHaveBeenCalledWith({
+      studentId: UUID,
+      currentUser: expect.objectContaining({ id: "G1", roles: ["GUARD"] }),
+    });
+  });
+
   it("rejects a missing studentId", async () => {
     const res = await MARK_OVERDUE(jsonReq({}, "http://localhost:3000/api/v1/movements/mark-overdue"));
 

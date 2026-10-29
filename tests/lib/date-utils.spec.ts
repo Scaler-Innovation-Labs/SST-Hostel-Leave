@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  endOfDayIst,
   formatDate,
   formatDateRange,
   formatDateTime,
   formatRelative,
   formatTimeRemaining,
+  startOfDayIst,
   startOfTodayIst,
 } from "@/lib/date-utils";
 
@@ -74,7 +76,7 @@ describe("date formatting", () => {
   });
 });
 
-describe("startOfTodayIst", () => {
+describe("startOfDayIst / startOfTodayIst", () => {
   it("uses the IST calendar day around the UTC boundary", () => {
     expect(
       startOfTodayIst(new Date("2026-03-03T18:29:59Z")).toISOString()
@@ -82,5 +84,21 @@ describe("startOfTodayIst", () => {
     expect(
       startOfTodayIst(new Date("2026-03-03T18:30:00Z")).toISOString()
     ).toBe("2026-03-03T18:30:00.000Z");
+  });
+
+  it("computes midnight (00:00:00.000 IST) for any given date", () => {
+    // 2026-07-15 14:00 IST -> 2026-07-14 18:30:00.000Z
+    const input = new Date("2026-07-15T08:30:00.000Z");
+    const result = startOfDayIst(input);
+    expect(result.toISOString()).toBe("2026-07-14T18:30:00.000Z");
+  });
+});
+
+describe("endOfDayIst", () => {
+  it("computes end of day (23:59:59.999 IST) for any given date", () => {
+    // 2026-07-15 14:00 IST -> 2026-07-15 18:29:59.999Z
+    const input = new Date("2026-07-15T08:30:00.000Z");
+    const result = endOfDayIst(input);
+    expect(result.toISOString()).toBe("2026-07-15T18:29:59.999Z");
   });
 });

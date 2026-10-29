@@ -10,6 +10,7 @@ export async function GET() {
       ROLES.POC,
       ROLES.ADMIN,
       ROLES.SUPER_ADMIN,
+      ROLES.GUARD,
     ]);
 
     const result = await listOverdueReturns(currentUser);

@@ -53,6 +53,7 @@ export type TimeSeriesPoint = {
 export type StaffDashboardStats = {
   totalStudents: number;
   activeStudents: number;
+  inHostel?: number;
   studentsOnLeave: number;
   pendingApprovals: number;
   pendingExtensions: number;

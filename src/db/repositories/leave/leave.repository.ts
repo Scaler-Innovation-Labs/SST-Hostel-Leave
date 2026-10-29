@@ -30,7 +30,8 @@ import type { LeaveRequestStatus } from "@/constants/leave/leave-status";
 
 export type LeaveFilters = {
   studentId?: string;
-  status?: LeaveRequestStatus;
+  status?: LeaveRequestStatus | string;
+  statuses?: LeaveRequestStatus[];
   leaveTypeId?: string;
   hostelId?: string;
   startDate?: Date;
@@ -274,8 +275,16 @@ async findAutoCompleteDueNonQrLeaves(
     if (filters.studentId) {
       conditions.push(eq(leaveRequests.studentId, filters.studentId));
     }
-    if (filters.status) {
-      conditions.push(eq(leaveRequests.status, filters.status));
+    if (filters.statuses && filters.statuses.length > 0) {
+      conditions.push(inArray(leaveRequests.status, filters.statuses));
+    } else if (filters.status) {
+      const raw = String(filters.status);
+      if (raw.includes(",")) {
+        const list = raw.split(",").map((s) => s.trim()) as LeaveRequestStatus[];
+        conditions.push(inArray(leaveRequests.status, list));
+      } else {
+        conditions.push(eq(leaveRequests.status, filters.status as LeaveRequestStatus));
+      }
     }
     if (filters.leaveTypeId) {
       conditions.push(eq(leaveRequests.leaveTypeId, filters.leaveTypeId));

@@ -51,6 +51,17 @@ export const LANDING_NAV = [
   { label: "Preview", href: "#security" },
 ] as const;
 
+const SUPPORT: NavigationGroup = {
+  heading: "Support",
+  items: [
+    {
+      label: "Report bug",
+      href: "mailto:neerasa.24bcs10005@sst.scaler.com?subject=Bug%20Report%20-%20SST%20Hostel%20Leave",
+      Icon: Bug,
+    },
+  ],
+};
+
 const STUDENT: NavigationGroup[] = [
   {
     heading: "Leave",
@@ -68,16 +79,7 @@ const STUDENT: NavigationGroup[] = [
       },
     ],
   },
-  {
-    heading: "Support",
-    items: [
-      {
-        label: "Report bug",
-        href: "mailto:neerasa.24bcs10005@sst.scaler.com?subject=Bug%20Report%20-%20SST%20Hostel%20Leave",
-        Icon: Bug,
-      },
-    ],
-  },
+  SUPPORT,
 ];
 
 const ADMIN: NavigationGroup[] = [
@@ -118,6 +120,7 @@ const ADMIN: NavigationGroup[] = [
     heading: "Directory",
     items: [{ label: "Students", href: ROUTES.ADMIN_STUDENTS, Icon: Users }],
   },
+  SUPPORT,
 ];
 
 const POC: NavigationGroup[] = [
@@ -127,6 +130,7 @@ const POC: NavigationGroup[] = [
       { label: "Dashboard", href: ROUTES.POC_DASHBOARD, Icon: LayoutDashboard },
     ],
   },
+  SUPPORT,
 ];
 
 const GUARD: NavigationGroup[] = [
@@ -229,6 +233,7 @@ const SUPER_ADMIN: NavigationGroup[] = [
       },
     ],
   },
+  SUPPORT,
 ];
 
 /**

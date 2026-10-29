@@ -36,7 +36,7 @@ import {
   XCircle,
   Zap,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 
@@ -268,6 +268,18 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
   const leaveTypeUiConfig = leaveTypeRecord.uiConfig as Record<string, unknown> | null ?? {};
   const isSpecialLeave = (leaveTypeUiConfig.isSpecial as boolean) ?? false;
 
+  const configuredDocs = leaveTypeRecord.requiredDocuments as
+    | Array<{ code?: string; label?: string; required?: boolean }>
+    | { documents?: Array<{ code?: string; label?: string; required?: boolean }> }
+    | null
+    | undefined;
+  const configuredDocList = Array.isArray(configuredDocs)
+    ? configuredDocs
+    : (configuredDocs?.documents ?? []);
+  const requiredDocLabels = configuredDocList
+    .filter((d) => d.required)
+    .map((d) => d.label || d.code || "Document");
+
   // Student leave stats
   const studentId = leave?.studentId as string | undefined;
   const { leaves: studentLeaves } = useLeaves(studentId ? { studentId, page: 1, limit: 100 } : undefined);
@@ -382,7 +394,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
   const studentStatPending = studentLeaves.filter((l: Record<string, unknown>) => l.status === LEAVE_REQUEST_STATUS.PENDING).length;
 
   // ── Actions ──
-  const handleAction = useCallback(async () => {
+  const handleAction = async () => {
     if (!actionTarget) return;
     setActionLoading(true);
     setActionError("");
@@ -420,9 +432,9 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
     } finally {
       setActionLoading(false);
     }
-  }, [actionTarget, comments, rejectionCategory, leaveId, leaveMutate, chainMutate, documentsVerified, isSpecialLeave, ccEmailsInput]);
+  };
 
-  const handleOverride = useCallback(async () => {
+  const handleOverride = async () => {
     setOverrideLoading(true);
     setOverrideError("");
     try {
@@ -437,9 +449,9 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
     } finally {
       setOverrideLoading(false);
     }
-  }, [leaveId, overrideMode, overrideComments, leaveMutate, chainMutate]);
+  };
 
-  const confirmParentOverride = useCallback(async () => {
+  const confirmParentOverride = async () => {
     setActionLoading(true);
     setActionError("");
     try {
@@ -462,7 +474,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
     } finally {
       setActionLoading(false);
     }
-  }, [leaveId, comments, documentsVerified, isSpecialLeave, leaveMutate, chainMutate]);
+  };
 
   // ── Early returns ──
   if (isLoading) return <LoadingState count={6} />;
@@ -602,6 +614,11 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 >
                   <tab.icon className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">{tab.label}</span>
+                  {tab.id === "documents" && documents.length > 0 && (
+                    <span className="ml-1 rounded-full bg-accent/20 px-1.5 py-0.5 text-micro font-semibold text-accent">
+                      {documents.length}
+                    </span>
+                  )}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -686,6 +703,89 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   <div className="mt-4 rounded-lg bg-surface-sunken/50 p-3">
                     <p className="mb-1 text-micro font-medium uppercase tracking-wider text-muted">Reason</p>
                     <p className="text-body leading-relaxed">{reason}</p>
+                  </div>
+                )}
+              </SectionCard>
+
+              {/* Uploaded Documents */}
+              <SectionCard
+                title={documents.length > 0 ? `Uploaded Documents (${documents.length})` : "Uploaded Documents"}
+                Icon={FileText}
+              >
+                {documents.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border p-4 text-center">
+                    <FileText className="mx-auto mb-2 h-8 w-8 text-muted/50" />
+                    <p className="text-body font-medium text-muted">No documents uploaded by student</p>
+                    {requiredDocLabels.length > 0 && (
+                      <p className="mt-1 text-caption text-warning">
+                        Required by this leave type: {requiredDocLabels.join(", ")}
+                      </p>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 gap-1.5"
+                      onClick={() => setActiveTab("questions")}
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      Ask student for documents
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {documents.map((doc) => {
+                      const DocIcon = getDocumentIcon(doc.mimeType, doc.fileName);
+                      return (
+                        <div
+                          key={doc.id}
+                          className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 transition-colors hover:bg-surface-sunken/40"
+                        >
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-sunken">
+                              <DocIcon className="h-5 w-5 text-muted" />
+                            </div>
+                            <div className="min-w-0">
+                              <a
+                                href={doc.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block truncate text-body font-medium hover:text-accent hover:underline"
+                              >
+                                {doc.fileName}
+                              </a>
+                              <p className="text-caption text-muted">
+                                {doc.documentType && (
+                                  <span className="font-semibold text-ink-subtle">
+                                    {doc.documentType} ·{" "}
+                                  </span>
+                                )}
+                                {doc.mimeType ?? "Unknown type"}
+                                {doc.fileSize && ` · ${(doc.fileSize / 1024).toFixed(1)} KB`}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <a
+                              href={doc.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1 text-caption font-medium hover:bg-surface-sunken"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              View
+                            </a>
+                            <a
+                              href={doc.fileUrl}
+                              download={doc.fileName}
+                              className="inline-flex items-center gap-1 rounded-md border border-border bg-surface p-1.5 text-muted hover:text-ink hover:bg-surface-sunken"
+                              title="Download document"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </SectionCard>
@@ -1121,25 +1221,54 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     {documents.map((doc) => {
                       const DocIcon = getDocumentIcon(doc.mimeType, doc.fileName);
                       return (
-                        <a
+                        <div
                           key={doc.id}
-                          href={doc.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="group flex items-center gap-3 rounded-lg border border-border bg-surface p-3 transition-all hover:border-muted/30 hover:shadow-sm"
+                          className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface p-3 transition-all hover:border-muted/30 hover:shadow-sm"
                         >
-                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-sunken">
-                            <DocIcon className="h-5 w-5 text-muted" />
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-sunken">
+                              <DocIcon className="h-5 w-5 text-muted" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <a
+                                href={doc.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block truncate text-body font-medium hover:underline hover:text-accent"
+                              >
+                                {doc.fileName}
+                              </a>
+                              <p className="text-caption text-muted">
+                                {doc.documentType && (
+                                  <span className="font-semibold text-ink-subtle">
+                                    {doc.documentType} ·{" "}
+                                  </span>
+                                )}
+                                {doc.mimeType ?? "Unknown type"}
+                                {doc.fileSize && ` · ${(doc.fileSize / 1024).toFixed(1)} KB`}
+                              </p>
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-body font-medium group-hover:text-ink">{doc.fileName}</p>
-                            <p className="text-caption text-muted">
-                              {doc.mimeType ?? "Unknown type"}
-                              {doc.fileSize && ` · ${(doc.fileSize / 1024).toFixed(1)} KB`}
-                            </p>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <a
+                              href={doc.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1 text-caption font-medium hover:bg-surface-sunken"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              View
+                            </a>
+                            <a
+                              href={doc.fileUrl}
+                              download={doc.fileName}
+                              className="inline-flex items-center gap-1 rounded-md border border-border bg-surface p-1.5 text-muted hover:text-ink hover:bg-surface-sunken"
+                              title="Download document"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                            </a>
                           </div>
-                          <ExternalLink className="h-4 w-4 shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100" />
-                        </a>
+                        </div>
                       );
                     })}
                   </div>
@@ -1405,20 +1534,45 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 </>
               )}
               {isSpecialLeave && (
-                <label className="flex items-start gap-3 rounded-md border border-warning bg-warning-light p-3 dark:border-warning dark:bg-warning">
-                  <input
-                    type="checkbox"
-                    checked={documentsVerified}
-                    onChange={(e) => setDocumentsVerified(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-border text-warning focus:ring-warning"
-                  />
-                  <span className="text-body">
-                    <strong>I confirm that the documents have been verified</strong>
-                    <p className="mt-0.5 text-caption text-muted">
-                      This leave type requires document verification before approval.
-                    </p>
-                  </span>
-                </label>
+                <div className="space-y-2">
+                  {documents.length > 0 && (
+                    <div className="rounded-md border border-border bg-surface-sunken/40 p-2.5 text-caption">
+                      <p className="font-semibold text-ink">
+                        Attached documents ({documents.length}):
+                      </p>
+                      <ul className="mt-1 space-y-1">
+                        {documents.map((doc) => (
+                          <li key={doc.id} className="flex items-center justify-between gap-2">
+                            <span className="truncate text-muted">{doc.fileName}</span>
+                            <a
+                              href={doc.fileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex shrink-0 items-center gap-1 text-accent hover:underline"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              View
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <label className="flex items-start gap-3 rounded-md border border-warning bg-warning-light p-3 dark:border-warning dark:bg-warning">
+                    <input
+                      type="checkbox"
+                      checked={documentsVerified}
+                      onChange={(e) => setDocumentsVerified(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-border text-warning focus:ring-warning"
+                    />
+                    <span className="text-body">
+                      <strong>I confirm that the documents have been verified</strong>
+                      <p className="mt-0.5 text-caption text-muted">
+                        This leave type requires document verification before approval.
+                      </p>
+                    </span>
+                  </label>
+                </div>
               )}
             </div>
 

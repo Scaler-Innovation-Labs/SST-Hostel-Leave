@@ -14,18 +14,42 @@ export const OPERATING_TIMEZONE = "IST";
 /** India has no DST, so the operating offset is a constant. */
 const IST_UTC_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
-/** Midnight at the start of the current IST calendar day, as an instant. */
-export function startOfTodayIst(now: Date = new Date()): Date {
-  const shifted = new Date(now.getTime() + IST_UTC_OFFSET_MS);
+/** Midnight at the start of the given date in IST (00:00:00.000 IST), as an instant. */
+export function startOfDayIst(date: Date = new Date()): Date {
+  const shifted = new Date(date.getTime() + IST_UTC_OFFSET_MS);
 
   return new Date(
     Date.UTC(
       shifted.getUTCFullYear(),
       shifted.getUTCMonth(),
-      shifted.getUTCDate()
+      shifted.getUTCDate(),
+      0,
+      0,
+      0,
+      0
     ) - IST_UTC_OFFSET_MS
   );
 }
+
+/** End of the given date in IST (23:59:59.999 IST), as an instant. */
+export function endOfDayIst(date: Date = new Date()): Date {
+  const shifted = new Date(date.getTime() + IST_UTC_OFFSET_MS);
+
+  return new Date(
+    Date.UTC(
+      shifted.getUTCFullYear(),
+      shifted.getUTCMonth(),
+      shifted.getUTCDate(),
+      23,
+      59,
+      59,
+      999
+    ) - IST_UTC_OFFSET_MS
+  );
+}
+
+/** Backwards-compatible alias for startOfDayIst. */
+export const startOfTodayIst = startOfDayIst;
 
 /** 24-hour clock. `18:00`, never `6:00 PM`. */
 const TIME = "HH:mm";

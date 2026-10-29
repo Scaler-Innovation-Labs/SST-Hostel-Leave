@@ -25,9 +25,15 @@ export async function listLeaves(query: ListLeavesQuery, currentUser?: CurrentUs
     }
   }
 
+  const rawStatus = query.status;
+  const statusList = rawStatus?.includes(",")
+    ? (rawStatus.split(",").map((s) => s.trim()) as LeaveRequestStatus[])
+    : undefined;
+
   return leaveRepository.findByFilters({
     studentId: query.studentId,
-    status: query.status as LeaveRequestStatus | undefined,
+    status: statusList ? undefined : (query.status as LeaveRequestStatus | undefined),
+    statuses: statusList,
     leaveTypeId: query.leaveTypeId,
     hostelId: query.hostelId,
     startDate: query.startDate ? new Date(query.startDate) : undefined,

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Repeat, X, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Clock, Repeat, X, XCircle } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import type { LeaveRequestStatus } from "@/constants/leave/leave-status";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import { PARENT_APPROVAL_TOKEN_EXPIRY_HOURS } from "@/constants/parent/parent-approval";
 import { ROUTES } from "@/constants/routes";
 import {
   Button,
@@ -36,10 +37,16 @@ export default function StudentLeaveDetailPage() {
   const { leave, isLoading, isError, mutate } = useLeave(id);
   const { approvals } = useApprovalChain(id);
   const rejectingApproval = approvals.find((a) => a.decision?.toLowerCase() === "rejected");
+  const parentApproval = approvals.find(
+    (a) =>
+      a.stepKey?.toUpperCase().includes("PARENT") ||
+      a.approverRoleCode?.toUpperCase().includes("PARENT")
+  );
 
   const [cancelling, setCancelling] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
   const [extending, setExtending] = useState(false);
+  const [now] = useState(() => Date.now());
 
   async function handleCancel() {
     setCancelling(true);
@@ -88,6 +95,24 @@ export default function StudentLeaveDetailPage() {
   const isPending = status === LEAVE_REQUEST_STATUS.PENDING;
   const isExtendable = isApproved || isOverdue;
   const isCancellable = isPending || isApproved;
+
+  const isParentStep = Boolean(
+    (leave.currentStepKey as string | null)?.toUpperCase().includes("PARENT")
+  );
+  const isParentPending =
+    isPending &&
+    (parentApproval?.decision?.toLowerCase() === "pending" || isParentStep);
+
+  const parentCreatedAt = parentApproval?.createdAt
+    ? new Date(parentApproval.createdAt).getTime()
+    : leave.submittedAt
+      ? new Date(leave.submittedAt as string).getTime()
+      : null;
+
+  const isParentExpired =
+    isParentPending &&
+    parentCreatedAt !== null &&
+    now - parentCreatedAt > PARENT_APPROVAL_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000;
 
   const presentation =
     LEAVE_STATUS_PRESENTATION[status as LeaveRequestStatus] ??
@@ -149,6 +174,46 @@ export default function StudentLeaveDetailPage() {
                   &ldquo;{rejectingApproval.comments}&rdquo;
                 </p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isParentPending && (
+        <div
+          className={`rounded-2xl border p-5 text-ink shadow-sm ${
+            isParentExpired
+              ? "border-danger/30 bg-danger-light"
+              : "border-warning/30 bg-warning-light"
+          }`}
+        >
+          <div className="flex items-start gap-3.5">
+            {isParentExpired ? (
+              <AlertTriangle className="h-5 w-5 text-danger shrink-0 mt-0.5" />
+            ) : (
+              <Clock className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+            )}
+            <div className="space-y-1">
+              <h3
+                className={`text-body font-semibold ${
+                  isParentExpired ? "text-danger" : "text-ink"
+                }`}
+              >
+                {isParentExpired
+                  ? "Parent Approval Link Expired"
+                  : "Parent Approval Pending"}
+              </h3>
+              <p className="text-caption text-ink/80 leading-relaxed">
+                {isParentExpired ? (
+                  <>
+                    The approval link sent to your parent{parentApproval?.approverName ? ` (${parentApproval.approverName})` : ""} has expired ({PARENT_APPROVAL_TOKEN_EXPIRY_HOURS}-hour lifespan limit). Please contact your hostel warden or administration to request a re-issue or override.
+                  </>
+                ) : (
+                  <>
+                    An approval link was sent to your parent{parentApproval?.approverName ? ` (${parentApproval.approverName})` : ""} via SMS. Approval links have a short lifespan and <strong className="font-semibold text-ink">expire within {PARENT_APPROVAL_TOKEN_EXPIRY_HOURS} hours</strong>. Please remind them to review and approve before the link expires.
+                  </>
+                )}
+              </p>
             </div>
           </div>
         </div>

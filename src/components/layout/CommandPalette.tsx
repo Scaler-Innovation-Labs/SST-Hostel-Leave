@@ -6,6 +6,7 @@ import { Dialog as DialogPrimitive } from "radix-ui";
 import * as React from "react";
 
 import type { NavigationGroup } from "@/constants/navigation";
+import { openMailto } from "@/lib/mailto";
 import { cn } from "@/lib/utils";
 
 type CommandPaletteProps = {
@@ -81,8 +82,11 @@ export function CommandPalette({
   const go = React.useCallback(
     (href: string) => {
       onOpenChange(false);
+      if (href.startsWith("mailto:")) {
+        openMailto(href);
+        return;
+      }
       if (
-        href.startsWith("mailto:") ||
         href.startsWith("http://") ||
         href.startsWith("https://")
       ) {

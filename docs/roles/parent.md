@@ -22,11 +22,11 @@
 ## What a Parent Cannot Do
 - Log in, hold a session, or use OTP — none of these mechanisms exist for parents
 - See dashboards, QR passes, other students, or any admin surface
-- Act after the link expires (**24h**, `PARENT_APPROVAL_TOKEN_EXPIRY_HOURS`) or after responding
+- Act after the link expires (**48h**, `PARENT_APPROVAL_TOKEN_EXPIRY_HOURS`) or after responding
 
 ## Parent Approval Flow
 ```
-Leave reaches parent step → token generated (sha256-hashed, stored on leave_approvals.parentApprovalToken, 24h expiry)
+Leave reaches parent step → token generated (sha256-hashed, stored on leave_approvals.parentApprovalToken, 48h expiry)
 → SMS/email link sent → parent opens /parent-approve/[token] → Approve/Reject
 → decision recorded with source → workflow advances (POC/Admin) or ends (rejection mail)
 ```

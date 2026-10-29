@@ -8,6 +8,7 @@ import * as React from "react";
 import { RoleSwitcher } from "@/components/layout/RoleSwitcher";
 import { Logo } from "@/components/shared/Logo";
 import type { NavigationGroup } from "@/constants/navigation";
+import { openMailto } from "@/lib/mailto";
 import { cn } from "@/lib/utils";
 
 type AppSidebarProps = {
@@ -64,23 +65,24 @@ function NavRow({
   collapsed: boolean;
   onNavigate: () => void;
 }) {
-  return (
-    <Link
-      href={href}
-      onClick={onNavigate}
-      aria-current={active ? "page" : undefined}
-      title={collapsed ? label : undefined}
-      className={cn(
-        "group relative flex items-center rounded-md text-small font-medium",
-        "transition-all duration-fast ease-standard",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
-        "focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
-        collapsed ? "justify-center px-0 py-2.5" : "gap-2.5 px-2.5 py-2",
-        active
-          ? "bg-accent-light text-accent ring-1 ring-inset ring-accent/15"
-          : "text-muted hover:bg-surface-hover hover:text-ink"
-      )}
-    >
+  const isExternal =
+    href.startsWith("mailto:") ||
+    href.startsWith("http://") ||
+    href.startsWith("https://");
+
+  const className = cn(
+    "group relative flex items-center rounded-md text-small font-medium",
+    "transition-all duration-fast ease-standard",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+    "focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
+    collapsed ? "justify-center px-0 py-2.5" : "gap-2.5 px-2.5 py-2",
+    active
+      ? "bg-accent-light text-accent ring-1 ring-inset ring-accent/15"
+      : "text-muted hover:bg-surface-hover hover:text-ink"
+  );
+
+  const inner = (
+    <>
       {/* The active marker — the only place the accent appears in this column. */}
       {active && (
         <span
@@ -98,6 +100,38 @@ function NavRow({
           {badge}
         </span>
       )}
+    </>
+  );
+
+  if (isExternal) {
+    return (
+      <a
+        href={href}
+        onClick={(e) => {
+          onNavigate();
+          if (href.startsWith("mailto:")) {
+            e.preventDefault();
+            openMailto(href);
+          }
+        }}
+        title={collapsed ? label : undefined}
+        className={className}
+        rel="noopener noreferrer"
+      >
+        {inner}
+      </a>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      onClick={onNavigate}
+      aria-current={active ? "page" : undefined}
+      title={collapsed ? label : undefined}
+      className={className}
+    >
+      {inner}
     </Link>
   );
 }

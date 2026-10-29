@@ -217,7 +217,7 @@ describe("createLeave service", () => {
     ).rejects.toBeInstanceOf(ConflictError);
   });
 
-  it("rejects QR-enabled leave overlapping any existing leave", async () => {
+  it("allows overlapping leaves of different types even if QR-enabled", async () => {
     mockFindLeaveTypeById.mockResolvedValue({
       id: "LT1", code: "HOME_PASS", defaultWorkflowId: "WF1", allowExtensions: true, maxExtensionCount: 2, qrMode: "BOTH",
     });
@@ -225,25 +225,25 @@ describe("createLeave service", () => {
       { leave: { id: "LR-EXISTING", leaveTypeId: "LT-OTHER" }, leaveType: { qrMode: "NONE" } },
     ]);
 
-    await expect(
-      createLeave(
-        { leaveTypeId: "LT1", reason: "Test", startAt: "2026-06-10T08:00:00Z", endAt: "2026-06-12T18:00:00Z" },
-        { id: "U1" }
-      )
-    ).rejects.toBeInstanceOf(ConflictError);
+    const res = await createLeave(
+      { leaveTypeId: "LT1", reason: "Test", startAt: "2026-06-10T08:00:00Z", endAt: "2026-06-12T18:00:00Z" },
+      { id: "U1" }
+    );
+    expect(res).toBeDefined();
+    expect(mockLeaveCreate).toHaveBeenCalled();
   });
 
-  it("rejects non-QR leave overlapping a QR-enabled leave", async () => {
+  it("allows non-QR leave overlapping a QR-enabled leave of different type", async () => {
     mockFindOverlapping.mockResolvedValue([
       { leave: { id: "LR-EXISTING", leaveTypeId: "LT-OTHER" }, leaveType: { qrMode: "BOTH" } },
     ]);
 
-    await expect(
-      createLeave(
-        { leaveTypeId: "LT1", reason: "Test", startAt: "2026-06-10T08:00:00Z", endAt: "2026-06-12T18:00:00Z" },
-        { id: "U1" }
-      )
-    ).rejects.toBeInstanceOf(ConflictError);
+    const res = await createLeave(
+      { leaveTypeId: "LT1", reason: "Test", startAt: "2026-06-10T08:00:00Z", endAt: "2026-06-12T18:00:00Z" },
+      { id: "U1" }
+    );
+    expect(res).toBeDefined();
+    expect(mockLeaveCreate).toHaveBeenCalled();
   });
 
   it("allows non-QR overlap with a different non-QR leave type", async () => {

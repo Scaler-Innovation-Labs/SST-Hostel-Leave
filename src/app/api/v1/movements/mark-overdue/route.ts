@@ -10,6 +10,7 @@ export async function POST(request: Request) {
     const currentUser = requireAnyRole(await requireAuth(), [
       ROLES.ADMIN,
       ROLES.SUPER_ADMIN,
+      ROLES.GUARD,
     ]);
 
     const body = await request.json();

@@ -22,6 +22,7 @@ type InfoCardProps = {
   value: string | number;
   tone?: InfoCardTone;
   className?: string;
+  valueClassName?: string;
   /** Denser sizing for a filter strip above a table. */
   compact?: boolean;
   /** Makes the tile a filter toggle. */
@@ -41,6 +42,7 @@ export function InfoCard({
   value,
   tone,
   className,
+  valueClassName,
   compact,
   onClick,
   active,
@@ -54,7 +56,7 @@ export function InfoCard({
       onClick={onClick}
       aria-pressed={clickable ? Boolean(active) : undefined}
       className={cn(
-        "rounded-2xl border bg-surface text-left shadow-raised",
+        "min-w-0 rounded-2xl border bg-surface text-left shadow-raised",
         compact ? "p-3" : "p-5",
         clickable && [
           "cursor-pointer select-none transition-all duration-base ease-standard",
@@ -87,9 +89,11 @@ export function InfoCard({
 
       <p
         className={cn(
-          "mt-2 font-semibold tabular-nums tracking-tight text-ink",
-          compact ? "text-h3" : "text-h2"
+          "mt-2 min-w-0 truncate font-semibold tabular-nums tracking-tight text-ink",
+          compact ? "text-h3" : "text-h2",
+          valueClassName
         )}
+        title={typeof value === "string" ? value : undefined}
       >
         {value}
       </p>

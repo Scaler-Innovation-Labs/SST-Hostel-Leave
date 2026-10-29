@@ -31,6 +31,7 @@ const mockRecordMovement = vi.fn();
 const mockStudentFindById = vi.fn();
 const mockAuditRecord = vi.fn().mockResolvedValue({});
 const mockOutboxPublish = vi.fn().mockResolvedValue({});
+const mockLeaveFindById = vi.fn();
 const mockLeaveFindByIdForUpdate = vi.fn();
 const mockLeaveUpdateById = vi.fn().mockResolvedValue({});
 
@@ -60,6 +61,7 @@ vi.mock("@/db/repositories/student/student.repository", () => ({
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
+    findById: (...args: any[]) => mockLeaveFindById(...args),
     findByIdForUpdate: (...args: any[]) => mockLeaveFindByIdForUpdate(...args),
     updateById: (...args: any[]) => mockLeaveUpdateById(...args),
   },
@@ -98,6 +100,7 @@ beforeEach(() => {
     status: "ACTIVE",
     qrType: "LEAVE_RETURN",
   });
+  mockLeaveFindById.mockResolvedValue(null);
   mockLeaveFindByIdForUpdate.mockResolvedValue({
     id: "L1",
     status: "APPROVED",
@@ -338,6 +341,80 @@ describe("scanQrPass service", () => {
       );
     });
 
+    it("allows EXIT_SCAN on the leaving date even before validFrom time of day", async () => {
+      vi.useFakeTimers();
+      // 09:30 AM IST on 2026-06-15 (04:00:00.000Z)
+      vi.setSystemTime(new Date("2026-06-15T04:00:00.000Z"));
+      try {
+        const pass = {
+          ...VALID_PASS,
+          // 18:00 IST on 2026-06-15 (12:30:00.000Z)
+          validFrom: new Date("2026-06-15T12:30:00.000Z"),
+        };
+        mockFindByTokenHash.mockResolvedValue(pass);
+        mockFindById.mockResolvedValue(pass);
+        mockStudentFindById.mockResolvedValue({ id: "S1", currentLocationState: "IN_HOSTEL" });
+
+        const result = await scanQrPass({
+          token: "exit-token",
+          scannedBy: "U1",
+          scanType: "EXIT_SCAN",
+        });
+
+        expect(result.success).toBe(true);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("allows EXIT_SCAN till the day before return date, and rejects on the return date", async () => {
+      vi.useFakeTimers();
+      // Day before return date: 2026-06-14 18:00 IST (12:30:00.000Z)
+      vi.setSystemTime(new Date("2026-06-14T12:30:00.000Z"));
+      try {
+        const pass = {
+          ...VALID_PASS,
+          validFrom: new Date("2026-06-10T04:30:00.000Z"),
+        };
+        mockFindByTokenHash.mockResolvedValue(pass);
+        mockFindById.mockResolvedValue(pass);
+        mockLeaveFindById.mockResolvedValue({
+          id: "L1",
+          status: "APPROVED",
+          startAt: new Date("2026-06-10T04:30:00.000Z"),
+          endAt: new Date("2026-06-15T14:30:00.000Z"),
+        });
+        mockLeaveFindByIdForUpdate.mockResolvedValue({
+          id: "L1",
+          status: "APPROVED",
+          startAt: new Date("2026-06-10T04:30:00.000Z"),
+          endAt: new Date("2026-06-15T14:30:00.000Z"),
+        });
+        mockStudentFindById.mockResolvedValue({ id: "S1", currentLocationState: "IN_HOSTEL" });
+
+        const dayBeforeResult = await scanQrPass({
+          token: "exit-token",
+          scannedBy: "U1",
+          scanType: "EXIT_SCAN",
+        });
+
+        expect(dayBeforeResult.success).toBe(true);
+
+        // On return date: 2026-06-15 09:00 IST (03:30:00.000Z)
+        vi.setSystemTime(new Date("2026-06-15T03:30:00.000Z"));
+        const returnDateResult = await scanQrPass({
+          token: "exit-token",
+          scannedBy: "U1",
+          scanType: "EXIT_SCAN",
+        });
+
+        expect(returnDateResult.success).toBe(false);
+        expect(returnDateResult.failureReason).toBe("QR pass has expired");
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it("derives fromState from the student's actual location (legacy APPROVED_LEAVE bridge)", async () => {
       mockFindByTokenHash.mockResolvedValue(VALID_PASS);
       mockStudentFindById.mockResolvedValue({ id: "S1", currentLocationState: "APPROVED_LEAVE" });
@@ -390,9 +467,9 @@ describe("scanQrPass service", () => {
   });
 
   describe("RETURN_SCAN flow", () => {
-    it("allows the return scan after the leave window has passed (overdue return)", async () => {
-      // expiresAt in the past — the window has ended, but the open session's
-      // return must still work (contract T8: overdue students return by QR).
+    it("rejects the return scan after the return date has passed (expired pass)", async () => {
+      // Return date has ended — the student is overdue, and overdue returns
+      // must be handled via manual movement rather than an expired QR pass.
       mockFindByTokenHash.mockResolvedValue({
         ...VALID_RETURN_PASS,
         expiresAt: new Date("2020-01-01"),
@@ -404,11 +481,54 @@ describe("scanQrPass service", () => {
         scanType: "RETURN_SCAN",
       });
 
-      expect(result.success).toBe(true);
-      expect(mockMarkAsClosed).toHaveBeenCalledWith("PASS2", expect.any(Object));
-      expect(mockRecordMovement).toHaveBeenCalledWith(
-        expect.objectContaining({ eventType: "ENTER_HOSTEL", toState: "IN_HOSTEL" })
+      expect(result.success).toBe(false);
+      expect(result.failureReason).toBe("QR pass has expired");
+      expect(mockInvalidate).toHaveBeenCalledWith("PASS2");
+      expect(mockScanLogCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          qrPassId: "PASS2",
+          scanResult: "FAILED",
+          scanType: "RETURN_SCAN",
+          failureReason: "QR pass has expired",
+        })
       );
+    });
+
+    it("allows the return scan from the leave date through the return date", async () => {
+      vi.useFakeTimers();
+      // On return date: 2026-08-22 18:00 IST (12:30:00.000Z)
+      vi.setSystemTime(new Date("2026-08-22T12:30:00.000Z"));
+      try {
+        mockFindByTokenHash.mockResolvedValue({
+          ...VALID_RETURN_PASS,
+        });
+        mockLeaveFindById.mockResolvedValue({
+          id: "L1",
+          status: "APPROVED",
+          startAt: new Date("2026-08-20T04:30:00.000Z"),
+          endAt: new Date("2026-08-22T14:30:00.000Z"),
+        });
+        mockLeaveFindByIdForUpdate.mockResolvedValue({
+          id: "L1",
+          status: "APPROVED",
+          startAt: new Date("2026-08-20T04:30:00.000Z"),
+          endAt: new Date("2026-08-22T14:30:00.000Z"),
+        });
+
+        const result = await scanQrPass({
+          token: "return-token",
+          scannedBy: "U1",
+          scanType: "RETURN_SCAN",
+        });
+
+        expect(result.success).toBe(true);
+        expect(mockMarkAsClosed).toHaveBeenCalledWith("PASS2", expect.any(Object));
+        expect(mockRecordMovement).toHaveBeenCalledWith(
+          expect.objectContaining({ eventType: "ENTER_HOSTEL", toState: "IN_HOSTEL" })
+        );
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it("creates scan log, marks pass closed, records movement, and completes leave", async () => {

@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarPlus, FileText, Info, Phone, Upload, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import useSWR from "swr";
@@ -121,7 +121,7 @@ export default function NewLeavePage() {
     needsParentApproval ? "/api/v1/students/contacts" : null,
     fetcher
   );
-  const contacts = contactsData ?? [];
+  const contacts = useMemo(() => contactsData ?? [], [contactsData]);
 
   useEffect(() => {
     if (needsParentApproval && contacts.length > 0 && !approvalContactId) {
@@ -281,7 +281,7 @@ export default function NewLeavePage() {
             <div className="grid gap-4 sm:grid-cols-2">
               <Field
                 htmlFor="startAt"
-                label="Leaving"
+                label="From"
                 required
                 error={errors.startAt?.message}
               >
@@ -297,7 +297,7 @@ export default function NewLeavePage() {
 
               <Field
                 htmlFor="endAt"
-                label="Returning"
+                label="To"
                 required
                 error={errors.endAt?.message}
               >
