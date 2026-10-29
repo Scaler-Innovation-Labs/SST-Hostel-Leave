@@ -26,6 +26,7 @@ import {
 } from "@/services/leave/qr-pass-lifecycle.service";
 import { assertApprovalIsAtCurrentStep } from "@/services/leave/shared-approval.service";
 import { outboxService } from "@/services/outbox/outbox.service";
+import { activateWorkflowStep } from "@/services/workflow/workflow-activation.service";
 
 export type ParentDecisionResult = {
   approvalId: string;
@@ -182,20 +183,13 @@ async function handleLeaveDecision(
         tx
       );
 
-      // A later workflow step is now current (e.g. POC/admin review after
-      // parent approval). Publish the step-current event so the approval
-      // queue Slack alerts fire — without it no notification reaches POC/admin.
-      await outboxService.publish({
-        eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVAL_REQUIRED,
-        aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
-        aggregateId: approval.leaveRequestId!,
-        payload: {
-          leaveId: approval.leaveRequestId,
-          studentId: leaveInTx?.studentId,
-          stepKey: next.stepKey,
-          stepOrder: next.stepOrder,
-        },
-      }, tx);
+      if (leaveInTx) {
+        await activateWorkflowStep({
+          leave: leaveInTx,
+          step: next,
+          dbClient: tx,
+        });
+      }
     } else {
       await leaveRepository.updateById(
         approval.leaveRequestId!,

@@ -20,7 +20,6 @@ import { policyEvaluationRepository } from "@/db/repositories/policy/policy-eval
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 import type { CreateLeaveDto } from "@/dto/leave/create-leave.dto";
-import { getPublicBaseUrl } from "@/lib/base-url";
 import { startOfTodayIst } from "@/lib/date-utils";
 import { db } from "@/lib/db";
 import { AuthorizationError, ConflictError, NotFoundError,
@@ -34,6 +33,7 @@ import { validateLeaveSubmittedForm } from "@/services/leave/validate-leave-form
 import { notificationService } from "@/services/notification/notification.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 import { policyEngine } from "@/services/policy/policy-engine";
+import { activateWorkflowStep } from "@/services/workflow/workflow-activation.service";
 import { workflowEngine } from "@/services/workflow/workflow-engine";
 import { workflowVersionService } from "@/services/workflow/workflow-version.service";
 import type { PolicyResultSummary } from "@/types/policy/policy-result";
@@ -270,6 +270,10 @@ export async function createLeave(
         approverUserId: assignedApproverUserId,
         decision: LEAVE_APPROVAL_DECISION.PENDING,
         approvalSource: resolveApprovalSource(step.approvalMethod ?? null, step.isParentApproval),
+        metadata: {
+          approvalMethod: step.approvalMethod ?? null,
+          isParentApproval: step.isParentApproval,
+        },
       };
     });
 
@@ -309,77 +313,18 @@ export async function createLeave(
     const studentName = user?.fullName ?? "Student";
     const leaveDates = `${new Date(dto.startAt).toLocaleDateString()} - ${new Date(dto.endAt).toLocaleDateString()}`;
 
-    // Post-leave actions: auto-approvals, SMS dispatches, parent approvals
-    for (const step of approvalSteps) {
-      const method = step.approvalMethod ?? null;
-
-      if (method === "AUTO") {
-        const nextStep = workflowEngine.getNextStep(approvalSteps, step.stepOrder);
-
-        if (nextStep) {
-          await leaveRepository.updateCurrentStep(createdLeave.id, nextStep.stepKey, nextStep.stepOrder, tx);
-        } else {
-          await leaveRepository.updateById(createdLeave.id, {
-            status: LEAVE_REQUEST_STATUS.APPROVED,
-            approvedAt: new Date(),
-            currentStepKey: null,
-            currentStepOrder: null,
-          }, tx);
-
-          const approvalId = stepKeyToApprovalId.get(step.stepKey);
-          if (approvalId) {
-            await leaveApprovalRepository.autoApprove(approvalId, tx);
-          }
-
-          await outboxService.publish({
-            eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVED,
-            aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
-            aggregateId: createdLeave.id,
-            payload: {
-              leaveId: createdLeave.id,
-              studentId: student.id,
-              decision: LEAVE_APPROVAL_DECISION.APPROVED,
-            },
-          }, tx);
-        }
-        continue;
-      }
-
-      if (step.isParentApproval) {
-        const approvalId = stepKeyToApprovalId.get(step.stepKey);
-        if (!approvalId) continue;
-
-        const baseUrl = getPublicBaseUrl();
-        await outboxService.publish({
-          eventType: OUTBOX_EVENT_TYPE.PARENT_APPROVAL_REQUIRED,
-          aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
-          aggregateId: createdLeave.id,
-          payload: {
-            leaveRequestId: createdLeave.id,
-            studentId: student.id,
-            studentName,
-            leaveDates,
-            leaveReason: dto.reason,
-            baseUrl,
-            approvalStepId: approvalId,
-            approvalStepKey: step.stepKey,
-            parentId: parentId ?? undefined,
-          },
-          idempotencyKey: `PARENT_APPROVAL_REQUIRED:${approvalId}`,
-        }, tx);
-      }
-
-      if (method === "SMS_LINK") {
-        await outboxService.publish({
-          eventType: OUTBOX_EVENT_TYPE.NOTIFICATION_REQUESTED,
-          aggregateType: AGGREGATE_TYPE.NOTIFICATION,
-          aggregateId: createdLeave.id,
-          payload: {
-            notificationType: "LEAVE_SUBMITTED",
-            leaveRequestId: createdLeave.id,
-            variables: { studentName, dates: leaveDates, reason: dto.reason },
-          },
-        }, tx);
+    // Activate only the first step — remaining steps activate as the workflow progresses
+    if (firstStep) {
+      const firstApproval = createdApprovals.find((a) => a.stepKey === firstStep.stepKey) ?? createdApprovals[0];
+      if (firstApproval) {
+        await activateWorkflowStep({
+          leave: createdLeave,
+          step: firstApproval,
+          studentName,
+          leaveDates,
+          parentId,
+          dbClient: tx,
+        });
       }
     }
 
