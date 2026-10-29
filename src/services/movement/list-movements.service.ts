@@ -44,8 +44,15 @@ export async function listMovements(
     }
   }
 
-  const hostelIds =
+  let hostelIds =
     isStaffScopeRestricted(currentUser) ? getScopedHostelIds(currentUser) : undefined;
+
+  if (query.hostelId) {
+    if (hostelIds && !hostelIds.includes(query.hostelId)) {
+      throw new AuthorizationError("Hostel access not permitted");
+    }
+    hostelIds = [query.hostelId];
+  }
 
   return movementEventRepository.findByFilters({
     studentId: query.studentId,
@@ -59,4 +66,3 @@ export async function listMovements(
     limit: query.limit,
   });
 }
-

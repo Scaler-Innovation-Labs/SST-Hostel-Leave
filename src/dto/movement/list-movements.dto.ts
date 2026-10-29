@@ -4,6 +4,7 @@ import { sortSchema } from "@/dto/shared/sort.dto";
 
 export const listMovementsSchema = z.object({
   studentId: z.string().uuid().optional(),
+  hostelId: z.string().uuid().optional(),
   eventType: z.string().optional(),
   search: z.string().optional(),
   dateFrom: z.string().datetime().optional(),

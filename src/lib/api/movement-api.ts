@@ -7,6 +7,7 @@ const BASE = "/api/v1";
 export function getMovementsUrl(query?: Partial<ListMovementsQuery>): string {
   const qs = buildQueryString({
     studentId: query?.studentId,
+    hostelId: query?.hostelId,
     eventType: query?.eventType,
     search: query?.search,
     dateFrom: query?.dateFrom,

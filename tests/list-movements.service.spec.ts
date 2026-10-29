@@ -83,4 +83,15 @@ describe("listMovements student scoping", () => {
       expect.objectContaining({ studentId: undefined })
     );
   });
+
+  it("passes hostelId filter for unrestricted staff", async () => {
+    await listMovements(
+      { page: 1, limit: 20, hostelId: "hostel-uuid-1" },
+      { id: "A1", roles: ["SUPER_ADMIN"] }
+    );
+
+    expect(mockFindEvents).toHaveBeenCalledWith(
+      expect.objectContaining({ hostelIds: ["hostel-uuid-1"] })
+    );
+  });
 });
