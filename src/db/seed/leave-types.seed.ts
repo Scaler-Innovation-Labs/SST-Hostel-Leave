@@ -1,4 +1,5 @@
 import { LEAVE_CATEGORY } from "@/constants/leave/leave-category";
+import type { QrMode } from "@/constants/leave/qr-mode";
 import {
   leaveTypes,
   workflowDefinitions,
@@ -79,7 +80,7 @@ const LEAVE_TYPES: LeaveTypeSeed[] = [
     category: LEAVE_CATEGORY.HOSTEL,
     color: "#0d9488",
     workflowCode: "LATE_STAY_COLLEGE",
-    qrMode: "OPTIONAL",
+    qrMode: "DAILY_RECURRING",
     allowExtensions: false,
     formFields: [
       { key: "reason", label: "Reason", type: "textarea", required: true, minLength: 5, maxLength: 500 },
@@ -170,7 +171,7 @@ export async function seedLeaveTypes(
         category: lt.category as "HOME_PASS" | "MEDICAL" | "LOCAL_OUTING" | "NIGHT_OUT" | "ACADEMIC" | "HOSTEL",
         workflowMode: "HOSTEL" as const,
         defaultWorkflowId: workflowMap.get(lt.workflowCode),
-        qrMode: lt.qrMode as "NONE" | "EXIT_ONLY" | "RETURN_ONLY" | "BOTH" | "OPTIONAL",
+        qrMode: lt.qrMode as QrMode,
         allowExtensions: lt.allowExtensions,
         maxExtensionCount: lt.maxExtensionCount ?? null,
         formSchema: { fields: lt.formFields },

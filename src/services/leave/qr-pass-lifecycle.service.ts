@@ -37,7 +37,11 @@ export async function issueQrPassForApprovedLeave(
   const tokenHash = await sha256(token);
   const tokenEnc = await encryptQrToken(token);
   const qrType =
-    leaveType.qrMode === QR_MODE.RETURN_ONLY ? "LEAVE_RETURN" : "LEAVE_EXIT";
+    leaveType.qrMode === QR_MODE.RETURN_ONLY ||
+    leaveType.qrMode === QR_MODE.DAILY_RECURRING ||
+    leaveType.code === "LATE_STAY_COLLEGE"
+      ? "LEAVE_RETURN"
+      : "LEAVE_EXIT";
 
   const pass = await qrPassRepository.create({
     leaveRequestId: leave.id,

@@ -56,15 +56,26 @@ export function detectScanType(
 	return null;
 }
 
+export function isDailyRecurringLeave(
+	leaveType?: { qrMode?: string | null; code?: string | null } | null
+): boolean {
+	if (!leaveType) return false;
+	return (
+		leaveType.qrMode === "DAILY_RECURRING" ||
+		leaveType.code === "LATE_STAY_COLLEGE"
+	);
+}
+
 function returnSessionError(
 	openSession: QrPass | null,
-	pass: QrPass
+	pass: QrPass,
+	isRecurring = false
 ): string | null {
 	if (openSession && openSession.id !== pass.id) {
 		return "Return pass does not match the open movement session";
 	}
 
-	if (!openSession && pass.qrType !== "LEAVE_RETURN") {
+	if (!openSession && pass.qrType !== "LEAVE_RETURN" && !isRecurring) {
 		return "Student has no open movement session";
 	}
 
@@ -107,12 +118,20 @@ export async function previewQrScan(token: string): Promise<QrScanPreview> {
 		return { valid: false, reason: `QR pass status is ${pass.status}` };
 	}
 
-	const scanType = detectScanType(pass);
+	const leave = await leaveRepository.findById(pass.leaveRequestId);
+	let leaveType = null;
+	try {
+		leaveType = leave?.leaveTypeId ? await leaveTypeRepository.findById(leave.leaveTypeId) : null;
+	} catch {
+		leaveType = null;
+	}
+	const isRecurring = isDailyRecurringLeave(leaveType);
+
+	// For recurring passes (Late Stay at College), both scans are return scans.
+	const scanType = isRecurring ? "RETURN_SCAN" : detectScanType(pass);
 	if (!scanType) {
 		return { valid: false, reason: "QR pass has already been fully used" };
 	}
-
-	const leave = await leaveRepository.findById(pass.leaveRequestId);
 
 	if (
 		leave &&
@@ -136,30 +155,46 @@ export async function previewQrScan(token: string): Promise<QrScanPreview> {
 		};
 	}
 
-	// EXIT is window-gated: usable from departure day till the day before the return date.
-	// For same-day leaves, exit is allowed through the end of that day.
-	const isExitExpired =
-		(pass.expiresAt && now > endOfDayIst(pass.expiresAt)) ||
-		(Boolean(leave?.startAt && leave?.endAt) && now > getQrExitExpiry(leave!.startAt, leave!.endAt));
-
-	if (scanType === "EXIT_SCAN" && isExitExpired) {
-		return { valid: false, reason: "QR pass has expired" };
-	}
-
 	// RETURN is window-gated: usable from leave date through return date (23:59:59.999 IST of endAt).
 	const returnExpiry = leave?.endAt
 		? getQrReturnExpiry(leave.endAt)
 		: (pass.expiresAt ? endOfDayIst(pass.expiresAt) : null);
 
+	// EXIT is window-gated:
+	// For recurring passes, exit is usable every day through the end of the return date.
+	// For standard passes, usable from departure day till the day before the return date.
+	const isExitExpired = isRecurring
+		? Boolean(returnExpiry && now > returnExpiry)
+		: (pass.expiresAt && now > endOfDayIst(pass.expiresAt)) ||
+		  (Boolean(leave?.startAt && leave?.endAt) && now > getQrExitExpiry(leave!.startAt, leave!.endAt));
+
+	if (scanType === "EXIT_SCAN" && isExitExpired) {
+		return { valid: false, reason: "QR pass has expired" };
+	}
+
 	if (scanType === "RETURN_SCAN" && returnExpiry && now > returnExpiry) {
 		return { valid: false, reason: "QR pass has expired" };
+	}
+
+	if (isRecurring) {
+		const todayScans = await qrScanLogRepository.countTodaySuccessfulScans(
+			pass.id,
+			startOfDayIst(now),
+			endOfDayIst(now)
+		);
+		if (todayScans.returnCount >= 2 || todayScans.totalCount >= 2) {
+			return {
+				valid: false,
+				reason: "Daily return scan limit reached for today (max 2 return scans per day)",
+			};
+		}
 	}
 
 	if (scanType === "RETURN_SCAN") {
 		const openSession = await qrPassRepository.findOpenSessionPassForStudent(
 			pass.studentId
 		);
-		const sessionError = returnSessionError(openSession, pass);
+		const sessionError = returnSessionError(openSession, pass, isRecurring);
 
 		if (sessionError) {
 			return { valid: false, reason: sessionError };
@@ -169,7 +204,6 @@ export async function previewQrScan(token: string): Promise<QrScanPreview> {
 	const student = await studentRepository.findById(pass.studentId);
 	const user = student ? await userRepository.findById(student.userId) : null;
 	const hostel = user?.hostelId ? await hostelRepository.findById(user.hostelId) : null;
-	const leaveType = leave ? await leaveTypeRepository.findById(leave.leaveTypeId) : null;
 
 	return {
 		valid: true,
@@ -251,10 +285,20 @@ export async function scanQrPass(
 		};
 	}
 
-	// Auto-detect scan type from QR pass state if not provided
-	if (!input.scanType) {
-		const detected = detectScanType(pass);
+	const leave = await leaveRepository.findById(pass.leaveRequestId);
+	let leaveType = null;
+	try {
+		leaveType = leave?.leaveTypeId ? await leaveTypeRepository.findById(leave.leaveTypeId) : null;
+	} catch {
+		leaveType = null;
+	}
+	const isRecurring = isDailyRecurringLeave(leaveType);
 
+	// For recurring passes (Late Stay at College), every scan is a RETURN_SCAN.
+	if (isRecurring) {
+		input = { ...input, scanType: "RETURN_SCAN" };
+	} else if (!input.scanType) {
+		const detected = detectScanType(pass);
 		if (!detected) {
 			const log = await qrScanLogRepository.create({
 				qrPassId: pass.id,
@@ -272,6 +316,33 @@ export async function scanQrPass(
 		}
 
 		input = { ...input, scanType: detected };
+	}
+
+	if (isRecurring) {
+		const now = new Date();
+		const todayScans = await qrScanLogRepository.countTodaySuccessfulScans(
+			pass.id,
+			startOfDayIst(now),
+			endOfDayIst(now)
+		);
+
+		// Both scans are return scans: allow up to 2 return scans per day
+		if (todayScans.returnCount >= 2 || todayScans.totalCount >= 2) {
+			const reason = "Daily return scan limit reached for today (max 2 return scans per day)";
+			const log = await qrScanLogRepository.create({
+				qrPassId: pass.id,
+				scannedBy: input.scannedBy,
+				scanType: "RETURN_SCAN",
+				scanResult: "FAILED",
+				failureReason: reason,
+			});
+			return {
+				scanLogId: log.id,
+				success: false,
+				scanType: "RETURN_SCAN",
+				failureReason: reason,
+			};
+		}
 	}
 
 	if (input.scanType === "EXIT_SCAN" && pass.firstScanAt) {
@@ -308,7 +379,7 @@ export async function scanQrPass(
 		};
 	}
 
-	if (input.scanType === "RETURN_SCAN" && !pass.firstScanAt && pass.qrType !== "LEAVE_RETURN") {
+	if (input.scanType === "RETURN_SCAN" && !pass.firstScanAt && pass.qrType !== "LEAVE_RETURN" && !isRecurring) {
 		const log = await qrScanLogRepository.create({
 			qrPassId: pass.id,
 			scannedBy: input.scannedBy,
@@ -326,7 +397,6 @@ export async function scanQrPass(
 	}
 
 	if (input.scanType === "RETURN_SCAN") {
-		const leave = await leaveRepository.findById(pass.leaveRequestId);
 		const validFrom = leave?.startAt ?? pass.validFrom;
 
 		if (validFrom && new Date() < startOfDayIst(validFrom)) {
@@ -372,7 +442,7 @@ export async function scanQrPass(
 
 		const openSession =
 			await qrPassRepository.findOpenSessionPassForStudent(pass.studentId);
-		const sessionError = returnSessionError(openSession, pass);
+		const sessionError = returnSessionError(openSession, pass, isRecurring);
 
 		if (sessionError) {
 			const log = await qrScanLogRepository.create({
@@ -393,11 +463,14 @@ export async function scanQrPass(
 	}
 
 	if (input.scanType === "EXIT_SCAN") {
-		const leave = await leaveRepository.findById(pass.leaveRequestId);
 		const validFrom = leave?.startAt ?? pass.validFrom;
-		const isExitExpired =
-			(pass.expiresAt && new Date() > endOfDayIst(pass.expiresAt)) ||
-			(Boolean(leave?.startAt && leave?.endAt) && new Date() > getQrExitExpiry(leave!.startAt, leave!.endAt));
+		const returnExpiry = leave?.endAt
+			? getQrReturnExpiry(leave.endAt)
+			: (pass.expiresAt ? endOfDayIst(pass.expiresAt) : null);
+		const isExitExpired = isRecurring
+			? Boolean(returnExpiry && new Date() > returnExpiry)
+			: (pass.expiresAt && new Date() > endOfDayIst(pass.expiresAt)) ||
+			  (Boolean(leave?.startAt && leave?.endAt) && new Date() > getQrExitExpiry(leave!.startAt, leave!.endAt));
 
 		// Exit is allowed from the departure day till the day before the return date.
 		if (validFrom && new Date() < startOfDayIst(validFrom)) {
@@ -524,9 +597,13 @@ export async function scanQrPass(
 			// departure day till the day before return date.
 			const now = new Date();
 			const validFrom = exitLeave.startAt ?? passInTx.validFrom;
-			const isExitExpired =
-				(passInTx.expiresAt && now > endOfDayIst(passInTx.expiresAt)) ||
-				(Boolean(exitLeave.startAt && exitLeave.endAt) && now > getQrExitExpiry(exitLeave.startAt, exitLeave.endAt));
+			const returnExpiry = exitLeave.endAt
+				? getQrReturnExpiry(exitLeave.endAt)
+				: (passInTx.expiresAt ? endOfDayIst(passInTx.expiresAt) : null);
+			const isExitExpired = isRecurring
+				? Boolean(returnExpiry && now > returnExpiry)
+				: (passInTx.expiresAt && now > endOfDayIst(passInTx.expiresAt)) ||
+				  (Boolean(exitLeave.startAt && exitLeave.endAt) && now > getQrExitExpiry(exitLeave.startAt, exitLeave.endAt));
 
 			if (validFrom && now < startOfDayIst(validFrom)) {
 				throw new ConflictError(
@@ -675,7 +752,7 @@ export async function scanQrPass(
 					pass.studentId,
 					tx
 				);
-			const sessionError = returnSessionError(openSession, passInTx);
+			const sessionError = returnSessionError(openSession, passInTx, isRecurring);
 
 			if (sessionError) {
 				throw new ConflictError(sessionError);
@@ -696,7 +773,19 @@ export async function scanQrPass(
 				throw new ConflictError("Student not found for QR pass");
 			}
 
-			const fromState = student.currentLocationState as MovementState;
+			const fromState =
+				student.currentLocationState === MOVEMENT_STATE.IN_HOSTEL
+					? MOVEMENT_STATE.OUTSIDE_HOSTEL
+					: (student.currentLocationState as MovementState);
+
+			const todayScans = isRecurring
+				? await qrScanLogRepository.countTodaySuccessfulScans(
+						pass.id,
+						startOfDayIst(now),
+						endOfDayIst(now),
+						tx
+				  )
+				: null;
 
 			const log = await qrScanLogRepository.create({
 				qrPassId: pass.id,
@@ -705,11 +794,23 @@ export async function scanQrPass(
 				scanResult: "SUCCESS",
 			}, tx);
 
-			// Guarded transition: null means a concurrent return/invalidate
-			// closed the pass after our re-read — fail, don't double-enter.
-			const closed = await qrPassRepository.markAsClosed(pass.id, tx);
-			if (!closed) {
-				throw new ConflictError("QR pass was concurrently returned or invalidated");
+			// For recurring passes, only close the pass and complete the leave on the final day:
+			// - When 2 scans have completed today (todayScans.returnCount >= 1 before this scan)
+			// - Or when the return scan happens at/after the leave end time (now >= leave.endAt).
+			// Intermediate daily returns keep the pass ACTIVE and leave APPROVED.
+			const isFinalDay = leave.endAt ? now >= startOfDayIst(leave.endAt) : true;
+			const isFinalReturn =
+				!isRecurring ||
+				!leave.endAt ||
+				(isFinalDay && ((todayScans?.returnCount ?? 0) >= 1 || now >= leave.endAt));
+
+			if (isFinalReturn) {
+				const closed = await qrPassRepository.markAsClosed(pass.id, tx);
+				if (!closed) {
+					throw new ConflictError("QR pass was concurrently returned or invalidated");
+				}
+			} else {
+				await qrPassRepository.resetFirstScan(pass.id, tx);
 			}
 
 			const movementEvent = await recordMovement({
@@ -724,32 +825,45 @@ export async function scanQrPass(
 				dbClient: tx,
 			});
 
-			const completedAt = new Date();
+			if (isFinalReturn) {
+				const completedAt = new Date();
 
-			await leaveRepository.updateById(
-				pass.leaveRequestId,
-				{
-					status: LEAVE_REQUEST_STATUS.COMPLETED,
-					completedAt,
-					actualReturnAt: completedAt,
-					currentStepKey: null,
-					currentStepOrder: null,
-				},
-				tx
-			);
+				await leaveRepository.updateById(
+					pass.leaveRequestId,
+					{
+						status: LEAVE_REQUEST_STATUS.COMPLETED,
+						completedAt,
+						actualReturnAt: completedAt,
+						currentStepKey: null,
+						currentStepOrder: null,
+					},
+					tx
+				);
 
-			await auditService.record(
-				AUDIT_ACTION.UPDATE,
-				AUDIT_ENTITY_TYPE.LEAVE_REQUEST,
-				pass.leaveRequestId,
-				input.scannedBy,
-				{
-					oldStatus: leave.status,
-					newStatus: LEAVE_REQUEST_STATUS.COMPLETED,
-					completedAt: completedAt.toISOString(),
-				},
-				tx
-			);
+				await auditService.record(
+					AUDIT_ACTION.UPDATE,
+					AUDIT_ENTITY_TYPE.LEAVE_REQUEST,
+					pass.leaveRequestId,
+					input.scannedBy,
+					{
+						oldStatus: leave.status,
+						newStatus: LEAVE_REQUEST_STATUS.COMPLETED,
+						completedAt: completedAt.toISOString(),
+					},
+					tx
+				);
+
+				await outboxService.publish({
+					eventType: OUTBOX_EVENT_TYPE.LEAVE_COMPLETED,
+					aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
+					aggregateId: pass.leaveRequestId,
+					payload: {
+						leaveId: pass.leaveRequestId,
+						studentId: pass.studentId,
+						completedAt: completedAt.toISOString(),
+					},
+				}, tx);
+			}
 
 			await auditService.record(
 				AUDIT_ACTION.CREATE,
@@ -763,17 +877,6 @@ export async function scanQrPass(
 				},
 				tx
 			);
-
-			await outboxService.publish({
-				eventType: OUTBOX_EVENT_TYPE.LEAVE_COMPLETED,
-				aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
-				aggregateId: pass.leaveRequestId,
-				payload: {
-					leaveId: pass.leaveRequestId,
-					studentId: pass.studentId,
-					completedAt: completedAt.toISOString(),
-				},
-			}, tx);
 
 			await outboxService.publish({
 				eventType: OUTBOX_EVENT_TYPE.QR_SCANNED,

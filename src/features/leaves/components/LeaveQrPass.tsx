@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { QrCodeDisplay } from "@/components/qr/QrCodeDisplay";
 import { CollapsibleSection } from "@/components/shared/CollapsibleSection";
+import type { QrMode } from "@/constants/leave/qr-mode";
 import { QR_STATUS } from "@/constants/movement/qr-status";
 import { Button, Refusal, TECH_LABEL } from "@/design-system/sst";
 import { QrPassDialog } from "@/features/dashboard/components/QrPassDialog";
@@ -58,7 +59,7 @@ export function LeaveQrPass({
   qrMode,
 }: {
   leaveId: string;
-  qrMode?: "NONE" | "EXIT_ONLY" | "RETURN_ONLY" | "BOTH";
+  qrMode?: QrMode;
 }) {
   const [generating, setGenerating] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -181,7 +182,9 @@ export function LeaveQrPass({
 
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
-                <p className={TECH_LABEL}>Active pass</p>
+                <p className={TECH_LABEL}>
+                  {qrMode === "DAILY_RECURRING" ? "Daily pass (1-2 scans/day)" : "Active pass"}
+                </p>
                 {!isExpired && (
                   <Button
                     variant="ghost"
@@ -211,6 +214,8 @@ export function LeaveQrPass({
               <p className="mt-3 text-caption text-muted">
                 {isExpired
                   ? "Tap Regenerate before showing the code to the guard."
+                  : qrMode === "DAILY_RECURRING"
+                  ? "Accepts 1 or 2 scans per day throughout the approved period."
                   : "Tap the code to show it full screen at the gate."}
               </p>
             </div>

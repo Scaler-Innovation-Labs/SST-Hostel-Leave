@@ -87,7 +87,7 @@ export async function generateQrPass(
 			throw new ValidationError("Only exit QR can be generated for this leave type");
 		}
 
-		if (leaveType.qrMode === "RETURN_ONLY" && input.qrType !== "LEAVE_RETURN") {
+		if ((leaveType.qrMode === "RETURN_ONLY" || leaveType.qrMode === "DAILY_RECURRING") && input.qrType !== "LEAVE_RETURN") {
 			throw new ValidationError("Only return QR can be generated for this leave type");
 		}
 

@@ -114,7 +114,7 @@ export default function StudentDashboardPage() {
     if (!activeLeave?.id) return;
     setRegenerating(true);
     try {
-      const qrType = activeLeave.qrMode === "RETURN_ONLY" ? "LEAVE_RETURN" : "LEAVE_EXIT";
+      const qrType = activeLeave.qrMode === "RETURN_ONLY" || activeLeave.qrMode === "DAILY_RECURRING" ? "LEAVE_RETURN" : "LEAVE_EXIT";
       await generateQr(activeLeave.id, qrType, true);
       resetCountdown();
       toast.success("Gate pass regenerated");
@@ -142,7 +142,7 @@ export default function StudentDashboardPage() {
       // never-used) pass is re-issued, and that happens inside the service.
       setQrEnsuring(true);
       try {
-        const qrType = activeLeave.qrMode === "RETURN_ONLY" ? "LEAVE_RETURN" : "LEAVE_EXIT";
+        const qrType = activeLeave.qrMode === "RETURN_ONLY" || activeLeave.qrMode === "DAILY_RECURRING" ? "LEAVE_RETURN" : "LEAVE_EXIT";
         const result = (await generateQr(activeLeave.id, qrType)) as {
           passId: string;
         } | null;

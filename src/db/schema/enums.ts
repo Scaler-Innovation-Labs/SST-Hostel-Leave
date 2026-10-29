@@ -281,6 +281,7 @@ export const qrModeEnum = pgEnum(
     "RETURN_ONLY",
     "BOTH",
     "OPTIONAL",
+    "DAILY_RECURRING",
   ]
 );
 

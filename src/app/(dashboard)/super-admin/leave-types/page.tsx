@@ -119,6 +119,7 @@ const QR_MODE_LABELS: Record<string, string> = {
   [QR_MODE.RETURN_ONLY]: "Return only",
   [QR_MODE.BOTH]: "Exit + Return",
   [QR_MODE.OPTIONAL]: "Optional",
+  [QR_MODE.DAILY_RECURRING]: "Daily Recurring (1-2 scans/day)",
 };
 
 const QR_MODE_DESCRIPTIONS: Record<string, string> = {
@@ -131,6 +132,8 @@ const QR_MODE_DESCRIPTIONS: Record<string, string> = {
   [QR_MODE.BOTH]: "QR passes cover both exit and return scans at the gate.",
   [QR_MODE.OPTIONAL]:
     "A QR pass may be issued, but gate scans are not strictly enforced.",
+  [QR_MODE.DAILY_RECURRING]:
+    "QR pass accepts 1 or 2 scans per day (1 exit + 1 return, or 1 return) across each day of the approved period (ideal for Late Night / College Stay).",
 };
 
 export default function LeaveTypesPage() {

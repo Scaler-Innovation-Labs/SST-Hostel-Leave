@@ -67,6 +67,13 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
   },
 }));
 
+const mockLeaveTypeFindById = vi.fn().mockResolvedValue(null);
+vi.mock("@/db/repositories/leave/leave-type.repository", () => ({
+  leaveTypeRepository: {
+    findById: (...args: any[]) => mockLeaveTypeFindById(...args),
+  },
+}));
+
 vi.mock("@/services/movement/record-movement.service", () => ({
   recordMovement: (...args: any[]) => mockRecordMovement(...args),
 }));

@@ -222,6 +222,31 @@ export const qrPassRepository = {
     return rows[0] ?? null;
   },
 
+  /**
+   * Reset firstScanAt for recurring passes after an intermediate daily return,
+   * so the next day can initiate a new exit scan while the pass remains ACTIVE.
+   */
+  async resetFirstScan(
+    id: string,
+    dbClient: Pick<typeof db, "update"> = db
+  ): Promise<QrPass | null> {
+    const rows = await dbClient
+      .update(qrPasses)
+      .set({
+        firstScanAt: null,
+      })
+      .where(
+        and(
+          eq(qrPasses.id, id),
+          eq(qrPasses.status, QR_STATUS.ACTIVE),
+          isNull(qrPasses.closedAt)
+        )
+      )
+      .returning();
+
+    return rows[0] ?? null;
+  },
+
 	/**
 	 * Guarded invalidation for a credential that has never opened a movement
 	 * session. Returns null when a concurrent exit consumed it first — the

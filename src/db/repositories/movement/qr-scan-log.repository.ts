@@ -1,4 +1,4 @@
-import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { and, eq, gte, type InferInsertModel, type InferSelectModel, lte } from "drizzle-orm";
 
 import { qrScanLogs } from "@/db";
 import { db } from "@/lib/db";
@@ -21,6 +21,34 @@ export const qrScanLogRepository = {
 		return rows[0]!;
 	},
 
+	async countTodaySuccessfulScans(
+		qrPassId: string,
+		from: Date,
+		to: Date,
+		dbClient: QrScanLogDbClient = db
+	): Promise<{ exitCount: number; returnCount: number; totalCount: number }> {
+		const rows = await dbClient
+			.select({
+				scanType: qrScanLogs.scanType,
+			})
+			.from(qrScanLogs)
+			.where(
+				and(
+					eq(qrScanLogs.qrPassId, qrPassId),
+					eq(qrScanLogs.scanResult, "SUCCESS"),
+					gte(qrScanLogs.scannedAt, from),
+					lte(qrScanLogs.scannedAt, to)
+				)
+			);
+
+		let exitCount = 0;
+		let returnCount = 0;
+		for (const row of rows) {
+			if (row.scanType === "EXIT_SCAN") exitCount++;
+			if (row.scanType === "RETURN_SCAN") returnCount++;
+		}
+		return { exitCount, returnCount, totalCount: exitCount + returnCount };
+	},
 };
 
 export default qrScanLogRepository;

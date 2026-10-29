@@ -1,4 +1,11 @@
-export const QR_MODES = ["NONE", "EXIT_ONLY", "RETURN_ONLY", "BOTH", "OPTIONAL"] as const;
+export const QR_MODES = [
+  "NONE",
+  "EXIT_ONLY",
+  "RETURN_ONLY",
+  "BOTH",
+  "OPTIONAL",
+  "DAILY_RECURRING",
+] as const;
 
 export type QrMode = (typeof QR_MODES)[number];
 
@@ -8,4 +15,5 @@ export const QR_MODE = {
   RETURN_ONLY: "RETURN_ONLY",
   BOTH: "BOTH",
   OPTIONAL: "OPTIONAL",
+  DAILY_RECURRING: "DAILY_RECURRING",
 } as const;

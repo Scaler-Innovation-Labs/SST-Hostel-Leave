@@ -2,8 +2,8 @@ import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 
 import type { NotificationChannel } from "@/constants/notification/notification-channel";
-import { NOTIFICATION_DELIVERY_STATUS } from "@/constants/notification/notification-delivery-status";
 import type { NotificationDeliveryStatus } from "@/constants/notification/notification-delivery-status";
+import { NOTIFICATION_DELIVERY_STATUS } from "@/constants/notification/notification-delivery-status";
 import type { NotificationEvent } from "@/constants/notification/notification-event";
 import { leaveRequests, notificationLogs, students, users } from "@/db";
 import { db } from "@/lib/db";

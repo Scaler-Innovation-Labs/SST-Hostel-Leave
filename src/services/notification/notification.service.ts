@@ -2,8 +2,8 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import type { NotificationChannel } from "@/constants/notification/notification-channel";
 import { NOTIFICATION_CHANNEL } from "@/constants/notification/notification-channel";
 import { NOTIFICATION_DELIVERY_STATUS } from "@/constants/notification/notification-delivery-status";
-import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event";
 import type { NotificationEvent } from "@/constants/notification/notification-event";
+import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event";
 import type { NotificationRecipientType } from "@/constants/notification/notification-recipient-type";
 import { NOTIFICATION_RECIPIENT_TYPE } from "@/constants/notification/notification-recipient-type";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
