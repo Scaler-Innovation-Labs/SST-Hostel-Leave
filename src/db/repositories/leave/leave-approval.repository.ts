@@ -763,6 +763,31 @@ export const leaveApprovalRepository = {
     return rows[0] ?? null;
   },
 
+  async reopenApproval(
+    id: string,
+    dbClient: Pick<typeof db, "update"> = db,
+  ): Promise<LeaveApproval | null> {
+    const rows = await dbClient
+      .update(leaveApprovals)
+      .set({
+        decision: LEAVE_APPROVAL_DECISION.PENDING,
+        actedByUserId: null,
+        approverUserId: null,
+        comments: null,
+        actedAt: null,
+        rejectionCategory: null,
+      })
+      .where(
+        and(
+          eq(leaveApprovals.id, id),
+          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.REJECTED),
+        ),
+      )
+      .returning();
+
+    return rows[0] ?? null;
+  },
+
   async findExtensionApprovals(
     filters: {
       /** Filters on the extension's own status (LEAVE_REQUEST_STATUS). */
