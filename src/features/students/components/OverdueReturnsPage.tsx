@@ -78,7 +78,8 @@ export function OverdueReturnsPage({ detailBasePath }: OverdueReturnsPageProps) 
   const [now] = useState(() => Date.now());
 
   const { data, error, isLoading, mutate } = useSWR<OverdueReturn[]>("/api/v1/overdue", fetcher, {
-    refreshInterval: 15_000,
+    refreshInterval: 30_000,
+    dedupingInterval: 10_000,
   });
 
   const { data: hostels } = useSWR<HostelOption[]>("/api/v1/hostels", fetcher);

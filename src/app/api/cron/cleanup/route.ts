@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 import { runAuditRetentionJob } from "@/services/cron/audit-retention.job";
 import { runDocumentRetentionJob } from "@/services/cron/cleanup-documents.job";
 import { runCleanupQrJob } from "@/services/cron/cleanup-qr.job";
+import { runCleanupRateLimitJob } from "@/services/cron/cleanup-rate-limit.job";
 import { runPurgeOutboxJob } from "@/services/cron/purge-outbox.job";
 
 export async function GET(request: Request) {
@@ -22,6 +23,7 @@ export async function GET(request: Request) {
       // parent approval links) are purged past the retention window. Audit
       // history is independent of outbox retention.
       ["purge-outbox", runPurgeOutboxJob],
+      ["cleanup-rate-limit", runCleanupRateLimitJob],
     ];
 
     for (const [name, run] of jobs) {
