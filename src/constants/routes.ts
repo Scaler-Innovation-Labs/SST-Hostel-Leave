@@ -22,7 +22,6 @@ export const ROUTES = {
   SUPER_ADMIN_POLICIES: "/super-admin/policies",
   SUPER_ADMIN_USERS: "/super-admin/users",
   SUPER_ADMIN_PARENTS: "/super-admin/parents",
-  SUPER_ADMIN_SETTINGS: "/super-admin/settings",
   SUPER_ADMIN_APPROVALS: "/super-admin/approvals",
   SUPER_ADMIN_EXTENSION_APPROVALS: "/super-admin/extension-approvals",
   SUPER_ADMIN_TEMPLATES: "/super-admin/notification-templates",

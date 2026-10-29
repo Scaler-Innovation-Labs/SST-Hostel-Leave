@@ -40,7 +40,6 @@
 | Policies | `/super-admin/policies` | Define leave policies |
 | Users | `/super-admin/users` | Manage all system users |
 | Parents | `/super-admin/parents` | Manage parent records and tokenized approval links |
-| Settings | `/super-admin/settings` | System configuration |
 | Approval Templates | `/super-admin/notification-templates` | Email/Slack/SMS templates |
 | Notification Rules | `/super-admin/notification-rules` | Route events to recipients |
 | Delivery Logs | `/super-admin/notifications/delivery-logs` | Notification delivery audit |
