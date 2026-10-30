@@ -65,12 +65,14 @@ export async function parentApproveDecision(
 
     const isExtension = !!approvalBase.leaveExtensionId;
 
+    const approvalSource = dto.source ?? LEAVE_APPROVAL_SOURCE.PORTAL;
     const updatedApproval =
       await leaveParentApprovalRepository.updateParentDecision(
         approvalBase.id,
         dto.decision as LeaveApprovalDecision,
         dto.comments,
-        tx
+        tx,
+        approvalSource
       );
 
     if (!updatedApproval) {
@@ -88,11 +90,11 @@ export async function parentApproveDecision(
         // Off-platform actor: a parent deciding through the approval link.
         // There is no user id to store, so the descriptor says who it was.
         actorType: ACTOR_TYPE.PARENT,
-        trigger: AUDIT_TRIGGER.SMS,
+        trigger: approvalSource === LEAVE_APPROVAL_SOURCE.SMS ? AUDIT_TRIGGER.SMS : AUDIT_TRIGGER.PORTAL,
         leaveRequestId: approvalBase.leaveRequestId,
         leaveExtensionId: approvalBase.leaveExtensionId,
         comments: dto.comments,
-        approvalSource: LEAVE_APPROVAL_SOURCE.SMS,
+        approvalSource,
       },
       tx
     );

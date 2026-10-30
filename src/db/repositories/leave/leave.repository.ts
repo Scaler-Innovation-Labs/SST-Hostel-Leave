@@ -181,7 +181,10 @@ export const leaveRepository = {
 			.leftJoin(qrPasses, eq(qrPasses.leaveRequestId, leaveRequests.id))
 			.where(
 				and(
-					eq(leaveRequests.status, LEAVE_REQUEST_STATUS.APPROVED),
+					or(
+						eq(leaveRequests.status, LEAVE_REQUEST_STATUS.APPROVED),
+						eq(leaveRequests.status, LEAVE_REQUEST_STATUS.PENDING)
+					),
 					lte(leaveRequests.endAt, before),
 					isNull(leaveRequests.actualReturnAt),
 					// EXPIRED = approved but never checked out. Exclude leaves

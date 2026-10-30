@@ -558,10 +558,12 @@ export const notificationService = {
 						continue;
 					}
 
-					// Other non-email channels (per-user): send individually
+					// Other non-email channels (per-user): send individually (deduplicated per channel)
+					const sentRecipients = new Set<string>();
 					for (const contact of allContacts) {
 						const recipient = await getRecipientForChannel(contact, channel, context.hostelId);
-						if (!recipient) continue;
+						if (!recipient || sentRecipients.has(recipient)) continue;
+						sentRecipients.add(recipient);
 
 						try {
 							await deliverToRecipient(

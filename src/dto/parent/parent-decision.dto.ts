@@ -8,6 +8,7 @@ export const parentDecisionSchema = z.object({
     LEAVE_APPROVAL_DECISION.REJECTED,
   ]),
   comments: z.string().max(500).optional(),
+  source: z.enum(["PORTAL", "EMAIL_LINK", "SMS", "WEB"]).optional(),
 });
 
 export type ParentDecisionDto = z.infer<typeof parentDecisionSchema>;

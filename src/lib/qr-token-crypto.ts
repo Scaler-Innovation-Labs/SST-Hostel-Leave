@@ -98,12 +98,13 @@ function getActiveKeyId(): string {
 
 function readKeyMaterial(keyId: string): string | undefined {
   const activeKeyId = getActiveKeyId();
-  if (keyId === activeKeyId) {
-    return process.env[KEY_ENV_VAR];
-  }
   const suffix = keyId.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-  if (!suffix) return undefined;
-  return process.env[`${KEY_ENV_VAR}_${suffix}`];
+  const keyBySuffix = suffix ? process.env[`${KEY_ENV_VAR}_${suffix}`] : undefined;
+
+  if (keyId === activeKeyId) {
+    return process.env[KEY_ENV_VAR] || keyBySuffix;
+  }
+  return keyBySuffix || process.env[KEY_ENV_VAR];
 }
 
 export async function encryptQrToken(token: string): Promise<string> {

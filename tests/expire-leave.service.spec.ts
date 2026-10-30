@@ -141,12 +141,21 @@ describe("expireSingleLeave service", () => {
     expect(mockRecordMovement).not.toHaveBeenCalled();
   });
 
-  it("cannot expire PENDING leave", async () => {
-    mockFindById.mockResolvedValue({ id: "L4", status: "PENDING" });
+  it("expires a PENDING leave", async () => {
+    mockFindById.mockResolvedValue({ id: "L4", status: "PENDING", studentId: "S1", endAt: new Date("2026-06-01") });
+    mockFindByIdForUpdate.mockResolvedValue({ id: "L4", status: "PENDING", studentId: "S1", endAt: new Date("2026-06-01") });
+    mockUpdateById.mockResolvedValue({ id: "L4", status: "EXPIRED" });
+
+    const result = await expireSingleLeave("L4", SYSTEM_ACTOR);
+    expect(result.newStatus).toBe("EXPIRED");
+  });
+
+  it("cannot expire COMPLETED leave", async () => {
+    mockFindById.mockResolvedValue({ id: "L5", status: "COMPLETED" });
 
     await expect(
-      expireSingleLeave("L4", SYSTEM_ACTOR)
-    ).rejects.toThrow("Cannot expire leave in PENDING status");
+      expireSingleLeave("L5", SYSTEM_ACTOR)
+    ).rejects.toThrow("Cannot expire leave in COMPLETED status");
   });
 
   it("invalidates an unused QR pass on expiry", async () => {

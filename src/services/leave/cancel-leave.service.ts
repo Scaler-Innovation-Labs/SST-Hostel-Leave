@@ -48,6 +48,11 @@ export async function cancelLeave(
 
     if (!student) throw new NotFoundError("Student");
 
+    const qrPass = await qrPassRepository.findByLeaveRequestId(leave.id);
+    if (qrPass && (Boolean(qrPass.firstScanAt) || qrPass.status === QR_STATUS.USED)) {
+      throw new ConflictError("Cannot cancel active leave after student has already scanned out");
+    }
+
     if (
       student.currentLocationState !== MOVEMENT_STATE.IN_HOSTEL &&
       student.currentLocationState !== MOVEMENT_STATE.APPROVED_LEAVE
@@ -76,6 +81,11 @@ export async function cancelLeave(
       );
 
       if (!student) throw new NotFoundError("Student");
+
+      const qrPassInTx = await qrPassRepository.findByLeaveRequestId(leaveId, tx);
+      if (qrPassInTx && (Boolean(qrPassInTx.firstScanAt) || qrPassInTx.status === QR_STATUS.USED)) {
+        throw new ConflictError("Cannot cancel active leave after student has already scanned out");
+      }
 
       if (
         student.currentLocationState !== MOVEMENT_STATE.IN_HOSTEL &&
