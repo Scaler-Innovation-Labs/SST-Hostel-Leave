@@ -188,6 +188,15 @@ export async function createExtension(
   const defaultWorkflowId: string = leaveType.defaultWorkflowId;
 
   return await db.transaction(async (tx) => {
+    // Lock hierarchy: leave_extensions -> leave_requests -> students.
+    // Lock pending extensions first to prevent deadlock with concurrent extension decisions.
+    const pendingExtensions =
+      await leaveExtensionRepository.lockPendingByLeaveRequestId(leaveRequestId, tx);
+
+    if (pendingExtensions.length > 0) {
+      throw new ConflictError("Leave already has a pending extension request");
+    }
+
     const leaveInTx = await leaveRepository.findByIdForUpdate(leaveRequestId, tx);
 
     if (!leaveInTx) throw new NotFoundError("LeaveRequest");

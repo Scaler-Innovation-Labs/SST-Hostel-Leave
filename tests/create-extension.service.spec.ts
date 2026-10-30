@@ -65,6 +65,7 @@ vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
     findById: (...args: any[]) => mockExtensionFindById(...args),
     findByIdForUpdate: (...args: any[]) => mockExtensionFindByIdForUpdate(...args),
     findByLeaveRequestId: (...args: any[]) => mockExtensionFindByLeaveRequestId(...args),
+    lockPendingByLeaveRequestId: (...args: any[]) => mockExtensionFindByLeaveRequestId(...args),
     updateById: (...args: any[]) => mockExtensionUpdateById(...args),
     updateCurrentStep: (...args: any[]) => mockExtensionUpdateCurrentStep(...args),
     getNextExtensionNumber: (...args: any[]) => mockExtensionGetNextExtensionNumber(...args),

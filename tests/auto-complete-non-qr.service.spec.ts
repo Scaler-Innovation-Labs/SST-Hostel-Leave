@@ -22,6 +22,7 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
 vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
   leaveExtensionRepository: {
     findByLeaveRequestId: (...args: any[]) => mockFindExtensions(...args),
+    lockPendingByLeaveRequestId: (...args: any[]) => mockFindExtensions(...args),
   },
 }));
 
