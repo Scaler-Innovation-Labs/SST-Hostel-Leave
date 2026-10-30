@@ -327,6 +327,7 @@ export async function handleLeaveEvent(
     }
 
     const result = await notificationService.notify(notificationType, {
+      outboxEventId: event.id,
       leaveRequestId: leaveId,
       leaveExtensionId: payload.extensionId as string | undefined,
       leaveTypeId: context.leaveTypeId,
