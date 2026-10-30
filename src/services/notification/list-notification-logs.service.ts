@@ -1,4 +1,10 @@
-import { notificationLogRepository, type PaginatedLogs } from "@/db/repositories/notification/notification-log.repository";
+import {
+  type NotificationLog,
+  notificationLogRepository,
+  type PaginatedLogs,
+} from "@/db/repositories/notification/notification-log.repository";
+
+export type { NotificationLog };
 import type { ListNotificationLogsQuery } from "@/dto/notification/list-notification-logs.dto";
 import type { CurrentUser } from "@/lib/auth/types";
 import { getScopedHostelIds } from "@/services/shared/authorization.service";

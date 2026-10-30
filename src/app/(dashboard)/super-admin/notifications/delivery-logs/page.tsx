@@ -11,8 +11,8 @@ import { NOTIFICATION_CHANNELS } from "@/constants/notification/notification-cha
 import { NOTIFICATION_DELIVERY_STATUSES } from "@/constants/notification/notification-delivery-status";
 import { NOTIFICATION_EVENTS } from "@/constants/notification/notification-event";
 import { getEventColor,getEventLabel } from "@/constants/notification/notification-labels";
-import type { NotificationLog } from "@/db/repositories/notification/notification-log.repository";
 import { fetcher } from "@/lib/api/fetcher";
+import type { NotificationLog } from "@/services/notification/list-notification-logs.service";
 
 const CHANNEL_LABELS: Record<string, string> = {
   EMAIL: "Email",
