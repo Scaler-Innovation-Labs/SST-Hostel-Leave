@@ -1,4 +1,5 @@
 import { saveAcademicGroupSchema } from "@/dto/academic-group/save-academic-group.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
   try {
     const user = await requireAuth();
     requireAnyRole(user, [ROLES.SUPER_ADMIN]);
-    const dto = saveAcademicGroupSchema.parse(await request.json());
+    const dto = saveAcademicGroupSchema.parse(await readBoundedJson(request));
     const group = await createAcademicGroup(dto, user);
     return ApiResponse.created(group);
   } catch (error) {

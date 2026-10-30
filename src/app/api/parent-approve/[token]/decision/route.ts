@@ -1,4 +1,5 @@
 import parentDecisionSchema from "@/dto/parent/parent-decision.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { sha256 } from "@/lib/crypto";
 import { rateLimit } from "@/lib/rate-limiter";
@@ -15,7 +16,7 @@ export async function POST(
     // and must not be persisted in rate_limit_entries.
     await rateLimit(`approve-decision:${await sha256(token)}`, 10, 900_000);
 
-    const body = await request.json();
+    const body = await readBoundedJson(request);
     const dto = parentDecisionSchema.parse(body);
 
     const result = await parentApproveDecision(token, dto);

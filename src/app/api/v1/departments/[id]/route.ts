@@ -1,4 +1,5 @@
 import { saveDepartmentSchema } from "@/dto/department/save-department.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -25,7 +26,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const user = await requireAuth();
     requireAnyRole(user, [ROLES.SUPER_ADMIN]);
     const { id } = await params;
-    const dto = saveDepartmentSchema.parse(await request.json());
+    const dto = saveDepartmentSchema.parse(await readBoundedJson(request));
     const row = await updateDepartment(id, dto, user);
     return ApiResponse.success(row);
   } catch (error) {

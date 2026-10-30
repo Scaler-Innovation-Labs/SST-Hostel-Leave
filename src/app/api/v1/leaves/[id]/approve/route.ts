@@ -1,5 +1,6 @@
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import approveLeaveSchema from "@/dto/leave/approve-leave.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -15,7 +16,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     await rateLimit(`approve:${currentUser.id}`, 60, 60_000);
 
     const { id } = await params;
-    const body = await request.json();
+    const body = await readBoundedJson(request);
     const dto = approveLeaveSchema.parse(body);
 
     const result = dto.decision === LEAVE_APPROVAL_DECISION.REJECTED

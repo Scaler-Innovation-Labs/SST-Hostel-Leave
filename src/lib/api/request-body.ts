@@ -9,7 +9,25 @@ import { ValidationError } from "@/lib/errors";
  */
 export const MAX_JSON_BODY_BYTES = 1_000_000;
 
-export async function readBoundedJson(request: Request, maxBytes: number = MAX_JSON_BODY_BYTES): Promise<unknown> {
+export type ReadBoundedJsonOptions = {
+  allowEmpty?: boolean;
+}
+
+export async function readBoundedJson(
+  request: Request,
+  maxBytesOrOptions?: number | ReadBoundedJsonOptions,
+  maybeOptions?: ReadBoundedJsonOptions
+): Promise<unknown> {
+  let maxBytes = MAX_JSON_BODY_BYTES;
+  let options: ReadBoundedJsonOptions | undefined;
+
+  if (typeof maxBytesOrOptions === "number") {
+    maxBytes = maxBytesOrOptions;
+    options = maybeOptions;
+  } else if (typeof maxBytesOrOptions === "object" && maxBytesOrOptions !== null) {
+    options = maxBytesOrOptions;
+  }
+
   const declared = Number(request.headers.get("content-length") ?? "");
   if (Number.isFinite(declared) && declared > maxBytes) {
     throw new ValidationError("Request body exceeds the size limit");
@@ -18,6 +36,10 @@ export async function readBoundedJson(request: Request, maxBytes: number = MAX_J
   const text = await request.text();
   if (text.length > maxBytes) {
     throw new ValidationError("Request body exceeds the size limit");
+  }
+
+  if (options?.allowEmpty && text.trim().length === 0) {
+    return {};
   }
 
   try {

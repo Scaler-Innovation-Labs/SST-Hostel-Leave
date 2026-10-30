@@ -1,4 +1,5 @@
 import { scanQrPreviewSchema } from "@/dto/movement/scan-qr.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
 
     await rateLimit(`scan:${currentUser.id}`, 120, 60_000);
 
-    const body = await request.json().catch(() => ({}));
+    const body = await readBoundedJson(request, { allowEmpty: true });
     const { token } = scanQrPreviewSchema.parse(body);
 
     const result = await previewQrScan(token);
