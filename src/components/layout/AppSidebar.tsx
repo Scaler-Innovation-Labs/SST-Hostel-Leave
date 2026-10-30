@@ -10,6 +10,7 @@ import { Logo } from "@/components/shared/Logo";
 import type { NavigationGroup } from "@/constants/navigation";
 import { openMailto } from "@/lib/mailto";
 import { cn } from "@/lib/utils";
+import { resolveActiveHref } from "@/utils/navigation";
 
 type AppSidebarProps = {
   groups: NavigationGroup[];
@@ -27,9 +28,9 @@ type AppSidebarProps = {
 
 /**
  * Matches the current route to a nav row. A parent route matches its children
- * (`/student/leaves` for `/student/leaves/123`) unless a sibling item is an
- * exact match for the path — otherwise "Request leave" and "My leaves" would
- * both light up on `/student/leaves/new`.
+ * (`/student/leaves` for `/student/leaves/123`), but the most specific item wins
+ * — otherwise "Request leave" and "My leaves" would both light up on
+ * `/student/leaves/new`.
  */
 function useActiveHref(groups: NavigationGroup[]): (href: string) => boolean {
   const pathname = usePathname();
@@ -39,11 +40,7 @@ function useActiveHref(groups: NavigationGroup[]): (href: string) => boolean {
   );
 
   return React.useCallback(
-    (href: string) => {
-      if (pathname === href) return true;
-      if (!pathname.startsWith(`${href}/`)) return false;
-      return !allHrefs.some((other) => other !== href && other === pathname);
-    },
+    (href: string) => resolveActiveHref(pathname, allHrefs) === href,
     [pathname, allHrefs]
   );
 }

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { STUDENT_BOTTOM_NAV } from "@/constants/navigation";
 import { openMailto } from "@/lib/mailto";
 import { cn } from "@/lib/utils";
+import { resolveActiveHref } from "@/utils/navigation";
 
 /**
  * The student's mobile navigation. Thumb-reachable, every destination visible,
@@ -18,6 +19,13 @@ import { cn } from "@/lib/utils";
 export function StudentBottomNav() {
   const pathname = usePathname();
 
+  // Only the most specific destination is marked current, so a nested page such
+  // as `/student/leaves/new` does not also light up its parent "My leaves".
+  const activeHref = resolveActiveHref(
+    pathname,
+    STUDENT_BOTTOM_NAV.map((item) => item.href)
+  );
+
   return (
     <nav
       aria-label="Student navigation"
@@ -28,7 +36,7 @@ export function StudentBottomNav() {
       )}
     >
       {STUDENT_BOTTOM_NAV.map(({ label, href, Icon }) => {
-        const active = pathname === href || pathname.startsWith(`${href}/`);
+        const active = activeHref === href;
         const isExternal =
           href.startsWith("mailto:") ||
           href.startsWith("http://") ||

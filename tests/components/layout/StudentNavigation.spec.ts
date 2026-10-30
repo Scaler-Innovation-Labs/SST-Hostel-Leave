@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { NAVIGATION, STUDENT_BOTTOM_NAV } from "@/constants/navigation";
+import { resolveActiveHref } from "@/utils/navigation";
+
+const STUDENT_HREFS = STUDENT_BOTTOM_NAV.map((item) => item.href);
 
 describe("Student Navigation", () => {
   it("includes Support group with Report bug mailto link", () => {
@@ -22,5 +25,17 @@ describe("Student Navigation", () => {
     const reportBug = STUDENT_BOTTOM_NAV.find((item) => item.label === "Report bug");
     expect(reportBug).toBeDefined();
     expect(reportBug?.href).toContain("neerasa.24bcs10005@sst.scaler.com");
+  });
+
+  it("highlights only Request leave on its own page", () => {
+    expect(resolveActiveHref("/student/leaves/new", STUDENT_HREFS)).toBe(
+      "/student/leaves/new"
+    );
+  });
+
+  it("still highlights My leaves for a single leave detail page", () => {
+    expect(resolveActiveHref("/student/leaves/123", STUDENT_HREFS)).toBe(
+      "/student/leaves"
+    );
   });
 });
