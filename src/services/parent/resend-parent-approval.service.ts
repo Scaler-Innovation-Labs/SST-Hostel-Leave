@@ -13,21 +13,37 @@ import { leaveParentApprovalRepository } from "@/db/repositories/leave/leave-par
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 import { leaveApprovalParentDetails, leaveApprovals } from "@/db/schema/leave";
+import type { CurrentUser } from "@/lib/auth/types";
 import { getPublicBaseUrl } from "@/lib/base-url";
 import { transaction } from "@/lib/db/transaction";
-import { ConflictError, NotFoundError } from "@/lib/errors";
+import { AuthorizationError, ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
+import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
 export async function resendParentApproval(
   leaveId: string,
-  actorUserId: string
+  currentUserOrId: CurrentUser | string
 ): Promise<{ success: boolean; message: string }> {
+  const actorUserId =
+    typeof currentUserOrId === "string" ? currentUserOrId : currentUserOrId.id;
+
   return await transaction(async (tx) => {
     const leave = await leaveRepository.findByIdForUpdate(leaveId, tx);
 
     if (!leave) {
       throw new NotFoundError("LeaveRequest");
+    }
+
+    // IDOR / ABAC guard: a student may only resend parent approval for their
+    // own leave; staff must be within the leave's hostel scope.
+    if (typeof currentUserOrId === "object" && currentUserOrId !== null) {
+      await assertCanAccessLeave(currentUserOrId, leave);
+    } else {
+      const student = await studentRepository.findByUserId(currentUserOrId);
+      if (student && student.id !== leave.studentId) {
+        throw new AuthorizationError("Cannot resend parent approval for another student's leave");
+      }
     }
 
     if (leave.status !== LEAVE_REQUEST_STATUS.PENDING) {

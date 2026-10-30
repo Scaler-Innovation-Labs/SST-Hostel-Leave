@@ -1,6 +1,8 @@
 import { dashboardStatsQuerySchema } from "@/dto/dashboard/dashboard-stats-query.dto";
 import { ApiResponse } from "@/lib/api/response";
+import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
+import { ROLES } from "@/lib/auth/roles";
 import { logger } from "@/lib/logger";
 import { getDashboardStats } from "@/services/dashboard/get-dashboard-stats.service";
 
@@ -8,7 +10,12 @@ export async function GET(request?: Request) {
   const start = Date.now();
   try {
     const authTimer = Date.now();
-    const currentUser = await requireAuth();
+    const currentUser = requireAnyRole(await requireAuth(), [
+      ROLES.STUDENT,
+      ROLES.POC,
+      ROLES.ADMIN,
+      ROLES.SUPER_ADMIN,
+    ]);
     const authDuration = Date.now() - authTimer;
 
     const query = dashboardStatsQuerySchema.parse(

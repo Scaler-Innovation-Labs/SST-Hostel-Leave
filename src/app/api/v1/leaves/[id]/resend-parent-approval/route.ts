@@ -1,5 +1,7 @@
 import { ApiResponse } from "@/lib/api/response";
+import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
+import { ROLES } from "@/lib/auth/roles";
 import { resendParentApproval } from "@/services/parent/resend-parent-approval.service";
 
 export async function POST(
@@ -7,10 +9,15 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const currentUser = await requireAuth();
+    const currentUser = requireAnyRole(await requireAuth(), [
+      ROLES.STUDENT,
+      ROLES.POC,
+      ROLES.ADMIN,
+      ROLES.SUPER_ADMIN,
+    ]);
     const { id } = await params;
 
-    const result = await resendParentApproval(id, currentUser.id);
+    const result = await resendParentApproval(id, currentUser);
 
     return ApiResponse.success(result);
   } catch (error) {

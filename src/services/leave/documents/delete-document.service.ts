@@ -33,9 +33,10 @@ export async function deleteLeaveDocument(
   // must be within the leave's hostel scope.
   if (document.leaveRequestId) {
     const leave = await leaveRepository.findById(document.leaveRequestId);
-    if (leave) {
-      await assertCanAccessLeave(currentUser, leave);
+    if (!leave) {
+      throw new NotFoundError("LeaveRequest");
     }
+    await assertCanAccessLeave(currentUser, leave);
   }
 
   // Extract the S3 object key from metadata (preferred) or file URL (fallback)

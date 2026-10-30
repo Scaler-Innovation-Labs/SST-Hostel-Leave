@@ -19,6 +19,7 @@ const isAuthenticatedRoute = createRouteMatcher([
  * These use per-request tokens, not session-based auth.
  */
 const isParentApproveRoute = createRouteMatcher([
+  "/parent-approve(.*)",
   "/api/parent-approve(.*)",
 ]);
 
