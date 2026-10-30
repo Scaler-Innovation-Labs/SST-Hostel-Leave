@@ -15,18 +15,22 @@ export default async function ParentApprovePage({
   let leaveData;
   let failed = false;
 
-  try {
-    // Same bound as the decision endpoint: unauthenticated token probing
-    // must be rate-limited. The limiter key is the token HASH — the raw
-    // token is a bearer credential and must not be persisted in
-    // rate_limit_entries.
-    await rateLimit(`parent-approve-view:${await sha256(token)}`, 30, 900_000);
-    leaveData = await getLeaveDetailsByToken(token);
-  } catch {
-    // Deliberately generic: invalid / expired / already-responded / limited
-    // all render the same state so the page is not a validity oracle. The
-    // service logs the real reason server-side.
+  if (!token || typeof token !== "string" || !token.trim()) {
     failed = true;
+  } else {
+    try {
+      // Same bound as the decision endpoint: unauthenticated token probing
+      // must be rate-limited. The limiter key is the token HASH — the raw
+      // token is a bearer credential and must not be persisted in
+      // rate_limit_entries.
+      await rateLimit(`parent-approve-view:${await sha256(token.trim())}`, 30, 900_000);
+      leaveData = await getLeaveDetailsByToken(token.trim());
+    } catch {
+      // Deliberately generic: invalid / expired / already-responded / limited
+      // all render the same state so the page is not a validity oracle. The
+      // service logs the real reason server-side.
+      failed = true;
+    }
   }
 
   if (failed || !leaveData) {
@@ -50,5 +54,5 @@ export default async function ParentApprovePage({
     );
   }
 
-  return <ParentApprovalFlow token={token} leaveData={leaveData} />;
+  return <ParentApprovalFlow token={token.trim()} leaveData={leaveData} />;
 }

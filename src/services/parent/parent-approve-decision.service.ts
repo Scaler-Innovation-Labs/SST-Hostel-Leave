@@ -7,6 +7,7 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { GENERIC_PARENT_TOKEN_ERROR_MESSAGE } from "@/constants/parent/parent-approval";
 import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
@@ -18,7 +19,9 @@ import { type DbClient, transaction } from "@/lib/db/transaction";
 import {
   ConflictError,
   NotFoundError,
+  ValidationError,
 } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 import { auditService } from "@/services/audit/audit.service";
 import {
   extendQrPassWindow,
@@ -42,25 +45,42 @@ export async function parentApproveDecision(
   rawToken: string,
   dto: ParentDecisionDto
 ): Promise<ParentDecisionResult> {
-  const tokenHash = await sha256(rawToken);
+  if (!rawToken || typeof rawToken !== "string" || !rawToken.trim()) {
+    logger.warn("Parent approval decision failed: malformed token", {});
+    throw new ValidationError(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
+  }
+
+  const tokenHash = await sha256(rawToken.trim());
 
   return await transaction(async (tx) => {
     const approvalBase =
       await leaveParentApprovalRepository.findByParentApprovalToken(tokenHash, tx);
 
+    // Oracle hardening: invalid / expired / already-responded links all
+    // surface the SAME generic message. The real state is logged server-side
+    // (approval id only — never the raw token) for support triage.
+    // ValidationError carries the message verbatim, keeping all failure states
+    // byte-identical to the caller and preventing token-enumeration probing.
     if (!approvalBase) {
-      throw new NotFoundError("Approval");
-    }
-
-    if (approvalBase.decision !== LEAVE_APPROVAL_DECISION.PENDING) {
-      throw new ConflictError("Approval already processed");
+      logger.warn("Parent approval decision failed: unknown token hash", {});
+      throw new ValidationError(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
     }
 
     if (
       approvalBase.parentDetails?.tokenExpiresAt &&
       new Date(approvalBase.parentDetails.tokenExpiresAt) < new Date()
     ) {
-      throw new ConflictError("Approval link has expired");
+      logger.warn("Parent approval decision failed: link expired", {
+        approvalId: approvalBase.id,
+      });
+      throw new ValidationError(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
+    }
+
+    if (approvalBase.decision !== LEAVE_APPROVAL_DECISION.PENDING) {
+      logger.warn("Parent approval decision failed: already processed", {
+        approvalId: approvalBase.id,
+      });
+      throw new ValidationError(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
     }
 
     const isExtension = !!approvalBase.leaveExtensionId;
@@ -76,7 +96,10 @@ export async function parentApproveDecision(
       );
 
     if (!updatedApproval) {
-      throw new ConflictError("Approval already processed");
+      logger.warn("Parent approval decision failed: already processed concurrently", {
+        approvalId: approvalBase.id,
+      });
+      throw new ValidationError(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
     }
 
     await auditService.record(
