@@ -243,4 +243,27 @@ describe("outboxRepository", () => {
     const calledWith = mockValues.mock.calls[0][0];
     expect(calledWith).not.toHaveProperty("idempotencyKey");
   });
+
+  it("getActiveStatusCounts aggregates active statuses and calculates total", async () => {
+    const mockDb = {
+      select: vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            groupBy: vi.fn().mockResolvedValue([
+              { status: "PENDING", count: 2 },
+              { status: "PROCESSING", count: 1 },
+            ]),
+          }),
+        }),
+      }),
+    };
+
+    const counts = await outboxRepository.getActiveStatusCounts(mockDb as any);
+    expect(counts).toEqual({
+      pending: 2,
+      processing: 1,
+      failed: 0,
+      total: 3,
+    });
+  });
 });
