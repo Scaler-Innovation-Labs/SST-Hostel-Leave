@@ -1,3 +1,4 @@
+import { ValidationError } from "@/lib/errors";
 export const ROLES = {
   STUDENT: "STUDENT",
   POC: "POC",
@@ -29,4 +30,22 @@ export function canRoleApprove(approverRoles: Role[], requiredRoleCode: string):
   const requiredLevel = ROLE_HIERARCHY[requiredRoleCode];
 
   return approverRoles.some((role) => ROLE_HIERARCHY[role] >= requiredLevel);
+}
+
+export const STAFF_ROLES: readonly string[] = [
+  ROLES.POC,
+  ROLES.ADMIN,
+  ROLES.SUPER_ADMIN,
+  ROLES.GUARD,
+  "WARDEN",
+];
+
+export function assertNoConflictingRoles(roleCodes: string[]): void {
+  const hasStudent = roleCodes.includes(ROLES.STUDENT);
+  const hasStaff = roleCodes.some((code) => STAFF_ROLES.includes(code));
+  if (hasStudent && hasStaff) {
+    throw new ValidationError(
+      "A user cannot be assigned both STUDENT and staff roles simultaneously"
+    );
+  }
 }

@@ -36,6 +36,29 @@ export const leaveExtensionRepository = {
     return rows[0] ?? null;
   },
 
+  /**
+   * Row-locks any pending extensions for a leave request in extensionNumber order.
+   * Enforces lock hierarchy: leave_extensions -> leave_requests -> students.
+   */
+  async lockPendingByLeaveRequestId(
+    leaveRequestId: string,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<LeaveExtension[]> {
+    const rows = await dbClient
+      .select()
+      .from(leaveExtensions)
+      .where(
+        and(
+          eq(leaveExtensions.leaveRequestId, leaveRequestId),
+          eq(leaveExtensions.status, LEAVE_REQUEST_STATUS.PENDING)
+        )
+      )
+      .orderBy(leaveExtensions.extensionNumber)
+      .for("update");
+
+    return rows;
+  },
+
   async findByIdForUpdate(
     id: string,
     dbClient: Pick<typeof db, "select"> = db

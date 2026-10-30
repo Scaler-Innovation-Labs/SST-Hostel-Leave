@@ -1,4 +1,5 @@
 import scanQrSchema from "@/dto/movement/scan-qr.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
     // Gate-DoS / token-probing bound: scans are human-paced.
     await rateLimit(`scan:${currentUser.id}`, 120, 60_000);
 
-    const body = await request.json();
+    const body = await readBoundedJson(request);
     const dto = scanQrSchema.parse(body);
 
     const result = await scanQrPass({

@@ -1,10 +1,10 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
-import { userRepository } from "@/db/repositories/user/user.repository";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { ROLES } from "@/lib/auth/roles";
 import { logger } from "@/lib/logger";
+import { touchUserLastLogin } from "@/services/user/touch-login.service";
 
 export default async function RedirectPage() {
   const { sessionId, userId } = await auth();
@@ -27,7 +27,7 @@ export default async function RedirectPage() {
 
   // Record login timestamp at the actual post-login dispatch boundary
   try {
-    await userRepository.touchLastLogin(user.id);
+    await touchUserLastLogin(user.id);
   } catch (err) {
     logger.error("[RedirectPage] touchLastLogin failed", {
       error: err instanceof Error ? err.message : String(err),

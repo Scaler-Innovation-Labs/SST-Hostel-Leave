@@ -19,6 +19,7 @@ import { endOfDayIst, startOfDayIst } from "@/lib/date-utils";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
+import { logger } from "@/lib/logger";
 import { outboxService } from "@/services/outbox/outbox.service";
 
 import { recordMovement } from "./record-movement.service";
@@ -563,11 +564,14 @@ export async function scanQrPass(
 			};
 		}
 
-		return await transaction(async (tx) => {
-			// Re-validate the pass inside the transaction — the snapshot read
-			// above may be stale (a concurrent invalidate/cancel can win the
-			// race between the two reads).
-			const passInTx = await qrPassRepository.findById(pass.id, tx);
+		let auditQrPassId: string | null = pass.id;
+		try {
+			return await transaction(async (tx) => {
+				// Re-validate the pass inside the transaction — the snapshot read
+				// above may be stale (a concurrent invalidate/cancel can win the
+				// race between the two reads).
+				const passInTx = await qrPassRepository.findById(pass.id, tx);
+				if (passInTx) auditQrPassId = passInTx.id;
 
 			if (!passInTx || passInTx.status !== QR_STATUS.ACTIVE) {
 				throw new ConflictError("QR pass is no longer active");
@@ -696,14 +700,36 @@ export async function scanQrPass(
 				movementEventId: movementEvent.id,
 			};
 		});
+		} catch (error) {
+			const failureReason = error instanceof Error ? error.message : "Transaction failed";
+			try {
+				await qrScanLogRepository.create({
+					qrPassId: auditQrPassId,
+					scannedBy: input.scannedBy,
+					scanType: "EXIT_SCAN",
+					scanResult: "FAILED",
+					failureReason,
+					metadata: { tokenHash },
+				});
+			} catch (logErr) {
+				logger.error("Failed to persist failed QR scan audit log after transaction rollback", {
+					error: logErr instanceof Error ? logErr.message : String(logErr),
+					qrPassId: auditQrPassId,
+				});
+			}
+			throw error;
+		}
 	}
 
 	if (input.scanType === "RETURN_SCAN") {
-		return await transaction(async (tx) => {
-			// Re-validate the pass inside the transaction — the snapshot read
-			// above may be stale (a concurrent invalidate/cancel can win the
-			// race between the two reads).
-			const passInTx = await qrPassRepository.findById(pass.id, tx);
+		let auditQrPassId: string | null = pass.id;
+		try {
+			return await transaction(async (tx) => {
+				// Re-validate the pass inside the transaction — the snapshot read
+				// above may be stale (a concurrent invalidate/cancel can win the
+				// race between the two reads).
+				const passInTx = await qrPassRepository.findById(pass.id, tx);
+				if (passInTx) auditQrPassId = passInTx.id;
 
 			if (!passInTx || passInTx.status !== QR_STATUS.ACTIVE) {
 				throw new ConflictError("QR pass is no longer active");
@@ -898,6 +924,25 @@ export async function scanQrPass(
 				movementEventId: movementEvent.id,
 			};
 		});
+		} catch (error) {
+			const failureReason = error instanceof Error ? error.message : "Transaction failed";
+			try {
+				await qrScanLogRepository.create({
+					qrPassId: auditQrPassId,
+					scannedBy: input.scannedBy,
+					scanType: "RETURN_SCAN",
+					scanResult: "FAILED",
+					failureReason,
+					metadata: { tokenHash },
+				});
+			} catch (logErr) {
+				logger.error("Failed to persist failed QR scan audit log after transaction rollback", {
+					error: logErr instanceof Error ? logErr.message : String(logErr),
+					qrPassId: auditQrPassId,
+				});
+			}
+			throw error;
+		}
 	}
 
 	const log = await qrScanLogRepository.create({

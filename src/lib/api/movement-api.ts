@@ -129,9 +129,11 @@ export type QrScanPreviewResult = {
 export async function scanQrPreview(
   token: string,
 ): Promise<QrScanPreviewResult> {
-  const res = await fetch(
-    `${BASE}/movements/scan/preview?token=${encodeURIComponent(token)}`,
-  );
+  const res = await fetch(`${BASE}/movements/scan/preview`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
   const json: ApiResponse = await res.json();
   if (!res.ok || !json.success) {
     throw new Error(json.error?.message ?? "Failed to preview QR");

@@ -13,8 +13,8 @@ import { type DbClient,transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import {
   canTransition,
+  getMovementActionForEvent,
   getNextState,
-  type MovementAction,
 } from "@/lib/workflows/movement-state-machine";
 import { type AuditActor,auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
@@ -41,18 +41,10 @@ export type RecordMovementInput = {
   dbClient?: DbClient;
 };
 
-const EVENT_TYPE_TO_ACTION: Record<string, MovementAction> = {
-  EXIT_HOSTEL: "EXIT_HOSTEL",
-  ENTER_HOSTEL: "ENTER_HOSTEL",
-  AUTO_OVERDUE: "MARK_OVERDUE",
-  MANUAL_RETURN: "MANUAL_RETURN",
-  QR_INVALIDATED: "INVALIDATE_QR",
-};
-
 export async function recordMovement(
   input: RecordMovementInput
 ): Promise<MovementEventRow> {
-  const action = EVENT_TYPE_TO_ACTION[input.eventType];
+  const action = getMovementActionForEvent(input.eventType);
 
   if (!action) {
     throw new ConflictError(

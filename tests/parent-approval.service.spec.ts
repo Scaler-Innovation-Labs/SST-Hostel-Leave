@@ -107,6 +107,16 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
   },
 }));
 
+vi.mock("@/services/notification/notification.service", () => {
+  const mock = vi.fn().mockResolvedValue({ success: true, failures: [] });
+  return {
+    notificationService: {
+      notify: mock,
+    },
+    __mockNotify: mock,
+  };
+});
+
 vi.mock("@/services/outbox/outbox.service", () => {
   const mock = vi.fn().mockResolvedValue(undefined);
   return {
@@ -122,6 +132,7 @@ import { ConflictError } from "@/lib/errors";
 import { parentApproveDecision } from "@/services/parent/parent-approve-decision.service";
 import { generateParentApproval } from "@/services/parent/generate-parent-approval.service";
 import { __mockOutboxPublish } from "@/services/outbox/outbox.service";
+import { __mockNotify } from "@/services/notification/notification.service";
 
 const RAW_TOKEN = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
 const TOKEN_HASH = sha256(RAW_TOKEN);
@@ -638,7 +649,7 @@ describe("generateParentApproval", () => {
       expect.anything(),
       "P1"
     );
-    expect(outboxService.publish).toHaveBeenCalledTimes(1);
+    expect(__mockNotify).toHaveBeenCalledWith("PARENT_APPROVAL_REQUESTED", expect.any(Object));
   });
 
   it("generates token and sends SMS to selected parent when parentId is provided", async () => {
@@ -670,14 +681,12 @@ describe("generateParentApproval", () => {
       expect.anything(),
       "P-MOTHER"
     );
-    expect(outboxService.publish).toHaveBeenCalledWith(
+    expect(__mockNotify).toHaveBeenCalledWith(
+      "PARENT_APPROVAL_REQUESTED",
       expect.objectContaining({
-        payload: expect.objectContaining({
-          parentId: "P-MOTHER",
-          recipientPhone: "+919876543210",
-        }),
-      }),
-      expect.anything()
+        parentId: "P-MOTHER",
+        recipientPhone: "+919876543210",
+      })
     );
   });
 

@@ -56,7 +56,7 @@ export type ApprovalQueueItem = {
 export function useApprovals(query?: Partial<ListApprovalsQuery>) {
   const { data, error, isLoading, mutate } = useSWR(
     query ? getApprovalsUrl(query) : null,
-    { refreshInterval: 30_000, dedupingInterval: 10_000 },
+    { refreshInterval: 60_000, dedupingInterval: 10_000 },
   );
 
   return {

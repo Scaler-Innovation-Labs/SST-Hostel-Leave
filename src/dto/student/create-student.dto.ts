@@ -4,7 +4,7 @@ import { optionalBlankPhoneField, requiredPhoneField } from "@/dto/shared/phone.
 
 export const createStudentSchema = z.object({
   fullName: z.string().min(1).max(200),
-  email: z.string().email().optional().or(z.literal("")),
+  email: z.string().trim().email().toLowerCase().optional().or(z.literal("")),
   phone: optionalBlankPhoneField(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional().nullable(),
   rollNumber: z.string().min(1).max(50),
@@ -16,7 +16,7 @@ export const createStudentSchema = z.object({
   // on a missing parent record.
   parentName: z.string().min(1).max(200),
   parentPhone: requiredPhoneField(),
-  parentEmail: z.string().email().optional().or(z.literal("")),
+  parentEmail: z.string().trim().email().toLowerCase().optional().or(z.literal("")),
   parentRelationship: z.string().min(1).max(100),
 });
 

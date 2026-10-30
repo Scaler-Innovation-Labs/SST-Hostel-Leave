@@ -109,7 +109,7 @@ All API endpoints fall under three security categories:
 ## 4. Movement & QR Gate Scanning Endpoints
 
 ### 4.1 Preview QR Scan (Read-Only Guard Gate Check)
-* **HTTP Route**: `GET /api/v1/movements/scan/preview?token=<raw_token>`
+* **HTTP Route**: `POST /api/v1/movements/scan/preview`
 * **Auth & Role**: Required (`GUARD`, `ADMIN`, `SUPER_ADMIN`)
 * **Purpose**: Identity check before opening physical gate. Does NOT mutate state or log movements.
 * **Success Response (200)**:

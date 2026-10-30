@@ -1,4 +1,5 @@
 import updateStudentSchema from "@/dto/student/update-student.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -35,7 +36,7 @@ export async function PUT(
     const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
     const { id } = await params;
-    const body = await request.json();
+    const body = await readBoundedJson(request);
     const dto = updateStudentSchema.parse(body);
 
     const result = await updateStudent(id, dto, currentUser.id);

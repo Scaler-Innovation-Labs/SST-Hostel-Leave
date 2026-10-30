@@ -499,13 +499,19 @@ export const qrPassRepository = {
     const conditions: ReturnType<typeof and>[] = [eq(qrPasses.status, QR_STATUS.ACTIVE)];
     if (hostelIds?.length) {
       conditions.push(inArray(users.hostelId, hostelIds));
+      const result = await dbClient
+        .select({ count: sql<number>`count(*)` })
+        .from(qrPasses)
+        .leftJoin(leaveRequests, eq(qrPasses.leaveRequestId, leaveRequests.id))
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(and(...conditions));
+      return Number(result[0]?.count ?? 0);
     }
+
     const result = await dbClient
       .select({ count: sql<number>`count(*)` })
       .from(qrPasses)
-      .leftJoin(leaveRequests, eq(qrPasses.leaveRequestId, leaveRequests.id))
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
       .where(and(...conditions));
     return Number(result[0]?.count ?? 0);
   },
@@ -514,17 +520,20 @@ export const qrPassRepository = {
     hostelIds?: string[],
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<number> {
-    const conditions: ReturnType<typeof and>[] = [];
     if (hostelIds?.length) {
-      conditions.push(inArray(users.hostelId, hostelIds));
+      const result = await dbClient
+        .select({ count: sql<number>`count(*)` })
+        .from(qrPasses)
+        .leftJoin(leaveRequests, eq(qrPasses.leaveRequestId, leaveRequests.id))
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(inArray(users.hostelId, hostelIds));
+      return Number(result[0]?.count ?? 0);
     }
+
     const result = await dbClient
       .select({ count: sql<number>`count(*)` })
-      .from(qrPasses)
-      .leftJoin(leaveRequests, eq(qrPasses.leaveRequestId, leaveRequests.id))
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
-      .where(and(...conditions));
+      .from(qrPasses);
     return Number(result[0]?.count ?? 0);
   },
 };

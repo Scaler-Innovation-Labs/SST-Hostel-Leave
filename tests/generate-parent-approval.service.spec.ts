@@ -6,6 +6,7 @@ const mockFindApprovalById = vi.fn();
 const mockUpdateParentApprovalToken = vi.fn();
 const mockAuditRecord = vi.fn();
 const mockOutboxPublish = vi.fn();
+const mockNotificationNotify = vi.fn();
 
 vi.mock("@/db/repositories/parent/parent.repository", () => ({
   parentRepository: {
@@ -23,6 +24,12 @@ vi.mock("@/db/repositories/leave/leave-parent-approval.repository", () => ({
 vi.mock("@/services/audit/audit.service", () => ({
   auditService: {
     record: (...args: any[]) => mockAuditRecord(...args),
+  },
+}));
+
+vi.mock("@/services/notification/notification.service", () => ({
+  notificationService: {
+    notify: (...args: any[]) => mockNotificationNotify(...args),
   },
 }));
 
@@ -71,6 +78,7 @@ beforeEach(() => {
   mockUpdateParentApprovalToken.mockResolvedValue({ id: "AP1" });
   mockAuditRecord.mockResolvedValue({});
   mockOutboxPublish.mockResolvedValue(undefined);
+  mockNotificationNotify.mockResolvedValue({ success: true, failures: [] });
   mockSha256.mockResolvedValue("hashed-token");
   mockToHex.mockReturnValue("hex-token");
 });
@@ -82,15 +90,11 @@ describe("generateParentApproval service", () => {
     expect(mockFindPrimaryByStudentId).toHaveBeenCalledWith("S1");
     expect(mockUpdateParentApprovalToken).toHaveBeenCalledWith("AP1", "hashed-token", expect.any(Date), expect.any(Object), "P1");
     expect(mockAuditRecord).toHaveBeenCalledWith("CREATE", "LEAVE_APPROVAL", "AP1", null, expect.any(Object), expect.any(Object));
-    expect(mockOutboxPublish).toHaveBeenCalledWith(
+    expect(mockNotificationNotify).toHaveBeenCalledWith(
+      "PARENT_APPROVAL_REQUESTED",
       expect.objectContaining({
-        eventType: "NOTIFICATION_REQUESTED",
-        payload: expect.objectContaining({
-          notificationType: "PARENT_APPROVAL_REQUESTED",
-          recipientPhone: "+1234567890",
-        }),
-      }),
-      expect.any(Object)
+        recipientPhone: "+1234567890",
+      })
     );
   });
 
@@ -108,7 +112,7 @@ describe("generateParentApproval service", () => {
     await generateParentApproval(VALID_CONTEXT, APPROVAL_STEP);
 
     expect(mockUpdateParentApprovalToken).not.toHaveBeenCalled();
-    expect(mockOutboxPublish).not.toHaveBeenCalled();
+    expect(mockNotificationNotify).not.toHaveBeenCalled();
   });
 
   it("does not queue a notification when the compare-and-set token update loses a race", async () => {
@@ -117,7 +121,7 @@ describe("generateParentApproval service", () => {
     await generateParentApproval(VALID_CONTEXT, APPROVAL_STEP);
 
     expect(mockAuditRecord).not.toHaveBeenCalled();
-    expect(mockOutboxPublish).not.toHaveBeenCalled();
+    expect(mockNotificationNotify).not.toHaveBeenCalled();
   });
 
   it("throws NotFoundError when no primary parent found", async () => {
@@ -137,16 +141,14 @@ describe("generateParentApproval service", () => {
 
     await generateParentApproval(VALID_CONTEXT, APPROVAL_STEP);
 
-    expect(mockOutboxPublish).toHaveBeenCalledWith(
+    expect(mockNotificationNotify).toHaveBeenCalledWith(
+      "PARENT_APPROVAL_REQUESTED",
       expect.objectContaining({
-        payload: expect.objectContaining({
-          variables: expect.objectContaining({
-            approvalLink: "https://example.com/parent-approve/hex-token",
-            StudentApprovalName: "John Doe",
-          }),
+        variables: expect.objectContaining({
+          approvalLink: "https://example.com/parent-approve/hex-token",
+          StudentApprovalName: "John Doe",
         }),
-      }),
-      expect.any(Object)
+      })
     );
   });
 

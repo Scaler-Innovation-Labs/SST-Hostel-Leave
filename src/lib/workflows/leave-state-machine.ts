@@ -15,6 +15,7 @@ export type LeaveAction = typeof LEAVE_ACTION[keyof typeof LEAVE_ACTION];
 
 export const LEAVE_TRANSITIONS: Record<string, string[]> = {
   PENDING: [
+    "EXPIRE",
     "APPROVE",
     "REJECT",
     "CANCEL",
@@ -59,6 +60,7 @@ export function getNextState(
 
   const transitionMap: Record<string, Partial<Record<LeaveAction, LeaveRequestStatus>>> = {
     PENDING: {
+      EXPIRE: LEAVE_REQUEST_STATUS.EXPIRED,
       APPROVE: LEAVE_REQUEST_STATUS.APPROVED,
       REJECT: LEAVE_REQUEST_STATUS.REJECTED,
       CANCEL: LEAVE_REQUEST_STATUS.CANCELLED,

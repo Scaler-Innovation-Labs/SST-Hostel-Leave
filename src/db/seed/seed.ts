@@ -43,5 +43,9 @@ async function main() {
 }
 
 main()
-  .catch((error) => { logger.error("Seed failed", { error: error instanceof Error ? error.message : String(error) }); })
-  .finally(() => process.exit());
+
+  .catch((error) => {
+    logger.error("Seed failed", { error: error instanceof Error ? error.message : String(error) });
+    process.exit(1);
+  })
+  .then(() => process.exit(0));

@@ -34,8 +34,9 @@ vi.mock("@/lib/crypto", () => ({
   sha256: vi.fn().mockResolvedValue("hashed-token"),
 }));
 
+import { GENERIC_PARENT_TOKEN_ERROR_MESSAGE } from "@/constants/parent/parent-approval";
 import { getLeaveDetailsByToken } from "@/services/parent/get-leave-details-by-token.service";
-import { NotFoundError, ValidationError } from "@/lib/errors";
+import { ValidationError } from "@/lib/errors";
 
 const MOCK_APPROVAL_LEAVE = {
   id: "AP1",
@@ -89,12 +90,18 @@ describe("getLeaveDetailsByToken service", () => {
 
     const failure = await getLeaveDetailsByToken("bad-token").catch((e: unknown) => e);
     expect(failure).toBeInstanceOf(ValidationError);
-    expect((failure as Error).message).toBe("Unable to process this approval link");
+    expect((failure as Error).message).toBe(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
+  });
+
+  it("throws generic ValidationError when token is malformed or empty", async () => {
+    const failure = await getLeaveDetailsByToken("   ").catch((e: unknown) => e);
+    expect(failure).toBeInstanceOf(ValidationError);
+    expect((failure as Error).message).toBe(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
   });
 
   // Oracle hardening: expired / already-processed links surface the same
-  // generic NotFoundError as invalid links.
-  it("throws generic NotFoundError when approval is expired", async () => {
+  // generic ValidationError as invalid links.
+  it("throws generic ValidationError when approval is expired", async () => {
     mockFindByParentApprovalToken.mockResolvedValue({
       ...MOCK_APPROVAL_LEAVE,
       parentDetails: {
@@ -105,7 +112,7 @@ describe("getLeaveDetailsByToken service", () => {
 
     const failure = await getLeaveDetailsByToken("expired-token").catch((e: unknown) => e);
     expect(failure).toBeInstanceOf(ValidationError);
-    expect((failure as Error).message).toBe("Unable to process this approval link");
+    expect((failure as Error).message).toBe(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
   });
 
   it("returns empty leave type when the leave type cannot be resolved", async () => {
@@ -117,7 +124,7 @@ describe("getLeaveDetailsByToken service", () => {
     expect(result.leaveTypeDescription).toBe("");
   });
 
-  it("throws generic NotFoundError when approval already processed", async () => {
+  it("throws generic ValidationError when approval already processed", async () => {
     mockFindByParentApprovalToken.mockResolvedValue({
       ...MOCK_APPROVAL_LEAVE,
       decision: "APPROVED",
@@ -125,6 +132,6 @@ describe("getLeaveDetailsByToken service", () => {
 
     const failure = await getLeaveDetailsByToken("used-token").catch((e: unknown) => e);
     expect(failure).toBeInstanceOf(ValidationError);
-    expect((failure as Error).message).toBe("Unable to process this approval link");
+    expect((failure as Error).message).toBe(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
   });
 });

@@ -28,6 +28,8 @@ export function SWRProvider({ children }: SWRProviderProps) {
         revalidateOnFocus: false,
         revalidateIfStale: false,
         revalidateOnMount: true,
+        refreshWhenHidden: false,
+        refreshWhenOffline: false,
         dedupingInterval: 10_000,
         errorRetryCount: 2,
         keepPreviousData: true,

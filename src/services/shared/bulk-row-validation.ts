@@ -44,10 +44,11 @@ export function optionalEmail(
   rowIndex: number
 ): string | undefined {
   if (!value) return undefined;
-  if (value.length > 254 || !EMAIL_PATTERN.test(value)) {
+  const normalized = value.trim().toLowerCase();
+  if (normalized.length > 254 || !EMAIL_PATTERN.test(normalized)) {
     throw new ValidationError(`Row ${rowIndex + 1}: ${field} is not a valid email`);
   }
-  return value;
+  return normalized;
 }
 
 export function requiredPhone(

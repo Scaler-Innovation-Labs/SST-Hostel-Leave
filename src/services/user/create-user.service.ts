@@ -4,14 +4,16 @@ import { ROLE_SCOPE_TYPE } from "@/constants/auth/role-scope";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
 import { userRepository, type UserWithRoles } from "@/db/repositories/user/user.repository";
 import type { CreateUserDto } from "@/dto/user/create-user.dto";
+import { assertNoConflictingRoles } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { ConflictError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 
 export async function createUser(dto: CreateUserDto, actorUserId: string | null = null): Promise<UserWithRoles | null> {
   return await db.transaction(async (tx) => {
-    if (dto.email) {
-      const existingEmail = await userRepository.findByEmail(dto.email, tx);
+    const normalizedEmail = dto.email ? dto.email.toLowerCase().trim() : undefined;
+    if (normalizedEmail) {
+      const existingEmail = await userRepository.findByEmail(normalizedEmail, tx);
       if (existingEmail) {
         throw new ConflictError("Email is already in use");
       }
@@ -28,7 +30,7 @@ export async function createUser(dto: CreateUserDto, actorUserId: string | null 
     try {
       user = await userRepository.create({
         fullName: dto.fullName,
-        email: dto.email || undefined,
+        email: normalizedEmail,
         phone: dto.phone || undefined,
         slackId: dto.slackId || undefined,
         gender: dto.gender ?? null,
@@ -45,6 +47,14 @@ export async function createUser(dto: CreateUserDto, actorUserId: string | null 
       }
       throw err;
     }
+
+    const allRoleCodes = [
+      ...new Set([
+        ...(dto.roleCodes ?? []),
+        ...(dto.roleScopes?.map((s) => s.roleCode) ?? []),
+      ]),
+    ];
+    assertNoConflictingRoles(allRoleCodes);
 
     const roleIdsByCode = new Map<string, string>(
       (await userRoleRepository.findRolesByCodes(
@@ -94,7 +104,7 @@ export async function createUser(dto: CreateUserDto, actorUserId: string | null 
         AUDIT_ENTITY_TYPE.USER,
         user.id,
         actorUserId,
-        { fullName: dto.fullName, email: dto.email, roleCodes: dto.roleCodes, roleScopes: dto.roleScopes },
+        { fullName: dto.fullName, email: normalizedEmail, roleCodes: dto.roleCodes, roleScopes: dto.roleScopes },
         tx,
       );
     }

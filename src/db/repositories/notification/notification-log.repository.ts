@@ -53,6 +53,37 @@ export const notificationLogRepository = {
 	 * notification log. Used to avoid re-sending an accepted SMS if the
 	 * worker retries after the log was committed but before outbox completion.
 	 */
+	/**
+	 * Checks whether a successful (SENT) delivery already exists for a specific
+	 * outbox event, notification channel, and recipient.
+	 */
+	async hasSentForOutboxChannel(
+		outboxEventId: string,
+		channel: NotificationChannel,
+		recipient: string,
+		dbClient: Pick<typeof db, "select"> = db
+	): Promise<boolean> {
+		const rows = await dbClient
+			.select({ id: notificationLogs.id })
+			.from(notificationLogs)
+			.where(
+				and(
+					eq(notificationLogs.deliveryStatus, NOTIFICATION_DELIVERY_STATUS.SENT),
+					eq(notificationLogs.channel, channel),
+					eq(notificationLogs.recipient, recipient),
+					sql`${notificationLogs.metadata}->>'outboxEventId' = ${outboxEventId}`
+				)
+			)
+			.limit(1);
+
+		return rows.length > 0;
+	},
+
+	/**
+	 * True when this outbox event already has a successfully delivered
+	 * notification log. Used to avoid re-sending an accepted SMS if the
+	 * worker retries after the log was committed but before outbox completion.
+	 */
 	async hasSentForOutboxEventId(
 		outboxEventId: string,
 		dbClient: Pick<typeof db, "select"> = db

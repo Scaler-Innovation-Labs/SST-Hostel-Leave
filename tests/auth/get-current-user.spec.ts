@@ -5,6 +5,8 @@ const mockFindRoles = vi.fn();
 const mockFindRoleScopes = vi.fn();
 const mockFindByClerkId = vi.fn();
 const mockTouchLastLogin = vi.fn();
+const mockAuth = vi.fn();
+const mockCurrentUser = vi.fn();
 
 vi.mock("@/db/repositories/auth/user-role.repository", () => ({
   userRoleRepository: {
@@ -21,7 +23,8 @@ vi.mock("@/db/repositories/user/user.repository", () => ({
 }));
 
 vi.mock("@clerk/nextjs/server", () => ({
-  currentUser: vi.fn(),
+  auth: (...args: any[]) => mockAuth(...args),
+  currentUser: (...args: any[]) => mockCurrentUser(...args),
 }));
 
 import { getCurrentUser } from "@/lib/auth/get-current-user";
@@ -29,24 +32,24 @@ import { getCurrentUser } from "@/lib/auth/get-current-user";
 describe("getCurrentUser", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mockAuth.mockResolvedValue({ userId: "C1" });
+    mockCurrentUser.mockResolvedValue({ id: "C1", emailAddresses: [{ emailAddress: "a@example.com" }] });
   });
 
   it("returns null when no clerk user", async () => {
-    const { currentUser } = await import("@clerk/nextjs/server");
-    currentUser.mockResolvedValue(null);
+    mockAuth.mockResolvedValue({ userId: null });
 
     const res = await getCurrentUser();
     expect(res).toBeNull();
   });
 
   it("loads role codes and returns current user with roles", async () => {
-    const clerkUser = { id: "C1", emailAddresses: [{ emailAddress: "a@example.com" }] };
-    const { currentUser } = await import("@clerk/nextjs/server");
-    currentUser.mockResolvedValue(clerkUser);
+    mockAuth.mockResolvedValue({ userId: "C1" });
 
     mockFindByClerkId.mockResolvedValue({
       id: "U1",
       clerkId: "C1",
+      email: "a@example.com",
       isActive: true,
       deletedAt: null,
     });
@@ -61,13 +64,12 @@ describe("getCurrentUser", () => {
   });
 
   it("loads role scopes alongside role codes", async () => {
-    const clerkUser = { id: "C2", emailAddresses: [{ emailAddress: "b@example.com" }] };
-    const { currentUser } = await import("@clerk/nextjs/server");
-    currentUser.mockResolvedValue(clerkUser);
+    mockAuth.mockResolvedValue({ userId: "C2" });
 
     mockFindByClerkId.mockResolvedValue({
       id: "U2",
       clerkId: "C2",
+      email: "b@example.com",
       isActive: true,
       deletedAt: null,
     });
@@ -84,13 +86,12 @@ describe("getCurrentUser", () => {
   });
 
   it("does not call touchLastLogin during authentication resolution", async () => {
-    const clerkUser = { id: "C3", emailAddresses: [{ emailAddress: "c@example.com" }] };
-    const { currentUser } = await import("@clerk/nextjs/server");
-    currentUser.mockResolvedValue(clerkUser);
+    mockAuth.mockResolvedValue({ userId: "C3" });
 
     mockFindByClerkId.mockResolvedValue({
       id: "U3",
       clerkId: "C3",
+      email: "c@example.com",
       isActive: true,
       deletedAt: null,
     });

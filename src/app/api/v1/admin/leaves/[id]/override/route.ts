@@ -1,4 +1,5 @@
 import { superadminOverrideSchema } from "@/dto/leave/superadmin-override.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -13,7 +14,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     ]);
 
     const { id } = await params;
-    const body = await request.json();
+    const body = await readBoundedJson(request);
     const dto = superadminOverrideSchema.parse(body);
 
     const result = await superadminOverrideLeave(id, dto.mode, currentUser, dto.comments);

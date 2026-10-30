@@ -23,7 +23,7 @@ export function useExtensionApprovals(options?: UseExtensionApprovalsOptions) {
   const url = getExtensionApprovalsUrl(options);
 
   const { data, error, isLoading, mutate } = useSWR(url, fetcher, {
-    refreshInterval: options?.refreshInterval ?? 30_000,
+    refreshInterval: options?.refreshInterval ?? 60_000,
   });
 
   return {

@@ -159,6 +159,86 @@ describe("recordMovement service", () => {
 
       expect(mockMovementEventCreate).toHaveBeenCalled();
     });
+
+    it("accepts valid transition (IN_HOSTEL + MANUAL_CHECKOUT)", async () => {
+      mockFindStudentByIdForUpdate.mockResolvedValue({ id: "S1", currentLocationState: "IN_HOSTEL" });
+
+      const result = await recordMovement({
+        studentId: "S1",
+        fromState: "IN_HOSTEL",
+        toState: "CHECKED_OUT",
+        eventType: "MANUAL_CHECKOUT",
+        movementMethod: "MANUAL",
+        isManualOverride: true,
+        overrideReason: "Manual checkout by admin",
+      });
+
+      expect(result).toEqual({ id: "ME1" });
+      expect(mockMovementEventCreate).toHaveBeenCalled();
+      expect(mockUpdateCurrentLocationState).toHaveBeenCalledWith("S1", "CHECKED_OUT", expect.any(Object));
+    });
+
+    it("rejects invalid transition (OUTSIDE_HOSTEL + MANUAL_CHECKOUT)", async () => {
+      mockFindStudentByIdForUpdate.mockResolvedValue({ id: "S1", currentLocationState: "OUTSIDE_HOSTEL" });
+
+      await expect(
+        recordMovement({
+          studentId: "S1",
+          fromState: "OUTSIDE_HOSTEL",
+          toState: "CHECKED_OUT",
+          eventType: "MANUAL_CHECKOUT",
+          movementMethod: "MANUAL",
+        })
+      ).rejects.toBeInstanceOf(ConflictError);
+    });
+
+    it("accepts valid transition (OVERDUE + SECURITY_OVERRIDE)", async () => {
+      mockFindStudentByIdForUpdate.mockResolvedValue({ id: "S1", currentLocationState: "OVERDUE" });
+
+      const result = await recordMovement({
+        studentId: "S1",
+        fromState: "OVERDUE",
+        toState: "IN_HOSTEL",
+        eventType: "SECURITY_OVERRIDE",
+        movementMethod: "MANUAL",
+        isManualOverride: true,
+        overrideReason: "Late return authorized",
+      });
+
+      expect(result).toEqual({ id: "ME1" });
+      expect(mockMovementEventCreate).toHaveBeenCalled();
+      expect(mockUpdateCurrentLocationState).toHaveBeenCalledWith("S1", "IN_HOSTEL", expect.any(Object));
+    });
+
+    it("rejects invalid transition (IN_HOSTEL + SECURITY_OVERRIDE)", async () => {
+      mockFindStudentByIdForUpdate.mockResolvedValue({ id: "S1", currentLocationState: "IN_HOSTEL" });
+
+      await expect(
+        recordMovement({
+          studentId: "S1",
+          fromState: "IN_HOSTEL",
+          toState: "IN_HOSTEL",
+          eventType: "SECURITY_OVERRIDE",
+          movementMethod: "MANUAL",
+        })
+      ).rejects.toBeInstanceOf(ConflictError);
+    });
+
+    it("accepts valid transition (OUTSIDE_HOSTEL + MANUAL_RETURN)", async () => {
+      mockFindStudentByIdForUpdate.mockResolvedValue({ id: "S1", currentLocationState: "OUTSIDE_HOSTEL" });
+
+      await recordMovement({
+        studentId: "S1",
+        fromState: "OUTSIDE_HOSTEL",
+        toState: "IN_HOSTEL",
+        eventType: "MANUAL_RETURN",
+        movementMethod: "MANUAL",
+      });
+
+      expect(mockMovementEventCreate).toHaveBeenCalled();
+      expect(mockUpdateCurrentLocationState).toHaveBeenCalledWith("S1", "IN_HOSTEL", expect.any(Object));
+    });
+
   });
 
   describe("student state validation", () => {

@@ -8,6 +8,7 @@ const mockRunCleanupQrJob = vi.fn();
 const mockRunDocumentRetentionJob = vi.fn();
 const mockRunAuditRetentionJob = vi.fn();
 const mockRunPurgeOutboxJob = vi.fn();
+const mockRunCleanupRateLimitJob = vi.fn();
 
 vi.mock("@/lib/auth/cron-auth", () => ({
   checkCronAuth: (...args: any[]) => mockCheckCronAuth(...args),
@@ -41,6 +42,11 @@ vi.mock("@/services/cron/audit-retention.job", () => ({
 
 vi.mock("@/services/cron/purge-outbox.job", () => ({
   runPurgeOutboxJob: (...args: any[]) => mockRunPurgeOutboxJob(...args),
+}));
+
+vi.mock("@/services/cron/cleanup-rate-limit.job", () => ({
+  runCleanupRateLimitJob: (...args: any[]) =>
+    mockRunCleanupRateLimitJob(...args),
 }));
 
 import { GET as cleanup } from "@/app/api/cron/cleanup/route";
@@ -85,6 +91,10 @@ beforeEach(() => {
     job: "purge-outbox",
     purged: 0,
     cutoff: "2025-01-01T00:00:00.000Z",
+  });
+  mockRunCleanupRateLimitJob.mockResolvedValue({
+    job: "cleanup-rate-limit",
+    deleted: 0,
   });
 });
 

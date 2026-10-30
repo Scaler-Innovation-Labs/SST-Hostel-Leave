@@ -19,12 +19,12 @@ import { issueQrPassForApprovedLeave } from "@/services/leave/qr-pass-lifecycle.
 import {
   checkParentOverride,
   getApprovalAuditMeta,
-  handleNextStep,
   selectCurrentPendingApproval,
   updateApprovalAndAudit,
 } from "@/services/leave/shared-approval.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 import { assertCanAccessLeave } from "@/services/shared/authorization.service";
+import { activateWorkflowStep } from "@/services/workflow/workflow-activation.service";
 
 export type ApproveLeaveResult = {
   leaveId: string;
@@ -145,36 +145,30 @@ export async function approveLeave(
       };
     }
 
-    const nextResult = await handleNextStep(
+    const nextApproval = await leaveApprovalRepository.findNextByEntityAndDecision(
       leaveId,
       leaveApprovals.leaveRequestId,
       current.stepOrder,
-      (id, stepKey, stepOrder, t) => leaveRepository.updateCurrentStep(id, stepKey, stepOrder, t),
-      (next) => ({
-        leaveId,
-        decision: LEAVE_APPROVAL_DECISION.APPROVED,
-        stepKey: next.stepKey,
-        stepOrder: next.stepOrder,
-        newStatus: null,
-      }),
+      LEAVE_APPROVAL_DECISION.PENDING,
       tx
     );
 
-    if (nextResult) {
-      // A later workflow step is now current (e.g. admin review after POC
-      // approval). Notify the next approver via the approval queue rules.
-      await outboxService.publish({
-        eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVAL_REQUIRED,
-        aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
-        aggregateId: leaveId,
-        payload: {
-          leaveId,
-          studentId: leaveInTx.studentId,
-          stepKey: nextResult.stepKey,
-          stepOrder: nextResult.stepOrder,
-        },
-      }, tx);
-      return nextResult;
+    if (nextApproval) {
+      await leaveRepository.updateCurrentStep(leaveId, nextApproval.stepKey, nextApproval.stepOrder, tx);
+
+      await activateWorkflowStep({
+        leave: leaveInTx,
+        step: nextApproval,
+        dbClient: tx,
+      });
+
+      return {
+        leaveId,
+        decision: LEAVE_APPROVAL_DECISION.APPROVED,
+        stepKey: nextApproval.stepKey,
+        stepOrder: nextApproval.stepOrder,
+        newStatus: null,
+      };
     }
 
     const nextState = getNextState(

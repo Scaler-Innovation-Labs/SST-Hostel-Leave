@@ -53,4 +53,17 @@ export const rateLimitRepository = {
       resetAt: new Date(String(row.reset_at)),
     };
   },
+
+  /**
+   * Deletes rate limit entries whose reset time is older than the retention threshold.
+   * Default retention is 24 hours past the reset window.
+   */
+  async deleteExpired(retentionMs = 86_400_000): Promise<number> {
+    const result = await db.execute(sql`
+      DELETE FROM rate_limit_entries
+      WHERE reset_at < now() - (${retentionMs} || ' milliseconds')::interval;
+    `);
+
+    return Number(result.rowCount ?? 0);
+  },
 };

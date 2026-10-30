@@ -26,6 +26,24 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+function getDbCredentials() {
+  const raw = process.env.DATABASE_URL!;
+  try {
+    const parsed = new URL(raw);
+    const sslRequired = parsed.searchParams.get("sslmode") === "require";
+    parsed.searchParams.delete("sslmode");
+    parsed.searchParams.delete("channel_binding");
+    return {
+      url: parsed.toString(),
+      ssl: sslRequired ? { rejectUnauthorized: false } : undefined,
+    };
+  } catch {
+    return {
+      url: raw,
+    };
+  }
+}
+
 export default defineConfig({
   schema: "./src/db/index.ts",
 
@@ -33,9 +51,7 @@ export default defineConfig({
 
   dialect: "postgresql",
 
-  dbCredentials: {
-    url: process.env.DATABASE_URL,
-  },
+  dbCredentials: getDbCredentials(),
 
   migrations: {
     table: "__drizzle_migration",

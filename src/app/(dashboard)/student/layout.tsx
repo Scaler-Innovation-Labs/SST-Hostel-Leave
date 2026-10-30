@@ -13,7 +13,7 @@ export default async function StudentLayout({ children }: StudentLayoutProps) {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/unauthorized");
+    redirect("/login");
   }
 
   if (!user.roles.includes(ROLES.STUDENT)) {

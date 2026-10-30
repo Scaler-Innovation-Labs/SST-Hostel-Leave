@@ -26,7 +26,7 @@ export async function createStudent(
     const user = await userRepository.create(
       {
         fullName: dto.fullName,
-        email: dto.email || undefined,
+        email: dto.email ? dto.email.toLowerCase().trim() : undefined,
         phone: dto.phone || undefined,
         gender: dto.gender ?? null,
         hostelId: dto.hostelId ?? undefined,
@@ -53,7 +53,7 @@ export async function createStudent(
         studentId: student.id,
         name: dto.parentName,
         phone: dto.parentPhone,
-        email: dto.parentEmail || null,
+        email: dto.parentEmail ? dto.parentEmail.toLowerCase().trim() : null,
         relationship: dto.parentRelationship,
         isPrimary: true,
       },

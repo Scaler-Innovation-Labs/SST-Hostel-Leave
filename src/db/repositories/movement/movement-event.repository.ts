@@ -163,12 +163,18 @@ export const movementEventRepository = {
     const conditions: ReturnType<typeof and>[] = [gte(movementEvents.occurredAt, since)];
     if (hostelIds?.length) {
       conditions.push(inArray(users.hostelId, hostelIds));
+      const result = await dbClient
+        .select({ count: sql<number>`count(*)` })
+        .from(movementEvents)
+        .leftJoin(students, eq(movementEvents.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(and(...conditions));
+      return Number(result[0]?.count ?? 0);
     }
+
     const result = await dbClient
       .select({ count: sql<number>`count(*)` })
       .from(movementEvents)
-      .leftJoin(students, eq(movementEvents.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
       .where(and(...conditions));
     return Number(result[0]?.count ?? 0);
   },

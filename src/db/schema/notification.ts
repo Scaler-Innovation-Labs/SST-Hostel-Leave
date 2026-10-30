@@ -11,6 +11,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm/sql/sql";
@@ -185,6 +186,18 @@ export const notificationLogs = pgTable(
   createdAtIndex: index(
     "notification_logs_created_at_idx"
   ).on(table.createdAt),
+
+  outboxDeliverySentUnq: uniqueIndex(
+    "notification_logs_outbox_delivery_sent_unq"
+  )
+    .on(
+      sql`(${table.metadata}->>'outboxEventId')`,
+      table.channel,
+      table.recipient
+    )
+    .where(
+      sql`${table.deliveryStatus} = 'SENT' AND (${table.metadata}->>'outboxEventId') IS NOT NULL`
+    ),
 })
 
 );

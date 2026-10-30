@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 
 import { ACTIVE_ROLE_COOKIE, ROLE_CONSOLES } from "@/constants/auth/role-consoles";
 import setActiveRoleSchema from "@/dto/auth/set-active-role.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { validateRoleSwitch } from "@/services/auth/active-role.service";
@@ -10,7 +11,7 @@ export async function POST(request: Request) {
   try {
     const user = await requireAuth();
 
-    const body = await request.json();
+    const body = await readBoundedJson(request);
     const dto = setActiveRoleSchema.parse(body);
 
     const activeRole = validateRoleSwitch(user.roles, dto.role);

@@ -4,7 +4,7 @@ import { ROLE_SCOPE_TYPE } from "@/constants/auth/role-scope";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
 import { userRepository, type UserWithRoles } from "@/db/repositories/user/user.repository";
 import type { UpdateUserDto } from "@/dto/user/update-user.dto";
-import { ROLES } from "@/lib/auth/roles";
+import { assertNoConflictingRoles,ROLES } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
@@ -17,8 +17,9 @@ export async function updateUser(id: string, dto: UpdateUserDto, actorUserId: st
   }
 
   return await db.transaction(async (tx) => {
-    if (dto.email && dto.email !== existing.email) {
-      const emailUser = await userRepository.findByEmail(dto.email, tx);
+    const normalizedEmail = dto.email ? dto.email.toLowerCase().trim() : undefined;
+    if (normalizedEmail && normalizedEmail !== existing.email?.toLowerCase()) {
+      const emailUser = await userRepository.findByEmail(normalizedEmail, tx);
       if (emailUser && emailUser.id !== id) {
         throw new ConflictError("Email is already in use");
       }
@@ -26,13 +27,20 @@ export async function updateUser(id: string, dto: UpdateUserDto, actorUserId: st
 
     await userRepository.updateUser(id, {
       fullName: dto.fullName,
-      email: dto.email,
+      email: normalizedEmail,
       phone: dto.phone,
       slackId: dto.slackId === undefined ? undefined : (dto.slackId || null),
       gender: dto.gender,
       hostelId: dto.hostelId,
       isActive: dto.isActive,
     }, tx);
+
+    if (dto.roleCodes !== undefined || dto.roleScopes !== undefined) {
+      const existingRoleCodes = await userRoleRepository.findRoleCodesByUserId(id, tx);
+      const newRoleCodes = dto.roleCodes !== undefined ? dto.roleCodes : existingRoleCodes;
+      const scopeRoleCodes = dto.roleScopes?.map((s) => s.roleCode) ?? [];
+      assertNoConflictingRoles([...new Set([...newRoleCodes, ...scopeRoleCodes])]);
+    }
 
     if (dto.roleCodes !== undefined) {
       // Guard: never remove the last super admin (would lock everyone out).

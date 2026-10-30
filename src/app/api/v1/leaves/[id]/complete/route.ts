@@ -1,4 +1,5 @@
 import completeLeaveSchema from "@/dto/leave/complete-leave.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -10,7 +11,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const currentUser = requireAnyRole(await requireAuth(), [ROLES.STUDENT, ROLES.POC, ROLES.ADMIN, ROLES.SUPER_ADMIN]);
 
     const { id } = await params;
-    const body = await request.json();
+    const body = await readBoundedJson(request, { allowEmpty: true });
     const dto = completeLeaveSchema.parse(body);
 
     const result = await completeLeave(id, dto, currentUser);

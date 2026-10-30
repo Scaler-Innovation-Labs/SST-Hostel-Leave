@@ -1,4 +1,5 @@
 import cancelLeaveSchema from "@/dto/leave/cancel-leave.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -15,12 +16,7 @@ export async function POST(
 
     await rateLimit(`cancel-leave:${currentUser.id}`, 30, 60_000);
 
-    let body: Record<string, unknown>;
-    try {
-      body = await request.json();
-    } catch {
-      body = {};
-    }
+    const body = await readBoundedJson(request, { allowEmpty: true });
     const dto = cancelLeaveSchema.parse(body);
 
     const { id: leaveId } = await routeContext.params;

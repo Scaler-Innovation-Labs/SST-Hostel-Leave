@@ -1,4 +1,5 @@
 import { saveHostelSchema } from "@/dto/hostel/save-hostel.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
   try {
     const user = await requireAuth();
     requireAnyRole(user, [ROLES.SUPER_ADMIN]);
-    const dto = saveHostelSchema.parse(await request.json());
+    const dto = saveHostelSchema.parse(await readBoundedJson(request));
     const hostel = await createHostel(dto, user);
     return ApiResponse.created(hostel);
   } catch (error) {

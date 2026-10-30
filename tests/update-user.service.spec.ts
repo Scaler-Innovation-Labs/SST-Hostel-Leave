@@ -131,4 +131,14 @@ describe("updateUser service", () => {
     const input = mockUpdateUser.mock.calls[0][1];
     expect(input.slackId).toBeUndefined();
   });
+
+  it("rejects assigning both STUDENT and staff roles simultaneously (S6)", async () => {
+    mockFindRoleCodesByUserId.mockResolvedValue(["STUDENT"]);
+    mockFindUserIdsByRoleCode.mockResolvedValue([]);
+
+    await expect(
+      updateUser("U1", { roleCodes: ["STUDENT", "ADMIN"] })
+    ).rejects.toThrow("A user cannot be assigned both STUDENT and staff roles simultaneously");
+  });
+
 });

@@ -10,7 +10,7 @@ export const scanQrSchema = z.object({
 
 export type ScanQrDto = z.infer<typeof scanQrSchema>;
 
-// GET /scan/preview reads ?token= from the query string — same contract as
+// POST /scan/preview reads { token } from the request body — same contract as
 // the POST body, minus scanType.
 export const scanQrPreviewSchema = z.object({
   token: z.string().trim().min(1).max(256),

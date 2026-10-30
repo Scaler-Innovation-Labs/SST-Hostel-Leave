@@ -66,7 +66,7 @@ export function registerParentRoutes() {
       },
       400: {
         description:
-          "Invalid decision payload, missing required comments on rejection, or token expired",
+          "Invalid decision payload, missing required comments on rejection, or invalid/expired approval link",
         content: {
           "application/json": { schema: apiErrorSchema },
         },

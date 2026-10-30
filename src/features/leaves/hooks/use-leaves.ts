@@ -92,7 +92,7 @@ export type FlatLeave = ReturnType<typeof flattenLeaveItem>;
 export function useLeaves(query?: Partial<ListLeavesQuery>) {
   const { data, error, isLoading, mutate } = useSWR(
     query ? getLeavesUrl(query) : null,
-    { refreshInterval: 15000 },
+    { refreshInterval: 60_000, dedupingInterval: 10_000 },
   );
 
   const rawItems: RawLeaveItem[] = data?.data?.items ?? [];

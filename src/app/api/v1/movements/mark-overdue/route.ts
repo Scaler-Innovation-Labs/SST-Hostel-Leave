@@ -1,4 +1,5 @@
 import markOverdueSchema from "@/dto/movement/mark-overdue.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -13,7 +14,7 @@ export async function POST(request: Request) {
       ROLES.GUARD,
     ]);
 
-    const body = await request.json();
+    const body = await readBoundedJson(request, { allowEmpty: true });
     const dto = markOverdueSchema.parse(body);
 
     const result = await markOverdue({

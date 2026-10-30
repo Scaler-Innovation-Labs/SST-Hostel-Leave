@@ -81,21 +81,18 @@ async function completeNonQrLeave(
   currentUser: ActingRef
 ): Promise<"completed" | "skipped"> {
   return await transaction(async (tx) => {
-    const leaveInTx = await leaveRepository.findByIdForUpdate(leaveId, tx);
+    // Lock hierarchy: leave_extensions -> leave_requests -> students.
+    // Lock pending extensions first to prevent deadlock with concurrent extension approvals.
+    const pendingExtensions =
+      await leaveExtensionRepository.lockPendingByLeaveRequestId(leaveId, tx);
 
-    if (!leaveInTx || leaveInTx.status !== LEAVE_REQUEST_STATUS.APPROVED) {
+    if (pendingExtensions.length > 0) {
       return "skipped" as const;
     }
 
-    // Re-check inside the transaction: a pending extension would be orphaned
-    // by completing the leave.
-    const extensions =
-      await leaveExtensionRepository.findByLeaveRequestId(leaveId, tx);
-    if (
-      extensions.some(
-        (extension) => extension.status === LEAVE_REQUEST_STATUS.PENDING
-      )
-    ) {
+    const leaveInTx = await leaveRepository.findByIdForUpdate(leaveId, tx);
+
+    if (!leaveInTx || leaveInTx.status !== LEAVE_REQUEST_STATUS.APPROVED) {
       return "skipped" as const;
     }
 

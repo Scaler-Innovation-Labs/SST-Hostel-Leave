@@ -1,5 +1,6 @@
 import type { MovementState } from "@/constants/movement";
 import { MOVEMENT_STATE } from "@/constants/movement";
+import type { MovementEvent } from "@/constants/movement/movement-event";
 import { ConflictError } from "@/lib/errors";
 
 export const MOVEMENT_ACTION = {
@@ -14,6 +15,22 @@ export const MOVEMENT_ACTION = {
 
 export type MovementAction =
 	(typeof MOVEMENT_ACTION)[keyof typeof MOVEMENT_ACTION];
+
+export const EVENT_TYPE_TO_ACTION: Partial<Record<MovementEvent, MovementAction>> = {
+	EXIT_HOSTEL: MOVEMENT_ACTION.EXIT_HOSTEL,
+	ENTER_HOSTEL: MOVEMENT_ACTION.ENTER_HOSTEL,
+	AUTO_OVERDUE: MOVEMENT_ACTION.MARK_OVERDUE,
+	MANUAL_RETURN: MOVEMENT_ACTION.MANUAL_RETURN,
+	MANUAL_CHECKOUT: MOVEMENT_ACTION.MANUAL_CHECKOUT,
+	SECURITY_OVERRIDE: MOVEMENT_ACTION.SECURITY_OVERRIDE,
+	QR_INVALIDATED: MOVEMENT_ACTION.INVALIDATE_QR,
+};
+
+export function getMovementActionForEvent(
+	eventType: MovementEvent | string
+): MovementAction | null {
+	return (EVENT_TYPE_TO_ACTION as Record<string, MovementAction>)[eventType] ?? null;
+}
 
 export const MOVEMENT_TRANSITIONS: Record<
 	MovementState,

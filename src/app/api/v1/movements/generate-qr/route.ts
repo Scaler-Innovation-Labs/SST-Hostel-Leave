@@ -1,4 +1,5 @@
 import generateQrSchema from "@/dto/movement/generate-qr.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -12,7 +13,7 @@ export async function POST(request: Request) {
 
     await rateLimit(`generate-qr:${currentUser.id}`, 30, 60_000);
 
-    const body = await request.json();
+    const body = await readBoundedJson(request);
     const dto = generateQrSchema.parse(body);
 
     const result = await generateQrPass({

@@ -325,6 +325,26 @@ async function deliverToRecipient(
 	userId?: string,
 	parentId?: string,
 ): Promise<void> {
+	const recipientStr = Array.isArray(recipient) ? recipient.join(", ") : recipient;
+
+	// Check if this exact outbox delivery already succeeded on a prior attempt.
+	// Prevents duplicate notification delivery on retry or stale lease reclamation.
+	if (context.outboxEventId) {
+		const alreadySent = await notificationLogRepository.hasSentForOutboxChannel(
+			context.outboxEventId,
+			channel,
+			recipientStr
+		);
+		if (alreadySent) {
+			logger.info("Skipping already delivered notification for outbox event", {
+				outboxEventId: context.outboxEventId,
+				channel,
+				recipient: recipientStr,
+			});
+			return;
+		}
+	}
+
 	const provider = getProvider(channel);
 	if (!provider) return;
 
@@ -375,23 +395,36 @@ async function deliverToRecipient(
 	if (context.outboxEventId) logMetadata.outboxEventId = context.outboxEventId;
 	if (mentions.length > 0) logMetadata.slackMentions = mentions.join(", ");
 
-	await notificationLogRepository.create({
-		leaveRequestId: context.leaveRequestId ?? null,
-		leaveExtensionId: context.leaveExtensionId ?? null,
-		userId: userId ?? context.userId ?? null,
-		parentId: parentId ?? context.parentId ?? null,
-		channel,
-		eventType,
-		recipient: Array.isArray(recipient) ? recipient.join(", ") : recipient,
-		ccRecipients: cc ?? null,
-		deliveryStatus: result.success
-			? NOTIFICATION_DELIVERY_STATUS.SENT
-			: NOTIFICATION_DELIVERY_STATUS.FAILED,
-		providerResponse: result.error ?? null,
-		providerMessageId: result.messageId ?? null,
-		sentAt: result.success ? new Date() : null,
-		metadata: logMetadata,
-	});
+	try {
+		await notificationLogRepository.create({
+			leaveRequestId: context.leaveRequestId ?? null,
+			leaveExtensionId: context.leaveExtensionId ?? null,
+			userId: userId ?? context.userId ?? null,
+			parentId: parentId ?? context.parentId ?? null,
+			channel,
+			eventType,
+			recipient: recipientStr,
+			ccRecipients: cc ?? null,
+			deliveryStatus: result.success
+				? NOTIFICATION_DELIVERY_STATUS.SENT
+				: NOTIFICATION_DELIVERY_STATUS.FAILED,
+			providerResponse: result.error ?? null,
+			providerMessageId: result.messageId ?? null,
+			sentAt: result.success ? new Date() : null,
+			metadata: logMetadata,
+		});
+	} catch (logError: any) {
+		// Unique constraint violation (23505): concurrent worker already logged SENT for this delivery.
+		if (logError?.code === "23505" || String(logError?.message).includes("notification_logs_outbox_delivery_sent_unq")) {
+			logger.warn("Concurrent duplicate delivery detected and prevented by database unique constraint", {
+				outboxEventId: context.outboxEventId,
+				channel,
+				recipient: recipientStr,
+			});
+			return;
+		}
+		throw logError;
+	}
 
 	// A provider that reports failure (as opposed to throwing) must still
 	// surface as a failed delivery — otherwise notify() records success and
@@ -558,10 +591,12 @@ export const notificationService = {
 						continue;
 					}
 
-					// Other non-email channels (per-user): send individually
+					// Other non-email channels (per-user): send individually (deduplicated per channel)
+					const sentRecipients = new Set<string>();
 					for (const contact of allContacts) {
 						const recipient = await getRecipientForChannel(contact, channel, context.hostelId);
-						if (!recipient) continue;
+						if (!recipient || sentRecipients.has(recipient)) continue;
+						sentRecipients.add(recipient);
 
 						try {
 							await deliverToRecipient(

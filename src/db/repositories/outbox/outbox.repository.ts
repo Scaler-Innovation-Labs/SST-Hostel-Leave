@@ -14,6 +14,13 @@ export type NewOutboxEvent = InferInsertModel<
   typeof outboxEvents
 >;
 
+export type OutboxActiveStatusCounts = {
+  pending: number;
+  processing: number;
+  failed: number;
+  total: number;
+}
+
 type OutboxDbClient = Pick<
   typeof db,
   "insert" | "select" | "update"
@@ -206,6 +213,46 @@ export const outboxRepository = {
       .limit(limit);
 
     return rows;
+  },
+
+  /**
+   * Fast aggregated status counts for non-terminal events (PENDING, PROCESSING, FAILED).
+   * Used by the worker drain loop to short-circuit when the queue is idle, avoiding
+   * multiple blind UPDATE write transactions when no active events exist.
+   */
+  async getActiveStatusCounts(
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<OutboxActiveStatusCounts> {
+    const rows = await dbClient
+      .select({
+        status: outboxEvents.status,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(outboxEvents)
+      .where(
+        inArray(outboxEvents.status, [
+          OUTBOX_STATUS.PENDING,
+          OUTBOX_STATUS.PROCESSING,
+          OUTBOX_STATUS.FAILED,
+        ])
+      )
+      .groupBy(outboxEvents.status);
+
+    const counts: OutboxActiveStatusCounts = {
+      pending: 0,
+      processing: 0,
+      failed: 0,
+      total: 0,
+    };
+
+    for (const r of rows) {
+      const c = Number(r.count) || 0;
+      if (r.status === OUTBOX_STATUS.PENDING) counts.pending = c;
+      else if (r.status === OUTBOX_STATUS.PROCESSING) counts.processing = c;
+      else if (r.status === OUTBOX_STATUS.FAILED) counts.failed = c;
+    }
+    counts.total = counts.pending + counts.processing + counts.failed;
+    return counts;
   },
 
   /**

@@ -252,10 +252,11 @@ export const userRepository = {
     email: string,
     dbClient: UserReadDb = db
   ): Promise<User | null> {
+    const normalized = email.toLowerCase().trim();
     const rows = await dbClient
       .select()
       .from(users)
-      .where(eq(users.email, email))
+      .where(sql`lower(${users.email}) = ${normalized}`)
       .limit(1);
 
     return rows[0] ?? null;
@@ -317,7 +318,7 @@ export const userRepository = {
       .insert(users)
       .values({
         fullName: input.fullName,
-        email: input.email ?? null,
+        email: input.email ? input.email.toLowerCase().trim() : null,
         phone: input.phone ?? null,
         slackId: input.slackId ?? null,
         gender: input.gender ?? null,
@@ -366,7 +367,7 @@ export const userRepository = {
   ): Promise<User | null> {
     const set: Record<string, unknown> = { updatedAt: new Date() };
     if (input.fullName !== undefined) set.fullName = input.fullName;
-    if (input.email !== undefined) set.email = input.email;
+    if (input.email !== undefined) set.email = input.email ? input.email.toLowerCase().trim() : null;
     if (input.profileImageUrl !== undefined) set.profileImageUrl = input.profileImageUrl;
 
     const rows = await dbClient
@@ -441,7 +442,11 @@ export const userRepository = {
     const set: Record<string, unknown> = { updatedAt: new Date() };
     for (const [key, value] of Object.entries(input)) {
       if (value !== undefined) {
-        set[key] = value;
+        if (key === 'email' && typeof value === 'string') {
+          set[key] = value ? value.toLowerCase().trim() : null;
+        } else {
+          set[key] = value;
+        }
       }
     }
 

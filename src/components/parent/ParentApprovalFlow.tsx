@@ -70,6 +70,7 @@ export function ParentApprovalFlow({ token, leaveData }: Props) {
           body: JSON.stringify({
             decision: dec,
             comments: comments || undefined,
+            source: "PORTAL",
           }),
         }
       );

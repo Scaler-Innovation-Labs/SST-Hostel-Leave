@@ -17,6 +17,8 @@ const mockLeaveCreate = vi.fn().mockResolvedValue({ id: "LR1", requestNumber: "L
 const mockNextRequestNumber = vi.fn().mockResolvedValue("LR-1");
 const mockApprovalCreateMany = vi.fn().mockResolvedValue([]);
 const mockAuditRecord = vi.fn().mockResolvedValue({});
+const mockUserFindById = vi.fn();
+const mockFindRoleCodesByUserId = vi.fn();
 
 vi.mock("@/lib/db", () => {
   const tx: Record<string, any> = {};
@@ -135,9 +137,15 @@ vi.mock("@/services/outbox/outbox.service", () => ({
   },
 }));
 
-vi.mock("@/db/repositories/auth/user.repository", () => ({
+vi.mock("@/db/repositories/user/user.repository", () => ({
   userRepository: {
-    findById: vi.fn().mockResolvedValue({ id: "U1", fullName: "Test User" }),
+    findById: (...args: any[]) => mockUserFindById(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/auth/user-role.repository", () => ({
+  userRoleRepository: {
+    findRoleCodesByUserId: (...args: any[]) => mockFindRoleCodesByUserId(...args),
   },
 }));
 
@@ -153,6 +161,8 @@ describe("createLeave service", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-01T10:00:00Z"));
     vi.clearAllMocks();
+    mockUserFindById.mockResolvedValue({ id: "U1", fullName: "Test User", isActive: true, deletedAt: null });
+    mockFindRoleCodesByUserId.mockResolvedValue(["POC"]);
     mockFindStudentByUserId.mockResolvedValue({ id: "S1", userId: "U1" });
     mockFindOverlapping.mockResolvedValue([]);
     mockFindLeaveTypeById.mockResolvedValue({
@@ -443,4 +453,45 @@ describe("createLeave service", () => {
       );
     });
   });
+
+  it("validates pocId existence and active status (S4)", async () => {
+    mockUserFindById.mockImplementation((id: string) => {
+      if (id === "POC-INACTIVE") {
+        return Promise.resolve({ id: "POC-INACTIVE", isActive: false, deletedAt: null });
+      }
+      return Promise.resolve({ id: "U1", fullName: "Student User", isActive: true });
+    });
+
+    await expect(
+      createLeave(
+        {
+          leaveTypeId: "LT1",
+          startAt: "2026-06-10T10:00:00Z",
+          endAt: "2026-06-12T10:00:00Z",
+          reason: "Attending a family wedding",
+          pocId: "POC-INACTIVE",
+        },
+        { id: "U1" }
+      )
+    ).rejects.toThrow("Selected POC user does not exist or is inactive");
+  });
+
+  it("validates that pocId user possesses the POC role (S4)", async () => {
+    mockUserFindById.mockResolvedValue({ id: "POC-NOROLE", isActive: true, deletedAt: null });
+    mockFindRoleCodesByUserId.mockResolvedValue(["STUDENT"]); // lacks POC role
+
+    await expect(
+      createLeave(
+        {
+          leaveTypeId: "LT1",
+          startAt: "2026-06-10T10:00:00Z",
+          endAt: "2026-06-12T10:00:00Z",
+          reason: "Attending a family wedding",
+          pocId: "POC-NOROLE",
+        },
+        { id: "U1" }
+      )
+    ).rejects.toThrow("Selected user does not have the POC role");
+  });
+
 });

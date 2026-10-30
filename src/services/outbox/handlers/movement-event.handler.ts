@@ -136,6 +136,7 @@ export async function handleMovementEvent(
     }
 
     const result = await notificationService.notify(notificationType, {
+      outboxEventId: event.id,
       leaveRequestId,
       leaveTypeId,
       studentId,

@@ -48,6 +48,11 @@ export async function cancelLeave(
 
     if (!student) throw new NotFoundError("Student");
 
+    const qrPass = await qrPassRepository.findByLeaveRequestId(leave.id);
+    if (qrPass && (Boolean(qrPass.firstScanAt) || qrPass.status === QR_STATUS.USED)) {
+      throw new ConflictError("Cannot cancel active leave after student has already scanned out");
+    }
+
     if (
       student.currentLocationState !== MOVEMENT_STATE.IN_HOSTEL &&
       student.currentLocationState !== MOVEMENT_STATE.APPROVED_LEAVE
@@ -59,6 +64,11 @@ export async function cancelLeave(
   }
 
   return await transaction(async (tx) => {
+    // Lock hierarchy: leave_extensions -> leave_requests -> students.
+    // Lock pending extensions first to prevent deadlock with concurrent extension approvals.
+    const pendingExtensions =
+      await leaveExtensionRepository.lockPendingByLeaveRequestId(leaveId, tx);
+
     const leaveInTx = await leaveRepository.findByIdForUpdate(leaveId, tx);
 
     if (!leaveInTx) throw new NotFoundError("LeaveRequest");
@@ -76,6 +86,11 @@ export async function cancelLeave(
       );
 
       if (!student) throw new NotFoundError("Student");
+
+      const qrPassInTx = await qrPassRepository.findByLeaveRequestId(leaveId, tx);
+      if (qrPassInTx && (Boolean(qrPassInTx.firstScanAt) || qrPassInTx.status === QR_STATUS.USED)) {
+        throw new ConflictError("Cannot cancel active leave after student has already scanned out");
+      }
 
       if (
         student.currentLocationState !== MOVEMENT_STATE.IN_HOSTEL &&
@@ -113,13 +128,7 @@ export async function cancelLeave(
     // invisible to the bulk update above. Cancel them and their pending
     // extension rows together; otherwise an old approval link could approve
     // the extension and move this cancelled leave back to APPROVED.
-    const extensions = await leaveExtensionRepository.findByLeaveRequestId(
-      leaveId,
-      tx
-    );
-    const pendingExtensionIds = extensions
-      .filter((extension) => extension.status === LEAVE_REQUEST_STATUS.PENDING)
-      .map((extension) => extension.id);
+    const pendingExtensionIds = pendingExtensions.map((extension) => extension.id);
 
     if (pendingExtensionIds.length > 0) {
       await leaveExtensionRepository.cancelPendingByLeaveRequestId(leaveId, tx);

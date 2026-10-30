@@ -35,6 +35,7 @@ const mockFindStudentById = vi.fn();
 const mockFindQrPassByLeaveRequestId = vi.fn();
 const mockInvalidateQr = vi.fn();
 const mockFindExtensions = vi.fn();
+const mockLockPendingExtensions = vi.fn();
 const mockCancelExtensions = vi.fn();
 const mockCancelExtensionApprovals = vi.fn();
 
@@ -56,6 +57,7 @@ vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
 vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
   leaveExtensionRepository: {
     findByLeaveRequestId: (...args: any[]) => mockFindExtensions(...args),
+    lockPendingByLeaveRequestId: (...args: any[]) => mockLockPendingExtensions(...args),
     cancelPendingByLeaveRequestId: (...args: any[]) => mockCancelExtensions(...args),
   },
 }));
@@ -103,6 +105,7 @@ beforeEach(() => {
   mockRecordMovement.mockResolvedValue({ id: "ME1" });
   mockInvalidateQr.mockResolvedValue({});
   mockFindExtensions.mockResolvedValue([]);
+    mockLockPendingExtensions.mockImplementation(async () => (await mockFindExtensions()).filter(e => e.status === "PENDING"));
   mockCancelExtensions.mockResolvedValue([]);
   mockCancelExtensionApprovals.mockResolvedValue([]);
 });

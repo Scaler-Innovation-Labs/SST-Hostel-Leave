@@ -1,4 +1,5 @@
 import { ListParentsSchema } from "@/dto/parent/list-parents.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
   try {
     const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
-    const body = await request.json();
+    const body = await readBoundedJson(request);
     const { createParentSchema } = await import("@/dto/admin/create-parent.dto");
     const dto = createParentSchema.parse(body);
 

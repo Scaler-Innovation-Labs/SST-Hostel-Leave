@@ -228,6 +228,91 @@ export const leaveApprovalRepository = {
     return rows[0] ?? null;
   },
 
+  /**
+   * Fast, lightweight count of unique pending leave requests awaiting approval.
+   * Powers /api/v1/badges and summary widgets without loading items, steps, or overrides.
+   */
+  async countPendingApprovals(
+    options: {
+      hostelIds?: string[];
+      assignedApproverUserId?: string;
+    } = {},
+    dbClient: Pick<typeof db, "select"> = db,
+  ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [
+      isNotNull(leaveApprovals.leaveRequestId),
+      eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+    ];
+
+    if (options.hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, options.hostelIds));
+    }
+
+    if (options.assignedApproverUserId) {
+      conditions.push(
+        or(
+          eq(leaveApprovals.assignedApproverUserId, options.assignedApproverUserId),
+          eq(leaveApprovals.approverUserId, options.assignedApproverUserId),
+        )!,
+        ne(leaveRequests.status, LEAVE_REQUEST_STATUS.CANCELLED),
+      );
+    }
+
+    const result = await dbClient
+      .select({
+        count: sql<number>`count(DISTINCT ${leaveApprovals.leaveRequestId})`,
+      })
+      .from(leaveApprovals)
+      .leftJoin(
+        leaveRequests,
+        eq(leaveApprovals.leaveRequestId, leaveRequests.id),
+      )
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions));
+
+    return Number(result[0]?.count ?? 0);
+  },
+
+  /**
+   * Fast, lightweight count of unique pending leave extensions awaiting approval.
+   * Powers /api/v1/badges and summary widgets without loading items, steps, or overrides.
+   */
+  async countPendingExtensionApprovals(
+    options: {
+      hostelIds?: string[];
+    } = {},
+    dbClient: Pick<typeof db, "select"> = db,
+  ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [
+      isNotNull(leaveApprovals.leaveExtensionId),
+      eq(leaveExtensions.status, LEAVE_REQUEST_STATUS.PENDING),
+    ];
+
+    if (options.hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, options.hostelIds));
+    }
+
+    const result = await dbClient
+      .select({
+        count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
+      })
+      .from(leaveApprovals)
+      .innerJoin(
+        leaveExtensions,
+        eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+      )
+      .leftJoin(
+        leaveRequests,
+        eq(leaveExtensions.leaveRequestId, leaveRequests.id),
+      )
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions));
+
+    return Number(result[0]?.count ?? 0);
+  },
+
   async findByFilters(
     filters: {
       status?: LeaveApprovalDecision;
@@ -370,48 +455,46 @@ export const leaveApprovalRepository = {
         )
       : and(...baseConditions);
 
-    const countResult = await dbClient
-      .select({
-        count: groupByLeaveRequest
-          ? sql<number>`count(DISTINCT ${leaveApprovals.leaveRequestId})`
-          : sql<number>`count(*)`,
-      })
-      .from(leaveApprovals)
-      .leftJoin(
-        leaveRequests,
-        eq(leaveApprovals.leaveRequestId, leaveRequests.id),
-      )
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
-      .where(whereClause);
+    const [countResult, breakdownRows] = await Promise.all([
+      dbClient
+        .select({
+          count: groupByLeaveRequest
+            ? sql<number>`count(DISTINCT ${leaveApprovals.leaveRequestId})`
+            : sql<number>`count(*)`,
+        })
+        .from(leaveApprovals)
+        .leftJoin(
+          leaveRequests,
+          eq(leaveApprovals.leaveRequestId, leaveRequests.id),
+        )
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(whereClause),
+
+      dbClient
+        .select({
+          stepKey: leaveRequests.currentStepKey,
+          count: sql<number>`count(DISTINCT ${leaveApprovals.leaveRequestId})`,
+        })
+        .from(leaveApprovals)
+        .leftJoin(
+          leaveRequests,
+          eq(leaveApprovals.leaveRequestId, leaveRequests.id),
+        )
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(
+          and(
+            ...baseConditions,
+            eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+            eq(leaveApprovals.stepKey, leaveRequests.currentStepKey),
+          ),
+        )
+        .groupBy(leaveRequests.currentStepKey),
+    ]);
 
     const total = Number(countResult[0]?.count ?? 0);
     const totalPages = Math.max(1, Math.ceil(total / filters.limit));
-
-    // A request is waiting on the step it is currently parked at, so count
-    // the requests whose current step is still undecided. Same predicate the
-    // waitingOn filter uses, so a chip's count is what clicking it returns.
-    const breakdownRows = await dbClient
-      .select({
-        stepKey: leaveRequests.currentStepKey,
-        count: sql<number>`count(DISTINCT ${leaveApprovals.leaveRequestId})`,
-      })
-      .from(leaveApprovals)
-      .leftJoin(
-        leaveRequests,
-        eq(leaveApprovals.leaveRequestId, leaveRequests.id),
-      )
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
-      .where(
-        and(
-          ...baseConditions,
-          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
-          eq(leaveApprovals.stepKey, leaveRequests.currentStepKey),
-        ),
-      )
-      .groupBy(leaveRequests.currentStepKey);
-
     const stepBreakdown = toStepBreakdown(breakdownRows);
 
     // The page window belongs on the thing the queue renders — one card per
@@ -763,6 +846,31 @@ export const leaveApprovalRepository = {
     return rows[0] ?? null;
   },
 
+  async reopenApproval(
+    id: string,
+    dbClient: Pick<typeof db, "update"> = db,
+  ): Promise<LeaveApproval | null> {
+    const rows = await dbClient
+      .update(leaveApprovals)
+      .set({
+        decision: LEAVE_APPROVAL_DECISION.PENDING,
+        actedByUserId: null,
+        approverUserId: null,
+        comments: null,
+        actedAt: null,
+        rejectionCategory: null,
+      })
+      .where(
+        and(
+          eq(leaveApprovals.id, id),
+          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.REJECTED),
+        ),
+      )
+      .returning();
+
+    return rows[0] ?? null;
+  },
+
   async findExtensionApprovals(
     filters: {
       /** Filters on the extension's own status (LEAVE_REQUEST_STATUS). */
@@ -903,45 +1011,71 @@ export const leaveApprovalRepository = {
       : and(...baseConditions);
     const scopeWhereClause = and(...scopeConditions);
 
-    const countResult = await dbClient
-      .select({
-        count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
-      })
-      .from(leaveApprovals)
-      .innerJoin(
-        leaveExtensions,
-        eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
-      )
-      .leftJoin(
-        leaveRequests,
-        eq(leaveExtensions.leaveRequestId, leaveRequests.id),
-      )
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
-      .where(whereClause);
+    const [countResult, statsRows, breakdownRows] = await Promise.all([
+      dbClient
+        .select({
+          count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
+        })
+        .from(leaveApprovals)
+        .innerJoin(
+          leaveExtensions,
+          eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+        )
+        .leftJoin(
+          leaveRequests,
+          eq(leaveExtensions.leaveRequestId, leaveRequests.id),
+        )
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(whereClause),
+
+      dbClient
+        .select({
+          status: leaveExtensions.status,
+          count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
+        })
+        .from(leaveApprovals)
+        .innerJoin(
+          leaveExtensions,
+          eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+        )
+        .leftJoin(
+          leaveRequests,
+          eq(leaveExtensions.leaveRequestId, leaveRequests.id),
+        )
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(scopeWhereClause)
+        .groupBy(leaveExtensions.status),
+
+      dbClient
+        .select({
+          stepKey: leaveExtensions.currentStepKey,
+          count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
+        })
+        .from(leaveApprovals)
+        .innerJoin(
+          leaveExtensions,
+          eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+        )
+        .leftJoin(
+          leaveRequests,
+          eq(leaveExtensions.leaveRequestId, leaveRequests.id),
+        )
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(
+          and(
+            ...baseConditions,
+            eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+            eq(leaveApprovals.stepKey, leaveExtensions.currentStepKey),
+          ),
+        )
+        .groupBy(leaveExtensions.currentStepKey),
+    ]);
 
     const total = Number(countResult[0]?.count ?? 0);
     const totalPages = Math.max(1, Math.ceil(total / filters.limit));
-
-    // Stats are distinct-extension counts by extension status, scoped only.
-    const statsRows = await dbClient
-      .select({
-        status: leaveExtensions.status,
-        count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
-      })
-      .from(leaveApprovals)
-      .innerJoin(
-        leaveExtensions,
-        eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
-      )
-      .leftJoin(
-        leaveRequests,
-        eq(leaveExtensions.leaveRequestId, leaveRequests.id),
-      )
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
-      .where(scopeWhereClause)
-      .groupBy(leaveExtensions.status);
 
     const countsByStatus = new Map(
       statsRows.map((row) => [row.status, Number(row.count ?? 0)]),
@@ -956,34 +1090,6 @@ export const leaveApprovalRepository = {
       approved: countsByStatus.get(LEAVE_REQUEST_STATUS.APPROVED) ?? 0,
       rejected: countsByStatus.get(LEAVE_REQUEST_STATUS.REJECTED) ?? 0,
     };
-
-    // An extension is waiting on the step it is currently parked at, so count
-    // the extensions whose current step is still undecided. Same predicate the
-    // waitingOn filter uses, so a chip's count is what clicking it returns.
-    const breakdownRows = await dbClient
-      .select({
-        stepKey: leaveExtensions.currentStepKey,
-        count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
-      })
-      .from(leaveApprovals)
-      .innerJoin(
-        leaveExtensions,
-        eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
-      )
-      .leftJoin(
-        leaveRequests,
-        eq(leaveExtensions.leaveRequestId, leaveRequests.id),
-      )
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
-      .where(
-        and(
-          ...baseConditions,
-          eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
-          eq(leaveApprovals.stepKey, leaveExtensions.currentStepKey),
-        ),
-      )
-      .groupBy(leaveExtensions.currentStepKey);
 
     const stepBreakdown = toStepBreakdown(breakdownRows);
 

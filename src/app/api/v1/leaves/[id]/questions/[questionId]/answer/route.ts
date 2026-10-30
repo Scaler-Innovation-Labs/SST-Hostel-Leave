@@ -1,4 +1,5 @@
 import answerLeaveQuestionSchema from "@/dto/leave/answer-leave-question.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -16,7 +17,7 @@ export async function POST(
 
     const { id: leaveId, questionId } = await routeContext.params;
 
-    const body = await request.json();
+    const body = await readBoundedJson(request);
     const dto = answerLeaveQuestionSchema.parse(body);
 
     const result = await answerQuestion(leaveId, questionId, dto, currentUser);

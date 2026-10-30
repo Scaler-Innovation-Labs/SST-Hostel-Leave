@@ -14,9 +14,11 @@ import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError } from "@/lib/errors";
+import { getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 import { assertCanAccessLeave } from "@/services/shared/authorization.service";
+import { activateWorkflowStep } from "@/services/workflow/workflow-activation.service";
 
 export type OverrideMode = "ONE_STEP" | "ALL";
 
@@ -68,15 +70,22 @@ export async function superadminOverrideLeave(
       throw new ConflictError("No approvals to override");
     }
 
-    // When recovering from rejection, revert leave status to PENDING
+    // When recovering from rejection, revert leave status to PENDING and clear rejectedAt
     if (isRejectedRecovery) {
-      await leaveRepository.updateById(leaveId, { status: LEAVE_REQUEST_STATUS.PENDING }, tx);
+      await leaveRepository.updateById(
+        leaveId,
+        { status: LEAVE_REQUEST_STATUS.PENDING, rejectedAt: null },
+        tx,
+      );
     }
 
     const idsToProcess = mode === "ONE_STEP" ? [actionable[0]!.id] : actionable.map((s) => s.id);
 
     for (const approvalId of idsToProcess) {
       const step = actionable.find((s) => s.id === approvalId);
+      if (step?.decision === LEAVE_APPROVAL_DECISION.REJECTED) {
+        await leaveApprovalRepository.reopenApproval(approvalId, tx);
+      }
       const isParentOverride = step?.stepKey === WORKFLOW_STEP_KEY.PARENT_APPROVAL;
 
       const updated = await leaveApprovalRepository.updateDecisionById(
@@ -115,24 +124,11 @@ export async function superadminOverrideLeave(
       const nextStep = remainingPending[0]!;
       await leaveRepository.updateCurrentStep(leaveId, nextStep.stepKey, nextStep.stepOrder, tx);
 
-      // A later workflow step is now current after the override — notify the
-      // next approver via the approval queue rules.
-      await outboxService.publish(
-        {
-          eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVAL_REQUIRED,
-          aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
-          aggregateId: leaveId,
-          payload: {
-            leaveId,
-            studentId: leave.studentId,
-            stepKey: nextStep.stepKey,
-            stepOrder: nextStep.stepOrder,
-            overridden: true,
-            mode,
-          },
-        },
-        tx,
-      );
+      await activateWorkflowStep({
+        leave: { ...leave, status: LEAVE_REQUEST_STATUS.PENDING },
+        step: nextStep,
+        dbClient: tx,
+      });
 
       return {
         leaveId,
@@ -144,10 +140,28 @@ export async function superadminOverrideLeave(
       };
     }
 
-    // All steps processed — final approval
-    await leaveRepository.updateById(leaveId, { status: LEAVE_REQUEST_STATUS.APPROVED, approvedAt: new Date(), currentStepKey: null, currentStepOrder: null }, tx);
+    // All steps processed — final approval via state machine
+    const finalStatus = getNextState(LEAVE_REQUEST_STATUS.PENDING, LEAVE_ACTION.APPROVE);
+    await leaveRepository.updateById(
+      leaveId,
+      {
+        status: finalStatus,
+        approvedAt: new Date(),
+        rejectedAt: null,
+        currentStepKey: null,
+        currentStepOrder: null,
+      },
+      tx,
+    );
 
-    await auditService.record(AUDIT_ACTION.UPDATE, AUDIT_ENTITY_TYPE.LEAVE_REQUEST, leaveId, userId, { oldStatus: leave.status, newStatus: LEAVE_REQUEST_STATUS.APPROVED, mode }, tx);
+    await auditService.record(
+      AUDIT_ACTION.UPDATE,
+      AUDIT_ENTITY_TYPE.LEAVE_REQUEST,
+      leaveId,
+      userId,
+      { oldStatus: leave.status, newStatus: finalStatus, mode },
+      tx,
+    );
 
     await outboxService.publish(
       {

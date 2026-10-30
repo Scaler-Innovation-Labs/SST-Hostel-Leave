@@ -17,6 +17,8 @@ const mockUpdateCurrentStep = vi.fn();
 const mockFindByLeaveRequestId = vi.fn();
 const mockFindByEntityAndDecision = vi.fn();
 const mockUpdateDecisionById = vi.fn();
+const mockReopenApproval = vi.fn();
+const mockActivateWorkflowStep = vi.fn();
 const mockRecord = vi.fn();
 const mockPublish = vi.fn();
 
@@ -37,6 +39,7 @@ vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
     findByLeaveRequestId: (...args: any[]) => mockFindByLeaveRequestId(...args),
     findByEntityAndDecision: (...args: any[]) => mockFindByEntityAndDecision(...args),
     updateDecisionById: (...args: any[]) => mockUpdateDecisionById(...args),
+    reopenApproval: (...args: any[]) => mockReopenApproval(...args),
   },
 }));
 
@@ -50,6 +53,10 @@ vi.mock("@/services/outbox/outbox.service", () => ({
   outboxService: {
     publish: (...args: any[]) => mockPublish(...args),
   },
+}));
+
+vi.mock("@/services/workflow/workflow-activation.service", () => ({
+  activateWorkflowStep: (...args: any[]) => mockActivateWorkflowStep(...args),
 }));
 
 vi.mock("@/lib/auth/authorization", () => ({
@@ -92,6 +99,8 @@ const PENDING_APPROVALS = [
 beforeEach(() => {
   vi.clearAllMocks();
   mockUpdateDecisionById.mockResolvedValue({ id: "A1" });
+  mockReopenApproval.mockResolvedValue({ id: "A1" });
+  mockActivateWorkflowStep.mockResolvedValue(undefined);
   mockUpdateById.mockResolvedValue({ id: "L1" });
 });
 
@@ -176,4 +185,79 @@ describe("superadminOverrideLeave", () => {
       })
     );
   });
+
+  it("reopens a rejected approval step to PENDING before overriding when recovering from rejection", async () => {
+    mockFindByIdForUpdate.mockResolvedValue({
+      id: "L1",
+      studentId: "S1",
+      status: "REJECTED",
+    });
+    mockFindByLeaveRequestId.mockResolvedValue([
+      {
+        id: "R1",
+        stepKey: "WARDEN_APPROVAL",
+        stepOrder: 1,
+        decision: "REJECTED",
+        assignedApproverUserId: "U5",
+      },
+    ]);
+    mockFindByEntityAndDecision.mockResolvedValue([]);
+
+    const result = await superadminOverrideLeave("L1", "ALL", SUPER, "Overriding rejection");
+
+    expect(mockReopenApproval).toHaveBeenCalledWith("R1", expect.anything());
+    expect(mockUpdateDecisionById).toHaveBeenCalledWith(
+      "R1",
+      "APPROVED",
+      SUPER.id,
+      "Overriding rejection",
+      expect.any(Date),
+      expect.anything(),
+      "MANUAL",
+    );
+    expect(mockUpdateById).toHaveBeenCalledWith(
+      "L1",
+      { status: "PENDING", rejectedAt: null },
+      expect.anything(),
+    );
+    expect(mockUpdateById).toHaveBeenCalledWith(
+      "L1",
+      expect.objectContaining({ status: "APPROVED", rejectedAt: null }),
+      expect.anything(),
+    );
+    expect(mockPublish).toHaveBeenCalledWith(
+      expect.objectContaining({ eventType: "LEAVE_APPROVED" }),
+      expect.anything(),
+    );
+    expect(result.newStatus).toBe("APPROVED");
+  });
+
+  it("activates next workflow step when overriding ONE_STEP with remaining pending steps", async () => {
+    mockFindByIdForUpdate.mockResolvedValue({
+      id: "L1",
+      studentId: "S1",
+      status: "PENDING",
+    });
+    mockFindByLeaveRequestId.mockResolvedValue(PENDING_APPROVALS);
+    mockFindByEntityAndDecision.mockResolvedValue([PENDING_APPROVALS[1]]);
+
+    const result = await superadminOverrideLeave("L1", "ONE_STEP", SUPER, "Override step 1");
+
+    expect(mockUpdateDecisionById).toHaveBeenCalledTimes(1);
+    expect(mockUpdateCurrentStep).toHaveBeenCalledWith("L1", "ADMIN_APPROVAL", 2, expect.anything());
+    expect(mockActivateWorkflowStep).toHaveBeenCalledWith(
+      expect.objectContaining({
+        step: PENDING_APPROVALS[1],
+      }),
+    );
+    expect(result).toEqual({
+      leaveId: "L1",
+      mode: "ONE_STEP",
+      approvalsOverridden: 1,
+      newStatus: null,
+      stepKey: "ADMIN_APPROVAL",
+      stepOrder: 2,
+    });
+  });
+
 });

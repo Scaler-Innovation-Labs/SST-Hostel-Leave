@@ -7,6 +7,7 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { GENERIC_PARENT_TOKEN_ERROR_MESSAGE } from "@/constants/parent/parent-approval";
 import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
@@ -18,7 +19,9 @@ import { type DbClient, transaction } from "@/lib/db/transaction";
 import {
   ConflictError,
   NotFoundError,
+  ValidationError,
 } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 import { auditService } from "@/services/audit/audit.service";
 import {
   extendQrPassWindow,
@@ -26,6 +29,7 @@ import {
 } from "@/services/leave/qr-pass-lifecycle.service";
 import { assertApprovalIsAtCurrentStep } from "@/services/leave/shared-approval.service";
 import { outboxService } from "@/services/outbox/outbox.service";
+import { activateWorkflowStep } from "@/services/workflow/workflow-activation.service";
 
 export type ParentDecisionResult = {
   approvalId: string;
@@ -41,39 +45,61 @@ export async function parentApproveDecision(
   rawToken: string,
   dto: ParentDecisionDto
 ): Promise<ParentDecisionResult> {
-  const tokenHash = await sha256(rawToken);
+  if (!rawToken || typeof rawToken !== "string" || !rawToken.trim()) {
+    logger.warn("Parent approval decision failed: malformed token", {});
+    throw new ValidationError(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
+  }
+
+  const tokenHash = await sha256(rawToken.trim());
 
   return await transaction(async (tx) => {
     const approvalBase =
       await leaveParentApprovalRepository.findByParentApprovalToken(tokenHash, tx);
 
+    // Oracle hardening: invalid / expired / already-responded links all
+    // surface the SAME generic message. The real state is logged server-side
+    // (approval id only — never the raw token) for support triage.
+    // ValidationError carries the message verbatim, keeping all failure states
+    // byte-identical to the caller and preventing token-enumeration probing.
     if (!approvalBase) {
-      throw new NotFoundError("Approval");
-    }
-
-    if (approvalBase.decision !== LEAVE_APPROVAL_DECISION.PENDING) {
-      throw new ConflictError("Approval already processed");
+      logger.warn("Parent approval decision failed: unknown token hash", {});
+      throw new ValidationError(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
     }
 
     if (
       approvalBase.parentDetails?.tokenExpiresAt &&
       new Date(approvalBase.parentDetails.tokenExpiresAt) < new Date()
     ) {
-      throw new ConflictError("Approval link has expired");
+      logger.warn("Parent approval decision failed: link expired", {
+        approvalId: approvalBase.id,
+      });
+      throw new ValidationError(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
+    }
+
+    if (approvalBase.decision !== LEAVE_APPROVAL_DECISION.PENDING) {
+      logger.warn("Parent approval decision failed: already processed", {
+        approvalId: approvalBase.id,
+      });
+      throw new ValidationError(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
     }
 
     const isExtension = !!approvalBase.leaveExtensionId;
 
+    const approvalSource = dto.source ?? LEAVE_APPROVAL_SOURCE.PORTAL;
     const updatedApproval =
       await leaveParentApprovalRepository.updateParentDecision(
         approvalBase.id,
         dto.decision as LeaveApprovalDecision,
         dto.comments,
-        tx
+        tx,
+        approvalSource
       );
 
     if (!updatedApproval) {
-      throw new ConflictError("Approval already processed");
+      logger.warn("Parent approval decision failed: already processed concurrently", {
+        approvalId: approvalBase.id,
+      });
+      throw new ValidationError(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
     }
 
     await auditService.record(
@@ -87,11 +113,11 @@ export async function parentApproveDecision(
         // Off-platform actor: a parent deciding through the approval link.
         // There is no user id to store, so the descriptor says who it was.
         actorType: ACTOR_TYPE.PARENT,
-        trigger: AUDIT_TRIGGER.SMS,
+        trigger: approvalSource === LEAVE_APPROVAL_SOURCE.SMS ? AUDIT_TRIGGER.SMS : AUDIT_TRIGGER.PORTAL,
         leaveRequestId: approvalBase.leaveRequestId,
         leaveExtensionId: approvalBase.leaveExtensionId,
         comments: dto.comments,
-        approvalSource: LEAVE_APPROVAL_SOURCE.SMS,
+        approvalSource,
       },
       tx
     );
@@ -182,20 +208,13 @@ async function handleLeaveDecision(
         tx
       );
 
-      // A later workflow step is now current (e.g. POC/admin review after
-      // parent approval). Publish the step-current event so the approval
-      // queue Slack alerts fire — without it no notification reaches POC/admin.
-      await outboxService.publish({
-        eventType: OUTBOX_EVENT_TYPE.LEAVE_APPROVAL_REQUIRED,
-        aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
-        aggregateId: approval.leaveRequestId!,
-        payload: {
-          leaveId: approval.leaveRequestId,
-          studentId: leaveInTx?.studentId,
-          stepKey: next.stepKey,
-          stepOrder: next.stepOrder,
-        },
-      }, tx);
+      if (leaveInTx) {
+        await activateWorkflowStep({
+          leave: leaveInTx,
+          step: next,
+          dbClient: tx,
+        });
+      }
     } else {
       await leaveRepository.updateById(
         approval.leaveRequestId!,

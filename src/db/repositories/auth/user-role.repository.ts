@@ -6,13 +6,27 @@ import { db } from "@/lib/db";
 type DbClient = Pick<typeof db, "select" | "insert" | "delete">;
 
 export const userRoleRepository = {
-  async findRoleCodesByUserId(
+  /**
+   * Consolidates role codes and role scopes into a single database query.
+   * Eliminates the duplicate round trip against user_roles + roles on every
+   * authenticated request (P1).
+   */
+  async findRolesAndScopesByUserId(
     userId: string,
     dbClient: Pick<typeof db, "select"> = db
-  ): Promise<string[]> {
+  ): Promise<{
+    roleCodes: string[];
+    roleScopes: Array<{
+      roleCode: string;
+      scopeType: string | null;
+      scopeId: string | null;
+    }>;
+  }> {
     const rows = await dbClient
       .select({
-        code: roles.code,
+        roleCode: roles.code,
+        scopeType: userRoles.scopeType,
+        scopeId: userRoles.scopeId,
       })
       .from(userRoles)
       .innerJoin(
@@ -21,13 +35,29 @@ export const userRoleRepository = {
       )
       .where(eq(userRoles.userId, userId));
 
-    return Array.from(
+    const roleScopes = rows.map((row) => ({
+      roleCode: row.roleCode,
+      scopeType: row.scopeType ?? null,
+      scopeId: row.scopeId ?? null,
+    }));
+
+    const roleCodes = Array.from(
       new Set(
         rows
-          .map((row) => row.code)
+          .map((row) => row.roleCode)
           .filter((code): code is string => code !== null)
       )
     );
+
+    return { roleCodes, roleScopes };
+  },
+
+  async findRoleCodesByUserId(
+    userId: string,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<string[]> {
+    const result = await this.findRolesAndScopesByUserId(userId, dbClient);
+    return result.roleCodes;
   },
 
   /**
@@ -44,24 +74,8 @@ export const userRoleRepository = {
       scopeId: string | null;
     }>
   > {
-    const rows = await dbClient
-      .select({
-        roleCode: roles.code,
-        scopeType: userRoles.scopeType,
-        scopeId: userRoles.scopeId,
-      })
-      .from(userRoles)
-      .innerJoin(
-        roles,
-        eq(userRoles.roleId, roles.id)
-      )
-      .where(eq(userRoles.userId, userId));
-
-    return rows.map((row) => ({
-      roleCode: row.roleCode,
-      scopeType: row.scopeType ?? null,
-      scopeId: row.scopeId ?? null,
-    }));
+    const result = await this.findRolesAndScopesByUserId(userId, dbClient);
+    return result.roleScopes;
   },
 
   async findRolesByCodes(

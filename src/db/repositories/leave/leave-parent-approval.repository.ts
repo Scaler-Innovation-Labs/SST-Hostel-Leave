@@ -248,7 +248,7 @@ export const leaveParentApprovalRepository = {
         decision,
         comments,
         actedAt: new Date(),
-        approvalSource: (approvalSource ?? LEAVE_APPROVAL_SOURCE.SMS) as typeof LEAVE_APPROVAL_SOURCE.SMS,
+        approvalSource: (approvalSource ?? LEAVE_APPROVAL_SOURCE.PORTAL) as any,
       })
       .where(
         and(

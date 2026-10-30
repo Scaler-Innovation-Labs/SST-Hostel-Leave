@@ -2,17 +2,15 @@ import { ACTOR_TYPE, AUDIT_TRIGGER } from "@/constants/audit/actor";
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
-import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
-import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { PARENT_APPROVAL_TOKEN_EXPIRY_HOURS } from "@/constants/parent/parent-approval";
 import { leaveParentApprovalRepository } from "@/db/repositories/leave/leave-parent-approval.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { sha256, toHex } from "@/lib/crypto";
 import { transaction } from "@/lib/db/transaction";
-import { NotFoundError, ValidationError } from "@/lib/errors";
+import { DeliveryError, NotFoundError, ValidationError } from "@/lib/errors";
 import { buildParentApprovalDltName } from "@/lib/messaging/sms/dlt";
 import { auditService } from "@/services/audit/audit.service";
-import { outboxService } from "@/services/outbox/outbox.service";
+import { notificationService } from "@/services/notification/notification.service";
 
 export type GenerateParentApprovalContext = {
   leaveRequestId: string;
@@ -116,26 +114,26 @@ export async function generateParentApproval(
       tx
     );
 
-    await outboxService.publish({
-      eventType: OUTBOX_EVENT_TYPE.NOTIFICATION_REQUESTED,
-      aggregateType: AGGREGATE_TYPE.NOTIFICATION,
-      aggregateId: approvalStep.id,
-      payload: {
-        notificationType: "PARENT_APPROVAL_REQUESTED",
-        leaveRequestId: context.leaveRequestId,
-        leaveExtensionId: context.leaveExtensionId,
-        parentId: parent.id,
-        recipientPhone: parent.phone,
-        variables: {
-          studentName: context.studentName,
-          StudentApprovalName: buildParentApprovalDltName(context.studentName),
-          dates: context.leaveDates,
-          reason: context.leaveReason,
-          approvalLink,
-          leaveId: context.leaveRequestId,
-        },
+    // S1: Send notification directly in memory; do not store raw approvalLink / token in outbox table
+    const notifyResult = await notificationService.notify("PARENT_APPROVAL_REQUESTED", {
+      leaveRequestId: context.leaveRequestId,
+      leaveExtensionId: context.leaveExtensionId,
+      parentId: parent.id,
+      recipientPhone: parent.phone,
+      variables: {
+        studentName: context.studentName,
+        StudentApprovalName: buildParentApprovalDltName(context.studentName),
+        dates: context.leaveDates,
+        reason: context.leaveReason,
+        approvalLink,
+        leaveId: context.leaveRequestId,
       },
-      idempotencyKey: `PARENT_APPROVAL_REQUESTED:${approvalStep.id}:${tokenHash}`,
-    }, tx);
+    });
+
+    if (!notifyResult.success) {
+      throw new DeliveryError(
+        `Failed to deliver parent approval notification: ${notifyResult.failures.join("; ")}`
+      );
+    }
   });
 }

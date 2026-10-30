@@ -37,17 +37,21 @@ export const leaveApprovalAnalyticsRepository = {
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<number> {
     const conditions: ReturnType<typeof and>[] = [gte(leaveApprovals.createdAt, since)];
-    conditions.push(...hostelCondition(hostelIds));
+    if (hostelIds?.length) {
+      conditions.push(...hostelCondition(hostelIds));
+      const result = await dbClient
+        .select({ count: sql<number>`count(*)` })
+        .from(leaveApprovals)
+        .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(and(...conditions));
+      return Number(result[0]?.count ?? 0);
+    }
+
     const result = await dbClient
       .select({ count: sql<number>`count(*)` })
       .from(leaveApprovals)
-      .leftJoin(
-        leaveApprovalParentDetails,
-        eq(leaveApprovals.id, leaveApprovalParentDetails.approvalId)
-      )
-      .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
       .where(and(...conditions));
 
     return Number(result[0]?.count ?? 0);
@@ -63,15 +67,27 @@ export const leaveApprovalAnalyticsRepository = {
       eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.APPROVED),
       sql`${leaveApprovals.actedAt} IS NOT NULL`,
     ];
-    conditions.push(...hostelCondition(hostelIds));
+    if (hostelIds?.length) {
+      conditions.push(...hostelCondition(hostelIds));
+      const result = await dbClient
+        .select({
+          avgHours: sql<number>`EXTRACT(EPOCH FROM AVG(${leaveApprovals.actedAt} - ${leaveApprovals.createdAt})) / 3600`,
+        })
+        .from(leaveApprovals)
+        .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(and(...conditions));
+
+      const avg = result[0]?.avgHours;
+      return avg != null ? Math.round(avg * 10) / 10 : null;
+    }
+
     const result = await dbClient
       .select({
         avgHours: sql<number>`EXTRACT(EPOCH FROM AVG(${leaveApprovals.actedAt} - ${leaveApprovals.createdAt})) / 3600`,
       })
       .from(leaveApprovals)
-      .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
       .where(and(...conditions));
 
     const avg = result[0]?.avgHours;
@@ -89,16 +105,30 @@ export const leaveApprovalAnalyticsRepository = {
       lte(leaveApprovals.createdAt, endDate),
       eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.APPROVED),
     ];
-    conditions.push(...hostelCondition(hostelIds));
+    if (hostelIds?.length) {
+      conditions.push(...hostelCondition(hostelIds));
+      const rows = await dbClient
+        .select({
+          date: sql<string>`DATE(${leaveApprovals.createdAt})`,
+          count: sql<number>`count(*)`,
+        })
+        .from(leaveApprovals)
+        .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(and(...conditions))
+        .groupBy(sql`DATE(${leaveApprovals.createdAt})`)
+        .orderBy(sql`DATE(${leaveApprovals.createdAt})`);
+
+      return rows.map((row) => ({ date: row.date, count: Number(row.count ?? 0) }));
+    }
+
     const rows = await dbClient
       .select({
         date: sql<string>`DATE(${leaveApprovals.createdAt})`,
         count: sql<number>`count(*)`,
       })
       .from(leaveApprovals)
-      .leftJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
       .where(and(...conditions))
       .groupBy(sql`DATE(${leaveApprovals.createdAt})`)
       .orderBy(sql`DATE(${leaveApprovals.createdAt})`);
@@ -336,7 +366,19 @@ export const leaveApprovalAnalyticsRepository = {
       eq(leaveApprovals.stepOrder, leaveRequests.currentStepOrder),
       eq(leaveApprovals.stepKey, leaveRequests.currentStepKey),
     ];
-    conditions.push(...hostelCondition(options.hostelIds));
+    if (options.hostelIds?.length) {
+      conditions.push(...hostelCondition(options.hostelIds));
+      const result = await dbClient
+        .select({
+          count: sql<number>`count(distinct ${leaveApprovals.leaveRequestId})`,
+        })
+        .from(leaveApprovals)
+        .innerJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(and(...conditions));
+      return Number(result[0]?.count ?? 0);
+    }
 
     const result = await dbClient
       .select({
@@ -344,8 +386,6 @@ export const leaveApprovalAnalyticsRepository = {
       })
       .from(leaveApprovals)
       .innerJoin(leaveRequests, eq(leaveApprovals.leaveRequestId, leaveRequests.id))
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
       .where(and(...conditions));
 
     return Number(result[0]?.count ?? 0);
@@ -366,7 +406,20 @@ export const leaveApprovalAnalyticsRepository = {
       eq(leaveApprovals.stepOrder, leaveExtensions.currentStepOrder),
       eq(leaveApprovals.stepKey, leaveExtensions.currentStepKey),
     ];
-    conditions.push(...hostelCondition(options.hostelIds));
+    if (options.hostelIds?.length) {
+      conditions.push(...hostelCondition(options.hostelIds));
+      const result = await dbClient
+        .select({
+          count: sql<number>`count(distinct ${leaveApprovals.leaveExtensionId})`,
+        })
+        .from(leaveApprovals)
+        .innerJoin(leaveExtensions, eq(leaveApprovals.leaveExtensionId, leaveExtensions.id))
+        .innerJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(and(...conditions));
+      return Number(result[0]?.count ?? 0);
+    }
 
     const result = await dbClient
       .select({
@@ -375,8 +428,6 @@ export const leaveApprovalAnalyticsRepository = {
       .from(leaveApprovals)
       .innerJoin(leaveExtensions, eq(leaveApprovals.leaveExtensionId, leaveExtensions.id))
       .innerJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
       .where(and(...conditions));
 
     return Number(result[0]?.count ?? 0);

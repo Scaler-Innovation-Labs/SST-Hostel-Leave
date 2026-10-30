@@ -24,6 +24,7 @@ export type ActorType = (typeof ACTOR_TYPE)[keyof typeof ACTOR_TYPE];
 export const AUDIT_TRIGGER = {
   CRON: "CRON",
   SMS: "SMS",
+  PORTAL: "PORTAL",
 } as const;
 
 export type AuditTrigger = (typeof AUDIT_TRIGGER)[keyof typeof AUDIT_TRIGGER];

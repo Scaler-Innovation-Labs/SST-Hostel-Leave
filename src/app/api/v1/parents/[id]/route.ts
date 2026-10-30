@@ -1,4 +1,5 @@
 import updateParentSchema from "@/dto/admin/update-parent.dto";
+import { readBoundedJson } from "@/lib/api/request-body";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -19,7 +20,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   try {
     const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
     const { id } = await params;
-    const dto = updateParentSchema.parse(await request.json());
+    const dto = updateParentSchema.parse(await readBoundedJson(request));
     return ApiResponse.success(await parentManagementService.update(id, dto, currentUser.id));
   } catch (error) {
     return ApiResponse.fromError(error);

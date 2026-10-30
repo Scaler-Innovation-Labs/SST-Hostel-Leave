@@ -1,6 +1,7 @@
 export { runAuditRetentionJob } from "./audit-retention.job";
 export { runDocumentRetentionJob } from "./cleanup-documents.job";
 export { runCleanupQrJob } from "./cleanup-qr.job";
+export { runCleanupRateLimitJob } from "./cleanup-rate-limit.job";
 export { runExpireLeavesJob } from "./expire-leaves.job";
 export { runPurgeOutboxJob } from "./purge-outbox.job";
 export { runRetryOutboxJob } from "./retry-outbox.job";
