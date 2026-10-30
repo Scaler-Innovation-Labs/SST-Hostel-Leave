@@ -78,7 +78,7 @@ export function OverdueReturnsPage({ detailBasePath }: OverdueReturnsPageProps) 
   const [now] = useState(() => Date.now());
 
   const { data, error, isLoading, mutate } = useSWR<OverdueReturn[]>("/api/v1/overdue", fetcher, {
-    refreshInterval: 30_000,
+    refreshInterval: 60_000,
     dedupingInterval: 10_000,
   });
 
