@@ -394,9 +394,30 @@ async findAutoCompleteDueNonQrLeaves(
     }
     if (hostelIds?.length) {
       conditions.push(inArray(users.hostelId, hostelIds));
-    }
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+      const rows = await dbClient
+        .select({
+          name: leaveTypes.name,
+          count: sql<number>`count(*)`,
+          uiConfig: leaveTypes.uiConfig,
+        })
+        .from(leaveRequests)
+        .innerJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(and(...conditions))
+        .groupBy(leaveTypes.id, leaveTypes.name, leaveTypes.uiConfig);
 
+      return rows.map((row) => {
+        const uiConfig = row.uiConfig as { color?: string } | null;
+        return {
+          name: row.name,
+          count: Number(row.count ?? 0),
+          color: typeof uiConfig?.color === "string" ? uiConfig.color : null,
+        };
+      });
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
     const rows = await dbClient
       .select({
         name: leaveTypes.name,
@@ -405,8 +426,6 @@ async findAutoCompleteDueNonQrLeaves(
       })
       .from(leaveRequests)
       .innerJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
       .where(whereClause)
       .groupBy(leaveTypes.id, leaveTypes.name, leaveTypes.uiConfig);
 
@@ -428,12 +447,18 @@ async findAutoCompleteDueNonQrLeaves(
     const conditions: ReturnType<typeof and>[] = [eq(leaveRequests.status, status)];
     if (hostelIds?.length) {
       conditions.push(inArray(users.hostelId, hostelIds));
+      const result = await dbClient
+        .select({ count: sql<number>`count(*)` })
+        .from(leaveRequests)
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(and(...conditions));
+      return Number(result[0]?.count ?? 0);
     }
+
     const result = await dbClient
       .select({ count: sql<number>`count(*)` })
       .from(leaveRequests)
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
       .where(and(...conditions));
     return Number(result[0]?.count ?? 0);
   },
@@ -454,6 +479,19 @@ async findAutoCompleteDueNonQrLeaves(
     }
     if (hostelIds?.length) {
       conditions.push(inArray(users.hostelId, hostelIds));
+      const rows = await dbClient
+        .select({
+          date: sql<string>`DATE(${leaveRequests.createdAt})`,
+          count: sql<number>`count(*)`,
+        })
+        .from(leaveRequests)
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(and(...conditions))
+        .groupBy(sql`DATE(${leaveRequests.createdAt})`)
+        .orderBy(sql`DATE(${leaveRequests.createdAt})`);
+
+      return rows.map((row) => ({ date: row.date, count: Number(row.count ?? 0) }));
     }
 
     const rows = await dbClient
@@ -462,8 +500,6 @@ async findAutoCompleteDueNonQrLeaves(
         count: sql<number>`count(*)`,
       })
       .from(leaveRequests)
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
       .where(and(...conditions))
       .groupBy(sql`DATE(${leaveRequests.createdAt})`)
       .orderBy(sql`DATE(${leaveRequests.createdAt})`);
@@ -478,14 +514,18 @@ async findAutoCompleteDueNonQrLeaves(
     const conditions: ReturnType<typeof and>[] = [];
     if (hostelIds?.length) {
       conditions.push(inArray(users.hostelId, hostelIds));
+      const result = await dbClient
+        .select({ count: sql<number>`count(*)` })
+        .from(leaveRequests)
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(and(...conditions));
+      return Number(result[0]?.count ?? 0);
     }
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
     const result = await dbClient
       .select({ count: sql<number>`count(*)` })
-      .from(leaveRequests)
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
-      .where(whereClause);
+      .from(leaveRequests);
     return Number(result[0]?.count ?? 0);
   },
   async countStatusStats(
@@ -496,21 +536,33 @@ async findAutoCompleteDueNonQrLeaves(
     approved: number;
     rejected: number;
   }> {
-    const conditions: ReturnType<typeof and>[] = [];
     if (hostelIds?.length) {
-      conditions.push(inArray(users.hostelId, hostelIds));
+      const result = await dbClient
+        .select({
+          total: sql<number>`count(*)`,
+          approved: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.APPROVED})`,
+          rejected: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.REJECTED})`,
+        })
+        .from(leaveRequests)
+        .leftJoin(students, eq(leaveRequests.studentId, students.id))
+        .leftJoin(users, eq(students.userId, users.id))
+        .where(inArray(users.hostelId, hostelIds));
+
+      const row = result[0];
+      return {
+        total: Number(row?.total ?? 0),
+        approved: Number(row?.approved ?? 0),
+        rejected: Number(row?.rejected ?? 0),
+      };
     }
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
     const result = await dbClient
       .select({
         total: sql<number>`count(*)`,
         approved: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.APPROVED})`,
         rejected: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.REJECTED})`,
       })
-      .from(leaveRequests)
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
-      .where(whereClause);
+      .from(leaveRequests);
 
     const row = result[0];
     return {

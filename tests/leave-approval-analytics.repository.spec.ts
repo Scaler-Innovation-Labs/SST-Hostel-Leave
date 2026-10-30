@@ -29,6 +29,10 @@ const {
             innerJoin: (...jArgs: any[]) => {
               mockInnerJoinLeaveRequests(...jArgs);
               return {
+                where: (...wArgs: any[]) => {
+                  mockWhere(...wArgs);
+                  return [{ count: 1 }];
+                },
                 leftJoin: (...sArgs: any[]) => {
                   mockLeftJoinStudents(...sArgs);
                   return {
@@ -46,6 +50,10 @@ const {
                 innerJoin: (...eArgs: any[]) => {
                   mockInnerJoinLeaveRequestsFromExt(...eArgs);
                   return {
+                    where: (...wArgs: any[]) => {
+                      mockWhere(...wArgs);
+                      return [{ count: 0 }];
+                    },
                     leftJoin: (...sArgs: any[]) => {
                       mockLeftJoinStudents(...sArgs);
                       return {
