@@ -130,7 +130,10 @@ export async function listApprovals(
     dateTo: query.dateTo ? new Date(query.dateTo) : undefined,
     search: query.search,
     waitingOn: query.waitingOn,
-    hostelId: query.hostelId,
+    // POC scope is enforced server-side via user_roles (hostelIds above).
+    // Passing query.hostelId through for a POC would allow a client-supplied
+    // hostel UUID to bypass or widen their assigned scope restriction.
+    hostelId: isPocOnly ? undefined : query.hostelId,
     hostelIds,
     leaveTypeId: query.leaveTypeId,
     assignedApproverUserId: isPocOnly && !isChainRequest ? currentUser.id : undefined,

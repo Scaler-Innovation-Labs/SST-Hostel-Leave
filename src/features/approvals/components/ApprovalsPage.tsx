@@ -380,11 +380,14 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
           </SelectContent>
         </Select>
 
-        <HostelFilter
-          value={filters.hostelId}
-          hostels={hostels}
-          onChange={(v) => updateFilter("hostelId", v)}
-        />
+        {/* Hostel filter is hidden for POC — their scope is fixed by user_roles on the server. */}
+        {viewerRole !== "POC" && (
+          <HostelFilter
+            value={filters.hostelId}
+            hostels={hostels}
+            onChange={(v) => updateFilter("hostelId", v)}
+          />
+        )}
 
         <Select
           value={filters.dateRange}
