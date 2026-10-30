@@ -40,9 +40,13 @@ function getOrCreatePool(): Pool {
 		// and TLS-without-CA-verification is configured explicitly instead.
 		const { url, ssl } = sanitizeConnectionString(databaseUrl);
 		const isInsecureSsl = process.env.DB_SSL_INSECURE === "true";
+		const isExplicitReject = process.env.DB_SSL_REJECT_UNAUTHORIZED === "true";
 		const isProd = process.env.NODE_ENV === "production";
-		const rejectUnauthorized = isProd ? !isInsecureSsl : false;
 		const ca = process.env.DB_CA_CERT;
+		// If CA bundle is provided, enforce strict verification in production unless disabled.
+		// If no CA bundle is provided, self-managed PgBouncer endpoints with self-signed
+		// certs use TLS without CA verification unless explicitly requested.
+		const rejectUnauthorized = ca ? (isProd ? !isInsecureSsl : false) : isExplicitReject;
 		const maxConnections = process.env.DB_POOL_MAX
 			? Number.parseInt(process.env.DB_POOL_MAX, 10)
 			: 10;

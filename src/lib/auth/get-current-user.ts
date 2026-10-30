@@ -58,6 +58,12 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
   } catch (err) {
     logger.error("[getCurrentUser] DB query failed", {
       error: err instanceof Error ? err.message : String(err),
+      cause:
+        err instanceof Error && "cause" in err && err.cause
+          ? err.cause instanceof Error
+            ? err.cause.message
+            : String(err.cause)
+          : undefined,
     });
     return null;
   }
