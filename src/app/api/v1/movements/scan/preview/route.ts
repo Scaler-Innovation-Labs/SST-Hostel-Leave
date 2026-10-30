@@ -28,24 +28,3 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET(request: Request) {
-  try {
-    const currentUser = requireAnyRole(await requireAuth(), [
-      ROLES.GUARD,
-      ROLES.POC,
-      ROLES.ADMIN,
-      ROLES.SUPER_ADMIN,
-    ]);
-
-    await rateLimit(`scan:${currentUser.id}`, 120, 60_000);
-
-    const url = new URL(request.url);
-    const { token } = scanQrPreviewSchema.parse(Object.fromEntries(url.searchParams));
-
-    const result = await previewQrScan(token);
-
-    return ApiResponse.success(result);
-  } catch (error) {
-    return ApiResponse.fromError(error);
-  }
-}

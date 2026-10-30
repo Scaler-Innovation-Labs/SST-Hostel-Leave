@@ -21,7 +21,8 @@ vi.mock("@/services/movement/scan-qr.service", () => ({
   previewQrScan: (...args: any[]) => mockPreviewQrScan(...args),
 }));
 
-import { GET, POST } from "@/app/api/v1/movements/scan/preview/route";
+import * as routeExports from "@/app/api/v1/movements/scan/preview/route";
+const { POST } = routeExports;
 
 const VALID_PREVIEW = {
   valid: true,
@@ -47,54 +48,13 @@ beforeEach(() => {
   mockPreviewQrScan.mockResolvedValue(VALID_PREVIEW);
 });
 
-describe("GET /api/v1/movements/scan/preview", () => {
-  it("previews a scannable QR token", async () => {
-    const req = new Request(
-      "http://localhost:3000/api/v1/movements/scan/preview?token=qr-token-123",
-    );
-    const res = await GET(req);
-    const body = await res.json();
-
-    expect(res.status).toBe(200);
-    expect(body.data.valid).toBe(true);
-    expect(body.data.student.name).toBe("John Doe");
-    expect(body.data.scanType).toBe("EXIT_SCAN");
-    expect(mockPreviewQrScan).toHaveBeenCalledWith("qr-token-123");
-  });
-
-  it("returns 400 when token is missing", async () => {
-    const req = new Request(
-      "http://localhost:3000/api/v1/movements/scan/preview",
-    );
-    const res = await GET(req);
-    const body = await res.json();
-
-    expect(res.status).toBe(400);
-    expect(body.error.code).toBe("VALIDATION_ERROR");
-    expect(mockPreviewQrScan).not.toHaveBeenCalled();
-  });
-
-  it("returns 400 when token is blank", async () => {
-    const req = new Request(
-      "http://localhost:3000/api/v1/movements/scan/preview?token=%20%20",
-    );
-    const res = await GET(req);
-
-    expect(res.status).toBe(400);
-    expect(mockPreviewQrScan).not.toHaveBeenCalled();
-  });
-
-  it("returns 401 when not authenticated", async () => {
-    mockRequireAuth.mockRejectedValue(new (await import("@/lib/errors")).AuthenticationError());
-
-    const req = new Request(
-      "http://localhost:3000/api/v1/movements/scan/preview?token=qr-token-123",
-    );
-    const res = await GET(req);
-    expect(res.status).toBe(401);
+describe("S2: QR Token GET fallback removal", () => {
+  it("does not export a GET method (GET fallback eliminated)", () => {
+    expect((routeExports as any).GET).toBeUndefined();
   });
 });
-describe("POST /api/v1/movements/scan/preview (S2 secure body)", () => {
+
+describe("POST /api/v1/movements/scan/preview", () => {
   it("previews a scannable QR token passed via request body", async () => {
     const req = new Request("http://localhost:3000/api/v1/movements/scan/preview", {
       method: "POST",
@@ -106,6 +66,8 @@ describe("POST /api/v1/movements/scan/preview (S2 secure body)", () => {
 
     expect(res.status).toBe(200);
     expect(body.data.valid).toBe(true);
+    expect(body.data.student.name).toBe("John Doe");
+    expect(body.data.scanType).toBe("EXIT_SCAN");
     expect(mockPreviewQrScan).toHaveBeenCalledWith("qr-token-secure-123");
   });
 
@@ -116,6 +78,52 @@ describe("POST /api/v1/movements/scan/preview (S2 secure body)", () => {
       body: JSON.stringify({}),
     });
     const res = await POST(req);
+    const body = await res.json();
+
     expect(res.status).toBe(400);
+    expect(body.error.code).toBe("VALIDATION_ERROR");
+    expect(mockPreviewQrScan).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when token is blank in body", async () => {
+    const req = new Request("http://localhost:3000/api/v1/movements/scan/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: "   " }),
+    });
+    const res = await POST(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error.code).toBe("VALIDATION_ERROR");
+    expect(mockPreviewQrScan).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 when not authenticated", async () => {
+    const { AuthenticationError } = await import("@/lib/errors");
+    mockRequireAuth.mockRejectedValue(new AuthenticationError());
+
+    const req = new Request("http://localhost:3000/api/v1/movements/scan/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: "qr-token-secure-123" }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 403 when user lacks required role", async () => {
+    const { AuthorizationError } = await import("@/lib/errors");
+    mockRequireAnyRole.mockImplementation(() => {
+      throw new AuthorizationError("Forbidden");
+    });
+
+    const req = new Request("http://localhost:3000/api/v1/movements/scan/preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: "qr-token-secure-123" }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(403);
   });
 });
