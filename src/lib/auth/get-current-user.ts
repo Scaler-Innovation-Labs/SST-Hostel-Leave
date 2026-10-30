@@ -29,7 +29,8 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
         return null;
       }
 
-      email = clerkUser.emailAddresses[0]?.emailAddress ?? null;
+      const rawEmail = clerkUser.emailAddresses[0]?.emailAddress ?? null;
+      email = rawEmail ? rawEmail.toLowerCase().trim() : null;
       const isEmailVerified =
         clerkUser.emailAddresses[0]?.verification?.status === "verified";
 
@@ -75,10 +76,13 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<Cur
     return null;
   }
 
-  const [roleCodes, roleScopes] = await Promise.all([
-    userRoleRepository.findRoleCodesByUserId(dbUser.id),
-    userRoleRepository.findRoleScopesByUserId(dbUser.id),
-  ]);
+  const { roleCodes, roleScopes } =
+    typeof userRoleRepository.findRolesAndScopesByUserId === "function"
+      ? await userRoleRepository.findRolesAndScopesByUserId(dbUser.id)
+      : {
+          roleCodes: await userRoleRepository.findRoleCodesByUserId(dbUser.id),
+          roleScopes: await userRoleRepository.findRoleScopesByUserId(dbUser.id),
+        };
   const roles = Array.from(new Set(roleCodes.filter(isRole)));
 
   const currentUserValue: CurrentUser = {
