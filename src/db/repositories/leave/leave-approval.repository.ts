@@ -228,6 +228,91 @@ export const leaveApprovalRepository = {
     return rows[0] ?? null;
   },
 
+  /**
+   * Fast, lightweight count of unique pending leave requests awaiting approval.
+   * Powers /api/v1/badges and summary widgets without loading items, steps, or overrides.
+   */
+  async countPendingApprovals(
+    options: {
+      hostelIds?: string[];
+      assignedApproverUserId?: string;
+    } = {},
+    dbClient: Pick<typeof db, "select"> = db,
+  ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [
+      isNotNull(leaveApprovals.leaveRequestId),
+      eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+    ];
+
+    if (options.hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, options.hostelIds));
+    }
+
+    if (options.assignedApproverUserId) {
+      conditions.push(
+        or(
+          eq(leaveApprovals.assignedApproverUserId, options.assignedApproverUserId),
+          eq(leaveApprovals.approverUserId, options.assignedApproverUserId),
+        )!,
+        ne(leaveRequests.status, LEAVE_REQUEST_STATUS.CANCELLED),
+      );
+    }
+
+    const result = await dbClient
+      .select({
+        count: sql<number>`count(DISTINCT ${leaveApprovals.leaveRequestId})`,
+      })
+      .from(leaveApprovals)
+      .leftJoin(
+        leaveRequests,
+        eq(leaveApprovals.leaveRequestId, leaveRequests.id),
+      )
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions));
+
+    return Number(result[0]?.count ?? 0);
+  },
+
+  /**
+   * Fast, lightweight count of unique pending leave extensions awaiting approval.
+   * Powers /api/v1/badges and summary widgets without loading items, steps, or overrides.
+   */
+  async countPendingExtensionApprovals(
+    options: {
+      hostelIds?: string[];
+    } = {},
+    dbClient: Pick<typeof db, "select"> = db,
+  ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [
+      isNotNull(leaveApprovals.leaveExtensionId),
+      eq(leaveExtensions.status, LEAVE_REQUEST_STATUS.PENDING),
+    ];
+
+    if (options.hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, options.hostelIds));
+    }
+
+    const result = await dbClient
+      .select({
+        count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
+      })
+      .from(leaveApprovals)
+      .innerJoin(
+        leaveExtensions,
+        eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+      )
+      .leftJoin(
+        leaveRequests,
+        eq(leaveExtensions.leaveRequestId, leaveRequests.id),
+      )
+      .leftJoin(students, eq(leaveRequests.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions));
+
+    return Number(result[0]?.count ?? 0);
+  },
+
   async findByFilters(
     filters: {
       status?: LeaveApprovalDecision;
