@@ -4,7 +4,7 @@ import { optionalPhoneField } from "@/dto/shared/phone.dto";
 
 export const updateStudentSchema = z.object({
   fullName: z.string().optional(),
-  email: z.string().optional(),
+  email: z.string().trim().email().toLowerCase().optional().or(z.literal("")).optional(),
   phone: optionalPhoneField(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional().nullable(),
   rollNumber: z.string().optional(),

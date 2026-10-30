@@ -151,7 +151,11 @@ export const parentRepository = {
     data: NewParent,
     dbClient: ParentWriteClient = db
   ): Promise<Parent> {
-    const rows = await dbClient.insert(parents).values(data).returning();
+    const values = {
+      ...data,
+      email: data.email ? data.email.toLowerCase().trim() : null,
+    };
+    const rows = await dbClient.insert(parents).values(values).returning();
     return rows[0]!;
   },
 
@@ -160,9 +164,13 @@ export const parentRepository = {
     data: Partial<NewParent>,
     dbClient: ParentWriteClient = db
   ): Promise<Parent | null> {
+    const set = {
+      ...data,
+      ...(data.email !== undefined ? { email: data.email ? data.email.toLowerCase().trim() : null } : {}),
+    };
     const rows = await dbClient
       .update(parents)
-      .set(data)
+      .set(set)
       .where(eq(parents.id, id))
       .returning();
 

@@ -45,7 +45,6 @@ export const ROLE_PERMISSIONS: Record<
     "dashboard:read",
     "leaves:read",
     "workflow:read",
-    "workflow:write",
     "qr:read",
     "qr:write",
     "analytics:read",

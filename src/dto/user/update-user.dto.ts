@@ -6,7 +6,7 @@ import { ROLES } from "@/lib/auth/roles";
 
 export const updateUserSchema = z.object({
   fullName: z.string().min(1).max(200).optional(),
-  email: z.string().email().optional().or(z.literal("")).optional(),
+  email: z.string().trim().email().toLowerCase().optional().or(z.literal("")).optional(),
   phone: optionalBlankPhoneField(),
   slackId: z.string().trim().max(64).optional().or(z.literal("")).optional(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),

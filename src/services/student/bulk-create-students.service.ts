@@ -49,14 +49,14 @@ export function normalizeStudentRow(
   const academicGroupId = String(
     row.academicGroupId ?? row["Academic Group ID"] ?? row.academic_group_id ?? "",
   ).trim();
-  const email = String(row.email ?? row["Email"] ?? "").trim() || undefined;
+  const email = (String(row.email ?? row["Email"] ?? "").trim().toLowerCase()) || undefined;
   const phone = String(row.phone ?? row["Phone"] ?? "").trim() || undefined;
   const genderRaw = String(row.gender ?? row["Gender"] ?? "").trim().toUpperCase();
   const roomNumber = String(row.roomNumber ?? row["Room Number"] ?? row.room_number ?? "").trim() || null;
   const hostelId = String(row.hostelId ?? row["Hostel ID"] ?? row.hostel_id ?? "").trim() || null;
   const parentName = String(row.parentName ?? row["Parent Name"] ?? row.parent_name ?? "").trim();
   const parentPhone = String(row.parentPhone ?? row["Parent Phone"] ?? row.parent_phone ?? "").trim();
-  const parentEmail = String(row.parentEmail ?? row["Parent Email"] ?? row.parent_email ?? "").trim() || undefined;
+  const parentEmail = (String(row.parentEmail ?? row["Parent Email"] ?? row.parent_email ?? "").trim().toLowerCase()) || undefined;
   const parentRelationship = String(
     row.parentRelationship ?? row["Parent Relationship"] ?? row.parent_relationship ?? "",
   ).trim();

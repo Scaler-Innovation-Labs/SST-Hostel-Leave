@@ -13,7 +13,7 @@ export type UserRoleScopeAssignment = z.infer<typeof userRoleScopeSchema>;
 
 export const createUserSchema = z.object({
   fullName: z.string().min(1, "Full name is required").max(200),
-  email: z.string().email().optional().or(z.literal("")),
+  email: z.string().trim().email().toLowerCase().optional().or(z.literal("")),
   phone: optionalBlankPhoneField(),
   slackId: z.string().trim().max(64).optional().or(z.literal("")),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),

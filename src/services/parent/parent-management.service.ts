@@ -22,7 +22,7 @@ export const parentManagementService = {
       studentId: dto.studentId,
       name: dto.name,
       phone: dto.phone,
-      email: dto.email || null,
+      email: dto.email ? dto.email.toLowerCase().trim() : null,
       relationship: dto.relationship,
       isPrimary: dto.isPrimary,
     });
@@ -44,7 +44,11 @@ export const parentManagementService = {
     const parent = await parentRepository.findById(id);
     if (!parent) throw new NotFoundError("Parent");
 
-    const updated = await parentRepository.updateById(id, dto);
+    const updateData = {
+      ...dto,
+      ...(dto.email !== undefined ? { email: dto.email ? dto.email.toLowerCase().trim() : null } : {}),
+    };
+    const updated = await parentRepository.updateById(id, updateData);
 
     if (actorUserId) {
       await auditService.record(

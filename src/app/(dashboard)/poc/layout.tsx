@@ -13,10 +13,10 @@ export default async function PocLayout({ children }: PocLayoutProps) {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/unauthorized");
+    redirect("/login");
   }
 
-  if (!user.roles.some((r) => r === ROLES.POC)) {
+  if (!user.roles.some((r) => r === ROLES.POC || r === ROLES.ADMIN || r === ROLES.SUPER_ADMIN)) {
     redirect("/unauthorized");
   }
 

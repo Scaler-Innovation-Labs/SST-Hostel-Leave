@@ -18,7 +18,7 @@ export default async function SuperAdminLayout({
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/unauthorized");
+    redirect("/login");
   }
 
   if (!user.roles.includes(ROLES.SUPER_ADMIN)) {

@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/unauthorized");
+    redirect("/login");
   }
 
   if (!user.roles.some((r) => r === ROLES.ADMIN || r === ROLES.SUPER_ADMIN)) {

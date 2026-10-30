@@ -6,7 +6,7 @@ export const createParentSchema = z.object({
   studentId: z.string().uuid(),
   name: z.string().min(1).max(200),
   phone: requiredPhoneField(),
-  email: z.string().email().optional().or(z.literal("")),
+  email: z.string().trim().email().toLowerCase().optional().or(z.literal("")),
   relationship: z.string().min(1).max(100),
   isPrimary: z.boolean().default(false),
 });
