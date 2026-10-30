@@ -705,7 +705,7 @@ describe("scanQrPass service", () => {
       expect(mockRecordMovement).toHaveBeenCalledTimes(1);
     });
 
-    it("propagates recordMovement failure for EXIT_SCAN", async () => {
+    it("propagates recordMovement failure for EXIT_SCAN and persists FAILED scan log outside rolled-back tx (B13)", async () => {
       mockFindByTokenHash.mockResolvedValue(VALID_PASS);
       mockRecordMovement.mockRejectedValue(
         new ConflictError("Student state mismatch")
@@ -718,10 +718,24 @@ describe("scanQrPass service", () => {
           scanType: "EXIT_SCAN",
         })
       ).rejects.toBeInstanceOf(ConflictError);
+
+      expect(mockScanLogCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          qrPassId: VALID_PASS.id,
+          scannedBy: "U1",
+          scanType: "EXIT_SCAN",
+          scanResult: "FAILED",
+          failureReason: "Student state mismatch",
+        })
+      );
     });
 
-    it("propagates recordMovement failure for RETURN_SCAN", async () => {
+    it("propagates recordMovement failure for RETURN_SCAN and persists FAILED scan log outside rolled-back tx (B13)", async () => {
       mockFindByTokenHash.mockResolvedValue(VALID_RETURN_PASS);
+      mockFindById.mockResolvedValue({
+        ...VALID_RETURN_PASS,
+        id: "PASS2",
+      });
       mockRecordMovement.mockRejectedValue(
         new ConflictError("Student state mismatch")
       );
@@ -733,6 +747,61 @@ describe("scanQrPass service", () => {
           scanType: "RETURN_SCAN",
         })
       ).rejects.toBeInstanceOf(ConflictError);
+
+      expect(mockScanLogCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          qrPassId: VALID_RETURN_PASS.id,
+          scannedBy: "U1",
+          scanType: "RETURN_SCAN",
+          scanResult: "FAILED",
+          failureReason: "Student state mismatch",
+        })
+      );
+    });
+
+    it("persists FAILED log when token rotation conflict occurs inside transaction (B13)", async () => {
+      mockFindByTokenHash.mockResolvedValue(VALID_PASS);
+      mockFindById.mockResolvedValue({
+        ...VALID_PASS,
+        tokenHash: "different-rotated-hash",
+      });
+
+      await expect(
+        scanQrPass({
+          token: "exit-token",
+          scannedBy: "U1",
+          scanType: "EXIT_SCAN",
+        })
+      ).rejects.toBeInstanceOf(ConflictError);
+
+      expect(mockScanLogCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          qrPassId: VALID_PASS.id,
+          scanResult: "FAILED",
+          failureReason: "QR pass token has been rotated",
+        })
+      );
+    });
+
+    it("persists FAILED log when concurrent first scan race is lost inside transaction (B13)", async () => {
+      mockFindByTokenHash.mockResolvedValue(VALID_PASS);
+      mockMarkAsFirstScanned.mockResolvedValue(null); // concurrent scan won race
+
+      await expect(
+        scanQrPass({
+          token: "exit-token",
+          scannedBy: "U1",
+          scanType: "EXIT_SCAN",
+        })
+      ).rejects.toBeInstanceOf(ConflictError);
+
+      expect(mockScanLogCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          qrPassId: VALID_PASS.id,
+          scanResult: "FAILED",
+          failureReason: "QR pass was concurrently scanned or invalidated",
+        })
+      );
     });
   });
 
