@@ -56,7 +56,7 @@ function joinYear(roll: string): number | null {
   return y >= 2020 && y <= 2035 ? y : null;
 }
 
-function normPhone(raw: string): string | null {
+function normPhone(raw: string | undefined): string | null {
   if (!raw) return null;
   let d = raw.replace(/[^\d]/g, "");
   if (d.length === 12 && d.startsWith("91")) d = d.slice(2);
@@ -64,7 +64,7 @@ function normPhone(raw: string): string | null {
   return d.length === 10 ? d : null;
 }
 
-function cleanEmail(raw: string): string | null {
+function cleanEmail(raw: string | undefined): string | null {
   if (!raw) return null;
   const v = raw.trim().toLowerCase();
   if (!v || v === "--" || v === "-" || /^n\/?a$/i.test(v)) return null;
@@ -72,20 +72,20 @@ function cleanEmail(raw: string): string | null {
   return v;
 }
 
-function cleanName(raw: string): string | null {
+function cleanName(raw: string | undefined): string | null {
   if (!raw) return null;
   const v = raw.trim().replace(/\s+/g, " ");
   if (!v || /^n\/?a$/i.test(v)) return null;
   return v;
 }
 
-function parseDob(raw: string): string | null {
+function parseDob(raw: string | undefined): string | null {
   if (!raw) return null;
   const t = Date.parse(raw.trim());
   return Number.isNaN(t) ? null : new Date(t).toISOString().slice(0, 10);
 }
 
-function cleanRoom(raw: string): string | null {
+function cleanRoom(raw: string | undefined): string | null {
   if (!raw) return null;
   const v = raw.trim();
   if (!v || /^#n\/?a$/i.test(v) || v === "-" || /^none$/i.test(v)) return null;
@@ -185,11 +185,11 @@ async function runProductionSync() {
       const genderRaw = (r["Gender"] ?? "").trim().toLowerCase();
       const gender = genderRaw === "male" ? "MALE" : genderRaw === "female" ? "FEMALE" : null;
       const hostelId = hostelFor(r["My Hostel:"] ?? "");
-      const roomNumber = cleanRoom(r["Room Number"] ?? "");
+      const roomNumber = cleanRoom(r["Room Number"]);
       const currentStatus = (r["Current Status"] ?? "").trim();
       const isActive = currentStatus !== "Left College";
 
-      let phone = normPhone(r["Personal Mobile Number"] ?? "");
+      let phone = normPhone(r["Personal Mobile Number"]);
       if (phone) {
         const owner = userByPhone.get(phone);
         if (owner && owner.email?.toLowerCase() !== email) {
@@ -197,7 +197,7 @@ async function runProductionSync() {
         }
       }
 
-      const dob = parseDob(r["Date of Birth"] ?? "");
+      const dob = parseDob(r["Date of Birth"]);
       const metadataUpdate = {
         ...(r.Batch ? { gradBatch: r.Batch.trim() } : {}),
         ...(dob ? { dob } : {}),
