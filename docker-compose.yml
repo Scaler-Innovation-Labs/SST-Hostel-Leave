@@ -1,0 +1,33 @@
+# SST Hostel Leave — Local Development Database
+#
+# Usage:
+#   docker compose up -d          # start Postgres
+#   docker compose down           # stop & remove
+#   docker compose down -v        # stop & delete all data
+#
+# Connect:
+#   DATABASE_URL=postgresql://postgres:postgres@localhost:5432/leave_management
+
+services:
+  postgres:
+    image: postgres:18
+    container_name: hostel-postgres-dev
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: leave_management
+    ports:
+      - "5432:5432"
+    volumes:
+      # Postgres 18+ stores data in a versioned subdirectory and refuses to
+      # start when a volume is mounted directly at /var/lib/postgresql/data.
+      # Mount the parent instead; data lands in /var/lib/postgresql/18/docker.
+      - hostel-postgres-dev-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d leave_management"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  hostel-postgres-dev-data:
