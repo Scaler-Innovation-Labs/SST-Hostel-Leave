@@ -514,9 +514,28 @@ export const leaveApprovalRepository = {
         .leftJoin(users, eq(students.userId, users.id))
         .where(whereClause)
         .groupBy(leaveApprovals.leaveRequestId)
-        // The id breaks ties: timestamps collide often enough that ordering on
-        // them alone lets a request drift between pages as they are fetched.
+        // Sort order prioritizes workflow actionable queue:
+        // 1. Pending leaves waiting on Admin/Warden approval
+        // 2. Pending leaves waiting on Parent approval
+        // 3. Pending leaves waiting on POC approval
+        // 4. Any other Pending leaves
+        // 5. Approved or Completed leaves
+        // 6. Rejected leaves
+        // 7. Expired leaves
+        // 8. Other / Cancelled leaves
+        // Within each priority bucket, order newest first (createdAt DESC),
+        // with leaveRequestId ASC breaking ties for stable pagination.
         .orderBy(
+          sql`CASE
+            WHEN max(${leaveRequests.status}) = 'PENDING' AND (max(${leaveRequests.currentStepKey}) ILIKE '%ADMIN%' OR max(${leaveRequests.currentStepKey}) ILIKE '%WARDEN%') THEN 1
+            WHEN max(${leaveRequests.status}) = 'PENDING' AND max(${leaveRequests.currentStepKey}) ILIKE '%PARENT%' THEN 2
+            WHEN max(${leaveRequests.status}) = 'PENDING' AND max(${leaveRequests.currentStepKey}) ILIKE '%POC%' THEN 3
+            WHEN max(${leaveRequests.status}) = 'PENDING' THEN 4
+            WHEN max(${leaveRequests.status}) IN ('APPROVED', 'COMPLETED') THEN 5
+            WHEN max(${leaveRequests.status}) = 'REJECTED' THEN 6
+            WHEN max(${leaveRequests.status}) = 'EXPIRED' THEN 7
+            ELSE 8
+          END ASC`,
           desc(sql`max(${leaveApprovals.createdAt})`),
           asc(leaveApprovals.leaveRequestId),
         )
@@ -1111,9 +1130,26 @@ export const leaveApprovalRepository = {
       .leftJoin(users, eq(students.userId, users.id))
       .where(whereClause)
       .groupBy(leaveApprovals.leaveExtensionId)
-      // The id breaks ties: timestamps collide often enough that ordering on
-      // them alone lets an extension drift between pages as they are fetched.
+      // Sort order prioritizes workflow actionable queue:
+      // 1. Pending extensions waiting on Admin/Warden approval
+      // 2. Pending extensions waiting on Parent approval
+      // 3. Pending extensions waiting on POC approval
+      // 4. Any other Pending extensions
+      // 5. Approved or Completed extensions
+      // 6. Rejected extensions
+      // 7. Other extensions
+      // Within each priority bucket, order newest first (createdAt DESC),
+      // with leaveExtensionId ASC breaking ties for stable pagination.
       .orderBy(
+        sql`CASE
+          WHEN max(${leaveExtensions.status}) = 'PENDING' AND (max(${leaveExtensions.currentStepKey}) ILIKE '%ADMIN%' OR max(${leaveExtensions.currentStepKey}) ILIKE '%WARDEN%') THEN 1
+          WHEN max(${leaveExtensions.status}) = 'PENDING' AND max(${leaveExtensions.currentStepKey}) ILIKE '%PARENT%' THEN 2
+          WHEN max(${leaveExtensions.status}) = 'PENDING' AND max(${leaveExtensions.currentStepKey}) ILIKE '%POC%' THEN 3
+          WHEN max(${leaveExtensions.status}) = 'PENDING' THEN 4
+          WHEN max(${leaveExtensions.status}) IN ('APPROVED', 'COMPLETED') THEN 5
+          WHEN max(${leaveExtensions.status}) = 'REJECTED' THEN 6
+          ELSE 7
+        END ASC`,
         desc(sql`max(${leaveApprovals.createdAt})`),
         asc(leaveApprovals.leaveExtensionId),
       )
