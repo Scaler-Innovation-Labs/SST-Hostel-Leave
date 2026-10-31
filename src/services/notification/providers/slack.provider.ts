@@ -13,9 +13,13 @@ import type {
  * - Usergroup ids (S...) mention the whole group: <!subteam^S123>
  */
 function formatSlackMention(id: string): string {
-	if (id.startsWith("S")) return `<!subteam^${id}>`;
-	if (id.startsWith("U")) return `<@${id}>`;
-	return `@${id}`;
+	const trimmed = id.trim();
+	if (trimmed.startsWith("<!subteam^") && trimmed.endsWith(">")) return trimmed;
+	if (trimmed.startsWith("<@") && trimmed.endsWith(">")) return trimmed;
+	const cleanId = trimmed.replace(/^<@?/, "").replace(/^@/, "").replace(/>$/, "");
+	if (cleanId.startsWith("S")) return `<!subteam^${cleanId}>`;
+	if (cleanId.startsWith("U") || cleanId.startsWith("W")) return `<@${cleanId}>`;
+	return `@${cleanId}`;
 }
 
 /**

@@ -12,6 +12,8 @@ const mockHostelFindById = vi.fn();
 const mockEmailSend = vi.fn();
 const mockFindUserIdsByRoleCode = vi.fn();
 const mockFindUsersByIds = vi.fn();
+const mockFindUserById = vi.fn().mockResolvedValue(null);
+const mockFindApprovalsByLeaveRequestId = vi.fn().mockResolvedValue([]);
 
 vi.mock("@/db/repositories/notification/notification-template.repository", () => ({
   notificationTemplateRepository: {
@@ -29,7 +31,14 @@ vi.mock("@/db/repositories/auth/user-role.repository", () => ({
 
 vi.mock("@/db/repositories/user/user.repository", () => ({
   userRepository: {
+    findById: (...args: any[]) => mockFindUserById(...args),
     findByIds: (...args: any[]) => mockFindUsersByIds(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
+  leaveApprovalRepository: {
+    findByLeaveRequestId: (...args: any[]) => mockFindApprovalsByLeaveRequestId(...args),
   },
 }));
 
@@ -40,6 +49,20 @@ vi.mock("@/db/repositories/hostel/hostel.repository", () => ({
 }));
 
 const mockFindParentById = vi.fn();
+const mockFindLeaveById = vi.fn().mockResolvedValue({ id: "L1", status: "PENDING" });
+const mockFindExtensionById = vi.fn().mockResolvedValue(null);
+
+vi.mock("@/db/repositories/leave/leave.repository", () => ({
+  leaveRepository: {
+    findById: (...args: any[]) => mockFindLeaveById(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
+  leaveExtensionRepository: {
+    findById: (...args: any[]) => mockFindExtensionById(...args),
+  },
+}));
 
 vi.mock("@/db/repositories/parent/parent.repository", () => ({
   parentRepository: {
@@ -94,6 +117,8 @@ beforeEach(() => {
   mockFindActiveByEvent.mockResolvedValue([]);
   mockSlackSend.mockResolvedValue({ success: true, messageId: "slack-1" });
   mockHostelFindById.mockResolvedValue(null);
+    mockFindApprovalsByLeaveRequestId.mockResolvedValue([]);
+    mockFindUserById.mockResolvedValue(null);
   mockEmailSend.mockResolvedValue({ success: true, messageId: "email-123" });
 });
 
@@ -406,6 +431,42 @@ describe("notificationService", () => {
     expect(logCall.metadata.qrToken).toBeUndefined();
   });
 
+  it("skips parent approval SMS when leave request is cancelled", async () => {
+    mockFindLeaveById.mockResolvedValue({ id: "L8", status: "CANCELLED" });
+
+    const result = await notificationService.notify("PARENT_APPROVAL_REQUESTED", {
+      leaveRequestId: "L8",
+      parentId: "P1",
+      variables: {
+        leaveId: "L8",
+        approvalLink: "https://leave.sst-dashboard.com/parent-approve/token",
+      },
+    });
+
+    expect(result).toEqual({ success: true, failures: [] });
+    expect(mockFindActiveByEvent).not.toHaveBeenCalled();
+    expect(mockLogCreate).not.toHaveBeenCalled();
+  });
+
+  it("skips parent approval SMS when leave extension is cancelled", async () => {
+    mockFindLeaveById.mockResolvedValue({ id: "L8", status: "PENDING" });
+    mockFindExtensionById.mockResolvedValue({ id: "EXT8", status: "CANCELLED" });
+
+    const result = await notificationService.notify("PARENT_APPROVAL_REQUESTED", {
+      leaveRequestId: "L8",
+      leaveExtensionId: "EXT8",
+      parentId: "P1",
+      variables: {
+        leaveId: "L8",
+        approvalLink: "https://leave.sst-dashboard.com/parent-approve/token",
+      },
+    });
+
+    expect(result).toEqual({ success: true, failures: [] });
+    expect(mockFindActiveByEvent).not.toHaveBeenCalled();
+    expect(mockLogCreate).not.toHaveBeenCalled();
+  });
+
   it("does not resend a parent approval SMS when the same outbox event was already logged SENT", async () => {
     mockHasSentForOutboxEventId.mockResolvedValue(true);
 
@@ -534,6 +595,113 @@ describe("notificationService", () => {
         channel: "SLACK",
         metadata: expect.objectContaining({ slackMentions: "SADM" }),
       })
+    );
+  });
+
+
+  it("CCs the selected POC slackId on slack notifications when POC is selected", async () => {
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R10",
+        leaveTypeId: null,
+        eventType: "LEAVE_SUBMITTED",
+        templateId: "T10",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "leave_submitted_slack_late_stay_poc",
+        recipients: [{ recipientType: "POC" }],
+        channels: [{ channel: "SLACK" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
+      {
+        id: "T10",
+        eventKey: "LEAVE_SUBMITTED",
+        channel: "SLACK",
+        templateBody: "Late stay {{leaveId}} submitted",
+        isActive: true,
+      },
+    ]);
+    mockFindUserIdsByRoleCode.mockResolvedValue(["U_POC_1"]);
+    mockFindUsersByIds.mockResolvedValue([
+      { id: "U_POC_1", email: "poc@x.com", phone: null, hostelId: "H1" },
+    ]);
+    mockHostelFindById.mockResolvedValue({ id: "H1", slackAdminGroupId: null });
+    mockFindApprovalsByLeaveRequestId.mockResolvedValue([
+      { stepKey: "POC_APPROVAL", assignedApproverUserId: "U_POC_1" },
+    ]);
+    mockFindUserById.mockImplementation((id: string) => {
+      if (id === "U_POC_1") {
+        return Promise.resolve({ id: "U_POC_1", fullName: "Dr. Smith", slackId: "U_SLACK_POC" });
+      }
+      return Promise.resolve(null);
+    });
+
+    await notificationService.notify("LEAVE_SUBMITTED", {
+      leaveRequestId: "L10",
+      hostelId: "H1",
+      variables: { leaveId: "L10" },
+    });
+
+    expect(mockSlackSend).toHaveBeenCalledWith(
+      expect.objectContaining({ mentions: ["U_SLACK_POC"] })
+    );
+    expect(mockLogCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: "SLACK",
+        metadata: expect.objectContaining({ slackMentions: "U_SLACK_POC" }),
+      })
+    );
+  });
+
+  it("CCs both the hostel admin group and selected POC slackId", async () => {
+    mockFindActiveByEvent.mockResolvedValue([
+      {
+        id: "R11",
+        leaveTypeId: null,
+        eventType: "LEAVE_SUBMITTED",
+        templateId: "T11",
+        enabled: true,
+        customRecipients: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        templateCode: "leave_submitted_slack_late_stay_poc",
+        recipients: [{ recipientType: "POC" }],
+        channels: [{ channel: "SLACK" }],
+      },
+    ]);
+    mockFindByIds.mockResolvedValue([
+      {
+        id: "T11",
+        eventKey: "LEAVE_SUBMITTED",
+        channel: "SLACK",
+        templateBody: "Late stay {{leaveId}} submitted",
+        isActive: true,
+      },
+    ]);
+    mockFindUserIdsByRoleCode.mockResolvedValue(["U_POC_1"]);
+    mockFindUsersByIds.mockResolvedValue([
+      { id: "U_POC_1", email: "poc@x.com", phone: null, hostelId: "H1" },
+    ]);
+    mockHostelFindById.mockResolvedValue({ id: "H1", slackAdminGroupId: "SADM" });
+    mockFindUserById.mockImplementation((id: string) => {
+      if (id === "U_POC_1") {
+        return Promise.resolve({ id: "U_POC_1", fullName: "Dr. Smith", slackId: "U_SLACK_POC" });
+      }
+      return Promise.resolve(null);
+    });
+
+    await notificationService.notify("LEAVE_SUBMITTED", {
+      leaveRequestId: "L11",
+      hostelId: "H1",
+      pocId: "U_POC_1",
+      variables: { leaveId: "L11" },
+    });
+
+    expect(mockSlackSend).toHaveBeenCalledWith(
+      expect.objectContaining({ mentions: ["SADM", "U_SLACK_POC"] })
     );
   });
 

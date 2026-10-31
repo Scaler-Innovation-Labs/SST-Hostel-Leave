@@ -2,11 +2,25 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 const mockFindPrimaryByStudentId = vi.fn();
+const mockFindLeaveById = vi.fn();
+const mockFindExtensionById = vi.fn();
 const mockFindApprovalById = vi.fn();
 const mockUpdateParentApprovalToken = vi.fn();
 const mockAuditRecord = vi.fn();
 const mockOutboxPublish = vi.fn();
 const mockNotificationNotify = vi.fn();
+
+vi.mock("@/db/repositories/leave/leave.repository", () => ({
+  leaveRepository: {
+    findById: (...args: any[]) => mockFindLeaveById(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
+  leaveExtensionRepository: {
+    findById: (...args: any[]) => mockFindExtensionById(...args),
+  },
+}));
 
 vi.mock("@/db/repositories/parent/parent.repository", () => ({
   parentRepository: {
@@ -150,6 +164,38 @@ describe("generateParentApproval service", () => {
         }),
       })
     );
+  });
+
+  it("skips generating parent approval when leave is cancelled", async () => {
+    mockFindLeaveById.mockResolvedValue({ id: "LR1", status: "CANCELLED" });
+
+    await generateParentApproval(VALID_CONTEXT, APPROVAL_STEP);
+
+    expect(mockUpdateParentApprovalToken).not.toHaveBeenCalled();
+    expect(mockNotificationNotify).not.toHaveBeenCalled();
+  });
+
+  it("skips generating parent approval when approval step is cancelled", async () => {
+    mockFindApprovalById.mockResolvedValue({
+      id: "AP1",
+      decision: "CANCELLED",
+      parentDetails: null,
+    });
+
+    await generateParentApproval(VALID_CONTEXT, APPROVAL_STEP);
+
+    expect(mockUpdateParentApprovalToken).not.toHaveBeenCalled();
+    expect(mockNotificationNotify).not.toHaveBeenCalled();
+  });
+
+  it("skips generating parent approval when extension is cancelled", async () => {
+    const context = { ...VALID_CONTEXT, leaveExtensionId: "EXT1" };
+    mockFindExtensionById.mockResolvedValue({ id: "EXT1", status: "CANCELLED" });
+
+    await generateParentApproval(context, APPROVAL_STEP);
+
+    expect(mockUpdateParentApprovalToken).not.toHaveBeenCalled();
+    expect(mockNotificationNotify).not.toHaveBeenCalled();
   });
 
   it("includes leaveExtensionId when provided", async () => {

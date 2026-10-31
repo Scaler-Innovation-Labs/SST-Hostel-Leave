@@ -10,6 +10,7 @@ import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
+import { outboxRepository } from "@/db/repositories/outbox/outbox.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import type { CancelLeaveDto } from "@/dto/leave/cancel-leave.dto";
 import type { CurrentUser } from "@/lib/auth/types";
@@ -139,6 +140,18 @@ export async function cancelLeave(
         tx
       );
     }
+
+    // Proactively cancel any pending outbox events for parent approval/SMS
+    // so the worker does not send SMS to parents after cancellation.
+    await outboxRepository.cancelPendingByAggregateIds(
+      [leaveId, ...pendingExtensionIds],
+      "Leave cancelled before SMS dispatch",
+      [
+        OUTBOX_EVENT_TYPE.PARENT_APPROVAL_REQUIRED,
+        OUTBOX_EVENT_TYPE.NOTIFICATION_REQUESTED,
+      ],
+      tx
+    );
 
     let qrInvalidated = false;
 

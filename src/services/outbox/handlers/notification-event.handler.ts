@@ -1,7 +1,9 @@
+import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import type {
   NotificationEvent,
 } from "@/constants/notification/notification-event";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 import { DeliveryError } from "@/lib/errors";
@@ -53,6 +55,30 @@ export async function handleNotificationEvent(
     return;
   }
 
+  // If this is a parent approval notification and the leave or extension was cancelled, skip sending
+  if (notificationType === "PARENT_APPROVAL_REQUESTED") {
+    if (payload.leaveRequestId) {
+      const leave = await leaveRepository.findById(payload.leaveRequestId as string);
+      if (leave && leave.status === LEAVE_REQUEST_STATUS.CANCELLED) {
+        logger.info("handleNotificationEvent skipped parent approval: leave is cancelled", {
+          leaveRequestId: payload.leaveRequestId,
+          eventId: event.id,
+        });
+        return;
+      }
+    }
+    if (payload.leaveExtensionId) {
+      const extension = await leaveExtensionRepository.findById(payload.leaveExtensionId as string);
+      if (extension && extension.status === LEAVE_REQUEST_STATUS.CANCELLED) {
+        logger.info("handleNotificationEvent skipped parent approval: extension is cancelled", {
+          leaveExtensionId: payload.leaveExtensionId,
+          eventId: event.id,
+        });
+        return;
+      }
+    }
+  }
+
   const { leaveTypeId, hostelId } = await resolveLeaveRouting(
     payload.leaveRequestId as string | undefined
   );
@@ -70,6 +96,7 @@ export async function handleNotificationEvent(
     hostelId,
     userId: payload.userId as string | undefined,
     parentId: payload.parentId as string | undefined,
+    pocId: payload.pocId as string | undefined,
     recipientEmail: payload.recipientEmail as
       | string
       | undefined,

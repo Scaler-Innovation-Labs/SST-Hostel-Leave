@@ -502,7 +502,7 @@ export const outboxRepository = {
       )
       .returning({ id: outboxEvents.id });
 
-    return rows.length;
+    return rows?.length ?? 0;
   },
 
   /**
@@ -560,6 +560,44 @@ export const outboxRepository = {
         )
       )
       .returning();
+
+    return rows.length;
+  },
+
+  /**
+   * Proactively cancel pending outbox events for specific aggregate IDs (e.g. when
+   * a leave or extension is cancelled before the outbox worker processes it).
+   * Marks matching PENDING events as PROCESSED with a descriptive lastError so
+   * workers skip them and audit trails remain clear.
+   */
+  async cancelPendingByAggregateIds(
+    aggregateIds: string[],
+    reason: string = "Leave cancelled before dispatch",
+    eventTypes?: string[],
+    dbClient: Pick<typeof db, "update"> = db
+  ): Promise<number> {
+    if (aggregateIds.length === 0) return 0;
+
+    const rows = await dbClient
+      .update(outboxEvents)
+      .set({
+        status: OUTBOX_STATUS.PROCESSED,
+        processedAt: new Date(),
+        claimedAt: null,
+        leaseExpiresAt: null,
+        nextAttemptAt: null,
+        lastError: `CANCELLED: ${reason}`,
+      })
+      .where(
+        and(
+          inArray(outboxEvents.aggregateId, aggregateIds),
+          eq(outboxEvents.status, OUTBOX_STATUS.PENDING),
+          eventTypes && eventTypes.length > 0
+            ? inArray(outboxEvents.eventType, eventTypes)
+            : undefined
+        )
+      )
+      .returning({ id: outboxEvents.id });
 
     return rows.length;
   },

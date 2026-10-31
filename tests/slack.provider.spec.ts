@@ -96,6 +96,22 @@ describe("createSlackProvider", () => {
 		expect(ccBlock.text.text).toBe("CC: <!subteam^SVELANKANI-ADMINS> <@UUSER1>");
 	});
 
+	it("normalizes and cleans mention formats (e.g. @U..., <@U...>, W...)", async () => {
+		await createSlackProvider().send({
+			to: "C123",
+			subject: "Leave update",
+			body: "Your leave was approved.",
+			mentions: ["@UPOC1", "<@UPOC2>", "<!subteam^SADM>", "WENTGRID"],
+		});
+
+		const { blocks } = mockPostMessage.mock.calls[0][0];
+		const ccBlock = blocks.find(
+			(block: any) => block.type === "section" && block.text?.text.startsWith("CC:")
+		);
+		expect(ccBlock).toBeDefined();
+		expect(ccBlock.text.text).toBe("CC: <@UPOC1> <@UPOC2> <!subteam^SADM> <@WENTGRID>");
+	});
+
 	it("does not add a CC block when mentions are empty", async () => {
 		await createSlackProvider().send({
 			to: "C123",

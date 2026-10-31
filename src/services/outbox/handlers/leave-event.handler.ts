@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 
+import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
 import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
@@ -14,6 +15,7 @@ import { leaveApprovalParentDetails } from "@/db";
 import { hostelRepository } from "@/db/repositories/hostel/hostel.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
+import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
@@ -54,6 +56,7 @@ type ResolvedContext = {
   variables: Record<string, string>;
   studentId?: string;
   parentId?: string;
+  pocId?: string;
   leaveTypeId?: string;
   leaveTypeCode?: string;
   hostelId?: string;
@@ -218,9 +221,42 @@ async function resolveContext(
   // stored value (there is no separate campus entity).
   if (hostelName && !variables.campus) variables.campus = hostelName;
 
-  const pocName =
+  let pocUserId: string | undefined =
+    typeof payload.pocId === "string" ? payload.pocId : undefined;
+
+  if (!pocUserId && leaveId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(leaveId)) {
+    try {
+      const approvals = await leaveApprovalRepository.findByLeaveRequestId(leaveId);
+      const pocApproval = approvals.find((a) =>
+        a.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL ||
+        a.stepKey.toLowerCase().includes("poc")
+      );
+      pocUserId = pocApproval?.assignedApproverUserId ?? pocApproval?.approverUserId ?? undefined;
+    } catch {
+      // ignore
+    }
+  }
+
+  let pocName =
     formString("pocName") ??
     (typeof payload.pocName === "string" ? payload.pocName : undefined);
+
+  if (pocUserId) {
+    try {
+      const pocUser = await userRepository.findById(pocUserId);
+      if (pocUser) {
+        if (!pocName && pocUser.fullName) {
+          pocName = pocUser.fullName;
+        }
+        if (pocUser.slackId && !variables.pocSlackId) {
+          variables.pocSlackId = pocUser.slackId;
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   if (pocName && !variables.pocName) variables.pocName = pocName;
   if (!variables.pocName) variables.pocName = "POC";
 
@@ -274,6 +310,7 @@ async function resolveContext(
     variables,
     studentId: resolvedStudentId,
     parentId,
+    pocId: pocUserId,
     leaveTypeId: leave?.leaveTypeId ?? undefined,
     leaveTypeCode,
     hostelId,
@@ -333,6 +370,7 @@ export async function handleLeaveEvent(
       leaveTypeId: context.leaveTypeId,
       studentId: context.studentId ?? studentId,
       parentId: context.parentId,
+      pocId: context.pocId,
       hostelId: context.hostelId,
       userId: payload.userId as string | undefined,
       recipientEmail: context.email,
@@ -371,6 +409,30 @@ export async function handleLeaveEvent(
 
     if (leaveRequestId && studentId && approvalStepId) {
       const logIdentifier = leaveExtensionId ? `extension ${leaveExtensionId}` : `leave ${leaveRequestId}`;
+
+      // Check if the leave request or extension was cancelled before sending SMS to parents
+      const leave = await leaveRepository.findById(leaveRequestId);
+      if (leave && leave.status === LEAVE_REQUEST_STATUS.CANCELLED) {
+        logger.info("PARENT_APPROVAL_REQUIRED skipped: leave was cancelled before SMS dispatch", {
+          target: logIdentifier,
+          leaveRequestId,
+          eventId: event.id,
+        });
+        return;
+      }
+
+      if (leaveExtensionId) {
+        const extension = await leaveExtensionRepository.findById(leaveExtensionId);
+        if (extension && extension.status === LEAVE_REQUEST_STATUS.CANCELLED) {
+          logger.info("PARENT_APPROVAL_REQUIRED skipped: leave extension was cancelled before SMS dispatch", {
+            target: logIdentifier,
+            leaveExtensionId,
+            eventId: event.id,
+          });
+          return;
+        }
+      }
+
       const parentId = payload.parentId as string | undefined;
       try {
         await generateParentApproval(

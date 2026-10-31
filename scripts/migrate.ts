@@ -1,7 +1,19 @@
 import * as dotenv from "dotenv";
-dotenv.config({ path: ".env.local" });
+
+type NodeEnv = "development" | "staging" | "production";
+
+const envFileMap: Record<NodeEnv, string> = {
+  development: ".env.local",
+  staging: ".env.staging",
+  production: ".env.production",
+};
+
+const nodeEnv = (process.env.NODE_ENV ?? "development") as NodeEnv;
+
+dotenv.config({ path: envFileMap[nodeEnv] });
 
 import { migrate } from "drizzle-orm/node-postgres/migrator";
+
 import { db } from "@/lib/db";
 import { logger } from "@/lib/logger";
 

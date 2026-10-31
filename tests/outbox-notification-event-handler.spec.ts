@@ -10,12 +10,19 @@ vi.mock("@/services/notification/notification.service", () => ({
 }));
 
 const mockFindLeaveById = vi.fn();
+const mockFindExtensionById = vi.fn();
 const mockFindStudentById = vi.fn();
 const mockFindUserById = vi.fn();
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
     findById: (...args: any[]) => mockFindLeaveById(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
+  leaveExtensionRepository: {
+    findById: (...args: any[]) => mockFindExtensionById(...args),
   },
 }));
 
@@ -129,6 +136,34 @@ describe("handleNotificationEvent", () => {
 
   it("skips dispatch when notificationType is missing", async () => {
     await handleNotificationEvent(makeEvent({ notificationType: null }));
+
+    expect(mockNotify).not.toHaveBeenCalled();
+  });
+
+  it("skips PARENT_APPROVAL_REQUESTED when leave is cancelled", async () => {
+    mockFindLeaveById.mockResolvedValue({ id: "L1", status: "CANCELLED" });
+
+    const event = makeEvent({
+      notificationType: "PARENT_APPROVAL_REQUESTED",
+      leaveRequestId: "L1",
+    });
+
+    await handleNotificationEvent(event);
+
+    expect(mockNotify).not.toHaveBeenCalled();
+  });
+
+  it("skips PARENT_APPROVAL_REQUESTED when extension is cancelled", async () => {
+    mockFindLeaveById.mockResolvedValue({ id: "L1", status: "PENDING" });
+    mockFindExtensionById.mockResolvedValue({ id: "EXT1", status: "CANCELLED" });
+
+    const event = makeEvent({
+      notificationType: "PARENT_APPROVAL_REQUESTED",
+      leaveRequestId: "L1",
+      leaveExtensionId: "EXT1",
+    });
+
+    await handleNotificationEvent(event);
 
     expect(mockNotify).not.toHaveBeenCalled();
   });

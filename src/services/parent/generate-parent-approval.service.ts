@@ -2,12 +2,16 @@ import { ACTOR_TYPE, AUDIT_TRIGGER } from "@/constants/audit/actor";
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
+import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { PARENT_APPROVAL_TOKEN_EXPIRY_HOURS } from "@/constants/parent/parent-approval";
+import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import { leaveParentApprovalRepository } from "@/db/repositories/leave/leave-parent-approval.repository";
 import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { sha256, toHex } from "@/lib/crypto";
 import { transaction } from "@/lib/db/transaction";
 import { DeliveryError, NotFoundError, ValidationError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 import { buildParentApprovalDltName } from "@/lib/messaging/sms/dlt";
 import { auditService } from "@/services/audit/audit.service";
 import { notificationService } from "@/services/notification/notification.service";
@@ -37,8 +41,38 @@ export async function generateParentApproval(
   if (!existingApproval) {
     throw new NotFoundError("Leave approval");
   }
+  if (existingApproval.decision === LEAVE_APPROVAL_DECISION.CANCELLED) {
+    logger.info("Parent approval SMS skipped: approval step was cancelled", {
+      approvalId: approvalStep.id,
+      leaveRequestId: context.leaveRequestId,
+    });
+    return;
+  }
+
   if (existingApproval.decision !== LEAVE_APPROVAL_DECISION.PENDING) {
     return;
+  }
+
+  if (context.leaveRequestId) {
+    const leave = await leaveRepository.findById(context.leaveRequestId);
+    if (leave && leave.status === LEAVE_REQUEST_STATUS.CANCELLED) {
+      logger.info("Parent approval SMS skipped: leave was cancelled before SMS dispatch", {
+        leaveRequestId: context.leaveRequestId,
+        approvalId: approvalStep.id,
+      });
+      return;
+    }
+  }
+
+  if (context.leaveExtensionId) {
+    const extension = await leaveExtensionRepository.findById(context.leaveExtensionId);
+    if (extension && extension.status === LEAVE_REQUEST_STATUS.CANCELLED) {
+      logger.info("Parent approval SMS skipped: leave extension was cancelled before SMS dispatch", {
+        leaveExtensionId: context.leaveExtensionId,
+        approvalId: approvalStep.id,
+      });
+      return;
+    }
   }
   if (
     existingApproval.parentDetails?.tokenHash &&

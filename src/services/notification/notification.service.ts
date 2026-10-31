@@ -1,4 +1,5 @@
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
+import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import type { NotificationChannel } from "@/constants/notification/notification-channel";
 import { NOTIFICATION_CHANNEL } from "@/constants/notification/notification-channel";
 import { NOTIFICATION_DELIVERY_STATUS } from "@/constants/notification/notification-delivery-status";
@@ -6,9 +7,12 @@ import type { NotificationEvent } from "@/constants/notification/notification-ev
 import { NOTIFICATION_EVENT } from "@/constants/notification/notification-event";
 import type { NotificationRecipientType } from "@/constants/notification/notification-recipient-type";
 import { NOTIFICATION_RECIPIENT_TYPE } from "@/constants/notification/notification-recipient-type";
+import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
 import { hostelRepository } from "@/db/repositories/hostel/hostel.repository";
+import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
+import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import { notificationLogRepository } from "@/db/repositories/notification/notification-log.repository";
 import { notificationRuleRepository } from "@/db/repositories/notification/notification-rule.repository";
 import type { NotificationTemplate } from "@/db/repositories/notification/notification-template.repository";
@@ -35,6 +39,7 @@ export type NotificationContext = {
 	studentId?: string;
 	userId?: string;
 	parentId?: string;
+	pocId?: string;
 	hostelId?: string;
 	recipientEmail?: string;
 	recipientPhone?: string;
@@ -307,13 +312,82 @@ async function getRecipientForChannel(
  * Slack ids to CC on messages tied to a hostel: the hostel's admin user
  * group (configured on the hostel). Empty when unset.
  */
-async function resolveSlackMentions(hostelId?: string): Promise<string[]> {
-	if (!hostelId) return [];
-	const hostel = await hostelRepository.findById(hostelId);
-	if (!hostel) return [];
-	return [hostel.slackAdminGroupId].filter(
-		(id): id is string => !!id && id.length > 0
-	);
+async function resolveSlackMentions(context: NotificationContext): Promise<string[]> {
+	const mentions: string[] = [];
+
+	if (context.hostelId) {
+		const hostel = await hostelRepository.findById(context.hostelId);
+		if (hostel?.slackAdminGroupId && hostel.slackAdminGroupId.trim().length > 0) {
+			mentions.push(hostel.slackAdminGroupId.trim());
+		}
+	}
+
+	let pocUserId: string | null | undefined = context.pocId;
+
+	if (!pocUserId && context.leaveRequestId) {
+		try {
+			const approvals = await leaveApprovalRepository.findByLeaveRequestId(context.leaveRequestId);
+			const pocApproval = approvals.find((a) =>
+				a.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL ||
+				a.stepKey.toLowerCase().includes("poc")
+			);
+			pocUserId = pocApproval?.assignedApproverUserId ?? pocApproval?.approverUserId;
+		} catch (err) {
+			logger.warn("Failed to find approvals for POC Slack mention", {
+				leaveRequestId: context.leaveRequestId,
+				error: err instanceof Error ? err.message : String(err),
+			});
+		}
+	}
+
+	if (!pocUserId && context.leaveExtensionId) {
+		try {
+			const extension = await leaveExtensionRepository.findById(context.leaveExtensionId);
+			if (extension?.leaveRequestId) {
+				const approvals = await leaveApprovalRepository.findByLeaveRequestId(extension.leaveRequestId);
+				const pocApproval = approvals.find((a) =>
+					a.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL ||
+					a.stepKey.toLowerCase().includes("poc")
+				);
+				pocUserId = pocApproval?.assignedApproverUserId ?? pocApproval?.approverUserId;
+			}
+		} catch (err) {
+			logger.warn("Failed to find extension approvals for POC Slack mention", {
+				leaveExtensionId: context.leaveExtensionId,
+				error: err instanceof Error ? err.message : String(err),
+			});
+		}
+	}
+
+	if (!pocUserId && context.leaveRequestId) {
+		try {
+			const leave = await leaveRepository.findById(context.leaveRequestId);
+			const form = leave?.submittedForm as Record<string, unknown> | null | undefined;
+			if (typeof form?.pocId === "string") {
+				pocUserId = form.pocId;
+			} else if (typeof form?.pocUserId === "string") {
+				pocUserId = form.pocUserId;
+			}
+		} catch {
+			// ignore
+		}
+	}
+
+	if (pocUserId) {
+		try {
+			const pocUser = await userRepository.findById(pocUserId);
+			if (pocUser?.slackId && pocUser.slackId.trim().length > 0) {
+				mentions.push(pocUser.slackId.trim());
+			}
+		} catch (err) {
+			logger.warn("Failed to resolve POC user for Slack mention", {
+				pocUserId,
+				error: err instanceof Error ? err.message : String(err),
+			});
+		}
+	}
+
+	return [...new Set(mentions.filter((m) => m && m.length > 0))];
 }
 
 async function deliverToRecipient(
@@ -326,6 +400,20 @@ async function deliverToRecipient(
 	parentId?: string,
 ): Promise<void> {
 	const recipientStr = Array.isArray(recipient) ? recipient.join(", ") : recipient;
+
+	// Guard against sending SMS to parents for cancelled leaves
+	if (channel === NOTIFICATION_CHANNEL.SMS && eventType === NOTIFICATION_EVENT.PARENT_APPROVAL_REQUESTED) {
+		if (context.leaveRequestId) {
+			const leave = await leaveRepository.findById(context.leaveRequestId);
+			if (leave && leave.status === LEAVE_REQUEST_STATUS.CANCELLED) {
+				logger.info("deliverToRecipient skipped SMS: leave is cancelled", {
+					leaveRequestId: context.leaveRequestId,
+					recipient: recipientStr,
+				});
+				return;
+			}
+		}
+	}
 
 	// Check if this exact outbox delivery already succeeded on a prior attempt.
 	// Prevents duplicate notification delivery on retry or stale lease reclamation.
@@ -367,7 +455,7 @@ async function deliverToRecipient(
 
 	const mentions =
 		channel === NOTIFICATION_CHANNEL.SLACK
-			? await resolveSlackMentions(context.hostelId)
+			? await resolveSlackMentions(context)
 			: [];
 
 	const cc =
@@ -446,6 +534,30 @@ export const notificationService = {
 		const failures: string[] = [];
 
 		try {
+			// If the leave request or extension was cancelled before sending parent approval SMS, skip delivery
+			if (eventType === NOTIFICATION_EVENT.PARENT_APPROVAL_REQUESTED) {
+				if (context.leaveRequestId) {
+					const leave = await leaveRepository.findById(context.leaveRequestId);
+					if (leave && leave.status === LEAVE_REQUEST_STATUS.CANCELLED) {
+						logger.info("Skipping parent approval SMS: leave request was cancelled before sending", {
+							leaveRequestId: context.leaveRequestId,
+							outboxEventId: context.outboxEventId,
+						});
+						return { success: true, failures };
+					}
+				}
+				if (context.leaveExtensionId) {
+					const extension = await leaveExtensionRepository.findById(context.leaveExtensionId);
+					if (extension && extension.status === LEAVE_REQUEST_STATUS.CANCELLED) {
+						logger.info("Skipping parent approval SMS: leave extension was cancelled before sending", {
+							leaveExtensionId: context.leaveExtensionId,
+							outboxEventId: context.outboxEventId,
+						});
+						return { success: true, failures };
+					}
+				}
+			}
+
 			// Parent SMS may be retried if the worker fails after delivery.
 			// If a SENT log for this exact outbox event exists, do not send it again.
 			if (

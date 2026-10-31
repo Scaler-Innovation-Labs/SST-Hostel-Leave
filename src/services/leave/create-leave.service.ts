@@ -318,7 +318,7 @@ export async function createLeave(
       eventType: OUTBOX_EVENT_TYPE.LEAVE_CREATED,
       aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
       aggregateId: createdLeave.id,
-      payload: { leaveId: createdLeave.id, studentId: student.id, leaveTypeId: leaveType.id, requestNumber },
+      payload: { leaveId: createdLeave.id, studentId: student.id, leaveTypeId: leaveType.id, requestNumber, pocId: dto.pocId ?? undefined },
     }, tx);
 
     // Resolve user info for outbox events

@@ -38,6 +38,7 @@ const mockFindExtensions = vi.fn();
 const mockLockPendingExtensions = vi.fn();
 const mockCancelExtensions = vi.fn();
 const mockCancelExtensionApprovals = vi.fn();
+const mockCancelPendingOutbox = vi.fn().mockResolvedValue(0);
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
@@ -87,6 +88,12 @@ vi.mock("@/services/shared/authorization.service", () => ({
 
 vi.mock("@/services/movement/record-movement.service", () => ({
   recordMovement: (...args: any[]) => mockRecordMovement(...args),
+}));
+
+vi.mock("@/db/repositories/outbox/outbox.repository", () => ({
+  outboxRepository: {
+    cancelPendingByAggregateIds: (...args: any[]) => mockCancelPendingOutbox(...args),
+  },
 }));
 
 vi.mock("@/services/outbox/outbox.service", () => ({

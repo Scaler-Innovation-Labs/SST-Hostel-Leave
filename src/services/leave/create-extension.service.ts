@@ -359,6 +359,7 @@ export async function createExtension(
         extensionId: createdExtension.id,
         extensionNumber,
         studentId: leave.studentId,
+        pocId: assignedPocId ?? undefined,
       },
     }, tx);
 

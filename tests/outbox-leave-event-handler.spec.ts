@@ -15,6 +15,12 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
   },
 }));
 
+vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
+  leaveExtensionRepository: {
+    findById: vi.fn(),
+  },
+}));
+
 vi.mock("@/db/repositories/student/student.repository", () => ({
   studentRepository: {
     findById: vi.fn(),
@@ -67,6 +73,7 @@ vi.mock("@/services/parent/generate-parent-approval.service", () => ({
 import { handleLeaveEvent } from "@/services/outbox/handlers/leave-event.handler";
 import { generateParentApproval } from "@/services/parent/generate-parent-approval.service";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import { hostelRepository } from "@/db/repositories/hostel/hostel.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
@@ -77,6 +84,7 @@ beforeEach(() => {
   mockNotify.mockResolvedValue({ success: true, failures: [] });
   // Default: all repositories return null (no data resolved)
   (leaveRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+  (leaveExtensionRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
   (hostelRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
   (studentRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
   (userRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue(null);
@@ -324,6 +332,53 @@ describe("handleLeaveEvent", () => {
     );
 
     await expect(handleLeaveEvent(event)).rejects.toThrow("database connection lost");
+  });
+
+  it("skips PARENT_APPROVAL_REQUIRED when leave is cancelled", async () => {
+    (leaveRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "L1",
+      status: "CANCELLED",
+    });
+
+    const event = makeEvent("PARENT_APPROVAL_REQUIRED", {
+      studentId: "S1",
+      studentName: "Neerasa",
+      leaveDates: "10 Jun - 12 Jun",
+      leaveReason: "Home",
+      baseUrl: "https://example.com",
+      approvalStepId: "AP1",
+      approvalStepKey: "PARENT_APPROVAL",
+    });
+
+    await handleLeaveEvent(event);
+
+    expect(mockGenerateParentApproval).not.toHaveBeenCalled();
+  });
+
+  it("skips PARENT_APPROVAL_REQUIRED when extension is cancelled", async () => {
+    (leaveRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "L1",
+      status: "PENDING",
+    });
+    (leaveExtensionRepository.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: "EXT1",
+      status: "CANCELLED",
+    });
+
+    const event = makeEvent("PARENT_APPROVAL_REQUIRED", {
+      leaveExtensionId: "EXT1",
+      studentId: "S1",
+      studentName: "Neerasa",
+      leaveDates: "10 Jun - 12 Jun",
+      leaveReason: "Home",
+      baseUrl: "https://example.com",
+      approvalStepId: "AP1",
+      approvalStepKey: "PARENT_APPROVAL",
+    });
+
+    await handleLeaveEvent(event);
+
+    expect(mockGenerateParentApproval).not.toHaveBeenCalled();
   });
 
   it("swallows permanent parent-approval failures (no parent / no phone)", async () => {
