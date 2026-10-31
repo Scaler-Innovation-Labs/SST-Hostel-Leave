@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarPlus, FileText, Info, Phone, Upload, UserCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import useSWR from "swr";
@@ -79,6 +79,7 @@ export default function NewLeavePage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPocNotice, setShowPocNotice] = useState(false);
   const [previousWasLateStay, setPreviousWasLateStay] = useState(false);
+  const pocConfirmedRef = useRef(false);
   const [selectedDocuments, setSelectedDocuments] = useState<Record<string, File>>({});
 
   const {
@@ -233,7 +234,7 @@ export default function NewLeavePage() {
         }
       />
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <SectionCard Icon={FileText} title="The request">
           <div className="space-y-5">
             <Field
@@ -480,13 +481,25 @@ export default function NewLeavePage() {
 
       <ConfirmDialog
         open={showPocNotice}
-        onOpenChange={setShowPocNotice}
+        onOpenChange={(open) => {
+          setShowPocNotice(open);
+          if (!open) {
+            if (!pocConfirmedRef.current) {
+              setValue("leaveTypeId", "");
+              setPreviousWasLateStay(false);
+            }
+            pocConfirmedRef.current = false;
+          }
+        }}
         title="Clear this with your POC first"
         consequence="A late stay needs your point of contact's agreement before you submit. Submitting without it will get the request rejected."
         confirmLabel="I've got permission"
         dismissLabel="Pick another type"
         destructive={false}
-        onConfirm={() => setShowPocNotice(false)}
+        onConfirm={() => {
+          pocConfirmedRef.current = true;
+          setShowPocNotice(false);
+        }}
       />
     </div>
   );

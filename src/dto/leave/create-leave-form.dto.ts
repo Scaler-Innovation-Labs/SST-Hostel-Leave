@@ -23,7 +23,7 @@ export const createLeaveFormSchema = z
   .refine(
     (data) => new Date(data.startAt) < new Date(data.endAt),
     {
-      message: "endAt must be after startAt",
+      message: "Return time must be after departure time",
       path: ["endAt"],
     }
   );
