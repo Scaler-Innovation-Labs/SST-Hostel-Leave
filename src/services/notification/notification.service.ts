@@ -587,9 +587,34 @@ export const notificationService = {
 				return { success: true, failures };
 			}
 
+			let effectiveLeaveTypeId = context.leaveTypeId;
+			const isUuid = (val?: string) => Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val));
+			if (!effectiveLeaveTypeId && isUuid(context.leaveRequestId)) {
+				try {
+					const leave = await leaveRepository.findById(context.leaveRequestId!);
+					if (leave) {
+						effectiveLeaveTypeId = leave.leaveTypeId;
+					}
+				} catch {
+					// ignore lookup errors
+				}
+			} else if (!effectiveLeaveTypeId && isUuid(context.leaveExtensionId)) {
+				try {
+					const extension = await leaveExtensionRepository.findById(context.leaveExtensionId!);
+					if (extension) {
+						const leave = await leaveRepository.findById(extension.leaveRequestId);
+						if (leave) {
+							effectiveLeaveTypeId = leave.leaveTypeId;
+						}
+					}
+				} catch {
+					// ignore lookup errors
+				}
+			}
+
 			const rules = await notificationRuleRepository.findActiveByEvent(
 				eventType,
-				context.leaveTypeId,
+				effectiveLeaveTypeId,
 			);
 
 			// Rule-driven only — no fallback. If nothing is configured for this

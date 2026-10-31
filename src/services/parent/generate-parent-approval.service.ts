@@ -25,6 +25,7 @@ export type GenerateParentApprovalContext = {
   leaveReason: string;
   baseUrl: string;
   parentId?: string;
+  leaveTypeId?: string;
 };
 
 export async function generateParentApproval(
@@ -149,9 +150,20 @@ export async function generateParentApproval(
     );
 
     // S1: Send notification directly in memory; do not store raw approvalLink / token in outbox table
+    let resolvedLeaveTypeId = context.leaveTypeId;
+    if (!resolvedLeaveTypeId && context.leaveRequestId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(context.leaveRequestId)) {
+      try {
+        const leave = await leaveRepository.findById(context.leaveRequestId);
+        resolvedLeaveTypeId = leave?.leaveTypeId ?? undefined;
+      } catch {
+        // ignore
+      }
+    }
+
     const notifyResult = await notificationService.notify("PARENT_APPROVAL_REQUESTED", {
       leaveRequestId: context.leaveRequestId,
       leaveExtensionId: context.leaveExtensionId,
+      leaveTypeId: resolvedLeaveTypeId,
       parentId: parent.id,
       recipientPhone: parent.phone,
       variables: {

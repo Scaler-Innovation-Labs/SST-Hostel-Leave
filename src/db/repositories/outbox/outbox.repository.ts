@@ -418,7 +418,9 @@ export const outboxRepository = {
       .limit(1);
 
     const attempts = (current[0]?.attemptCount ?? 0) + 1;
-    const backoffMinutes = Math.min(15 * 2 ** Math.min(attempts, 4), 240);
+    // Fast exponential backoff for time-sensitive notifications (e.g. parent SMS):
+    // Attempt 1 -> 1m, Attempt 2 -> 2m, Attempt 3 -> 4m, Attempt 4 -> 8m, capped at 15m
+    const backoffMinutes = Math.min(Math.max(1, 2 ** Math.min(attempts - 1, 4)), 15);
 
     const rows = await dbClient
       .update(outboxEvents)
