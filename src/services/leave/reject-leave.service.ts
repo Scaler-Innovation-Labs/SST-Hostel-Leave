@@ -9,7 +9,8 @@ import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import type { ApproveLeaveDto } from "@/dto/leave/approve-leave.dto";
-import { requireApprovalAuthorization } from "@/lib/auth/authorization";
+import { requireRejectionAuthorization } from "@/lib/auth/authorization";
+import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError } from "@/lib/errors";
@@ -65,7 +66,7 @@ export async function rejectLeave(
       leaveInTx.currentStepOrder,
     );
 
-    requireApprovalAuthorization(current, currentUser);
+    requireRejectionAuthorization(current, currentUser);
 
     await updateApprovalAndAudit(
       current,
@@ -107,6 +108,13 @@ export async function rejectLeave(
       tx
     );
 
+    const rejectedBy: "PARENT" | "POC" | "ADMIN" =
+      currentUser.roles.includes(ROLES.SUPER_ADMIN) || currentUser.roles.includes(ROLES.ADMIN)
+        ? "ADMIN"
+        : current.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL
+          ? "POC"
+          : "ADMIN";
+
     await outboxService.publish({
       eventType: OUTBOX_EVENT_TYPE.LEAVE_REJECTED,
       aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
@@ -115,9 +123,9 @@ export async function rejectLeave(
         leaveId,
         studentId: leaveInTx.studentId,
         decision: LEAVE_APPROVAL_DECISION.REJECTED,
-        // POC-step rejections use the POC wording ("declined by {POC Name}");
-        // everything else keeps the admin wording.
-        rejectedBy: current.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL ? "POC" : "ADMIN",
+        // POC-step rejections use the POC wording ("declined by {POC Name}") only
+        // when actually rejected by a POC; admin/superadmin actions keep the admin wording.
+        rejectedBy,
         reason: dto.comments ?? "",
         comments: dto.comments ?? "",
       },

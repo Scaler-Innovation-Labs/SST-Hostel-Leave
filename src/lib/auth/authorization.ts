@@ -1,7 +1,7 @@
 import { AuthorizationError } from "@/lib/errors";
 
 import type { Role } from "./roles";
-import { canRoleApprove } from "./roles";
+import { canRoleApprove, ROLES } from "./roles";
 import type { CurrentUser } from "./types";
 
 export function hasRole(
@@ -63,6 +63,26 @@ export function requireApprovalAuthorization(
   currentUser: { id: string; roles: string[] }
 ): void {
   if (!canApproveApproval(approval, currentUser)) {
+    throw new AuthorizationError();
+  }
+}
+
+export function canRejectApproval(
+  approval: { assignedApproverUserId?: string | null; approverUserId?: string | null; approverRoleCode: string | null },
+  currentUser: { id: string; roles: string[] }
+): boolean {
+  if (currentUser.roles.includes(ROLES.SUPER_ADMIN) || currentUser.roles.includes(ROLES.ADMIN)) {
+    return true;
+  }
+
+  return canApproveApproval(approval, currentUser);
+}
+
+export function requireRejectionAuthorization(
+  approval: { assignedApproverUserId?: string | null; approverUserId?: string | null; approverRoleCode: string | null },
+  currentUser: { id: string; roles: string[] }
+): void {
+  if (!canRejectApproval(approval, currentUser)) {
     throw new AuthorizationError();
   }
 }

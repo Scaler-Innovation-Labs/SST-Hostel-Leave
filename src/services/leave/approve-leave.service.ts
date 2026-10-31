@@ -10,6 +10,8 @@ import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import type { ApproveLeaveDto } from "@/dto/leave/approve-leave.dto";
+import { requireRejectionAuthorization } from "@/lib/auth/authorization";
+import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
@@ -78,10 +80,16 @@ export async function approveLeave(
       leaveInTx.currentStepOrder,
     );
 
-    const override = checkParentOverride(current, dto, currentUser);
-    if (override?.requiresConfirmation) {
-      const { isParentOverride: _, ...overrideFields } = override;
-      return { leaveId, ...overrideFields } as ApproveLeaveResult;
+    let isParentOverride = false;
+    if (dto.decision === LEAVE_APPROVAL_DECISION.REJECTED) {
+      requireRejectionAuthorization(current, currentUser);
+    } else {
+      const override = checkParentOverride(current, dto, currentUser);
+      if (override?.requiresConfirmation) {
+        const { isParentOverride: _, ...overrideFields } = override;
+        return { leaveId, ...overrideFields } as ApproveLeaveResult;
+      }
+      isParentOverride = override?.isParentOverride ?? false;
     }
 
     await updateApprovalAndAudit(
@@ -91,7 +99,7 @@ export async function approveLeave(
       dto.comments,
       dto.decision === LEAVE_APPROVAL_DECISION.REJECTED ? AUDIT_ACTION.REJECT : AUDIT_ACTION.APPROVE,
       AUDIT_ENTITY_TYPE.LEAVE_APPROVAL,
-      getApprovalAuditMeta(leaveId, dto.comments, override!.isParentOverride),
+      getApprovalAuditMeta(leaveId, dto.comments, isParentOverride),
       tx
     );
 
@@ -121,6 +129,13 @@ export async function approveLeave(
         tx
       );
 
+      const rejectedBy: "PARENT" | "POC" | "ADMIN" =
+        currentUser.roles.includes(ROLES.SUPER_ADMIN) || currentUser.roles.includes(ROLES.ADMIN)
+          ? "ADMIN"
+          : current.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL
+            ? "POC"
+            : "ADMIN";
+
       await outboxService.publish({
         eventType: OUTBOX_EVENT_TYPE.LEAVE_REJECTED,
         aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
@@ -129,9 +144,9 @@ export async function approveLeave(
           leaveId,
           studentId: leaveInTx.studentId,
           decision: LEAVE_APPROVAL_DECISION.REJECTED,
-          // POC-step rejections use the POC wording ("declined by {POC Name}");
-          // everything else keeps the admin wording.
-          rejectedBy: current.stepKey === WORKFLOW_STEP_KEY.POC_APPROVAL ? "POC" : "ADMIN",
+          // POC-step rejections use the POC wording ("declined by {POC Name}") only
+          // when actually rejected by a POC; admin/superadmin actions keep the admin wording.
+          rejectedBy,
           comments: dto.comments ?? "",
         },
       }, tx);

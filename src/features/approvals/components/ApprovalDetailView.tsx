@@ -1388,7 +1388,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
           )}
 
           {/* Waiting Card — leave is pending, but it is not this viewer's turn */}
-          {isPending && currentApproval && !viewerCanAct && (
+          {isPending && (!viewerCanAct || !currentApproval) && (
             <div className="rounded-xl border border-border bg-surface shadow-sm">
               <div className="border-b border-border px-4 py-3">
                 <h3 className="flex items-center gap-2 text-caption font-semibold uppercase tracking-wider text-muted">
@@ -1400,7 +1400,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 <p className="text-muted">
                   This request is waiting on{" "}
                   <span className="font-medium text-ink">
-                    {(currentApproval.approverRoleCode ?? "next approver").replace(/_/g, " ")}
+                    {(currentApproval?.approverRoleCode ?? "next approver").replace(/_/g, " ")}
                   </span>{" "}
                   approval.
                 </p>
@@ -1409,6 +1409,18 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Your approval has been recorded.
                   </p>
+                )}
+                {(viewerRole === "ADMIN" || viewerRole === "SUPER_ADMIN") && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => setActionTarget("reject")}
+                    disabled={actionLoading}
+                    className="w-full gap-2"
+                    size="lg"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Reject
+                  </Button>
                 )}
                 {canOverride && (
                   <Button

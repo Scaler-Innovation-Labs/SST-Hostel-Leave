@@ -9,7 +9,7 @@ import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import type { ApproveLeaveDto } from "@/dto/leave/approve-leave.dto";
-import { requireApprovalAuthorization } from "@/lib/auth/authorization";
+import { requireRejectionAuthorization } from "@/lib/auth/authorization";
 import type { CurrentUser } from "@/lib/auth/types";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError } from "@/lib/errors";
@@ -87,7 +87,7 @@ export async function rejectExtension(
       extensionInTx.currentStepOrder,
     );
 
-    requireApprovalAuthorization(current, currentUser);
+    requireRejectionAuthorization(current, currentUser);
 
     await updateApprovalAndAudit(
       current,

@@ -65,6 +65,7 @@ vi.mock("@/services/outbox/outbox.service", () => ({
 
 vi.mock("@/lib/auth/authorization", () => ({
   requireApprovalAuthorization: vi.fn(),
+  requireRejectionAuthorization: vi.fn(),
   requireAnyRole: vi.fn(),
 }));
 
@@ -104,6 +105,48 @@ describe("rejectLeave service", () => {
       expect.objectContaining({
         eventType: "LEAVE_REJECTED",
         payload: expect.objectContaining({ comments: "Not approved" }),
+      }),
+      expect.any(Object)
+    );
+  });
+
+  it("allows ADMIN to reject a leave currently at POC_APPROVAL step and sets rejectedBy to ADMIN", async () => {
+    mockFindById.mockResolvedValue({ id: "L_POC", status: "PENDING", studentId: "S1" });
+    mockFindByIdForUpdate.mockResolvedValue({ id: "L_POC", status: "PENDING", studentId: "S1" });
+    mockFindPending.mockResolvedValue([{ id: "A_POC", stepOrder: 1, stepKey: "POC_APPROVAL", assignedApproverUserId: "U_POC", approverRoleCode: "POC" }]);
+    mockUpdateById.mockResolvedValue({ id: "L_POC", status: "REJECTED" });
+
+    const result = await rejectLeave("L_POC", { decision: "REJECTED", comments: "Admin veto" }, { id: "U_ADMIN", roles: ["ADMIN"] });
+
+    expect(result.newStatus).toBe("REJECTED");
+    expect(mockOutboxPublish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "LEAVE_REJECTED",
+        payload: expect.objectContaining({
+          rejectedBy: "ADMIN",
+          comments: "Admin veto",
+        }),
+      }),
+      expect.any(Object)
+    );
+  });
+
+  it("sets rejectedBy to POC when rejected by POC at POC_APPROVAL step", async () => {
+    mockFindById.mockResolvedValue({ id: "L_POC2", status: "PENDING", studentId: "S1" });
+    mockFindByIdForUpdate.mockResolvedValue({ id: "L_POC2", status: "PENDING", studentId: "S1" });
+    mockFindPending.mockResolvedValue([{ id: "A_POC2", stepOrder: 1, stepKey: "POC_APPROVAL", assignedApproverUserId: "U_POC", approverRoleCode: "POC" }]);
+    mockUpdateById.mockResolvedValue({ id: "L_POC2", status: "REJECTED" });
+
+    const result = await rejectLeave("L_POC2", { decision: "REJECTED", comments: "POC rejected" }, { id: "U_POC", roles: ["POC"] });
+
+    expect(result.newStatus).toBe("REJECTED");
+    expect(mockOutboxPublish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "LEAVE_REJECTED",
+        payload: expect.objectContaining({
+          rejectedBy: "POC",
+          comments: "POC rejected",
+        }),
       }),
       expect.any(Object)
     );

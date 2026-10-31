@@ -49,6 +49,7 @@ vi.mock("@/services/outbox/outbox.service", () => ({
 
 vi.mock("@/lib/auth/authorization", () => ({
   requireApprovalAuthorization: vi.fn(),
+  requireRejectionAuthorization: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => {
@@ -61,38 +62,54 @@ vi.mock("@/lib/db", () => {
 import { rejectExtension } from "@/services/leave/reject-extension.service";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 
+const currentUser = { id: "U1", roles: ["ADMIN"] };
+
 beforeEach(() => {
   vi.resetAllMocks();
   mockAuditRecord.mockResolvedValue({});
   mockOutboxPublish.mockResolvedValue(undefined);
   mockUpdateDecisionById.mockResolvedValue({ id: "A1", decision: "REJECTED" });
-  mockUpdateById.mockResolvedValue({ id: "EXT1", status: "REJECTED" });
-  mockFindById.mockResolvedValue({ id: "EXT1", status: "PENDING", leaveRequestId: "LR1" });
-  mockFindByIdForUpdate.mockResolvedValue({ id: "EXT1", status: "PENDING", leaveRequestId: "LR1" });
-  mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", assignedApproverUserId: null, approverRoleCode: null }]);
-  mockLeaveFindById.mockResolvedValue({ id: "LR1", studentId: "S1", status: "APPROVED" });
-  mockLeaveFindByIdForUpdate.mockResolvedValue({
-    id: "LR1",
-    studentId: "S1",
-    status: "APPROVED",
-  });
 });
 
 describe("rejectExtension service", () => {
-  it("rejects a PENDING extension", async () => {
-    const result = await rejectExtension("EXT1", { decision: "REJECTED", comments: "Not allowed" }, { id: "U1", roles: ["ADMIN"] });
+  it("rejects a PENDING extension successfully", async () => {
+    mockFindById.mockResolvedValue({ id: "E1", status: "PENDING", leaveRequestId: "L1" });
+    mockFindByIdForUpdate.mockResolvedValue({ id: "E1", status: "PENDING", leaveRequestId: "L1", currentStepKey: "S1", currentStepOrder: 1 });
+    mockLeaveFindById.mockResolvedValue({ id: "L1", status: "APPROVED" });
+    mockLeaveFindByIdForUpdate.mockResolvedValue({ id: "L1", status: "APPROVED" });
+    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", assignedApproverUserId: null, approverRoleCode: null }]);
+    mockUpdateById.mockResolvedValue({ id: "E1", status: "REJECTED" });
+
+    const result = await rejectExtension("E1", { decision: "REJECTED", comments: "No extensions allowed" }, currentUser);
 
     expect(result).toEqual({
-      extensionId: "EXT1",
-      leaveRequestId: "LR1",
+      extensionId: "E1",
+      leaveRequestId: "L1",
       decision: "REJECTED",
       stepKey: null,
       stepOrder: null,
       newStatus: "REJECTED",
     });
-    expect(mockUpdateById).toHaveBeenCalledWith("EXT1", expect.objectContaining({ status: "REJECTED" }), expect.any(Object));
+    expect(mockUpdateDecisionById).toHaveBeenCalledWith(
+      "A1",
+      "REJECTED",
+      "U1",
+      "No extensions allowed",
+      expect.any(Date),
+      expect.any(Object),
+      undefined,
+      undefined
+    );
+    expect(mockUpdateById).toHaveBeenCalledWith(
+      "E1",
+      expect.objectContaining({ status: "REJECTED", rejectedAt: expect.any(Date), currentStepKey: null, currentStepOrder: null }),
+      expect.any(Object)
+    );
     expect(mockOutboxPublish).toHaveBeenCalledWith(
-      expect.objectContaining({ eventType: "LEAVE_EXTENSION_REJECTED" }),
+      expect.objectContaining({
+        eventType: "LEAVE_EXTENSION_REJECTED",
+        payload: expect.objectContaining({ extensionId: "E1", comments: "No extensions allowed" }),
+      }),
       expect.any(Object)
     );
   });
@@ -100,44 +117,56 @@ describe("rejectExtension service", () => {
   it("throws NotFoundError when extension does not exist", async () => {
     mockFindById.mockResolvedValue(null);
 
-    await expect(rejectExtension("NONEXISTENT", { decision: "REJECTED" }, { id: "U1", roles: ["ADMIN"] }))
-      .rejects.toBeInstanceOf(NotFoundError);
+    await expect(
+      rejectExtension("NONEXISTENT", { decision: "REJECTED" }, currentUser)
+    ).rejects.toBeInstanceOf(NotFoundError);
   });
 
-  it("throws ConflictError when extension is not PENDING", async () => {
-    mockFindById.mockResolvedValue({ id: "EXT2", status: "APPROVED" });
-
-    await expect(rejectExtension("EXT2", { decision: "REJECTED" }, { id: "U1", roles: ["ADMIN"] }))
-      .rejects.toBeInstanceOf(ConflictError);
-  });
-
-  it("throws ConflictError when the parent leave is no longer live", async () => {
-    mockLeaveFindByIdForUpdate.mockResolvedValue({
-      id: "LR1",
-      studentId: "S1",
-      status: "CANCELLED",
-    });
+  it("throws ConflictError when extension is not in PENDING status", async () => {
+    mockFindById.mockResolvedValue({ id: "E2", status: "APPROVED", leaveRequestId: "L1" });
 
     await expect(
-      rejectExtension("EXT1", { decision: "REJECTED" }, { id: "U1", roles: ["ADMIN"] })
+      rejectExtension("E2", { decision: "REJECTED" }, currentUser)
     ).rejects.toBeInstanceOf(ConflictError);
-    expect(mockFindPending).not.toHaveBeenCalled();
   });
 
-  it("throws ConflictError when no pending approval found", async () => {
+  it("throws ConflictError when parent leave is not in APPROVED or OVERDUE status", async () => {
+    mockFindById.mockResolvedValue({ id: "E3", status: "PENDING", leaveRequestId: "L1" });
+    mockFindByIdForUpdate.mockResolvedValue({ id: "E3", status: "PENDING", leaveRequestId: "L1" });
+    mockLeaveFindById.mockResolvedValue({ id: "L1", status: "PENDING" });
+    mockLeaveFindByIdForUpdate.mockResolvedValue({ id: "L1", status: "PENDING" });
+
+    await expect(
+      rejectExtension("E3", { decision: "REJECTED" }, currentUser)
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("throws ConflictError when no pending approval exists for extension", async () => {
+    mockFindById.mockResolvedValue({ id: "E4", status: "PENDING", leaveRequestId: "L1" });
+    mockFindByIdForUpdate.mockResolvedValue({ id: "E4", status: "PENDING", leaveRequestId: "L1" });
+    mockLeaveFindById.mockResolvedValue({ id: "L1", status: "APPROVED" });
+    mockLeaveFindByIdForUpdate.mockResolvedValue({ id: "L1", status: "APPROVED" });
     mockFindPending.mockResolvedValue([]);
 
-    await expect(rejectExtension("EXT1", { decision: "REJECTED" }, { id: "U1", roles: ["ADMIN"] }))
-      .rejects.toBeInstanceOf(ConflictError);
+    await expect(
+      rejectExtension("E4", { decision: "REJECTED" }, currentUser)
+    ).rejects.toBeInstanceOf(ConflictError);
   });
 
-  it("records audit on reject", async () => {
-    await rejectExtension("EXT1", { decision: "REJECTED" }, { id: "U1", roles: ["ADMIN"] });
+  it("records audit log on rejection", async () => {
+    mockFindById.mockResolvedValue({ id: "E5", status: "PENDING", leaveRequestId: "L1" });
+    mockFindByIdForUpdate.mockResolvedValue({ id: "E5", status: "PENDING", leaveRequestId: "L1", currentStepKey: "S1", currentStepOrder: 1 });
+    mockLeaveFindById.mockResolvedValue({ id: "L1", status: "APPROVED" });
+    mockLeaveFindByIdForUpdate.mockResolvedValue({ id: "L1", status: "APPROVED" });
+    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", assignedApproverUserId: null, approverRoleCode: null }]);
+    mockUpdateById.mockResolvedValue({ id: "E5", status: "REJECTED" });
+
+    await rejectExtension("E5", { decision: "REJECTED" }, currentUser);
 
     expect(mockAuditRecord).toHaveBeenCalledWith(
       "UPDATE",
       "LEAVE_EXTENSION",
-      "EXT1",
+      "E5",
       "U1",
       expect.objectContaining({ oldStatus: "PENDING", newStatus: "REJECTED" }),
       expect.any(Object)
