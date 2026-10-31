@@ -133,14 +133,19 @@ describe("outboxRepository", () => {
   });
 
   it("releaseForRetry resets a PROCESSING event to PENDING and counts the attempt", async () => {
+    const before = Date.now();
     await outboxRepository.releaseForRetry("OE1");
 
     const setArgs = mockSet.mock.calls[0][0];
     expect(setArgs.status).toBe("PENDING");
     expect(setArgs.claimedAt).toBeNull();
     expect(setArgs.attemptCount).toBeDefined();
-    // Backoff is scheduled so the retry is not immediately eligible.
+    // Accelerated backoff is scheduled: attempt 1 -> 1 min
     expect(setArgs.nextAttemptAt).toBeInstanceOf(Date);
+    const delayMs = setArgs.nextAttemptAt.getTime() - before;
+    expect(delayMs).toBeGreaterThanOrEqual(55_000);
+    expect(delayMs).toBeLessThanOrEqual(65_000);
+
     const sqlText = (setArgs.attemptCount.queryChunks ?? [])
       .map((c: unknown) => {
         const raw = (c as { value?: unknown[] })?.value;

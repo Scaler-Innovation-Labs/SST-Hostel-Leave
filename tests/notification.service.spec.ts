@@ -1138,4 +1138,21 @@ describe("notificationService", () => {
     );
     warnSpy.mockRestore();
   });
+
+  it("resolves leaveTypeId from leaveRepository when not provided in context", async () => {
+    const validUuid = "11111111-1111-1111-1111-111111111111";
+    mockFindLeaveById.mockResolvedValue({ id: validUuid, status: "PENDING", leaveTypeId: "LT_RESOLVED_UUID" });
+    mockFindActiveByEvent.mockResolvedValue([]);
+
+    await notificationService.notify("PARENT_APPROVAL_REQUESTED", {
+      leaveRequestId: validUuid,
+      recipientPhone: "+919999999999",
+      variables: {},
+    });
+
+    expect(mockFindActiveByEvent).toHaveBeenCalledWith(
+      "PARENT_APPROVAL_REQUESTED",
+      "LT_RESOLVED_UUID"
+    );
+  });
 });

@@ -208,4 +208,34 @@ describe("generateParentApproval service", () => {
       expect.any(Object)
     );
   });
+
+  it("resolves leaveTypeId from leaveRepository and includes it in notification notify call", async () => {
+    const validUuid = "11111111-1111-1111-1111-111111111111";
+    mockFindLeaveById.mockResolvedValue({ id: validUuid, status: "PENDING", leaveTypeId: "LT_SPECIAL" });
+
+    await generateParentApproval({ ...VALID_CONTEXT, leaveRequestId: validUuid }, APPROVAL_STEP);
+
+    expect(mockNotificationNotify).toHaveBeenCalledWith(
+      "PARENT_APPROVAL_REQUESTED",
+      expect.objectContaining({
+        leaveTypeId: "LT_SPECIAL",
+        recipientPhone: "+1234567890",
+      })
+    );
+  });
+
+  it("passes leaveTypeId directly from context when provided", async () => {
+    await generateParentApproval(
+      { ...VALID_CONTEXT, leaveTypeId: "LT_DIRECT" },
+      APPROVAL_STEP
+    );
+
+    expect(mockNotificationNotify).toHaveBeenCalledWith(
+      "PARENT_APPROVAL_REQUESTED",
+      expect.objectContaining({
+        leaveTypeId: "LT_DIRECT",
+        recipientPhone: "+1234567890",
+      })
+    );
+  });
 });
