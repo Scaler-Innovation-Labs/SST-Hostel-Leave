@@ -217,4 +217,42 @@ describe("rejectLeave service", () => {
       expect.any(Object)
     );
   });
+
+  it("when ADMIN rejects during PARENT_APPROVAL, rejects the ADMIN step and cancels the PARENT step", async () => {
+    mockFindById.mockResolvedValue({ id: "L_MULTI", status: "PENDING", studentId: "S1", currentStepKey: "PARENT_APPROVAL", currentStepOrder: 1 });
+    mockFindByIdForUpdate.mockResolvedValue({ id: "L_MULTI", status: "PENDING", studentId: "S1", currentStepKey: "PARENT_APPROVAL", currentStepOrder: 1 });
+    mockFindPending.mockResolvedValue([
+      { id: "A_PARENT", stepOrder: 1, stepKey: "PARENT_APPROVAL", assignedApproverUserId: null, approverRoleCode: null },
+      { id: "A_ADMIN", stepOrder: 2, stepKey: "ADMIN_APPROVAL", assignedApproverUserId: null, approverRoleCode: "ADMIN" },
+    ]);
+    mockUpdateById.mockResolvedValue({ id: "L_MULTI", status: "REJECTED" });
+
+    const result = await rejectLeave(
+      "L_MULTI",
+      { decision: "REJECTED", comments: "Admin decided to reject" },
+      { id: "U_ADMIN", roles: ["ADMIN"] }
+    );
+
+    expect(result.newStatus).toBe("REJECTED");
+    // ADMIN step was updated to REJECTED with comments
+    expect(mockUpdateDecisionById).toHaveBeenCalledWith(
+      "A_ADMIN",
+      "REJECTED",
+      "U_ADMIN",
+      "Admin decided to reject",
+      expect.any(Date),
+      expect.any(Object),
+      undefined,
+      undefined
+    );
+    // PARENT step was cancelled
+    expect(mockUpdateDecisionById).toHaveBeenCalledWith(
+      "A_PARENT",
+      "CANCELLED",
+      "U_ADMIN",
+      undefined,
+      expect.any(Date),
+      expect.any(Object)
+    );
+  });
 });

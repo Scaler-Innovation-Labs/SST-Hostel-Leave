@@ -4,12 +4,14 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
+import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { leaveApprovals } from "@/db";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import type { ApproveLeaveDto } from "@/dto/leave/approve-leave.dto";
 import { requireRejectionAuthorization } from "@/lib/auth/authorization";
+import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError } from "@/lib/errors";
@@ -87,10 +89,24 @@ export async function rejectExtension(
       extensionInTx.currentStepOrder,
     );
 
-    requireRejectionAuthorization(current, currentUser);
+    const isAdmin =
+      currentUser.roles.includes(ROLES.SUPER_ADMIN) ||
+      currentUser.roles.includes(ROLES.ADMIN);
+
+    let stepToReject = current;
+    if (isAdmin && current.stepKey === WORKFLOW_STEP_KEY.PARENT_APPROVAL) {
+      const adminStep = pending.find(
+        (s) => s.stepKey !== WORKFLOW_STEP_KEY.PARENT_APPROVAL,
+      );
+      if (adminStep) {
+        stepToReject = adminStep;
+      }
+    }
+
+    requireRejectionAuthorization(stepToReject, currentUser);
 
     await updateApprovalAndAudit(
-      current,
+      stepToReject,
       LEAVE_APPROVAL_DECISION.REJECTED,
       currentUser.id,
       dto.comments,
@@ -103,6 +119,18 @@ export async function rejectExtension(
       tx,
       dto.rejectionCategory
     );
+
+    const otherPending = pending.filter((s) => s.id !== stepToReject.id);
+    for (const other of otherPending) {
+      await leaveApprovalRepository.updateDecisionById(
+        other.id,
+        LEAVE_APPROVAL_DECISION.CANCELLED,
+        currentUser.id,
+        undefined,
+        new Date(),
+        tx
+      );
+    }
 
     await leaveExtensionRepository.updateById(
       extensionId,

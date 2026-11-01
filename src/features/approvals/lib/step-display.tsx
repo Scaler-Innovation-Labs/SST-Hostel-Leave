@@ -124,6 +124,7 @@ export type ApprovalActor = {
   stepKey?: string | null;
   approverRoleCode?: string | null;
   overrideType?: ApprovalOverrideType | null;
+  actedByUserId?: string | null;
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -155,8 +156,9 @@ function toRoleLabel(roleCode: string | null | undefined): string | null {
  */
 export function formatApprovalActor(approval: ApprovalActor): string {
   const isParent =
-    approval.stepKey === WORKFLOW_STEP_KEY.PARENT_APPROVAL ||
-    approval.approverRoleCode?.toUpperCase() === "PARENT";
+    (approval.stepKey === WORKFLOW_STEP_KEY.PARENT_APPROVAL ||
+      approval.approverRoleCode?.toUpperCase() === "PARENT") &&
+    !approval.actedByUserId;
   const roleLabel = isParent
     ? "Parent"
     : toRoleLabel(approval.approverRoleCode);

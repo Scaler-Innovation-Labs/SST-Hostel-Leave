@@ -385,6 +385,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
   const hasParentApproval = !!parentApproval;
   const parentApproved = parentApproval?.decision === "approved";
   const parentRejected = parentApproval?.decision === "rejected";
+  const parentCancelled = parentApproval?.decision === "cancelled";
   const parentPending = hasParentApproval && parentApproval?.decision === "pending";
 
   // Student stats
@@ -819,22 +820,22 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   {hasParentApproval && (
                     <div className={cn(
                       "flex items-center justify-between rounded-lg px-3 py-2 text-body transition-colors hover:bg-surface-sunken/50",
-                      parentApproved ? "" : "bg-warning-light",
+                      parentApproved || parentCancelled ? "" : parentRejected ? "bg-danger-light" : "bg-warning-light",
                     )}>
                       <span className="flex items-center gap-2.5">
                         <div className={cn(
                           "flex h-5 w-5 items-center justify-center rounded-full",
-                          parentApproved ? "bg-success-light" : parentRejected ? "bg-danger-light" : "bg-warning-light",
+                          parentApproved ? "bg-success-light" : parentRejected ? "bg-danger-light" : parentCancelled ? "bg-surface-sunken" : "bg-warning-light",
                         )}>
-                          {parentApproved ? <Check className="h-3 w-3 text-success" /> : parentRejected ? <X className="h-3 w-3 text-danger" /> : <Clock className="h-3 w-3 text-warning" />}
+                          {parentApproved ? <Check className="h-3 w-3 text-success" /> : parentRejected ? <X className="h-3 w-3 text-danger" /> : parentCancelled ? <X className="h-3 w-3 text-muted" /> : <Clock className="h-3 w-3 text-warning" />}
                         </div>
                         Parent Approval
                       </span>
                       <span className={cn(
                         "text-caption font-medium",
-                        parentApproved ? "text-success" : parentRejected ? "text-danger" : "text-warning",
+                        parentApproved ? "text-success" : parentRejected ? "text-danger" : parentCancelled ? "text-muted" : "text-warning",
                       )}>
-                        {parentApproved ? "Approved" : parentRejected ? "Rejected" : "Pending"}
+                        {parentApproved ? "Approved" : parentRejected ? "Rejected" : parentCancelled ? "Cancelled" : "Pending"}
                       </span>
                     </div>
                   )}
@@ -1313,10 +1314,10 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   <span className="text-muted">Parent</span>
                   <span className={cn(
                     "flex items-center gap-1 font-medium",
-                    parentApproved ? "text-success" : parentRejected ? "text-danger" : "text-warning",
+                    parentApproved ? "text-success" : parentRejected ? "text-danger" : parentCancelled ? "text-muted" : "text-warning",
                   )}>
                     <Users className="h-3 w-3" />
-                    {parentApproved ? "Approved" : parentRejected ? "Rejected" : "Pending"}
+                    {parentApproved ? "Approved" : parentRejected ? "Rejected" : parentCancelled ? "Cancelled" : "Pending"}
                   </span>
                 </div>
               )}

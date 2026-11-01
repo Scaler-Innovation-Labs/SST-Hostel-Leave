@@ -666,12 +666,12 @@ export const leaveApprovalRepository = {
       items: dedupedRows.map((row) => ({
         ...row.approval,
         approverRoleCode: row.roleCode,
-        approverName: row.approverParentName
-          ? row.approverParentName
-          : row.actedByUserName ?? row.assignedApproverUserName,
-        approverPhone: row.approverParentName
-          ? row.approverParentPhone
-          : null,
+        approverName: row.actedByUserName
+          ? row.actedByUserName
+          : row.approverParentName ?? row.assignedApproverUserName,
+        approverPhone: row.actedByUserName
+          ? null
+          : row.approverParentPhone ?? null,
         // Prefer the frozen steps from the leave's execution context (what
         // the chain actually was at submission time); fall back to the live
         // workflow for legacy leaves without a context.
@@ -1282,10 +1282,10 @@ export const leaveApprovalRepository = {
       items: dedupedRows.map((row) => ({
         ...row.approval,
         approverRoleCode: row.roleCode,
-        approverName: row.parentName
-          ? row.parentName
-          : row.actedByUserName ?? row.assignedApproverUserName,
-        approverPhone: row.parentName ? row.parentPhone : null,
+        approverName: row.actedByUserName
+          ? row.actedByUserName
+          : row.parentName ?? row.assignedApproverUserName,
+        approverPhone: row.actedByUserName ? null : row.parentPhone ?? null,
         // Frozen steps from the parent leave's execution context; fall back
         // to the live workflow for legacy leaves without a context.
         workflowSteps:

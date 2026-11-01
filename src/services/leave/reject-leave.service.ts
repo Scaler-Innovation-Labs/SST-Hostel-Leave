@@ -66,10 +66,26 @@ export async function rejectLeave(
       leaveInTx.currentStepOrder,
     );
 
-    requireRejectionAuthorization(current, currentUser);
+    const isAdmin =
+      currentUser.roles.includes(ROLES.SUPER_ADMIN) ||
+      currentUser.roles.includes(ROLES.ADMIN);
+
+    // If an Admin or Super Admin rejects while an earlier step (e.g. parent approval)
+    // is pending, the rejection belongs to the staff/admin approval step, not the parent step.
+    let stepToReject = current;
+    if (isAdmin && current.stepKey === WORKFLOW_STEP_KEY.PARENT_APPROVAL) {
+      const adminStep = pending.find(
+        (s) => s.stepKey !== WORKFLOW_STEP_KEY.PARENT_APPROVAL,
+      );
+      if (adminStep) {
+        stepToReject = adminStep;
+      }
+    }
+
+    requireRejectionAuthorization(stepToReject, currentUser);
 
     await updateApprovalAndAudit(
-      current,
+      stepToReject,
       LEAVE_APPROVAL_DECISION.REJECTED,
       currentUser.id,
       dto.comments,
@@ -79,6 +95,19 @@ export async function rejectLeave(
       tx,
       dto.rejectionCategory
     );
+
+    // Cancel all other remaining pending approval steps so none are left hanging in PENDING on a rejected leave
+    const otherPending = pending.filter((s) => s.id !== stepToReject.id);
+    for (const other of otherPending) {
+      await leaveApprovalRepository.updateDecisionById(
+        other.id,
+        LEAVE_APPROVAL_DECISION.CANCELLED,
+        currentUser.id,
+        undefined,
+        new Date(),
+        tx
+      );
+    }
 
     const nextState = getNextState(
       leaveInTx.status,

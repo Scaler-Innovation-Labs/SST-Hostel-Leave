@@ -175,6 +175,24 @@ async function handleLeaveDecision(
       tx
     );
 
+    const remainingPending =
+      await leaveApprovalRepository.findByEntityAndDecision(
+        approval.leaveRequestId!,
+        leaveApprovals.leaveRequestId,
+        LEAVE_APPROVAL_DECISION.PENDING,
+        tx
+      );
+    for (const rem of remainingPending) {
+      await leaveApprovalRepository.updateDecisionById(
+        rem.id,
+        LEAVE_APPROVAL_DECISION.CANCELLED,
+        null,
+        undefined,
+        new Date(),
+        tx
+      );
+    }
+
       await outboxService.publish({
         eventType: OUTBOX_EVENT_TYPE.LEAVE_REJECTED,
         aggregateType: AGGREGATE_TYPE.LEAVE_REQUEST,
@@ -338,6 +356,24 @@ async function handleExtensionDecision(
       },
       tx
     );
+
+    const remainingPending =
+      await leaveApprovalRepository.findByEntityAndDecision(
+        extensionId,
+        leaveApprovals.leaveExtensionId,
+        LEAVE_APPROVAL_DECISION.PENDING,
+        tx
+      );
+    for (const rem of remainingPending) {
+      await leaveApprovalRepository.updateDecisionById(
+        rem.id,
+        LEAVE_APPROVAL_DECISION.CANCELLED,
+        null,
+        undefined,
+        new Date(),
+        tx
+      );
+    }
 
     await outboxService.publish({
       eventType: OUTBOX_EVENT_TYPE.LEAVE_EXTENSION_REJECTED,
