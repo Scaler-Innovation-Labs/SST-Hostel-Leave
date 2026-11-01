@@ -86,7 +86,7 @@ import { useLeaves } from "@/features/leaves/hooks/use-leaves";
 import { useDocuments } from "@/hooks/use-documents";
 import { useMovement } from "@/hooks/use-movement";
 import { approveLeave, rejectLeave, superadminOverrideLeave } from "@/lib/api/approval-api";
-import { getLeaveUrl } from "@/lib/api/leave-api";
+import { getLeaveUrl, resendParentApproval } from "@/lib/api/leave-api";
 import { formatDate, formatDateTime, formatRelative, getDurationLabel } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
@@ -327,6 +327,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
   const [overrideError, setOverrideError] = useState("");
   const [overrideComments, setOverrideComments] = useState("");
   const [parentOverrideOpen, setParentOverrideOpen] = useState(false);
+  const [resendingParentSms, setResendingParentSms] = useState(false);
 
   // ── Computed data ──
   const sortedApprovals = useMemo(() => {
@@ -477,6 +478,21 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
     }
   };
 
+  const handleResendParentSms = async () => {
+    setResendingParentSms(true);
+    try {
+      const result = await resendParentApproval(leaveId);
+      toast.success(result.message || "Parent approval SMS resent successfully");
+      await Promise.all([leaveMutate(), chainMutate()]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to resend parent approval SMS";
+      toast.error(message);
+      logger.error("Failed to resend parent approval SMS", { error: message });
+    } finally {
+      setResendingParentSms(false);
+    }
+  };
+
   // ── Early returns ──
   if (isLoading) return <LoadingState count={6} />;
   if (isError) {
@@ -527,10 +543,28 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
             </div>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={() => { leaveMutate(); chainMutate(); }} className="gap-1.5">
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          {canOverride && isPending && parentPending && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResendParentSms}
+              disabled={resendingParentSms}
+              className="gap-1.5 border-warning/40 text-warning hover:bg-warning-light hover:text-warning"
+            >
+              {resendingParentSms ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Send className="h-3.5 w-3.5" />
+              )}
+              Resend Parent SMS
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => { leaveMutate(); chainMutate(); }} className="gap-1.5">
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* ════════════ DECISION SUMMARY BANNER ════════════ */}
@@ -549,20 +583,40 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 <AlertTriangle className="h-4 w-4 text-warning" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="flex items-center gap-1.5 text-body font-semibold text-warning">
-                  <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
-                  Needs a closer look
-                </p>
-                <div className="mt-2 space-y-1 text-body text-warning">
-                  <p className="flex items-center gap-2">
-                    <Clock className="h-3.5 w-3.5" />
-                    Parent approval still pending
-                  </p>
-                  {attendance !== null && attendance < 75 && (
-                    <p className="flex items-center gap-2">
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      Attendance: {attendance}%
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="flex items-center gap-1.5 text-body font-semibold text-warning">
+                      <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
+                      Needs a closer look
                     </p>
+                    <div className="mt-2 space-y-1 text-body text-warning">
+                      <p className="flex items-center gap-2">
+                        <Clock className="h-3.5 w-3.5" />
+                        Parent approval still pending
+                      </p>
+                      {attendance !== null && attendance < 75 && (
+                        <p className="flex items-center gap-2">
+                          <AlertCircle className="h-3.5 w-3.5" />
+                          Attendance: {attendance}%
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {canOverride && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleResendParentSms}
+                      disabled={resendingParentSms}
+                      className="gap-1.5 self-start border-warning/40 bg-surface text-warning hover:bg-warning-light hover:text-warning sm:self-center"
+                    >
+                      {resendingParentSms ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Send className="h-3.5 w-3.5" />
+                      )}
+                      Resend Parent SMS
+                    </Button>
                   )}
                 </div>
               </div>
@@ -831,12 +885,30 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                         </div>
                         Parent Approval
                       </span>
-                      <span className={cn(
-                        "text-caption font-medium",
-                        parentApproved ? "text-success" : parentRejected ? "text-danger" : parentCancelled ? "text-muted" : "text-warning",
-                      )}>
-                        {parentApproved ? "Approved" : parentRejected ? "Rejected" : parentCancelled ? "Cancelled" : "Pending"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "text-caption font-medium",
+                          parentApproved ? "text-success" : parentRejected ? "text-danger" : parentCancelled ? "text-muted" : "text-warning",
+                        )}>
+                          {parentApproved ? "Approved" : parentRejected ? "Rejected" : parentCancelled ? "Cancelled" : "Pending"}
+                        </span>
+                        {canOverride && isPending && parentPending && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleResendParentSms}
+                            disabled={resendingParentSms}
+                            className="h-6 gap-1 px-2 text-caption text-warning hover:bg-warning-light hover:text-warning"
+                          >
+                            {resendingParentSms ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Send className="h-3 w-3" />
+                            )}
+                            Resend SMS
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -993,6 +1065,22 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                               <Badge tone={config.tone}>
                                 {isCurrent && isPending ? "Current" : config.label}
                               </Badge>
+                              {canOverride && isPending && isCurrent && app.stepKey?.toLowerCase().includes("parent") && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={handleResendParentSms}
+                                  disabled={resendingParentSms}
+                                  className="h-6 gap-1 px-2 text-caption text-warning hover:bg-warning-light hover:text-warning"
+                                >
+                                  {resendingParentSms ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <Send className="h-3 w-3" />
+                                  )}
+                                  Resend Parent SMS
+                                </Button>
+                              )}
                             </div>
 
                             <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-muted">
@@ -1371,6 +1459,22 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   <Download className="h-3.5 w-3.5" />
                   Download PDF
                 </Button>
+                {canOverride && parentPending && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResendParentSms}
+                    disabled={resendingParentSms}
+                    className="w-full gap-1.5 border-warning/40 text-warning hover:bg-warning-light hover:text-warning"
+                  >
+                    {resendingParentSms ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Send className="h-3.5 w-3.5" />
+                    )}
+                    Resend Parent SMS
+                  </Button>
+                )}
                 {canOverride && (
                   <div className="border-t border-border pt-2.5">
                     <Button
@@ -1421,6 +1525,22 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   >
                     <XCircle className="h-4 w-4" />
                     Reject
+                  </Button>
+                )}
+                {canOverride && parentPending && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResendParentSms}
+                    disabled={resendingParentSms}
+                    className="w-full gap-1.5 border-warning/40 text-warning hover:bg-warning-light hover:text-warning"
+                  >
+                    {resendingParentSms ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Send className="h-3.5 w-3.5" />
+                    )}
+                    Resend Parent SMS
                   </Button>
                 )}
                 {canOverride && (

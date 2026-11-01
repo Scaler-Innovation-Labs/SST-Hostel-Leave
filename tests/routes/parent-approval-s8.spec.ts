@@ -48,9 +48,13 @@ vi.mock("@/db/repositories/leave/leave-parent-approval.repository", () => ({
 }));
 
 const mockFindNextByEntityAndDecision = vi.fn().mockResolvedValue(null);
+const mockFindByEntityAndDecision = vi.fn().mockResolvedValue([]);
+const mockUpdateDecisionById = vi.fn().mockResolvedValue(undefined);
 vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
   leaveApprovalRepository: {
     findNextByEntityAndDecision: (...args: any[]) => mockFindNextByEntityAndDecision(...args),
+    findByEntityAndDecision: (...args: any[]) => mockFindByEntityAndDecision(...args),
+    updateDecisionById: (...args: any[]) => mockUpdateDecisionById(...args),
   },
 }));
 

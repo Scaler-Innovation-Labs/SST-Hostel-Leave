@@ -49,6 +49,15 @@ export async function cancelLeave(id: string): Promise<unknown> {
   return json.data;
 }
 
+export async function resendParentApproval(id: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${BASE}/leaves/${id}/resend-parent-approval`, { method: "POST" });
+  const json: ApiResponse<{ success: boolean; message: string }> = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message ?? "Failed to resend parent approval SMS");
+  }
+  return json.data as { success: boolean; message: string };
+}
+
 export function getDocumentsUrl(leaveId: string): string {
   return `${BASE}/leaves/${leaveId}/documents`;
 }
