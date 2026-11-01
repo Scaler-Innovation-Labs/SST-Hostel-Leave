@@ -1,4 +1,4 @@
-import { ACTOR_TYPE, AUDIT_TRIGGER } from "@/constants/audit/actor";
+import { ACTOR_TYPE, AUDIT_TRIGGER, systemActor } from "@/constants/audit/actor";
 import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_APPROVAL_SOURCE } from "@/constants/leave/approval-source";
@@ -23,6 +23,7 @@ import {
 } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { auditService } from "@/services/audit/audit.service";
+import { expireSingleLeave } from "@/services/leave/expire-leave.service";
 import {
   extendQrPassWindow,
   issueQrPassForApprovedLeave,
@@ -51,6 +52,36 @@ export async function parentApproveDecision(
   }
 
   const tokenHash = await sha256(rawToken.trim());
+
+  const initialCheck =
+    await leaveParentApprovalRepository.findByParentApprovalToken(tokenHash);
+
+  if (
+    initialCheck?.parentDetails?.tokenExpiresAt &&
+    new Date(initialCheck.parentDetails.tokenExpiresAt) < new Date()
+  ) {
+    if (
+      initialCheck.decision === LEAVE_APPROVAL_DECISION.PENDING &&
+      !initialCheck.actedAt &&
+      initialCheck.leaveRequestId
+    ) {
+      try {
+        await expireSingleLeave(
+          initialCheck.leaveRequestId,
+          systemActor("parent-link-expired")
+        );
+      } catch (error) {
+        logger.warn("Failed to expire leave on expired parent decision attempt", {
+          leaveRequestId: initialCheck.leaveRequestId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+    logger.warn("Parent approval decision failed: link expired", {
+      approvalId: initialCheck.id,
+    });
+    throw new ValidationError(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
+  }
 
   return await transaction(async (tx) => {
     const approvalBase =

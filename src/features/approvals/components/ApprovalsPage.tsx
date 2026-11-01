@@ -7,7 +7,7 @@ import { fetcher } from "@/lib/api/fetcher";
 
 const OVERDUE_LIMIT = 200;
 
-import { CheckCircle2, Clock, FileText, Search, X } from "lucide-react";
+import { CalendarX, CheckCircle2, Clock, FileText, PackageCheck, Search, X } from "lucide-react";
 
 import { HostelFilter } from "@/components/shared/HostelFilter";
 import { InfoCard } from "@/components/shared/InfoCard";
@@ -209,7 +209,7 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
       {/* Summary cards — aggregates from the dashboard stats read-model, clickable as status filters.
           Hidden for POC viewers, whose dashboard shows only their own action queue. */}
       {stats && viewerRole !== "POC" && (
-        <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           {[
             {
               label: "Total Leaves",
@@ -238,6 +238,20 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
               tone: "danger" as const,
               status: LEAVE_REQUEST_STATUS.REJECTED,
               icon: <X className="h-4 w-4" />,
+            },
+            {
+              label: "Expired",
+              value: (stats as { expiredLeaves?: number }).expiredLeaves ?? 0,
+              tone: "danger" as const,
+              status: LEAVE_REQUEST_STATUS.EXPIRED,
+              icon: <CalendarX className="h-4 w-4" />,
+            },
+            {
+              label: "Completed",
+              value: (stats as { completedLeaves?: number }).completedLeaves ?? 0,
+              tone: "accent" as const,
+              status: LEAVE_REQUEST_STATUS.COMPLETED,
+              icon: <PackageCheck className="h-4 w-4" />,
             },
           ].map((card) => (
             <InfoCard

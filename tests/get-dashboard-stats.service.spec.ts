@@ -123,7 +123,7 @@ beforeEach(() => {
   mockCountUsers.mockResolvedValue(0);
   mockCountByLocationState.mockResolvedValue(0);
   mockCountLocationStats.mockResolvedValue({ total: 100, active: 85, inHostel: 80, outsideHostel: 15, overdue: 5 });
-  mockCountStatusStats.mockResolvedValue({ total: 200, approved: 150, rejected: 10 });
+  mockCountStatusStats.mockResolvedValue({ total: 200, approved: 150, rejected: 10, expired: 25, completed: 15 });
   mockCountPendingStats.mockResolvedValue({ pendingLeaves: 4, pendingExtensions: 1 });
 });
 
@@ -283,6 +283,8 @@ describe("getDashboardStats", () => {
     expect(result.activeStudents).toBe(85);
     expect(result.inHostel).toBe(80);
     expect(result.pendingApprovals).toBe(4);
+    expect(result.expiredLeaves).toBe(25);
+    expect(result.completedLeaves).toBe(15);
     expect(mockCountByLeaveType).toHaveBeenCalledWith(undefined, "APPROVED");
   });
 

@@ -2,10 +2,12 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 const mockFindByIdWithRelations = vi.fn();
+const mockHasExpiredParentApproval = vi.fn().mockResolvedValue(false);
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
     findByIdWithRelations: (...args: any[]) => mockFindByIdWithRelations(...args),
+    hasExpiredParentApproval: (...args: any[]) => mockHasExpiredParentApproval(...args),
   },
 }));
 
@@ -21,6 +23,7 @@ const currentUser = { id: "U1", roles: ["ADMIN"] };
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mockHasExpiredParentApproval.mockResolvedValue(false);
 });
 
 describe("getLeave service", () => {

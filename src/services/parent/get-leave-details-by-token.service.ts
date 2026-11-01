@@ -1,3 +1,4 @@
+import { systemActor } from "@/constants/audit/actor";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { GENERIC_PARENT_TOKEN_ERROR_MESSAGE } from "@/constants/parent/parent-approval";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
@@ -7,6 +8,7 @@ import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { sha256 } from "@/lib/crypto";
 import { ValidationError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
+import { expireSingleLeave } from "@/services/leave/expire-leave.service";
 
 export type LeaveDetailsResult = {
   approvalId: string;
@@ -65,6 +67,23 @@ export async function getLeaveDetailsByToken(
     approval.parentDetails?.tokenExpiresAt &&
     new Date(approval.parentDetails.tokenExpiresAt) < new Date()
   ) {
+    if (
+      approval.decision === LEAVE_APPROVAL_DECISION.PENDING &&
+      !approval.actedAt &&
+      approval.leaveRequestId
+    ) {
+      try {
+        await expireSingleLeave(
+          approval.leaveRequestId,
+          systemActor("parent-link-expired")
+        );
+      } catch (error) {
+        logger.warn("Failed to expire leave on expired parent token lookup", {
+          leaveRequestId: approval.leaveRequestId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
     logger.warn("Parent approval link lookup failed: link expired", {
       approvalId: approval.id,
     });

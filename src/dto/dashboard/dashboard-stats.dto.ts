@@ -63,6 +63,8 @@ export type StaffDashboardStats = {
   totalLeaves: number;
   approvedLeaves: number;
   rejectedLeaves: number;
+  expiredLeaves: number;
+  completedLeaves: number;
   recentApprovalsCount: number;
   averageApprovalHours: number | null;
   activeQrPasses: number;

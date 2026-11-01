@@ -203,6 +203,37 @@ export async function expireOverdueLeaves(
     }
   }
 
+  // Expire pending leaves whose parent approval link expired with no action taken
+  while (true) {
+    const parentExpiredLeaves = await leaveRepository.findLeavesWithExpiredParentApproval(now, undefined, BATCH_SIZE);
+
+    if (parentExpiredLeaves.length === 0) {
+      break;
+    }
+
+    result.total += parentExpiredLeaves.length;
+
+    for (const leave of parentExpiredLeaves) {
+      try {
+        if (!canTransition(leave.status, LEAVE_ACTION.EXPIRE)) {
+          result.skipped++;
+          continue;
+        }
+
+        await expireSingleLeave(leave.id, currentUser);
+        result.expired++;
+      } catch (error) {
+        result.errors.push(
+          `Failed to expire parent-expired leave ${leave.id}: ${error instanceof Error ? error.message : "Unknown error"}`
+        );
+      }
+    }
+
+    if (parentExpiredLeaves.length < BATCH_SIZE) {
+      break;
+    }
+  }
+
   return result;
 }
 

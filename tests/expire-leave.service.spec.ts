@@ -32,6 +32,7 @@ const mockUpdateById = vi.fn();
 const mockAuditRecord = vi.fn();
 const mockRecordMovement = vi.fn();
 const mockFindExpiredLeaves = vi.fn();
+const mockFindLeavesWithExpiredParentApproval = vi.fn();
 const mockFindStudentById = vi.fn();
 const mockQrFindByLeaveRequestId = vi.fn();
 const mockQrInvalidate = vi.fn();
@@ -42,6 +43,7 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
     findByIdForUpdate: (...args: any[]) => mockFindByIdForUpdate(...args),
     updateById: (...args: any[]) => mockUpdateById(...args),
     findExpiredLeaves: (...args: any[]) => mockFindExpiredLeaves(...args),
+    findLeavesWithExpiredParentApproval: (...args: any[]) => mockFindLeavesWithExpiredParentApproval(...args),
   },
 }));
 
@@ -92,6 +94,7 @@ const SYSTEM_ACTOR = systemActor("expire-leaves");
 beforeEach(() => {
   vi.resetAllMocks();
   mockAuditRecord.mockResolvedValue({});
+  mockFindLeavesWithExpiredParentApproval.mockResolvedValue([]);
   mockRecordMovement.mockResolvedValue({ id: "ME1" });
   mockFindStudentById.mockResolvedValue({ id: "S1", currentLocationState: "APPROVED_LEAVE" });
   mockAssertCanAccessLeave.mockResolvedValue(undefined);

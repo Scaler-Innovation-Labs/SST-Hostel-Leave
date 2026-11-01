@@ -1,9 +1,10 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, lte, ne, notExists, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, exists, gt, gte, ilike, inArray, isNotNull, isNull, lte, ne, notExists, or, sql } from "drizzle-orm";
 
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { QR_MODE } from "@/constants/leave/qr-mode";
-import { leaveExtensions, leaveRequests, leaveTypes, qrPasses, students, users } from "@/db";
+import { leaveApprovalParentDetails, leaveApprovals, leaveExtensions, leaveRequests, leaveTypes, qrPasses, students, users } from "@/db";
 import { db } from "@/lib/db";
 import { PersistenceError } from "@/lib/errors";
 
@@ -167,6 +168,89 @@ export const leaveRepository = {
 			.returning();
 
 		return rows[0] ?? null;
+	},
+
+	async findLeavesWithExpiredParentApproval(
+		before: Date = new Date(),
+		dbClient: Pick<typeof db, "select"> = db,
+		limit?: number
+	): Promise<LeaveRequest[]> {
+		const query = dbClient
+			.select()
+			.from(leaveRequests)
+			.where(
+				and(
+					eq(leaveRequests.status, LEAVE_REQUEST_STATUS.PENDING),
+					exists(
+						dbClient
+							.select({ id: leaveApprovals.id })
+							.from(leaveApprovals)
+							.innerJoin(
+								leaveApprovalParentDetails,
+								eq(leaveApprovalParentDetails.approvalId, leaveApprovals.id)
+							)
+							.where(
+								and(
+									eq(leaveApprovals.leaveRequestId, leaveRequests.id),
+									eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+									isNull(leaveApprovals.actedAt),
+									isNotNull(leaveApprovalParentDetails.tokenExpiresAt),
+									gt(
+										leaveApprovalParentDetails.tokenExpiresAt,
+										new Date("2020-01-01")
+									),
+									lte(leaveApprovalParentDetails.tokenExpiresAt, before)
+								)
+							)
+					)
+				)
+			)
+			.orderBy(leaveRequests.createdAt);
+
+		const rows = limit ? await query.limit(limit) : await query;
+
+		return rows;
+	},
+
+	async hasExpiredParentApproval(
+		leaveId: string,
+		before: Date = new Date(),
+		dbClient: Pick<typeof db, "select"> = db
+	): Promise<boolean> {
+		const rows = await dbClient
+			.select({ id: leaveRequests.id })
+			.from(leaveRequests)
+			.where(
+				and(
+					eq(leaveRequests.id, leaveId),
+					eq(leaveRequests.status, LEAVE_REQUEST_STATUS.PENDING),
+					exists(
+						dbClient
+							.select({ id: leaveApprovals.id })
+							.from(leaveApprovals)
+							.innerJoin(
+								leaveApprovalParentDetails,
+								eq(leaveApprovalParentDetails.approvalId, leaveApprovals.id)
+							)
+							.where(
+								and(
+									eq(leaveApprovals.leaveRequestId, leaveRequests.id),
+									eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+									isNull(leaveApprovals.actedAt),
+									isNotNull(leaveApprovalParentDetails.tokenExpiresAt),
+									gt(
+										leaveApprovalParentDetails.tokenExpiresAt,
+										new Date("2020-01-01")
+									),
+									lte(leaveApprovalParentDetails.tokenExpiresAt, before)
+								)
+							)
+					)
+				)
+			)
+			.limit(1);
+
+		return rows.length > 0;
 	},
 
 	async findExpiredLeaves(
@@ -535,6 +619,8 @@ async findAutoCompleteDueNonQrLeaves(
     total: number;
     approved: number;
     rejected: number;
+    expired: number;
+    completed: number;
   }> {
     if (hostelIds?.length) {
       const result = await dbClient
@@ -542,6 +628,8 @@ async findAutoCompleteDueNonQrLeaves(
           total: sql<number>`count(*)`,
           approved: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.APPROVED})`,
           rejected: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.REJECTED})`,
+          expired: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.EXPIRED})`,
+          completed: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.COMPLETED})`,
         })
         .from(leaveRequests)
         .leftJoin(students, eq(leaveRequests.studentId, students.id))
@@ -553,6 +641,8 @@ async findAutoCompleteDueNonQrLeaves(
         total: Number(row?.total ?? 0),
         approved: Number(row?.approved ?? 0),
         rejected: Number(row?.rejected ?? 0),
+        expired: Number(row?.expired ?? 0),
+        completed: Number(row?.completed ?? 0),
       };
     }
 
@@ -561,6 +651,8 @@ async findAutoCompleteDueNonQrLeaves(
         total: sql<number>`count(*)`,
         approved: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.APPROVED})`,
         rejected: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.REJECTED})`,
+        expired: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.EXPIRED})`,
+        completed: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.COMPLETED})`,
       })
       .from(leaveRequests);
 
@@ -569,6 +661,8 @@ async findAutoCompleteDueNonQrLeaves(
       total: Number(row?.total ?? 0),
       approved: Number(row?.approved ?? 0),
       rejected: Number(row?.rejected ?? 0),
+      expired: Number(row?.expired ?? 0),
+      completed: Number(row?.completed ?? 0),
     };
   },
 };
