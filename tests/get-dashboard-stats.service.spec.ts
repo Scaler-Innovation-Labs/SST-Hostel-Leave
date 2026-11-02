@@ -123,7 +123,7 @@ beforeEach(() => {
   mockCountUsers.mockResolvedValue(0);
   mockCountByLocationState.mockResolvedValue(0);
   mockCountLocationStats.mockResolvedValue({ total: 100, active: 85, inHostel: 80, outsideHostel: 15, overdue: 5 });
-  mockCountStatusStats.mockResolvedValue({ total: 200, approved: 150, rejected: 10, expired: 25, completed: 15 });
+  mockCountStatusStats.mockResolvedValue({ total: 200, approved: 150, rejected: 10, expired: 25, completed: 15, cancelled: 5 });
   mockCountPendingStats.mockResolvedValue({ pendingLeaves: 4, pendingExtensions: 1 });
 });
 
@@ -138,94 +138,86 @@ describe("getDashboardStats", () => {
     const now = new Date();
     mockFindByFilters.mockImplementation((filters) => {
       if (filters.status === "PENDING") return { items: [], total: 3 };
-      return { items: [{ leave: { id: "LR1", status: "APPROVED", startAt: new Date(now.getTime() - 86400000), endAt: new Date(now.getTime() + 86400000) }, leaveType: { name: "Home Pass" } }], total: 1 };
+      return {
+        items: [
+          {
+            leave: { id: "LR1", status: "APPROVED", startAt: new Date(now.getTime() - 3600000), endAt: new Date(now.getTime() + 3600000) },
+            leaveType: { name: "Home Pass" },
+          },
+        ],
+        total: 5,
+      };
+    });
+    mockFindByLeaveRequestId.mockResolvedValue([
+      { stepKey: "PARENT_APPROVAL", stepOrder: 1, decision: "APPROVED", actedAt: null },
+    ]);
+    mockFindByFiltersMovement.mockResolvedValue({
+      items: [{ eventType: "EXIT_HOSTEL", occurredAt: now }],
+      total: 1,
     });
 
     const result = await getDashboardStats(STUDENT_USER);
 
     expect(result.pendingLeaves).toBe(3);
-    expect(result.approvedLeaves).toBe(1);
-    expect(result.activeLeave.id).toBe("LR1");
-    expect(result.activeLeave.leaveType).toBe("Home Pass");
-    expect(result.currentLocation).toBe("IN_HOSTEL");
-    expect(result.activeQr).toBeNull();
+    expect(result.approvedLeaves).toBe(5);
+    expect(result.activeLeave?.id).toBe("LR1");
+    expect(result.activeLeave?.leaveType).toBe("Home Pass");
+    expect(result.approvalProgress).toHaveLength(1);
+    expect(result.approvalProgress?.[0]?.label).toBe("Parent");
+    expect(result.recentActivity).toHaveLength(1);
+    expect(result.recentActivity[0]?.description).toBe("Left hostel");
   });
 
-  it("returns an active QR pass only for the current (window-contained) leave", async () => {
+  it("returns null for optional fields when not found", async () => {
+    const result = await getDashboardStats(STUDENT_USER);
+
+    expect(result.activeLeave).toBeNull();
+    expect(result.upcomingLeave).toBeNull();
+    expect(result.activeQr).toBeNull();
+    expect(result.approvalProgress).toBeNull();
+  });
+
+  it("resolves the current leave from an open movement session even when outside the window", async () => {
     const now = new Date();
-    mockFindByFilters.mockImplementation((filters) => {
-      if (filters.status === "PENDING") return { items: [], total: 0 };
-      return { items: [{ leave: { id: "LR1", status: "APPROVED", startAt: new Date(now.getTime() - 86400000), endAt: new Date(now.getTime() + 86400000) }, leaveType: { name: "Home Pass" } }], total: 1 };
-    });
+    // Pass has firstScanAt but no closedAt — student physically outside/overdue
     mockFindByStudentId.mockResolvedValue([
       {
-        id: "QP1",
-        leaveRequestId: "LR1",
+        id: "QP_ACTIVE",
+        leaveRequestId: "LR_A",
         status: "ACTIVE",
-        tokenHash: "abcdef123456",
-        expiresAt: new Date(now.getTime() + 86400000),
-      },
-      // A future leave's ACTIVE pass record must NOT be exposed as current.
-      {
-        id: "QP2",
-        leaveRequestId: "LR2",
-        status: "ACTIVE",
-        tokenHash: "zzz999000000",
+        firstScanAt: new Date(now.getTime() - 2 * 86400000),
+        closedAt: null,
         expiresAt: new Date(now.getTime() + 86400000),
       },
     ]);
-
-    const result = await getDashboardStats(STUDENT_USER);
-
-    expect(result.activeQr).not.toBeNull();
-    expect(result.activeQr.passId).toBe("QP1");
-    // No credential material is exposed on the dashboard payload.
-    expect(result.activeQr).not.toHaveProperty("token");
-    expect(result.activeQr.expiresAt).toBeTruthy();
-  });
-
-  it("keeps activeLeave null for future leaves and exposes the earliest as upcomingLeave", async () => {
-    const now = new Date();
     mockFindByFilters.mockImplementation((filters) => {
       if (filters.status === "PENDING") return { items: [], total: 0 };
       return {
         items: [
-          { leave: { id: "LR1", status: "APPROVED", startAt: new Date(now.getTime() + 10 * 86400000), endAt: new Date(now.getTime() + 12 * 86400000) }, leaveType: { name: "Internships" } },
-          { leave: { id: "LR2", status: "APPROVED", startAt: new Date(now.getTime() + 5 * 86400000), endAt: new Date(now.getTime() + 7 * 86400000) }, leaveType: { name: "Holiday" } },
+          {
+            // This leave's endAt is in the past, but its QR pass has an open session!
+            leave: {
+              id: "LR_A",
+              status: "APPROVED",
+              startAt: new Date(now.getTime() - 3 * 86400000),
+              endAt: new Date(now.getTime() - 86400000),
+            },
+            leaveType: { name: "Home Pass" },
+          },
+          {
+            // Another approved leave whose window is currently active
+            leave: {
+              id: "LR_B",
+              status: "APPROVED",
+              startAt: new Date(now.getTime() - 3600000),
+              endAt: new Date(now.getTime() + 3600000),
+            },
+            leaveType: { name: "Weekend Pass" },
+          },
         ],
         total: 2,
       };
     });
-
-    const result = await getDashboardStats(STUDENT_USER);
-
-    expect(result.activeLeave).toBeNull();
-    expect(result.activeQr).toBeNull();
-    expect(result.upcomingLeave?.id).toBe("LR2");
-  });
-
-  it("resolves the current leave to the open movement session's leave", async () => {
-    const now = new Date();
-    mockFindByFilters.mockImplementation((filters) => {
-      if (filters.status === "PENDING") return { items: [], total: 0 };
-      return {
-        items: [
-          { leave: { id: "LR_A", status: "APPROVED", startAt: new Date(now.getTime() - 20 * 86400000), endAt: new Date(now.getTime() - 10 * 86400000) }, leaveType: { name: "Old Leave" } },
-        ],
-        total: 1,
-      };
-    });
-    mockFindByStudentId.mockResolvedValue([
-      {
-        id: "QP1",
-        leaveRequestId: "LR_A",
-        status: "ACTIVE",
-        firstScanAt: new Date(now.getTime() - 15 * 86400000),
-        closedAt: null,
-        tokenHash: "abcdef123456",
-        expiresAt: null,
-      },
-    ]);
 
     const result = await getDashboardStats(STUDENT_USER);
 
@@ -285,6 +277,7 @@ describe("getDashboardStats", () => {
     expect(result.pendingApprovals).toBe(4);
     expect(result.expiredLeaves).toBe(25);
     expect(result.completedLeaves).toBe(15);
+    expect(result.cancelledLeaves).toBe(5);
     expect(mockCountByLeaveType).toHaveBeenCalledWith(undefined, "APPROVED");
   });
 

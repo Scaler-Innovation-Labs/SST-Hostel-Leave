@@ -6,10 +6,12 @@ import { movementEventRepository } from "@/db/repositories/movement/movement-eve
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
+import type { AnalyticsPeriod } from "@/dto/analytics/analytics-period.dto";
 import type { Activity, ApprovalStep, DashboardStats, StaffDashboardStats, StudentDashboardStats } from "@/dto/dashboard/dashboard-stats.dto";
 import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
 import { AuthorizationError, NotFoundError } from "@/lib/errors";
+import { resolveAnalyticsRange } from "@/services/analytics/analytics-scope.service";
 import { getScopedHostelIds, isStaffScopeRestricted } from "@/services/shared/authorization.service";
 
 function fillDateRange(startDate: Date, endDate: Date, data: Array<{ date: string; count: number }>): Array<{ date: string; value: number }> {
@@ -26,7 +28,10 @@ function fillDateRange(startDate: Date, endDate: Date, data: Array<{ date: strin
 
 export async function getDashboardStats(
   currentUser: CurrentUser,
-  status?: LeaveRequestStatus
+  status?: LeaveRequestStatus,
+  period?: AnalyticsPeriod,
+  customStartDate?: string | Date,
+  customEndDate?: string | Date
 ): Promise<DashboardStats> {
   const isStudent = currentUser.roles.includes(ROLES.STUDENT);
 
@@ -49,7 +54,7 @@ export async function getDashboardStats(
     );
   }
 
-  return getStaffStats(currentUser, status);
+  return getStaffStats(currentUser, status, period, customStartDate, customEndDate);
 }
 
 const STEP_LABELS: Record<string, string> = {
@@ -209,13 +214,16 @@ async function loadApprovalProgress(leaveRequestId: string): Promise<ApprovalSte
 
 async function getStaffStats(
   currentUser: CurrentUser,
-  status?: LeaveRequestStatus
+  status?: LeaveRequestStatus,
+  period: AnalyticsPeriod = "30d",
+  customStartDate?: string | Date,
+  customEndDate?: string | Date
 ): Promise<StaffDashboardStats> {
-  const now = new Date();
-  const sevenDaysAgo = new Date(now);
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  const thirtyDaysAgo = new Date(now);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const { startDate, endDate, isBounded } = resolveAnalyticsRange(
+    period,
+    customStartDate,
+    customEndDate
+  );
 
   // HOSTEL-scoped staff see only stats for their hostels; no scopes = ALL.
   const hostelIds =
@@ -231,21 +239,29 @@ async function getStaffStats(
     averageApprovalTime,
     activeQrCount,
     movementEventCount,
-    leaves30dRaw,
-    approvals7dRaw,
+    leavesRaw,
+    approvalsRaw,
   ] = await Promise.all([
     leaveApprovalAnalyticsRepository.countPendingStats({ hostelIds }),
     studentRepository.countLocationStats(hostelIds),
     userRepository.count(hostelIds),
     leaveRepository.countStatusStats(hostelIds),
-    leaveApprovalAnalyticsRepository.countRecent(sevenDaysAgo, hostelIds),
+    leaveApprovalAnalyticsRepository.countRecent(startDate, hostelIds),
     leaveRepository.countByLeaveType(hostelIds, status),
-    leaveApprovalAnalyticsRepository.averageApprovalTime(thirtyDaysAgo, hostelIds),
+    leaveApprovalAnalyticsRepository.averageApprovalTime(startDate, hostelIds),
     qrPassRepository.countActive(hostelIds),
-    movementEventRepository.countRecent(sevenDaysAgo, hostelIds),
-    leaveRepository.countByDateRange(thirtyDaysAgo, now, status, hostelIds),
-    leaveApprovalAnalyticsRepository.countByDateRange(sevenDaysAgo, now, hostelIds),
+    movementEventRepository.countRecent(startDate, hostelIds),
+    leaveRepository.countByDateRange(startDate, endDate, status, hostelIds),
+    leaveApprovalAnalyticsRepository.countByDateRange(startDate, endDate, hostelIds),
   ]);
+
+  const leavesTrend = isBounded
+    ? fillDateRange(startDate, endDate, leavesRaw)
+    : leavesRaw.map((r) => ({ date: r.date, value: r.count }));
+
+  const approvalsTrend = isBounded
+    ? fillDateRange(startDate, endDate, approvalsRaw)
+    : approvalsRaw.map((r) => ({ date: r.date, value: r.count }));
 
   return {
     totalStudents: locationStats.total,
@@ -262,13 +278,14 @@ async function getStaffStats(
     rejectedLeaves: leaveStats.rejected,
     expiredLeaves: leaveStats.expired,
     completedLeaves: leaveStats.completed,
+    cancelledLeaves: leaveStats.cancelled,
     recentApprovalsCount,
     averageApprovalHours: averageApprovalTime,
     activeQrPasses: activeQrCount,
     movementEvents: movementEventCount,
     leaveTypeBreakdown,
-    leavesLast7Days: fillDateRange(sevenDaysAgo, now, leaves30dRaw),
-    leavesLast30Days: fillDateRange(thirtyDaysAgo, now, leaves30dRaw),
-    approvalsLast7Days: fillDateRange(sevenDaysAgo, now, approvals7dRaw),
+    leavesLast7Days: leavesTrend,
+    leavesLast30Days: leavesTrend,
+    approvalsLast7Days: approvalsTrend,
   };
 }

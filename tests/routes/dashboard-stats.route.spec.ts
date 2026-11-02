@@ -76,6 +76,27 @@ describe("GET /api/v1/dashboard/stats", () => {
     expect(mockGetDashboardStats).toHaveBeenLastCalledWith(expect.objectContaining({ id: "U1" }), "APPROVED");
   });
 
+  it("passes period and custom date range to the service", async () => {
+    const { requireAuth } = await import("@/lib/auth/require-auth");
+    requireAuth.mockResolvedValue({ id: "U1", roles: ["ADMIN"] });
+
+    mockGetDashboardStats.mockResolvedValue({ pendingApprovals: 0 });
+
+    const req = new Request("http://localhost/api/v1/dashboard/stats?period=custom&startDate=2026-05-01&endDate=2026-05-15");
+    const res = await GET(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(mockGetDashboardStats).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: "U1" }),
+      undefined,
+      "custom",
+      "2026-05-01",
+      "2026-05-15"
+    );
+  });
+
   it("returns 401 when not authenticated", async () => {
     const { requireAuth } = await import("@/lib/auth/require-auth");
     requireAuth.mockRejectedValue(new (await import("@/lib/errors")).AuthenticationError());

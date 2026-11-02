@@ -621,6 +621,7 @@ async findAutoCompleteDueNonQrLeaves(
     rejected: number;
     expired: number;
     completed: number;
+    cancelled: number;
   }> {
     if (hostelIds?.length) {
       const result = await dbClient
@@ -630,6 +631,7 @@ async findAutoCompleteDueNonQrLeaves(
           rejected: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.REJECTED})`,
           expired: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.EXPIRED})`,
           completed: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.COMPLETED})`,
+          cancelled: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.CANCELLED})`,
         })
         .from(leaveRequests)
         .leftJoin(students, eq(leaveRequests.studentId, students.id))
@@ -643,6 +645,7 @@ async findAutoCompleteDueNonQrLeaves(
         rejected: Number(row?.rejected ?? 0),
         expired: Number(row?.expired ?? 0),
         completed: Number(row?.completed ?? 0),
+        cancelled: Number(row?.cancelled ?? 0),
       };
     }
 
@@ -653,6 +656,7 @@ async findAutoCompleteDueNonQrLeaves(
         rejected: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.REJECTED})`,
         expired: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.EXPIRED})`,
         completed: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.COMPLETED})`,
+        cancelled: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.CANCELLED})`,
       })
       .from(leaveRequests);
 
@@ -663,6 +667,7 @@ async findAutoCompleteDueNonQrLeaves(
       rejected: Number(row?.rejected ?? 0),
       expired: Number(row?.expired ?? 0),
       completed: Number(row?.completed ?? 0),
+      cancelled: Number(row?.cancelled ?? 0),
     };
   },
 };

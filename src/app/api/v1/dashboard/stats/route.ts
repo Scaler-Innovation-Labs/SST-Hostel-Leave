@@ -22,8 +22,13 @@ export async function GET(request?: Request) {
       Object.fromEntries(request ? new URL(request.url).searchParams : []),
     );
 
+    const startDate = query.startDate ?? query.from;
+    const endDate = query.endDate ?? query.to;
+
     const serviceTimer = Date.now();
-    const result = await getDashboardStats(currentUser, query.status);
+    const result = (query.period !== undefined || startDate !== undefined || endDate !== undefined)
+      ? await getDashboardStats(currentUser, query.status, query.period, startDate, endDate)
+      : await getDashboardStats(currentUser, query.status);
     const serviceDuration = Date.now() - serviceTimer;
 
     logger.info("dashboard/stats GET", { authDuration, serviceDuration, totalDuration: Date.now() - start });

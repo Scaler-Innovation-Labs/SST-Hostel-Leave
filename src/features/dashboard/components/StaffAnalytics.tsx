@@ -17,6 +17,7 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { CHART } from "@/design-system/sst";
+import type { AnalyticsPeriod } from "@/dto/analytics/analytics-period.dto";
 import type { StaffDashboardStats } from "@/dto/dashboard/dashboard-stats.dto";
 import { useDashboardStats } from "@/features/dashboard/hooks/use-dashboard-stats";
 
@@ -37,6 +38,9 @@ type StaffAnalyticsProps = {
   }>;
   /** Hides the component's own page header, for embedding inside a parent page. */
   hidePageHeader?: boolean;
+  period?: AnalyticsPeriod;
+  startDate?: string;
+  endDate?: string;
 };
 
 type StatusFilter = "" | "APPROVED" | "REJECTED" | "PENDING";
@@ -51,9 +55,21 @@ const STATUS_FILTERS: Array<{
   { value: LEAVE_REQUEST_STATUS.PENDING, label: "Pending Approvals" },
 ];
 
-export function StaffAnalytics({ description, extraCards = [], hidePageHeader = false }: StaffAnalyticsProps) {
+export function StaffAnalytics({
+  description,
+  extraCards = [],
+  hidePageHeader = false,
+  period,
+  startDate,
+  endDate,
+}: StaffAnalyticsProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("");
-  const { stats, isLoading, isError, mutate } = useDashboardStats(statusFilter);
+  const { stats, isLoading, isError, mutate } = useDashboardStats(
+    statusFilter,
+    period,
+    startDate,
+    endDate
+  );
 
   if (isLoading && !stats) return <LoadingState count={6} />;
   if (isError && !stats) return <ErrorState message="Failed to load analytics" onRetry={() => mutate()} />;
@@ -135,7 +151,7 @@ export function StaffAnalytics({ description, extraCards = [], hidePageHeader = 
           tone="warning"
         />
         <InfoCard
-          label="Approvals (7d)"
+          label="Approvals"
           value={s.recentApprovalsCount as number ?? 0}
           tone="success"
         />
@@ -158,29 +174,21 @@ export function StaffAnalytics({ description, extraCards = [], hidePageHeader = 
       {/* Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
         <AnalyticsAreaChart
-          title={`Leaves Submitted (Last 7 Days)${statusFilter ? ` — ${activeLabel}` : ""}`}
-          description="Daily leave submissions over the past week."
-          data={(s.leavesLast7Days as Array<{ date: string; value: number }>) ?? []}
+          title={`Leaves Submitted Trend${statusFilter ? ` — ${activeLabel}` : ""}`}
+          description="Daily leave submissions over the selected period."
+          data={(s.leavesLast30Days as Array<{ date: string; value: number }>) ?? []}
           color={CHART.accent}
         />
 
         <AnalyticsAreaChart
-          title="Approval Actions (Last 7 Days)"
-          description="Daily approval decisions across workflow steps over the past week."
+          title="Approval Actions Trend"
+          description="Daily approval decisions across workflow steps over the selected period."
           data={(s.approvalsLast7Days as Array<{ date: string; value: number }>) ?? []}
           color={CHART.success}
         />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <AnalyticsAreaChart
-          title={`Leaves Submitted (Last 30 Days)${statusFilter ? ` — ${activeLabel}` : ""}`}
-          description="Daily leave submissions over the past month."
-          data={(s.leavesLast30Days as Array<{ date: string; value: number }>) ?? []}
-          color={CHART.warning}
-          height={200}
-        />
-
         <LeaveTypePieChart
           title={`Leave Type Breakdown${statusFilter ? ` — ${activeLabel}` : ""}`}
           data={s.leaveTypeBreakdown ?? []}
@@ -189,3 +197,5 @@ export function StaffAnalytics({ description, extraCards = [], hidePageHeader = 
     </div>
   );
 }
+
+export default StaffAnalytics;

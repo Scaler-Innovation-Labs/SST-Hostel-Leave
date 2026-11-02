@@ -1,7 +1,6 @@
 "use client";
 
-import type React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -48,16 +47,14 @@ export function AnalyticsShell({ description, headerExtra, overall }: AnalyticsS
           <PageHeader title="Analytics" description={description} />
           {headerExtra}
         </div>
-        {activeTab !== "overall" && (
-          <PeriodSelect
-            value={period}
-            onChange={setPeriod}
-            startDate={customStartDate}
-            endDate={customEndDate}
-            onStartDateChange={setCustomStartDate}
-            onEndDateChange={setCustomEndDate}
-          />
-        )}
+        <PeriodSelect
+          value={period}
+          onChange={setPeriod}
+          startDate={customStartDate}
+          endDate={customEndDate}
+          onStartDateChange={setCustomStartDate}
+          onEndDateChange={setCustomEndDate}
+        />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -72,7 +69,13 @@ export function AnalyticsShell({ description, headerExtra, overall }: AnalyticsS
 
         {overall && (
           <TabsContent value="overall">
-            {overall}
+            {React.isValidElement(overall)
+              ? React.cloneElement(overall, {
+                  period,
+                  startDate,
+                  endDate,
+                } as Record<string, unknown>)
+              : overall}
           </TabsContent>
         )}
         <TabsContent value="students">
