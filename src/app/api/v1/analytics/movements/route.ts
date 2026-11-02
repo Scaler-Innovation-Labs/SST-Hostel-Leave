@@ -1,4 +1,4 @@
-import { analyticsPeriodSchema } from "@/dto/analytics/analytics-period.dto";
+import { type AnalyticsPeriod,analyticsPeriodSchema } from "@/dto/analytics/analytics-period.dto";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -14,16 +14,22 @@ export async function GET(request?: Request) {
       ROLES.SUPER_ADMIN,
     ]);
 
-    let period: "7d" | "30d" | "90d" | "all" | undefined;
+    let period: AnalyticsPeriod | undefined;
+    let startDate: string | undefined;
+    let endDate: string | undefined;
     if (request) {
       const url = new URL(request.url);
       const raw = url.searchParams.get("period");
       if (raw) {
         period = analyticsPeriodSchema.parse(raw);
       }
+      startDate = url.searchParams.get("startDate") ?? url.searchParams.get("from") ?? undefined;
+      endDate = url.searchParams.get("endDate") ?? url.searchParams.get("to") ?? undefined;
     }
 
-    const result = await getMovementAnalytics(currentUser, period);
+    const result = (startDate !== undefined || endDate !== undefined)
+      ? await getMovementAnalytics(currentUser, period, startDate, endDate)
+      : await getMovementAnalytics(currentUser, period);
 
     return ApiResponse.success(result);
   } catch (error) {

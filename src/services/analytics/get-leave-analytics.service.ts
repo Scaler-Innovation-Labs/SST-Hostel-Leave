@@ -16,10 +16,16 @@ function toBreakdown(rows: Array<{ name: string | null; count: number }>): Break
 
 export async function getLeaveAnalytics(
   currentUser: CurrentUser,
-  period: AnalyticsPeriod = "30d"
+  period: AnalyticsPeriod = "30d",
+  customStartDate?: Date | string | null,
+  customEndDate?: Date | string | null
 ): Promise<LeaveAnalytics> {
   const hostelIds = getAnalyticsHostelScope(currentUser);
-  const { startDate, endDate, isBounded } = resolveAnalyticsRange(period);
+  const { startDate, endDate, isBounded } = resolveAnalyticsRange(
+    period,
+    customStartDate,
+    customEndDate
+  );
 
   const [totalLeaves, byStatus, statusTrend, byLeaveType, byHostel, byDepartment, durationDistribution, leaveTrend, approvalTimeTrend, averageApprovalHours] =
     await Promise.all([

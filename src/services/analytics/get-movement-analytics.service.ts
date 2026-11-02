@@ -10,10 +10,16 @@ import {
 
 export async function getMovementAnalytics(
   currentUser: CurrentUser,
-  period: AnalyticsPeriod = "30d"
+  period: AnalyticsPeriod = "30d",
+  customStartDate?: Date | string | null,
+  customEndDate?: Date | string | null
 ): Promise<MovementAnalytics> {
   const hostelIds = getAnalyticsHostelScope(currentUser);
-  const { startDate, endDate, isBounded } = resolveAnalyticsRange(period);
+  const { startDate, endDate, isBounded } = resolveAnalyticsRange(
+    period,
+    customStartDate,
+    customEndDate
+  );
 
   const [byEventType, byMovementMethod, totalQrPasses, activeQrPasses, qrByStatus, scanByResult, scanTrend, topFailureReasons, overdueReturns] =
     await Promise.all([

@@ -40,10 +40,16 @@ function fillActivityTrend(
 
 export async function getStaffAnalytics(
   currentUser: CurrentUser,
-  period: AnalyticsPeriod = "30d"
+  period: AnalyticsPeriod = "30d",
+  customStartDate?: Date | string | null,
+  customEndDate?: Date | string | null
 ): Promise<StaffAnalytics> {
   const hostelIds = getAnalyticsHostelScope(currentUser);
-  const { startDate, endDate, isBounded } = resolveAnalyticsRange(period);
+  const { startDate, endDate, isBounded } = resolveAnalyticsRange(
+    period,
+    customStartDate,
+    customEndDate
+  );
 
   const [summary, pendingOnStaff, activityTrendRaw, byRole, approvers] =
     await Promise.all([

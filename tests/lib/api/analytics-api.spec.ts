@@ -28,4 +28,10 @@ describe("analytics-api", () => {
   it("builds staff analytics URL", () => {
     expect(getStaffAnalyticsUrl("30d")).toBe("/api/v1/analytics/staff?period=30d");
   });
+
+  it("builds analytics URL with custom date range", () => {
+    expect(getLeaveAnalyticsUrl("custom", "2026-05-01", "2026-05-15")).toBe(
+      "/api/v1/analytics/leaves?period=custom&startDate=2026-05-01&endDate=2026-05-15"
+    );
+  });
 });

@@ -23,41 +23,61 @@ type SwrResponse<T> = {
   mutate: () => void;
 };
 
-export function useStudentAnalytics(period: AnalyticsPeriod): SwrResponse<StudentAnalytics> {
+export function useStudentAnalytics(
+  period: AnalyticsPeriod,
+  startDate?: string,
+  endDate?: string
+): SwrResponse<StudentAnalytics> {
   const { data, error, isLoading, mutate } = useSWR<{ data: StudentAnalytics }>(
-    getStudentAnalyticsUrl(period),
+    getStudentAnalyticsUrl(period, startDate, endDate),
     { keepPreviousData: true },
   );
   return { data: data?.data ?? null, isLoading, isError: !!error, mutate };
 }
 
-export function useLeaveAnalytics(period: AnalyticsPeriod): SwrResponse<LeaveAnalytics> {
+export function useLeaveAnalytics(
+  period: AnalyticsPeriod,
+  startDate?: string,
+  endDate?: string
+): SwrResponse<LeaveAnalytics> {
   const { data, error, isLoading, mutate } = useSWR<{ data: LeaveAnalytics }>(
-    getLeaveAnalyticsUrl(period),
+    getLeaveAnalyticsUrl(period, startDate, endDate),
     { keepPreviousData: true },
   );
   return { data: data?.data ?? null, isLoading, isError: !!error, mutate };
 }
 
-export function useMovementAnalytics(period: AnalyticsPeriod): SwrResponse<MovementAnalytics> {
+export function useMovementAnalytics(
+  period: AnalyticsPeriod,
+  startDate?: string,
+  endDate?: string
+): SwrResponse<MovementAnalytics> {
   const { data, error, isLoading, mutate } = useSWR<{ data: MovementAnalytics }>(
-    getMovementAnalyticsUrl(period),
+    getMovementAnalyticsUrl(period, startDate, endDate),
     { keepPreviousData: true },
   );
   return { data: data?.data ?? null, isLoading, isError: !!error, mutate };
 }
 
-export function useRejectionAnalytics(period: AnalyticsPeriod): SwrResponse<RejectionAnalytics> {
+export function useRejectionAnalytics(
+  period: AnalyticsPeriod,
+  startDate?: string,
+  endDate?: string
+): SwrResponse<RejectionAnalytics> {
   const { data, error, isLoading, mutate } = useSWR<{ data: RejectionAnalytics }>(
-    getRejectionAnalyticsUrl(period),
+    getRejectionAnalyticsUrl(period, startDate, endDate),
     { keepPreviousData: true },
   );
   return { data: data?.data ?? null, isLoading, isError: !!error, mutate };
 }
 
-export function useStaffAnalytics(period: AnalyticsPeriod): SwrResponse<StaffAnalytics> {
+export function useStaffAnalytics(
+  period: AnalyticsPeriod,
+  startDate?: string,
+  endDate?: string
+): SwrResponse<StaffAnalytics> {
   const { data, error, isLoading, mutate } = useSWR<{ data: StaffAnalytics }>(
-    getStaffAnalyticsUrl(period),
+    getStaffAnalyticsUrl(period, startDate, endDate),
     { keepPreviousData: true },
   );
   return { data: data?.data ?? null, isLoading, isError: !!error, mutate };

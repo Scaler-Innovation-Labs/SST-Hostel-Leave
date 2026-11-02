@@ -42,10 +42,12 @@ function formatHours(hours: number | null | undefined): string {
 
 type StaffTabProps = {
   period: AnalyticsPeriod;
+  startDate?: string;
+  endDate?: string;
 };
 
-export function StaffTab({ period }: StaffTabProps) {
-  const { data, isLoading, isError, mutate } = useStaffAnalytics(period);
+export function StaffTab({ period, startDate, endDate }: StaffTabProps) {
+  const { data, isLoading, isError, mutate } = useStaffAnalytics(period, startDate, endDate);
 
   if (isLoading && !data) return <LoadingState count={6} />;
   if (isError && !data) {

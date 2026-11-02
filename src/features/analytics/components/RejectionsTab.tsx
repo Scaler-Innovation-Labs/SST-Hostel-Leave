@@ -16,10 +16,12 @@ import { useRejectionAnalytics } from "@/features/analytics/hooks/use-analytics"
 
 type RejectionsTabProps = {
   period: AnalyticsPeriod;
+  startDate?: string;
+  endDate?: string;
 };
 
-export function RejectionsTab({ period }: RejectionsTabProps) {
-  const { data, isLoading, isError, mutate } = useRejectionAnalytics(period);
+export function RejectionsTab({ period, startDate, endDate }: RejectionsTabProps) {
+  const { data, isLoading, isError, mutate } = useRejectionAnalytics(period, startDate, endDate);
 
   if (isLoading && !data) return <LoadingState count={6} />;
   if (isError && !data) return <ErrorState message="Failed to load rejection analytics" onRetry={() => mutate()} />;

@@ -208,8 +208,8 @@ describe("Workflow Step Activation (B2: AUTO activation & B3: Parent timing)", (
       studentId: "S1",
       leaveTypeId: "LT1",
       status: "PENDING",
-      startAt: new Date("2026-11-01T10:00:00Z"),
-      endAt: new Date("2026-11-03T10:00:00Z"),
+      startAt: new Date(Date.now() + 86400000),
+      endAt: new Date(Date.now() + 3 * 86400000),
       currentStepKey: "POC_APPROVAL",
       currentStepOrder: 1,
     });
@@ -218,8 +218,8 @@ describe("Workflow Step Activation (B2: AUTO activation & B3: Parent timing)", (
       studentId: "S1",
       leaveTypeId: "LT1",
       status: "PENDING",
-      startAt: new Date("2026-11-01T10:00:00Z"),
-      endAt: new Date("2026-11-03T10:00:00Z"),
+      startAt: new Date(Date.now() + 86400000),
+      endAt: new Date(Date.now() + 3 * 86400000),
       currentStepKey: "POC_APPROVAL",
       currentStepOrder: 1,
     });
@@ -228,8 +228,8 @@ describe("Workflow Step Activation (B2: AUTO activation & B3: Parent timing)", (
       studentId: "S1",
       leaveTypeId: "LT1",
       status: "PENDING",
-      startAt: new Date("2026-11-01T10:00:00Z"),
-      endAt: new Date("2026-11-03T10:00:00Z"),
+      startAt: new Date(Date.now() + 86400000),
+      endAt: new Date(Date.now() + 3 * 86400000),
       currentStepKey: "POC_APPROVAL",
       currentStepOrder: 1,
     });
@@ -256,8 +256,8 @@ describe("Workflow Step Activation (B2: AUTO activation & B3: Parent timing)", (
         {
           leaveTypeId: "LT1",
           reason: "Attending hackathon",
-          startAt: "2026-11-01T10:00:00Z",
-          endAt: "2026-11-03T10:00:00Z",
+          startAt: new Date(Date.now() + 86400000).toISOString(),
+          endAt: new Date(Date.now() + 3 * 86400000).toISOString(),
           pocId: "U_POC",
         },
         { id: "U1" }
@@ -323,8 +323,8 @@ describe("Workflow Step Activation (B2: AUTO activation & B3: Parent timing)", (
         {
           leaveTypeId: "LT1",
           reason: "Going home",
-          startAt: "2026-11-01T10:00:00Z",
-          endAt: "2026-11-03T10:00:00Z",
+          startAt: new Date(Date.now() + 86400000).toISOString(),
+          endAt: new Date(Date.now() + 3 * 86400000).toISOString(),
           pocId: "U_POC",
         },
         { id: "U1" }

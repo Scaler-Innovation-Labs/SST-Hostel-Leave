@@ -12,10 +12,16 @@ import {
 
 export async function getStudentAnalytics(
   currentUser: CurrentUser,
-  period: AnalyticsPeriod = "30d"
+  period: AnalyticsPeriod = "30d",
+  customStartDate?: Date | string | null,
+  customEndDate?: Date | string | null
 ): Promise<StudentAnalytics> {
   const hostelIds = getAnalyticsHostelScope(currentUser);
-  const { startDate, endDate, isBounded } = resolveAnalyticsRange(period);
+  const { startDate, endDate, isBounded } = resolveAnalyticsRange(
+    period,
+    customStartDate,
+    customEndDate
+  );
 
   const [totalUsers, totalStudents, inHostel, onLeave, overdue, byHostel, byDepartment, byAcademicGroup, byGender, trend] =
     await Promise.all([

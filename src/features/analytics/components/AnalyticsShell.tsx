@@ -13,6 +13,13 @@ import { RejectionsTab } from "@/features/analytics/components/RejectionsTab";
 import { StaffTab } from "@/features/analytics/components/StaffTab";
 import { StudentsTab } from "@/features/analytics/components/StudentsTab";
 
+function formatDateInput(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 type AnalyticsShellProps = {
   description: string;
   /** Extra content rendered above the tabs (e.g. role-specific KPIs). */
@@ -24,6 +31,15 @@ type AnalyticsShellProps = {
 export function AnalyticsShell({ description, headerExtra, overall }: AnalyticsShellProps) {
   const [activeTab, setActiveTab] = useState(overall ? "overall" : "students");
   const [period, setPeriod] = useState<AnalyticsPeriod>("30d");
+  const [customStartDate, setCustomStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return formatDateInput(d);
+  });
+  const [customEndDate, setCustomEndDate] = useState(() => formatDateInput(new Date()));
+
+  const startDate = period === "custom" ? customStartDate : undefined;
+  const endDate = period === "custom" ? customEndDate : undefined;
 
   return (
     <div className="space-y-8">
@@ -32,7 +48,16 @@ export function AnalyticsShell({ description, headerExtra, overall }: AnalyticsS
           <PageHeader title="Analytics" description={description} />
           {headerExtra}
         </div>
-        {activeTab !== "overall" && <PeriodSelect value={period} onChange={setPeriod} />}
+        {activeTab !== "overall" && (
+          <PeriodSelect
+            value={period}
+            onChange={setPeriod}
+            startDate={customStartDate}
+            endDate={customEndDate}
+            onStartDateChange={setCustomStartDate}
+            onEndDateChange={setCustomEndDate}
+          />
+        )}
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -51,19 +76,19 @@ export function AnalyticsShell({ description, headerExtra, overall }: AnalyticsS
           </TabsContent>
         )}
         <TabsContent value="students">
-          <StudentsTab period={period} />
+          <StudentsTab period={period} startDate={startDate} endDate={endDate} />
         </TabsContent>
         <TabsContent value="leaves">
-          <LeavesTab period={period} />
+          <LeavesTab period={period} startDate={startDate} endDate={endDate} />
         </TabsContent>
         <TabsContent value="movement">
-          <MovementQrTab period={period} />
+          <MovementQrTab period={period} startDate={startDate} endDate={endDate} />
         </TabsContent>
         <TabsContent value="rejections">
-          <RejectionsTab period={period} />
+          <RejectionsTab period={period} startDate={startDate} endDate={endDate} />
         </TabsContent>
         <TabsContent value="staff">
-          <StaffTab period={period} />
+          <StaffTab period={period} startDate={startDate} endDate={endDate} />
         </TabsContent>
       </Tabs>
     </div>

@@ -33,10 +33,12 @@ function pivotStatusTrend(rows: StatusTrendPoint[]): Array<Record<string, string
 
 type LeavesTabProps = {
   period: AnalyticsPeriod;
+  startDate?: string;
+  endDate?: string;
 };
 
-export function LeavesTab({ period }: LeavesTabProps) {
-  const { data, isLoading, isError, mutate } = useLeaveAnalytics(period);
+export function LeavesTab({ period, startDate, endDate }: LeavesTabProps) {
+  const { data, isLoading, isError, mutate } = useLeaveAnalytics(period, startDate, endDate);
 
   if (isLoading && !data) return <LoadingState count={6} />;
   if (isError && !data) return <ErrorState message="Failed to load leave analytics" onRetry={() => mutate()} />;

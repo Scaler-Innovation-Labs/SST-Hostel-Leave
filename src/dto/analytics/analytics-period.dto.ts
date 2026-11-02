@@ -1,6 +1,14 @@
 import { z } from "zod";
 
-export const analyticsPeriodSchema = z.enum(["7d", "30d", "90d", "all"]);
+export const analyticsPeriodSchema = z.enum([
+  "7d",
+  "this_month",
+  "last_month",
+  "30d",
+  "90d",
+  "all",
+  "custom",
+]);
 export type AnalyticsPeriod = z.infer<typeof analyticsPeriodSchema>;
 
 export const breakdownItemSchema = z.object({
@@ -18,7 +26,10 @@ export type TrendItem = z.infer<typeof trendItemSchema>;
 
 export const ANALYTICS_PERIOD_OPTIONS: Array<{ value: AnalyticsPeriod; label: string }> = [
   { value: "7d", label: "Last 7 days" },
+  { value: "this_month", label: "This month" },
+  { value: "last_month", label: "Last month" },
   { value: "30d", label: "Last 30 days" },
   { value: "90d", label: "Last 90 days" },
   { value: "all", label: "All time" },
+  { value: "custom", label: "Custom range" },
 ];

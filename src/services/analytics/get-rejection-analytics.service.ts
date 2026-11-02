@@ -36,10 +36,16 @@ function mergeBreakdown(...groups: Array<Array<{ name: string | null; count: num
 
 export async function getRejectionAnalytics(
   currentUser: CurrentUser,
-  period: AnalyticsPeriod = "30d"
+  period: AnalyticsPeriod = "30d",
+  customStartDate?: Date | string | null,
+  customEndDate?: Date | string | null
 ): Promise<RejectionAnalytics> {
   const hostelIds = getAnalyticsHostelScope(currentUser);
-  const { startDate, endDate, isBounded } = resolveAnalyticsRange(period);
+  const { startDate, endDate, isBounded } = resolveAnalyticsRange(
+    period,
+    customStartDate,
+    customEndDate
+  );
 
   const [policyCount, policyTrend, stepBreakdown, categoryRows, humanTrend, humanHostelRows, humanLeaveTypeRows, policyHostelRows, policyLeaveTypeRows] =
     await Promise.all([

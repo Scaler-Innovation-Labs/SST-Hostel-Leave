@@ -67,6 +67,18 @@ describe("GET /api/v1/analytics/*", () => {
     expect(mockGetStudentAnalytics).toHaveBeenLastCalledWith(expect.objectContaining({ id: "U1" }), "7d");
   });
 
+  it("leaves endpoint forwards custom period and date parameters", async () => {
+    const req = new Request("http://localhost/api/v1/analytics/leaves?period=custom&startDate=2026-05-01&endDate=2026-05-15");
+    const res = await GET_LEAVES(req);
+    expect(res.status).toBe(200);
+    expect(mockGetLeaveAnalytics).toHaveBeenLastCalledWith(
+      expect.objectContaining({ id: "U1" }),
+      "custom",
+      "2026-05-01",
+      "2026-05-15"
+    );
+  });
+
   it("students endpoint rejects invalid period", async () => {
     const req = new Request("http://localhost/api/v1/analytics/students?period=invalid");
     const res = await GET_STUDENTS(req);

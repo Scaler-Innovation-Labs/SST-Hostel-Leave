@@ -24,10 +24,12 @@ const toScanData = (rows: ScanTrendPoint[]): Array<Record<string, string | numbe
 
 type MovementQrTabProps = {
   period: AnalyticsPeriod;
+  startDate?: string;
+  endDate?: string;
 };
 
-export function MovementQrTab({ period }: MovementQrTabProps) {
-  const { data, isLoading, isError, mutate } = useMovementAnalytics(period);
+export function MovementQrTab({ period, startDate, endDate }: MovementQrTabProps) {
+  const { data, isLoading, isError, mutate } = useMovementAnalytics(period, startDate, endDate);
 
   if (isLoading && !data) return <LoadingState count={6} />;
   if (isError && !data) return <ErrorState message="Failed to load movement analytics" onRetry={() => mutate()} />;

@@ -15,10 +15,12 @@ import { useStudentAnalytics } from "@/features/analytics/hooks/use-analytics";
 
 type StudentsTabProps = {
   period: AnalyticsPeriod;
+  startDate?: string;
+  endDate?: string;
 };
 
-export function StudentsTab({ period }: StudentsTabProps) {
-  const { data, isLoading, isError, mutate } = useStudentAnalytics(period);
+export function StudentsTab({ period, startDate, endDate }: StudentsTabProps) {
+  const { data, isLoading, isError, mutate } = useStudentAnalytics(period, startDate, endDate);
 
   if (isLoading && !data) return <LoadingState count={6} />;
   if (isError && !data) return <ErrorState message="Failed to load student analytics" onRetry={() => mutate()} />;
