@@ -32,9 +32,10 @@ type ApprovedLeavesData = {
 
 type ApprovedLeavesResponse = ApprovedLeavesData | { data?: ApprovedLeavesData };
 
-type StatusFilter = "ALL" | "OVERDUE" | "OUTSIDE" | "IN_HOSTEL";
+type StatusFilter = "ALL" | "OVERDUE" | "OUTSIDE" | "IN_HOSTEL" | "EXPIRED";
 
-function getStudentLocation(item: ApprovedLeave): "OVERDUE" | "OUTSIDE_HOSTEL" | "IN_HOSTEL" {
+function getStudentLocation(item: ApprovedLeave): "OVERDUE" | "OUTSIDE_HOSTEL" | "IN_HOSTEL" | "EXPIRED" {
+  if (item.leave.status === "EXPIRED") return "EXPIRED";
   if (item.leave.status === "OVERDUE") return "OVERDUE";
   if (item.student?.currentLocationState === MOVEMENT_STATE.OVERDUE) return "OVERDUE";
   const loc = item.student?.currentLocationState ?? MOVEMENT_STATE.IN_HOSTEL;
@@ -63,9 +64,12 @@ export function ManualMovementPage(): React.JSX.Element {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
+  // When searching, include EXPIRED leaves so guards can verify expired leave requests
+  const queryStatus = debouncedSearch ? "APPROVED,OVERDUE,EXPIRED" : "APPROVED,OVERDUE";
+
   const { data, error, isLoading, mutate } = useSWR<ApprovedLeavesResponse>(
     getLeavesUrl({
-      status: "APPROVED,OVERDUE",
+      status: queryStatus,
       limit: 100,
       sortBy: "startAt",
       sortOrder: "asc",
@@ -90,6 +94,7 @@ export function ManualMovementPage(): React.JSX.Element {
   const overdueCount = leaves.filter((item) => item.student && getStudentLocation(item) === "OVERDUE").length;
   const outsideCount = leaves.filter((item) => item.student && getStudentLocation(item) === "OUTSIDE_HOSTEL").length;
   const inHostelCount = leaves.filter((item) => item.student && getStudentLocation(item) === "IN_HOSTEL").length;
+  const expiredCount = leaves.filter((item) => item.student && getStudentLocation(item) === "EXPIRED").length;
 
   const filteredLeaves = useMemo(() => {
     return leaves.filter((item) => {
@@ -98,6 +103,7 @@ export function ManualMovementPage(): React.JSX.Element {
       if (statusFilter === "OVERDUE" && loc !== "OVERDUE") return false;
       if (statusFilter === "OUTSIDE" && loc !== "OUTSIDE_HOSTEL") return false;
       if (statusFilter === "IN_HOSTEL" && loc !== "IN_HOSTEL") return false;
+      if (statusFilter === "EXPIRED" && loc !== "EXPIRED") return false;
 
       if (searchInput.trim()) {
         const q = searchInput.trim().toLowerCase();
@@ -152,6 +158,16 @@ export function ManualMovementPage(): React.JSX.Element {
     }
   }
 
+  const tabs = [
+    { id: "ALL" as const, label: "All", count: leaves.length, tone: "default" as const },
+    { id: "OVERDUE" as const, label: "Overdue", count: overdueCount, tone: "danger" as const },
+    { id: "OUTSIDE" as const, label: "Outside", count: outsideCount, tone: "warning" as const },
+    { id: "IN_HOSTEL" as const, label: "In Hostel", count: inHostelCount, tone: "success" as const },
+    ...(expiredCount > 0 || debouncedSearch
+      ? [{ id: "EXPIRED" as const, label: "Expired", count: expiredCount, tone: "neutral" as const }]
+      : []),
+  ];
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -200,12 +216,7 @@ export function ManualMovementPage(): React.JSX.Element {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {[
-            { id: "ALL" as const, label: "All", count: leaves.length },
-            { id: "OVERDUE" as const, label: "Overdue", count: overdueCount, tone: "danger" as const },
-            { id: "OUTSIDE" as const, label: "Outside", count: outsideCount, tone: "warning" as const },
-            { id: "IN_HOSTEL" as const, label: "In Hostel", count: inHostelCount, tone: "success" as const },
-          ].map((tab) => {
+          {tabs.map((tab) => {
             const isActive = statusFilter === tab.id;
             return (
               <button
@@ -266,6 +277,8 @@ export function ManualMovementPage(): React.JSX.Element {
                       ? "bg-danger-light text-danger"
                       : location === "OUTSIDE_HOSTEL"
                       ? "bg-warning-light text-warning"
+                      : location === "EXPIRED"
+                      ? "bg-surface-sunken text-muted"
                       : "bg-accent/10 text-accent"
                   )}
                 >
@@ -285,6 +298,8 @@ export function ManualMovementPage(): React.JSX.Element {
                       ? "border-danger/30 bg-danger-light text-danger"
                       : location === "OUTSIDE_HOSTEL"
                       ? "border-warning/30 bg-warning-light text-warning"
+                      : location === "EXPIRED"
+                      ? "border-border bg-surface-sunken text-muted"
                       : "border-success/30 bg-success-light text-success"
                   )}
                 >
@@ -292,6 +307,8 @@ export function ManualMovementPage(): React.JSX.Element {
                     ? "Overdue"
                     : location === "OUTSIDE_HOSTEL"
                     ? "Outside"
+                    : location === "EXPIRED"
+                    ? "Expired"
                     : "In Hostel"}
                 </span>
               </div>
@@ -352,6 +369,12 @@ export function ManualMovementPage(): React.JSX.Element {
                   <LogOut className="h-6 w-6" aria-hidden />
                   Check out
                 </Button>
+              )}
+
+              {location === "EXPIRED" && (
+                <p className="mt-3 text-caption text-muted">
+                  Leave expired on {format(new Date(item.leave.endAt), "d MMM, HH:mm")}. Student cannot check out with this leave.
+                </p>
               )}
             </article>
           );
