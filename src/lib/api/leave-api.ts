@@ -13,6 +13,8 @@ export function getLeavesUrl(query?: Partial<ListLeavesQuery>): string {
     startDate: query?.startDate,
     endDate: query?.endDate,
     search: query?.search,
+    sortBy: query?.sortBy,
+    sortOrder: query?.sortOrder,
     page: query?.page,
     limit: query?.limit,
   });

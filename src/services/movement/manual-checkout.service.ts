@@ -2,7 +2,9 @@ import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
 import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
+import { QR_STATUS } from "@/constants/movement/qr-status";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import type { CurrentUser } from "@/lib/auth/types";
 import { transaction } from "@/lib/db/transaction";
@@ -56,9 +58,25 @@ export async function manualCheckout(
   }
 
   return await transaction(async (tx) => {
+    let qrPassId: string | undefined;
+
+    if (input.leaveRequestId) {
+      const activePass = await qrPassRepository.findByLeaveRequestId(
+        input.leaveRequestId,
+        tx
+      );
+      if (activePass && activePass.status === QR_STATUS.ACTIVE) {
+        qrPassId = activePass.id;
+        if (!activePass.firstScanAt) {
+          await qrPassRepository.markAsFirstScanned(activePass.id, tx);
+        }
+      }
+    }
+
     const movementEvent = await recordMovement({
       studentId: input.studentId,
       leaveRequestId: input.leaveRequestId,
+      qrPassId,
       fromState: currentState,
       toState: MOVEMENT_STATE.CHECKED_OUT,
       eventType: MOVEMENT_EVENT.MANUAL_CHECKOUT,

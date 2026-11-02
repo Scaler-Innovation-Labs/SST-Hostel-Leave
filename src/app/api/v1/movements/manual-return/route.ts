@@ -23,6 +23,7 @@ export async function POST(request: Request) {
 
     const result = await manualReturn({
       studentId: dto.studentId,
+      leaveRequestId: dto.leaveRequestId,
       currentUser,
       reason: dto.reason,
     });

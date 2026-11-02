@@ -4,6 +4,7 @@ import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
 import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
+import { QR_STATUS } from "@/constants/movement/qr-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
@@ -21,6 +22,7 @@ import { recordMovement } from "./record-movement.service";
 
 export type ManualReturnInput = {
   studentId: string;
+  leaveRequestId?: string;
   currentUser: CurrentUser;
   reason?: string;
 };
@@ -29,7 +31,7 @@ export type ManualReturnResult = {
   movementEventId: string;
   studentId: string;
   newState: string;
-  /** The leave completed by this return, if an open QR session existed. */
+  /** The leave completed by this return, if an open QR session or target leave existed. */
   leaveId?: string | null;
 };
 
@@ -69,10 +71,23 @@ export async function manualReturn(
   const completedAt = new Date();
 
   return await transaction(async (tx) => {
+    const targetLeaveRequestId = openSession?.leaveRequestId ?? input.leaveRequestId;
+    let targetQrPassId = openSession?.id;
+
+    if (!targetQrPassId && targetLeaveRequestId) {
+      const activePass = await qrPassRepository.findByLeaveRequestId(
+        targetLeaveRequestId,
+        tx
+      );
+      if (activePass && activePass.status === QR_STATUS.ACTIVE) {
+        targetQrPassId = activePass.id;
+      }
+    }
+
     const movementEvent = await recordMovement({
       studentId: input.studentId,
-      leaveRequestId: openSession?.leaveRequestId ?? undefined,
-      qrPassId: openSession?.id ?? undefined,
+      leaveRequestId: targetLeaveRequestId ?? undefined,
+      qrPassId: targetQrPassId ?? undefined,
       fromState: currentState,
       toState: MOVEMENT_STATE.IN_HOSTEL,
       eventType: MOVEMENT_EVENT.MANUAL_RETURN,
@@ -85,13 +100,13 @@ export async function manualReturn(
 
     let leaveId: string | null = null;
 
-    if (openSession) {
-      // Close the credential — the session is over (status USED, closedAt).
-      await qrPassRepository.markAsClosed(openSession.id, tx);
+    if (targetQrPassId) {
+      await qrPassRepository.markAsClosed(targetQrPassId, tx);
+    }
 
-      // Complete the leave that owned the session: actualReturnAt = now.
+    if (targetLeaveRequestId) {
       const leave = await leaveRepository.findById(
-        openSession.leaveRequestId,
+        targetLeaveRequestId,
         tx
       );
 

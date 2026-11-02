@@ -19,6 +19,7 @@ export async function POST(request: Request) {
 
     const result = await markOverdue({
       studentId: dto.studentId,
+      leaveRequestId: dto.leaveRequestId,
       currentUser,
     });
 

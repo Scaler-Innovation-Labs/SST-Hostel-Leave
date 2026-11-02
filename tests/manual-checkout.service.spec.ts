@@ -21,6 +21,8 @@ const mockStudentFindById = vi.fn();
 const mockStudentFindByIdWithRelations = vi.fn();
 const mockRecordMovement = vi.fn();
 const mockLeaveFindById = vi.fn();
+const mockQrFindByLeaveRequestId = vi.fn().mockResolvedValue(null);
+const mockQrMarkAsFirstScanned = vi.fn().mockResolvedValue({ id: "QP1" });
 
 vi.mock("@/db/repositories/student/student.repository", () => ({
   studentRepository: {
@@ -31,6 +33,13 @@ vi.mock("@/db/repositories/student/student.repository", () => ({
 
 vi.mock("@/services/movement/record-movement.service", () => ({
   recordMovement: (...args: any[]) => mockRecordMovement(...args),
+}));
+
+vi.mock("@/db/repositories/movement/qr-pass.repository", () => ({
+  qrPassRepository: {
+    findByLeaveRequestId: (...args: any[]) => mockQrFindByLeaveRequestId(...args),
+    markAsFirstScanned: (...args: any[]) => mockQrMarkAsFirstScanned(...args),
+  },
 }));
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
@@ -48,6 +57,8 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockRecordMovement.mockResolvedValue({ id: "ME1" });
   mockLeaveFindById.mockResolvedValue({ id: "LR1", studentId: "S1", status: "APPROVED" });
+  mockQrFindByLeaveRequestId.mockResolvedValue(null);
+  mockQrMarkAsFirstScanned.mockResolvedValue({ id: "QP1" });
   mockStudentFindByIdWithRelations.mockResolvedValue(null);
 });
 

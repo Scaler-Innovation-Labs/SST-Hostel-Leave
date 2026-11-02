@@ -390,7 +390,8 @@ async findAutoCompleteDueNonQrLeaves(
       conditions.push(
         or(
           ilike(leaveRequests.requestNumber, searchPattern),
-          ilike(users.fullName, searchPattern)
+          ilike(users.fullName, searchPattern),
+          ilike(students.rollNumber, searchPattern)
         )
       );
     }

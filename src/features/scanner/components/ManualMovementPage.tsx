@@ -3,7 +3,7 @@
 import { format } from "date-fns";
 import { AlertTriangle, ArrowLeft, Clock, Loader2, LogIn, LogOut, Search, UserRound } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 
@@ -22,9 +22,15 @@ type ApprovedLeave = {
   leaveType: { name: string } | null;
 };
 
-type ApprovedLeavesResponse = {
-  data?: { items: ApprovedLeave[] };
+type ApprovedLeavesData = {
+  items: ApprovedLeave[];
+  total?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
 };
+
+type ApprovedLeavesResponse = ApprovedLeavesData | { data?: ApprovedLeavesData };
 
 type StatusFilter = "ALL" | "OVERDUE" | "OUTSIDE" | "IN_HOSTEL";
 
@@ -45,15 +51,41 @@ function getStudentLocation(item: ApprovedLeave): "OVERDUE" | "OUTSIDE_HOSTEL" |
 }
 
 export function ManualMovementPage(): React.JSX.Element {
-  const { data, error, isLoading, mutate } = useSWR<ApprovedLeavesResponse>(
-    getLeavesUrl({ status: "APPROVED,OVERDUE", limit: 100, sortBy: "startAt", sortOrder: "asc" }),
-    fetcher,
-  );
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
 
-  const leaves = useMemo(() => data?.data?.items ?? [], [data?.data?.items]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const { data, error, isLoading, mutate } = useSWR<ApprovedLeavesResponse>(
+    getLeavesUrl({
+      status: "APPROVED,OVERDUE",
+      limit: 100,
+      sortBy: "startAt",
+      sortOrder: "asc",
+      search: debouncedSearch || undefined,
+    }),
+    fetcher,
+  );
+
+  const leavesPayload = useMemo(() => {
+    if (!data) return null;
+    if ("items" in data && Array.isArray((data as ApprovedLeavesData).items)) {
+      return data as ApprovedLeavesData;
+    }
+    if ("data" in data && data.data && Array.isArray(data.data.items)) {
+      return data.data;
+    }
+    return null;
+  }, [data]);
+
+  const leaves = useMemo(() => leavesPayload?.items ?? [], [leavesPayload]);
 
   const overdueCount = leaves.filter((item) => item.student && getStudentLocation(item) === "OVERDUE").length;
   const outsideCount = leaves.filter((item) => item.student && getStudentLocation(item) === "OUTSIDE_HOSTEL").length;
@@ -67,21 +99,22 @@ export function ManualMovementPage(): React.JSX.Element {
       if (statusFilter === "OUTSIDE" && loc !== "OUTSIDE_HOSTEL") return false;
       if (statusFilter === "IN_HOSTEL" && loc !== "IN_HOSTEL") return false;
 
-      if (search.trim()) {
-        const q = search.trim().toLowerCase();
+      if (searchInput.trim()) {
+        const q = searchInput.trim().toLowerCase();
         const name = (item.user?.fullName ?? "").toLowerCase();
         const roll = (item.student.rollNumber ?? "").toLowerCase();
-        return name.includes(q) || roll.includes(q);
+        const req = (item.leave.requestNumber ?? "").toLowerCase();
+        return name.includes(q) || roll.includes(q) || req.includes(q);
       }
       return true;
     });
-  }, [leaves, statusFilter, search]);
+  }, [leaves, statusFilter, searchInput]);
 
   async function handleCheckIn(leave: ApprovedLeave): Promise<void> {
     if (!leave.student) return;
     setUpdatingId(leave.leave.id);
     try {
-      await manualReturn(leave.student.id);
+      await manualReturn(leave.student.id, undefined, leave.leave.id);
       toast.success("Check-in recorded (student returned to hostel)");
       await mutate();
     } catch (movementError) {
@@ -109,7 +142,7 @@ export function ManualMovementPage(): React.JSX.Element {
     if (!leave.student) return;
     setUpdatingId(leave.leave.id);
     try {
-      await markOverdue(leave.student.id);
+      await markOverdue(leave.student.id, leave.leave.id);
       toast.success("Student marked as overdue");
       await mutate();
     } catch (movementError) {
@@ -160,8 +193,8 @@ export function ManualMovementPage(): React.JSX.Element {
           <input
             type="text"
             placeholder="Search by student name or roll number..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="h-10 w-full rounded-xl border border-border bg-bg pl-9 pr-3 text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
           />
         </div>
@@ -211,7 +244,7 @@ export function ManualMovementPage(): React.JSX.Element {
       {error && <p className="rounded-xl border border-danger/30 bg-danger-light p-4 text-danger">Unable to load leaves.</p>}
       {!isLoading && !error && filteredLeaves.length === 0 && (
         <p className="rounded-xl border border-border bg-surface p-6 text-center text-muted">
-          {search || statusFilter !== "ALL"
+          {searchInput || statusFilter !== "ALL"
             ? "No students match the current filter or search criteria."
             : "No students currently have an approved or overdue leave."}
         </p>

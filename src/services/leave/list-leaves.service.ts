@@ -39,9 +39,10 @@ export async function listLeaves(query: ListLeavesQuery, currentUser?: CurrentUs
     startDate: query.startDate ? new Date(query.startDate) : undefined,
     endDate: query.endDate ? new Date(query.endDate) : undefined,
     search: query.search,
+    sortBy: query.sortBy,
+    sortOrder: query.sortOrder,
     hostelIds,
     page: query.page,
     limit: query.limit,
   });
 }
-

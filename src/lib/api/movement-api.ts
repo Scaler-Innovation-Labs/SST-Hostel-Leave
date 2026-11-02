@@ -75,11 +75,11 @@ export async function manualCheckout(studentId: string, reason?: string, leaveRe
   return json.data as ManualMovementResult;
 }
 
-export async function manualReturn(studentId: string, reason?: string): Promise<ManualMovementResult> {
+export async function manualReturn(studentId: string, reason?: string, leaveRequestId?: string): Promise<ManualMovementResult> {
   const res = await fetch(`${BASE}/movements/manual-return`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ studentId, reason }),
+    body: JSON.stringify({ studentId, reason, leaveRequestId }),
   });
   const json: ApiResponse = await res.json();
   if (!res.ok || !json.success) {
@@ -88,11 +88,11 @@ export async function manualReturn(studentId: string, reason?: string): Promise<
   return json.data as ManualMovementResult;
 }
 
-export async function markOverdue(studentId: string): Promise<ManualMovementResult> {
+export async function markOverdue(studentId: string, leaveRequestId?: string): Promise<ManualMovementResult> {
   const res = await fetch(`${BASE}/movements/mark-overdue`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ studentId }),
+    body: JSON.stringify({ studentId, leaveRequestId }),
   });
   const json: ApiResponse = await res.json();
   if (!res.ok || !json.success) {
