@@ -49,54 +49,69 @@ const LEAVE_TYPES_INFO = [
     name: "General Leave (Overnight / Vacation)",
     description: "For traveling home, family visits, or overnight stays outside campus.",
     requiresParent: true,
+    requiresPoc: false,
     requiresWarden: true,
     qrType: "Exit & Return Pass",
-    tips: "Parent SMS approval is mandatory before the warden can approve.",
+    allowExtensions: true,
+    maxExtensions: 2,
+    tips: "Parent SMS approval is mandatory before the hostel warden can approve. Up to 2 extensions are permitted if travel is delayed.",
   },
   {
     code: "LATE_ENTRY",
     name: "Late Entry (Curfew Extension)",
     description: "For returning to your hostel block past standard night curfew.",
     requiresParent: true,
+    requiresPoc: false,
     requiresWarden: true,
     qrType: "Return Pass Only",
-    tips: "Ensure your reason and expected return time are explicitly stated.",
+    allowExtensions: false,
+    tips: "Generates a return pass only. No exit scan is needed when leaving during the day; simply scan upon return at night.",
   },
   {
     code: "LATE_STAY_COLLEGE",
     name: "Late Stay At College (Academic Labs)",
     description: "For working late in campus academic blocks, coding labs, or hackathons.",
     requiresParent: false,
+    requiresPoc: true,
     requiresWarden: true,
-    qrType: "Return Pass Only",
-    tips: "Requires POC / Faculty approval first; does not require parent SMS.",
+    qrType: "Daily Recurring Pass",
+    allowExtensions: false,
+    tips: "No parent SMS needed. Requires prior in-person clearance and portal approval from your Academic POC (Faculty/Mentor), followed by Warden review.",
   },
   {
     code: "DIFFERENT_HOSTEL",
     name: "Staying At Different Hostel",
     description: "For staying overnight at a peer SST hostel block for study or projects.",
     requiresParent: true,
+    requiresPoc: false,
     requiresWarden: true,
     qrType: "Exit & Return Pass",
-    tips: "Specify both the host student and the destination hostel building.",
+    allowExtensions: true,
+    maxExtensions: 2,
+    tips: "Parent SMS approval is required before warden review. Specify the destination hostel block. Up to 2 extensions permitted.",
   },
   {
-    code: "EXAM_LEAVE",
-    name: "Warden Approval for Examination / Re-exam",
-    description: "For exam permits, re-examinations, or academic schedule permissions.",
-    requiresParent: false,
+    code: "INTERNSHIP",
+    name: "Internships & Corporate Training",
+    description: "For external industry internships and corporate work engagements.",
+    requiresParent: true,
+    requiresPoc: true,
     requiresWarden: true,
-    qrType: "No QR Pass (Administrative)",
-    tips: "No gate movement required. Once approved by the warden, it acts as an official record and automatically completes when the window ends.",
+    qrType: "Exit & Return Pass",
+    allowExtensions: true,
+    maxExtensions: 2,
+    tips: "Requires official Offer Letter upload (PDF, DOCX, or JPG up to 10MB). Follows a 3-step chain: Parent SMS → Academic POC → Warden.",
   },
   {
     code: "ATTENDANCE_EXCEPTION",
     name: "Warden Approval for Attendance Exception",
-    description: "For hostel attendance exceptions due to academic, medical, or official college activities.",
-    requiresParent: false,
+    description: "For official hostel attendance exceptions, university re-examinations, or medical excuses.",
+    requiresParent: true,
+    requiresPoc: false,
     requiresWarden: true,
-    qrType: "No QR Pass (Administrative)",
-    tips: "Administrative leave with no physical gate movement; auto-completes when the date range concludes.",
+    qrType: "No QR Pass Required (NONE)",
+    allowExtensions: false,
+    tips: "Administrative attendance authorization. No gate movement or QR scan is required. Automatically completes when the scheduled window concludes.",
   },
 ];
 
@@ -136,7 +151,7 @@ const WORKFLOW_STEPS = [
 const FAQS = [
   {
     q: "My parent hasn't received the SMS link. What should I do?",
-    a: "Parent SMS messages are dispatched within ~30–50 seconds via telecom DLT routes. Verify that your parent's phone number is correct in your profile. Ask them to check their SMS inbox and spam/blocked folders. If still missing, you can view your leave details or contact the warden office to check the status.",
+    a: "Parent SMS messages are dispatched within ~30–50 seconds via registered telecom DLT routes. Verify that your parent's phone number is correct in your profile. Ask them to check their SMS inbox and spam/blocked folders. If still missing, you can view your leave details or contact the warden office to check the status.",
   },
   {
     q: "Do parents need a username and password to approve?",
@@ -144,7 +159,7 @@ const FAQS = [
   },
   {
     q: "Can I extend my leave if I get delayed?",
-    a: "Yes! Open your active leave from 'My leaves' and click 'Request Extension' before your scheduled return time. Never submit a new separate leave request to extend an existing leave — extensions must be tied to the current leave.",
+    a: "Yes, for eligible overnight leave types (General Leave, Staying At Different Hostel, and Internships) up to 2 times. Open your active leave from 'My leaves' and click 'Request Extension' before your scheduled return time. Single-session leaves like Late Entry and Late Stay At College cannot be extended. Never submit a new separate leave request to extend an existing leave.",
   },
   {
     q: "Can I cancel a leave if my plans change?",
@@ -152,11 +167,19 @@ const FAQS = [
   },
   {
     q: "What does 'OVERDUE' mean?",
-    a: "If you have not returned and scanned back into the hostel before your approved return timestamp, the system automatically flags your movement status as 'OVERDUE'. Wardens and security staff receive real-time notifications for overdue students.",
+    a: "If you have not returned and scanned back into the hostel before your approved return timestamp, the system automatically flags your movement status as 'OVERDUE' and notifies wardens and security staff in real time. Can you still scan back in? Yes! Your return QR code remains active so security can scan you back into the hostel, safely restoring your status to IN_HOSTEL.",
   },
   {
     q: "Can I leave the campus without a QR scan?",
-    a: "No. Security guards must scan your QR code at the security post. Bypassing gate scans violates hostel safety policies and leaves your status marked as inside, preventing return verification.",
+    a: "No. Security guards must scan your QR code at the security post for standard leaves. Bypassing gate scans leaves your location record in an invalid state and will prevent return scanning.",
+  },
+  {
+    q: "What happens if I never scan out for an approved leave?",
+    a: "If your leave is approved but you never exit the campus through the security gate, the leave automatically transitions to EXPIRED after its scheduled conclusion without penalizing your hostel movement record.",
+  },
+  {
+    q: "What documents are required for an Internship leave?",
+    a: "Internship leave requests require an official Offer Letter (PDF, DOCX, or JPG format up to 10MB). After parent SMS approval, it is routed to your designated Academic POC before the Hostel Warden grants final clearance.",
   },
 ];
 
@@ -280,7 +303,7 @@ export default function StudentGuidePage() {
                 <h4 className="font-semibold text-ink">Easy Leave Extension</h4>
               </div>
               <p className="mt-2 text-caption text-muted">
-                Travel delayed? Request an extension directly on your active leave before return time instead of creating a duplicate request.
+                Travel delayed? Request an extension directly on your active overnight leave before return time instead of creating a duplicate request.
               </p>
             </div>
           </div>
@@ -338,13 +361,29 @@ export default function StudentGuidePage() {
                         {lt.requiresParent ? "Required" : "Not Required"}
                       </span>
                     </div>
+                    {lt.requiresPoc && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted">POC (Faculty) Approval:</span>
+                        <span className="font-medium text-accent">Required</span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <span className="text-muted">Warden Approval:</span>
                       <span className="font-medium text-accent">Required</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted">Gate Pass Mode:</span>
-                      <span className="font-mono text-ink">{lt.qrType}</span>
+                      <span className={cn("font-mono", lt.qrType.includes("No QR") ? "text-muted font-medium" : "text-ink")}>
+                        {lt.qrType}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted">Extensions:</span>
+                      <span className={cn("font-medium", lt.allowExtensions ? "text-accent" : "text-muted")}>
+                        {lt.allowExtensions
+                          ? `Up to ${lt.maxExtensions ?? 2} allowed`
+                          : "Not Allowed"}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -376,7 +415,7 @@ export default function StudentGuidePage() {
                   <div>
                     <h4 className="text-body font-semibold text-ink">1. Automated SMS Sent</h4>
                     <p className="text-caption text-muted">
-                      As soon as you submit a leave request that requires parent approval, an SMS is sent to your registered parent contact with student details and leave dates.
+                      As soon as you submit a leave request that requires parent approval, an SMS is sent to your registered parent contact with student details and a secure 1-click review link.
                     </p>
                   </div>
                 </div>
@@ -400,7 +439,7 @@ export default function StudentGuidePage() {
                   <div>
                     <h4 className="text-body font-semibold text-ink">3. Warden Receives Notification</h4>
                     <p className="text-caption text-muted">
-                      Once your parent approves, the request moves to the Hostel Warden&apos;s review queue. When the warden approves, your QR pass is created.
+                      Once your parent approves, the request moves to the Hostel Warden&apos;s review queue. When the warden approves, your digital gate pass is ready.
                     </p>
                   </div>
                 </div>
@@ -409,18 +448,15 @@ export default function StudentGuidePage() {
               {/* Sample SMS Preview Card */}
               <div className="rounded-xl border border-border bg-surface-sunken p-5">
                 <h4 className="text-micro font-semibold uppercase tracking-wider text-muted">
-                  Sample Parent SMS Preview
+                  Official Parent SMS Preview
                 </h4>
                 <div className="mt-3 rounded-lg border border-border bg-surface p-4 font-mono text-caption text-ink shadow-sm">
-                  <p className="text-muted">From: SST-HOSTEL</p>
+                  <p className="text-muted">Sender: SST-HOSTEL (DLT Registered)</p>
                   <p className="mt-2 text-ink">
-                    Dear Parent, your ward [Student Name] has requested General Leave from [Dates] for [Reason].
-                  </p>
-                  <p className="mt-2 text-accent underline">
-                    https://leave.sst.scaler.com/parent-approve/a8b9c...
+                    Dear Parent, [Student Name] has applied for a Leave. Kindly click the link to review: https://leave.sst-dashboard.com/parent-approve/a8b9c... -Scaler School of Technology
                   </p>
                   <p className="mt-2 text-micro text-muted">
-                    Tap the link above to review and approve or reject this request.
+                    Tap the link above to review details and approve or reject this request.
                   </p>
                 </div>
                 <div className="mt-3 flex items-center gap-2 text-micro text-muted">
@@ -438,7 +474,7 @@ export default function StudentGuidePage() {
               What if my parent didn&apos;t get the SMS?
             </h4>
             <ul className="mt-2 list-inside list-disc space-y-1 text-caption text-muted">
-              <li>Allow <strong>1 to 2 minutes</strong> for carrier delivery and network routing.</li>
+              <li>Allow <strong>1 to 2 minutes</strong> for carrier delivery and telecom network routing.</li>
               <li>Confirm the parent mobile number in the leave details matches their current active phone.</li>
               <li>Ask your parent to check their SMS spam/filtered folder or DND settings.</li>
               <li>If the phone number needs to be updated, contact the hostel administration desk.</li>
@@ -463,7 +499,7 @@ export default function StudentGuidePage() {
                     1. When Leaving (Hostel Exit)
                   </h4>
                   <p className="mt-1 text-caption text-muted">
-                    When you arrive at the security gate, open your <strong>Student Dashboard</strong> to display your active Exit QR code. The guard scans it using their scanner device.
+                    When you arrive at the security gate for standard leaves, open your <strong>Student Dashboard</strong> to display your Exit QR code. The guard scans it using their scanner terminal.
                   </p>
                   <div className="mt-2 flex items-center gap-2 text-micro text-success font-medium">
                     <CheckCircle2 className="h-3.5 w-3.5" />
@@ -477,11 +513,11 @@ export default function StudentGuidePage() {
                     2. When Returning (Hostel Entry)
                   </h4>
                   <p className="mt-1 text-caption text-muted">
-                    Upon returning to campus, show your Return QR pass to the security guard before entering the hostel gates. The guard scans it to complete your movement.
+                    Upon returning to campus, show your Return QR pass to the security guard before entering the hostel gates. The guard scans it to record your return and close your movement session.
                   </p>
                   <div className="mt-2 flex items-center gap-2 text-micro text-accent font-medium">
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    Status changes to: INSIDE_HOSTEL (COMPLETED)
+                    Status changes to: IN_HOSTEL (COMPLETED)
                   </div>
                 </div>
               </div>
@@ -496,15 +532,15 @@ export default function StudentGuidePage() {
                   <ul className="mt-3 space-y-2 text-caption text-ink">
                     <li className="flex items-start gap-2">
                       <span className="font-semibold text-danger">•</span>
-                      <span><strong>Never bypass scanning:</strong> Leaving or entering without a guard scan will leave your record in an illegal state and can trigger disciplinary alerts.</span>
+                      <span><strong>Never bypass scanning:</strong> Leaving or entering without a guard scan will leave your record in an illegal state and prevent subsequent movement verification.</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="font-semibold text-danger">•</span>
-                      <span><strong>Do not share screenshots:</strong> QR passes are tied to your personal student credentials and refresh dynamically for security.</span>
+                      <span><strong>Do not share screenshots:</strong> QR passes are tied to your personal student credentials and refreshed dynamically for security.</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="font-semibold text-danger">•</span>
-                      <span><strong>Return before scheduled time:</strong> Missing your scheduled return time flags your movement as <strong>OVERDUE</strong>.</span>
+                      <span><strong>Return before scheduled time:</strong> Missing your scheduled return time flags your movement as <strong>OVERDUE</strong>. Your return QR pass remains active so guards can still scan you back into the hostel.</span>
                     </li>
                   </ul>
                 </div>
@@ -515,6 +551,30 @@ export default function StudentGuidePage() {
               </div>
             </div>
           </SectionCard>
+
+          {/* Pass Types Breakdown */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-xl border border-border bg-surface p-4 shadow-raised">
+              <h4 className="font-semibold text-ink">Exit & Return Pass</h4>
+              <p className="mt-1 text-caption text-muted">
+                Applied to <strong>General Leave</strong>, <strong>Staying At Different Hostel</strong>, and <strong>Internships</strong>. Requires 2 gate scans: exit when departing and return upon arrival.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border bg-surface p-4 shadow-raised">
+              <h4 className="font-semibold text-ink">Return Pass Only (Late Entry)</h4>
+              <p className="mt-1 text-caption text-muted">
+                For <strong>Late Entry</strong> curfew extensions. You leave campus during regular daytime hours without an exit scan, and only scan your return pass when entering past curfew.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border bg-surface p-4 shadow-raised">
+              <h4 className="font-semibold text-ink">No QR Required (Attendance)</h4>
+              <p className="mt-1 text-caption text-muted">
+                For <strong>Warden Attendance Exceptions</strong>. Administrative attendance excuses that require no gate scan and automatically complete when the scheduled period ends.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
