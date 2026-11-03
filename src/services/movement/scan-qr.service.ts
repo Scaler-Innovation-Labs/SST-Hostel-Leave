@@ -18,8 +18,8 @@ import { sha256 } from "@/lib/crypto";
 import { endOfDayIst, startOfDayIst } from "@/lib/date-utils";
 import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError } from "@/lib/errors";
-import { auditService } from "@/services/audit/audit.service";
 import { logger } from "@/lib/logger";
+import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 
 import { recordMovement } from "./record-movement.service";
@@ -799,10 +799,7 @@ export async function scanQrPass(
 				throw new ConflictError("Student not found for QR pass");
 			}
 
-			const fromState =
-				student.currentLocationState === MOVEMENT_STATE.IN_HOSTEL
-					? MOVEMENT_STATE.OUTSIDE_HOSTEL
-					: (student.currentLocationState as MovementState);
+			const fromState = student.currentLocationState as MovementState;
 
 			const todayScans = isRecurring
 				? await qrScanLogRepository.countTodaySuccessfulScans(

@@ -42,6 +42,13 @@ type ScanResult = {
   scanType?: "EXIT_SCAN" | "RETURN_SCAN";
 };
 
+function formatScanErrorMessage(reason: string): string {
+  if (reason.toLowerCase().includes("qr token not found")) {
+    return "QR token not found. Ask student to tap 'Regenerate' on their screen and show the live pass.";
+  }
+  return reason;
+}
+
 function formatLeaveWindow(leave: QrScanPreviewResult["leave"]): string {
   if (!leave) return "Leave details unavailable";
   const start = leave.startAt ? format(new Date(leave.startAt), "d MMM") : "?";
@@ -97,7 +104,7 @@ export function ScannerPage() {
         if (!data.valid) {
           addResult({
             success: false,
-            message: data.reason ?? "QR is not scannable",
+            message: formatScanErrorMessage(data.reason ?? "QR is not scannable"),
             timestamp: new Date(),
             scanType: data.scanType ?? undefined,
           });
@@ -130,7 +137,7 @@ export function ScannerPage() {
         success: data.success,
         message: data.success
           ? "Scan successful"
-          : (data.failureReason ?? "Scan failed"),
+          : formatScanErrorMessage(data.failureReason ?? "Scan failed"),
         timestamp: new Date(),
         scanType: data.scanType,
       });

@@ -1,4 +1,7 @@
 import { QR_MODE } from "@/constants/leave/qr-mode";
+import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
+import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
+import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { QR_STATUS } from "@/constants/movement/qr-status";
 import { getQrExpiryFromLeaveEnd } from "@/constants/movement/qr-window";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
@@ -6,9 +9,11 @@ import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import type { LeaveRequest } from "@/db/repositories/leave/leave.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
+import { studentRepository } from "@/db/repositories/student/student.repository";
 import { sha256, toHex } from "@/lib/crypto";
 import type { DbClient } from "@/lib/db/transaction";
 import { encryptQrToken } from "@/lib/qr-token-crypto";
+import { recordMovement } from "@/services/movement/record-movement.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 
 /**
@@ -65,6 +70,28 @@ export async function issueQrPassForApprovedLeave(
       qrType,
     },
   }, tx);
+
+  const isReturnOnlyOrRecurring =
+    leaveType.qrMode === QR_MODE.RETURN_ONLY ||
+    leaveType.qrMode === QR_MODE.DAILY_RECURRING ||
+    leaveType.code === "LATE_STAY_COLLEGE" ||
+    leaveType.code === "LATE_ENTRY";
+
+  if (isReturnOnlyOrRecurring) {
+    const student = await studentRepository.findById(leave.studentId, tx);
+    if (student && student.currentLocationState === MOVEMENT_STATE.IN_HOSTEL) {
+      await recordMovement({
+        studentId: leave.studentId,
+        leaveRequestId: leave.id,
+        qrPassId: pass.id,
+        fromState: MOVEMENT_STATE.IN_HOSTEL,
+        toState: MOVEMENT_STATE.OUTSIDE_HOSTEL,
+        eventType: MOVEMENT_EVENT.EXIT_HOSTEL,
+        movementMethod: MOVEMENT_METHOD.SYSTEM,
+        dbClient: tx,
+      });
+    }
+  }
 }
 
 /**

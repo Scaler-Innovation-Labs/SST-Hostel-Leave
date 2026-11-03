@@ -2,6 +2,9 @@ import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import { QR_MODE } from "@/constants/leave/qr-mode";
+import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
+import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { QR_STATUS } from "@/constants/movement/qr-status";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
@@ -9,6 +12,7 @@ import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
+import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { outboxRepository } from "@/db/repositories/outbox/outbox.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
@@ -18,6 +22,7 @@ import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { canTransition, getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
 import { auditService } from "@/services/audit/audit.service";
+import { recordMovement } from "@/services/movement/record-movement.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
@@ -54,7 +59,15 @@ export async function cancelLeave(
       throw new ConflictError("Cannot cancel active leave after student has already scanned out");
     }
 
+    const leaveType = leave.leaveTypeId ? await leaveTypeRepository.findById(leave.leaveTypeId) : null;
+    const isReturnOnlyOrRecurring =
+      leaveType?.qrMode === QR_MODE.RETURN_ONLY ||
+      leaveType?.qrMode === QR_MODE.DAILY_RECURRING ||
+      leaveType?.code === "LATE_ENTRY" ||
+      leaveType?.code === "LATE_STAY_COLLEGE";
+
     if (
+      !isReturnOnlyOrRecurring &&
       student.currentLocationState !== MOVEMENT_STATE.IN_HOSTEL &&
       student.currentLocationState !== MOVEMENT_STATE.APPROVED_LEAVE
     ) {
@@ -93,7 +106,15 @@ export async function cancelLeave(
         throw new ConflictError("Cannot cancel active leave after student has already scanned out");
       }
 
+      const leaveType = leaveInTx.leaveTypeId ? await leaveTypeRepository.findById(leaveInTx.leaveTypeId, tx) : null;
+      const isReturnOnlyOrRecurring =
+        leaveType?.qrMode === QR_MODE.RETURN_ONLY ||
+        leaveType?.qrMode === QR_MODE.DAILY_RECURRING ||
+        leaveType?.code === "LATE_ENTRY" ||
+        leaveType?.code === "LATE_STAY_COLLEGE";
+
       if (
+        !isReturnOnlyOrRecurring &&
         student.currentLocationState !== MOVEMENT_STATE.IN_HOSTEL &&
         student.currentLocationState !== MOVEMENT_STATE.APPROVED_LEAVE
       ) {
@@ -164,6 +185,28 @@ export async function cancelLeave(
       if (qrPass && qrPass.status === QR_STATUS.ACTIVE) {
         const invalidated = await qrPassRepository.invalidate(qrPass.id, tx);
         qrInvalidated = invalidated !== null;
+      }
+
+      const leaveType = leaveInTx.leaveTypeId ? await leaveTypeRepository.findById(leaveInTx.leaveTypeId, tx) : null;
+      const isReturnOnlyOrRecurring =
+        leaveType?.qrMode === QR_MODE.RETURN_ONLY ||
+        leaveType?.qrMode === QR_MODE.DAILY_RECURRING ||
+        leaveType?.code === "LATE_ENTRY" ||
+        leaveType?.code === "LATE_STAY_COLLEGE";
+
+      const studentInTx = await studentRepository.findById(leaveInTx.studentId, tx);
+
+      if (isReturnOnlyOrRecurring && studentInTx?.currentLocationState === MOVEMENT_STATE.OUTSIDE_HOSTEL) {
+        await recordMovement({
+          studentId: leaveInTx.studentId,
+          leaveRequestId: leaveId,
+          qrPassId: qrPass?.id,
+          fromState: MOVEMENT_STATE.OUTSIDE_HOSTEL,
+          toState: MOVEMENT_STATE.IN_HOSTEL,
+          eventType: MOVEMENT_EVENT.QR_INVALIDATED,
+          movementMethod: MOVEMENT_METHOD.SYSTEM,
+          dbClient: tx,
+        });
       }
 
       // Movement transition (if applicable) handled asynchronously by outbox handler

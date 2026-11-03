@@ -11,6 +11,18 @@ const mockPublish = vi.fn();
 const mockSha256 = vi.fn();
 const mockToHex = vi.fn();
 const mockEncrypt = vi.fn();
+const mockStudentFindById = vi.fn();
+const mockRecordMovement = vi.fn();
+
+vi.mock("@/db/repositories/student/student.repository", () => ({
+  studentRepository: {
+    findById: (...args: any[]) => mockStudentFindById(...args),
+  },
+}));
+
+vi.mock("@/services/movement/record-movement.service", () => ({
+  recordMovement: (...args: any[]) => mockRecordMovement(...args),
+}));
 
 vi.mock("@/db/repositories/leave/leave-type.repository", () => ({
   leaveTypeRepository: {
@@ -81,6 +93,8 @@ beforeEach(() => {
   mockSha256.mockResolvedValue("token-hash");
   mockToHex.mockReturnValue("raw-token");
   mockEncrypt.mockResolvedValue("token-envelope");
+  mockStudentFindById.mockResolvedValue({ id: "S1", currentLocationState: "IN_HOSTEL" });
+  mockRecordMovement.mockResolvedValue({});
 });
 
 describe("issueQrPassForApprovedLeave", () => {
@@ -133,7 +147,7 @@ describe("issueQrPassForApprovedLeave", () => {
     );
   });
 
-  it("creates a return pass for RETURN_ONLY leave types", async () => {
+  it("creates a return pass for RETURN_ONLY leave types and records EXIT_HOSTEL to OUTSIDE_HOSTEL", async () => {
     mockLeaveTypeFindById.mockResolvedValue({ id: "LT1", qrMode: "RETURN_ONLY" });
 
     await issueQrPassForApprovedLeave(LEAVE, TX);
@@ -141,6 +155,14 @@ describe("issueQrPassForApprovedLeave", () => {
     expect(mockQrCreate).toHaveBeenCalledWith(
       expect.objectContaining({ qrType: "LEAVE_RETURN" }),
       TX
+    );
+    expect(mockRecordMovement).toHaveBeenCalledWith(
+      expect.objectContaining({
+        studentId: "S1",
+        fromState: "IN_HOSTEL",
+        toState: "OUTSIDE_HOSTEL",
+        eventType: "EXIT_HOSTEL",
+      })
     );
   });
 });

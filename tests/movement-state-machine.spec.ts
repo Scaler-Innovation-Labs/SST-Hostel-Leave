@@ -79,10 +79,13 @@ describe("movement-state-machine", () => {
 			).toBe(false);
 		});
 
-		it("rejects all invalid transitions from IN_HOSTEL", () => {
+		it("allows ENTER_HOSTEL from IN_HOSTEL for return-only passes", () => {
 			expect(
 				canTransition("IN_HOSTEL", MOVEMENT_ACTION.ENTER_HOSTEL)
-			).toBe(false);
+			).toBe(true);
+		});
+
+		it("rejects invalid transitions from IN_HOSTEL", () => {
 			expect(
 				canTransition("IN_HOSTEL", MOVEMENT_ACTION.MARK_OVERDUE)
 			).toBe(false);

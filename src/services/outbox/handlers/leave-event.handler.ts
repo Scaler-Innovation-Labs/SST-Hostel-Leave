@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import { QR_MODE } from "@/constants/leave/qr-mode";
 import { MOVEMENT_EVENT } from "@/constants/movement/movement-event";
 import { MOVEMENT_METHOD } from "@/constants/movement/movement-method";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
@@ -481,20 +482,48 @@ export async function handleLeaveEvent(
     // APPROVED_LEAVE rows created before this contract are reconciled in the
     // Phase-6 migration; the cancel/expire reverts below keep their paths
     // working until then.)
+    const leave = await leaveRepository.findById(leaveId);
+    const leaveType = leave?.leaveTypeId ? await leaveTypeRepository.findById(leave.leaveTypeId) : null;
+    const isReturnOnlyOrRecurring =
+      leaveType?.qrMode === QR_MODE.RETURN_ONLY ||
+      leaveType?.qrMode === QR_MODE.DAILY_RECURRING ||
+      leaveType?.code === "LATE_ENTRY" ||
+      leaveType?.code === "LATE_STAY_COLLEGE";
+
     if (eventType === OUTBOX_EVENT_TYPE.LEAVE_APPROVED) {
-      logger.info("Leave approved — movement state intentionally unchanged", {
-        leaveId,
-        studentId,
-        currentState,
-      });
+      if (isReturnOnlyOrRecurring && currentState === MOVEMENT_STATE.IN_HOSTEL) {
+        try {
+          await recordMovement({
+            studentId,
+            leaveRequestId: leaveId,
+            fromState: MOVEMENT_STATE.IN_HOSTEL,
+            toState: MOVEMENT_STATE.OUTSIDE_HOSTEL,
+            eventType: MOVEMENT_EVENT.EXIT_HOSTEL,
+            movementMethod: MOVEMENT_METHOD.SYSTEM,
+          });
+          logger.info("Movement recorded for return-only/recurring leave approval: IN_HOSTEL -> OUTSIDE_HOSTEL", { leaveId, studentId });
+        } catch (error) {
+          logger.error("Failed to record movement on return-only leave approval", { leaveId, error: error instanceof Error ? error.message : String(error) });
+        }
+      } else {
+        logger.info("Leave approved — movement state intentionally unchanged", {
+          leaveId,
+          studentId,
+          currentState,
+        });
+      }
     }
 
-    if (eventType === OUTBOX_EVENT_TYPE.LEAVE_CANCELLED && currentState === MOVEMENT_STATE.APPROVED_LEAVE) {
+    if (
+      eventType === OUTBOX_EVENT_TYPE.LEAVE_CANCELLED &&
+      (currentState === MOVEMENT_STATE.APPROVED_LEAVE ||
+        (isReturnOnlyOrRecurring && currentState === MOVEMENT_STATE.OUTSIDE_HOSTEL))
+    ) {
       try {
         await recordMovement({
           studentId,
           leaveRequestId: leaveId,
-          fromState: MOVEMENT_STATE.APPROVED_LEAVE,
+          fromState: currentState,
           toState: MOVEMENT_STATE.IN_HOSTEL,
           eventType: MOVEMENT_EVENT.QR_INVALIDATED,
           movementMethod: MOVEMENT_METHOD.SYSTEM,
@@ -507,16 +536,14 @@ export async function handleLeaveEvent(
 
     if (
       eventType === OUTBOX_EVENT_TYPE.LEAVE_EXPIRED &&
-      currentState === MOVEMENT_STATE.APPROVED_LEAVE
+      (currentState === MOVEMENT_STATE.APPROVED_LEAVE ||
+        (isReturnOnlyOrRecurring && currentState === MOVEMENT_STATE.OUTSIDE_HOSTEL))
     ) {
-      // EXPIRED = approved but never checked out, so the student is still
-      // inside the hostel. The permission lapses and the student reverts to
-      // IN_HOSTEL (they never physically left).
       try {
         await recordMovement({
           studentId,
           leaveRequestId: leaveId,
-          fromState: MOVEMENT_STATE.APPROVED_LEAVE,
+          fromState: currentState,
           toState: MOVEMENT_STATE.IN_HOSTEL,
           eventType: MOVEMENT_EVENT.QR_INVALIDATED,
           movementMethod: MOVEMENT_METHOD.SYSTEM,
