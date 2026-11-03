@@ -164,6 +164,13 @@ export const userRoleRepository = {
         .onConflictDoNothing();
     }
   },
+
+  async deleteByUserId(
+    userId: string,
+    dbClient: DbClient = db
+  ): Promise<void> {
+    await dbClient.delete(userRoles).where(eq(userRoles.userId, userId));
+  },
 };
 
 export default userRoleRepository;

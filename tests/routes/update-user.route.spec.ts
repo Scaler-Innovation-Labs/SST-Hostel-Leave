@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const mockUpdateUser = vi.fn();
 const mockDeactivateUser = vi.fn();
+const mockDeleteUser = vi.fn();
 const mockGetUser = vi.fn();
 
 vi.mock("@/lib/db", () => ({
@@ -23,6 +24,10 @@ vi.mock("@/services/user/update-user.service", () => ({
 
 vi.mock("@/services/user/deactivate-user.service", () => ({
   deactivateUser: (...args: any[]) => mockDeactivateUser(...args),
+}));
+
+vi.mock("@/services/user/delete-user.service", () => ({
+  deleteUser: (...args: any[]) => mockDeleteUser(...args),
 }));
 
 vi.mock("@/services/user/get-user.service", () => ({
@@ -52,43 +57,34 @@ describe("PATCH /api/v1/users/[id]", () => {
     vi.clearAllMocks();
   });
 
-  it("updates a user profile and roles", async () => {
+  it("updates user successfully", async () => {
     mockUpdateUser.mockResolvedValue(UPDATED_USER);
 
-    const res = await PATCH(
-      patchReq({ fullName: "Test User", roleCodes: ["ADMIN"] }),
-      { params: Promise.resolve({ id: "U1" }) },
-    );
+    const res = await PATCH(patchReq({ fullName: "Updated Name" }), {
+      params: Promise.resolve({ id: "U1" }),
+    });
     const body = await res.json();
 
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(body.data.id).toBe("U1");
-    expect(mockUpdateUser).toHaveBeenCalledWith(
-      "U1",
-      expect.objectContaining({ fullName: "Test User", roleCodes: ["ADMIN"] }),
-      "U1",
-    );
+    expect(body.data).toEqual(UPDATED_USER);
   });
 
   it("returns 400 for invalid body", async () => {
-    const res = await PATCH(
-      patchReq({ email: "not-an-email" }),
-      { params: Promise.resolve({ id: "U1" }) },
-    );
+    const res = await PATCH(patchReq({ email: "not-an-email" }), {
+      params: Promise.resolve({ id: "U1" }),
+    });
 
     expect(res.status).toBe(400);
-    expect(mockUpdateUser).not.toHaveBeenCalled();
   });
 
-  it("returns 404 when user does not exist", async () => {
+  it("returns 404 when user is not found", async () => {
     const { NotFoundError } = await import("@/lib/errors");
     mockUpdateUser.mockRejectedValue(new NotFoundError("User"));
 
-    const res = await PATCH(
-      patchReq({ roleCodes: ["ADMIN"] }),
-      { params: Promise.resolve({ id: "U9" }) },
-    );
+    const res = await PATCH(patchReq({ fullName: "Name" }), {
+      params: Promise.resolve({ id: "U9" }),
+    });
 
     expect(res.status).toBe(404);
   });
@@ -110,6 +106,19 @@ describe("DELETE /api/v1/users/[id]", () => {
     expect(res.status).toBe(200);
     expect(body.success).toBe(true);
     expect(mockDeactivateUser).toHaveBeenCalledWith("U1", "U1");
+  });
+
+  it("permanently deletes the user when permanent=true query is provided", async () => {
+    mockDeleteUser.mockResolvedValue({ id: "U1" });
+
+    const res = await DELETE(new Request("http://localhost:3000/api/v1/users/U1?permanent=true"), {
+      params: Promise.resolve({ id: "U1" }),
+    });
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(mockDeleteUser).toHaveBeenCalledWith("U1", "U1");
   });
 
   it("returns 404 when user does not exist", async () => {

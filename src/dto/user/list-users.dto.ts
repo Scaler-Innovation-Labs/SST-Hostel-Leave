@@ -6,6 +6,15 @@ export const listUsersSchema = z.object({
   search: z.string().trim().max(100).optional(),
   role: z.string().optional(),
   excludeRole: z.string().optional(),
+  staffOnly: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (val === "true") return true;
+      if (val === "false") return false;
+      return undefined;
+    })
+    .optional(),
   isActive: z
     .string()
     .optional()
@@ -13,7 +22,8 @@ export const listUsersSchema = z.object({
       if (val === "true") return true;
       if (val === "false") return false;
       return undefined;
-    }),
+    })
+    .optional(),
   sortBy: z.enum(["fullName", "email", "phone", "createdAt"]).optional(),
   sortOrder: sortSchema.shape.sortOrder,
   page: z.coerce.number().int().positive().default(1),

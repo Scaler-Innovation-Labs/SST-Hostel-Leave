@@ -4,6 +4,7 @@ export type ListUsersParams = {
   search?: string;
   role?: string;
   excludeRole?: string;
+  staffOnly?: boolean | string;
   isActive?: string;
   page?: number;
   limit?: number;
@@ -14,6 +15,7 @@ export function getUsersUrl(params?: ListUsersParams): string {
   if (params?.search) searchParams.set("search", params.search);
   if (params?.role) searchParams.set("role", params.role);
   if (params?.excludeRole) searchParams.set("excludeRole", params.excludeRole);
+  if (params?.staffOnly !== undefined) searchParams.set("staffOnly", String(params.staffOnly));
   if (params?.isActive) searchParams.set("isActive", params.isActive);
   if (params?.page) searchParams.set("page", String(params.page));
   if (params?.limit) searchParams.set("limit", String(params.limit));

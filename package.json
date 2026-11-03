@@ -19,6 +19,7 @@
     "db:reset": "tsx scripts/reseed.ts",
     "db:dump-prod": "tsx scripts/dump-prod.ts",
     "db:restore-prod": "tsx scripts/restore-prod.ts",
+    "db:clean-no-roles": "tsx scripts/cleanup-no-role-users.ts",
     "db:generate": "drizzle-kit generate",
     "db:check": "drizzle-kit check",
     "outbox:drain": "tsx scripts/run-outbox-worker.ts",

@@ -1,16 +1,9 @@
 import useSWR from "swr";
 
 import { fetcher } from "@/lib/api/fetcher";
-import { getUsersUrl, getUserUrl } from "@/lib/api/user-api";
+import { getUsersUrl, getUserUrl, type ListUsersParams } from "@/lib/api/user-api";
 
-export function useUsers(params?: {
-  search?: string;
-  role?: string;
-  excludeRole?: string;
-  isActive?: string;
-  page?: number;
-  limit?: number;
-}) {
+export function useUsers(params?: ListUsersParams) {
   const url = getUsersUrl(params);
 
   const { data, error, isLoading, mutate } = useSWR(url, fetcher, {

@@ -12,9 +12,9 @@ export async function listUsers(query: ListUsersQuery): Promise<{
     search: query.search,
     role: query.role,
     excludeRole: query.excludeRole,
+    staffOnly: query.staffOnly,
     isActive: query.isActive,
     page: query.page,
     limit: query.limit,
   });
 }
-

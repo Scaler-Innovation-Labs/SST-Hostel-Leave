@@ -19,8 +19,13 @@ describe("user-api", () => {
     });
 
     it("includes isActive when true", () => {
-      const url = getUsersUrl({ isActive: true });
+      const url = getUsersUrl({ isActive: "true" });
       expect(url).toBe("/api/v1/users?isActive=true");
+    });
+
+    it("includes staffOnly when set", () => {
+      const url = getUsersUrl({ staffOnly: true });
+      expect(url).toBe("/api/v1/users?staffOnly=true");
     });
   });
 

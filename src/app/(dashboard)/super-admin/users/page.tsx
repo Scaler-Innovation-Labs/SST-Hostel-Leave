@@ -55,6 +55,7 @@ export default function SuperAdminUsersPage() {
     page,
     limit: 20,
     role: role || undefined,
+    staffOnly: !role ? true : undefined,
     excludeRole: role ? undefined : "STUDENT",
     isActive: isActive || undefined,
     search: search || undefined,
@@ -67,12 +68,12 @@ export default function SuperAdminUsersPage() {
 
   const roleFilters = useMemo(
     () => [
-      { value: "", label: "All Roles" },
-      { value: ROLES.STUDENT, label: "Student" },
+      { value: "", label: "All Staff" },
       { value: ROLES.POC, label: "POC" },
       { value: ROLES.ADMIN, label: "Admin" },
       { value: ROLES.SUPER_ADMIN, label: "Super Admin" },
       { value: ROLES.GUARD, label: "Guard" },
+      { value: "UNASSIGNED", label: "Unassigned / No Roles" },
     ],
     [],
   );
@@ -94,7 +95,7 @@ export default function SuperAdminUsersPage() {
     <div className="space-y-8">
       <PageHeader
         title="Users"
-        description="Manage all system users and their roles."
+        description="Manage system staff and administrators."
         action={
           <Link href="/super-admin/users/new">
             <Button className="gap-2">
@@ -155,7 +156,7 @@ export default function SuperAdminUsersPage() {
       ) : users.length === 0 ? (
         <EmptyState
           title="No users found"
-          description={search || role || isActive ? "No users match your filters. Try adjusting your search criteria." : "No users have been created yet."}
+          description={search || role || isActive ? "No users match your filters. Try adjusting your search criteria." : "No staff users have been created yet."}
           action={
             search || role || isActive ? undefined : (
               <Link href="/super-admin/users/new">

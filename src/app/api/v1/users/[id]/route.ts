@@ -5,6 +5,7 @@ import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ROLES } from "@/lib/auth/roles";
 import { deactivateUser } from "@/services/user/deactivate-user.service";
+import { deleteUser } from "@/services/user/delete-user.service";
 import { getUser } from "@/services/user/get-user.service";
 import { updateUser } from "@/services/user/update-user.service";
 
@@ -44,18 +45,24 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
 
     const { id } = await params;
-    const result = await deactivateUser(id, currentUser.id);
+    const url = new URL(request.url);
+    const isPermanent = url.searchParams.get("permanent") === "true";
 
+    if (isPermanent) {
+      const result = await deleteUser(id, currentUser.id);
+      return ApiResponse.success(result);
+    }
+
+    const result = await deactivateUser(id, currentUser.id);
     return ApiResponse.success(result);
   } catch (error) {
     return ApiResponse.fromError(error);
   }
 }
-

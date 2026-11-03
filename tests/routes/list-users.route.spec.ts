@@ -62,6 +62,17 @@ describe("GET /api/v1/users", () => {
     );
   });
 
+  it("filters by staffOnly", async () => {
+    mockListUsers.mockResolvedValue({ items: [], total: 0, page: 1, limit: 20, totalPages: 0 });
+
+    const req = new Request("http://localhost:3000/api/v1/users?staffOnly=true");
+    await GET(req);
+
+    expect(mockListUsers).toHaveBeenCalledWith(
+      expect.objectContaining({ staffOnly: true })
+    );
+  });
+
   it("filters by isActive", async () => {
     mockListUsers.mockResolvedValue({ items: [], total: 0, page: 1, limit: 20, totalPages: 0 });
 

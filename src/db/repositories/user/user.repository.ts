@@ -2,6 +2,7 @@ import type { InferSelectModel } from "drizzle-orm";
 import { and, asc, desc, eq, ilike, inArray, not, notInArray, or, sql } from "drizzle-orm";
 
 import { hostels, roles, userRoles, users } from "@/db";
+import { STAFF_ROLES } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 
 export type User = InferSelectModel<typeof users>;
@@ -23,6 +24,7 @@ export type UserFilters = {
   search?: string;
   role?: string;
   excludeRole?: string;
+  staffOnly?: boolean;
   isActive?: boolean;
   page: number;
   limit: number;
@@ -57,13 +59,25 @@ export const userRepository = {
       conditions.push(eq(users.isActive, filters.isActive));
     }
 
-    if (filters.role) {
+    if (filters.role === "UNASSIGNED") {
+      const usersWithAnyRole = dbClient
+        .select({ userId: userRoles.userId })
+        .from(userRoles);
+      conditions.push(not(inArray(users.id, usersWithAnyRole)));
+    } else if (filters.role) {
       const userWithRole = dbClient
         .select({ userId: userRoles.userId })
         .from(userRoles)
         .innerJoin(roles, eq(userRoles.roleId, roles.id))
         .where(eq(roles.code, filters.role));
       conditions.push(inArray(users.id, userWithRole));
+    } else if (filters.staffOnly) {
+      const staffUsers = dbClient
+        .select({ userId: userRoles.userId })
+        .from(userRoles)
+        .innerJoin(roles, eq(userRoles.roleId, roles.id))
+        .where(inArray(roles.code, [...STAFF_ROLES]));
+      conditions.push(inArray(users.id, staffUsers));
     }
 
     if (filters.excludeRole) {

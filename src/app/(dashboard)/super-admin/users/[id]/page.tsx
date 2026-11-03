@@ -10,6 +10,7 @@ import {
   Mail,
   Phone,
   Shield,
+  Trash2,
   UserCog,
   XCircle,
 } from "lucide-react";
@@ -50,9 +51,13 @@ export default function SuperAdminUserDetailPage() {
   const { user, isLoading, isError, error, mutate } = useUser(id);
   const [isToggling, setIsToggling] = useState(false);
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const handleToggleActive = async () => {
     setIsToggling(true);
+    setActionError(null);
     try {
       if (user?.isActive) {
         await fetch(`/api/v1/users/${id}`, { method: "DELETE" });
@@ -68,6 +73,26 @@ export default function SuperAdminUserDetailPage() {
       // Error handled silently
     } finally {
       setIsToggling(false);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    setIsDeleting(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/v1/users/${id}?permanent=true`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error?.message ?? "Failed to delete user");
+      }
+      router.push("/super-admin/users");
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : "Failed to delete user");
+      setShowDeleteDialog(false);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -95,6 +120,12 @@ export default function SuperAdminUserDetailPage() {
         <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
         Back to Users
       </button>
+
+      {actionError && (
+        <div className="rounded-xl border border-danger/20 bg-danger-light p-4 text-body text-danger">
+          {actionError}
+        </div>
+      )}
 
       {/* Profile header */}
       <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
@@ -152,7 +183,7 @@ export default function SuperAdminUserDetailPage() {
                 ? setShowDeactivateDialog(true)
                 : handleToggleActive()
             }
-            disabled={isToggling}
+            disabled={isToggling || isDeleting}
             className="gap-2"
           >
             {user.isActive ? (
@@ -167,6 +198,15 @@ export default function SuperAdminUserDetailPage() {
               </>
             )}
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowDeleteDialog(true)}
+            disabled={isDeleting || isToggling}
+            className="gap-2 text-danger hover:bg-danger-light hover:text-danger border-border"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </Button>
         </div>
       </div>
 
@@ -178,7 +218,7 @@ export default function SuperAdminUserDetailPage() {
               <UserCog className="h-4 w-4 text-muted" />
               Account Information
             </h3>
-            <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1">
                 <dt className="text-caption font-medium text-muted uppercase tracking-wider">
                   Full Name
@@ -189,27 +229,20 @@ export default function SuperAdminUserDetailPage() {
                 <dt className="text-caption font-medium text-muted uppercase tracking-wider">
                   Email
                 </dt>
-                <dd className="flex items-center gap-1.5 text-body">
-                  <Mail className="h-3.5 w-3.5 text-muted" />
-                  {user.email ?? "—"}
-                </dd>
+                <dd className="text-body">{user.email}</dd>
               </div>
               <div className="space-y-1">
                 <dt className="text-caption font-medium text-muted uppercase tracking-wider">
                   Phone
                 </dt>
-                <dd className="flex items-center gap-1.5 text-body">
-                  <Phone className="h-3.5 w-3.5 text-muted" />
-                  {user.phone ?? "—"}
-                </dd>
+                <dd className="text-body">{user.phone || "—"}</dd>
               </div>
               <div className="space-y-1">
                 <dt className="text-caption font-medium text-muted uppercase tracking-wider">
-                  Slack ID
+                  Slack Member ID
                 </dt>
-                <dd className="flex items-center gap-1.5 font-mono text-body">
-                  <Hash className="h-3.5 w-3.5 text-muted" />
-                  {user.slackId ?? "—"}
+                <dd className="font-mono text-body">
+                  {user.slackId || "—"}
                 </dd>
               </div>
               <div className="space-y-1">
@@ -314,6 +347,19 @@ export default function SuperAdminUserDetailPage() {
         onConfirm={async () => {
           await handleToggleActive();
           setShowDeactivateDialog(false);
+        }}
+      />
+
+      <ConfirmationDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        title={`Permanently delete ${user.fullName}?`}
+        consequence="This permanently removes the user account from the system. This action cannot be undone."
+        confirmLabel="Delete permanently"
+        dismissLabel="Cancel"
+        loading={isDeleting}
+        onConfirm={async () => {
+          await handleDeleteUser();
         }}
       />
     </div>
