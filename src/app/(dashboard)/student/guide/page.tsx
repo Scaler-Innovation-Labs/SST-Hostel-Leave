@@ -24,6 +24,7 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 
+import { PARENT_APPROVAL_TOKEN_EXPIRY_HOURS } from "@/constants/parent/parent-approval";
 import { ROUTES } from "@/constants/routes";
 import {
   Button,
@@ -81,12 +82,21 @@ const LEAVE_TYPES_INFO = [
   },
   {
     code: "EXAM_LEAVE",
-    name: "Exam / Academic Exception",
-    description: "For external exams, competitive events, or academic travel.",
-    requiresParent: true,
+    name: "Warden Approval for Examination / Re-exam",
+    description: "For exam permits, re-examinations, or academic schedule permissions.",
+    requiresParent: false,
     requiresWarden: true,
-    qrType: "Exit & Return Pass",
-    tips: "Attach supporting documents such as admit cards or competition invitations.",
+    qrType: "No QR Pass (Administrative)",
+    tips: "No gate movement required. Once approved by the warden, it acts as an official record and automatically completes when the window ends.",
+  },
+  {
+    code: "ATTENDANCE_EXCEPTION",
+    name: "Warden Approval for Attendance Exception",
+    description: "For hostel attendance exceptions due to academic, medical, or official college activities.",
+    requiresParent: false,
+    requiresWarden: true,
+    qrType: "No QR Pass (Administrative)",
+    tips: "Administrative leave with no physical gate movement; auto-completes when the date range concludes.",
   },
 ];
 
@@ -415,7 +425,7 @@ export default function StudentGuidePage() {
                 </div>
                 <div className="mt-3 flex items-center gap-2 text-micro text-muted">
                   <AlertCircle className="h-3.5 w-3.5 text-warning" />
-                  Approval links expire after 24 hours if not acted upon.
+                  Approval links expire after {PARENT_APPROVAL_TOKEN_EXPIRY_HOURS} hours if not acted upon.
                 </div>
               </div>
             </div>
