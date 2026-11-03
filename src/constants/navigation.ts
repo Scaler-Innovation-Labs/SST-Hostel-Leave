@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   BarChart3,
   Bell,
+  BookOpen,
   Bug,
   Building2,
   CalendarPlus,
@@ -62,6 +63,22 @@ const SUPPORT: NavigationGroup = {
   ],
 };
 
+const STUDENT_SUPPORT: NavigationGroup = {
+  heading: "Support",
+  items: [
+    {
+      label: "How to use",
+      href: ROUTES.STUDENT_GUIDE,
+      Icon: BookOpen,
+    },
+    {
+      label: "Report bug",
+      href: "mailto:neerasa.24bcs10005@sst.scaler.com?subject=Bug%20Report%20-%20SST%20Hostel%20Leave",
+      Icon: Bug,
+    },
+  ],
+};
+
 const STUDENT: NavigationGroup[] = [
   {
     heading: "Leave",
@@ -79,7 +96,7 @@ const STUDENT: NavigationGroup[] = [
       },
     ],
   },
-  SUPPORT,
+  STUDENT_SUPPORT,
 ];
 
 const ADMIN: NavigationGroup[] = [

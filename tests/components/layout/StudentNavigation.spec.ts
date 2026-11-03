@@ -27,9 +27,24 @@ describe("Student Navigation", () => {
     expect(reportBug?.href).toContain("neerasa.24bcs10005@sst.scaler.com");
   });
 
+  it("surfaces How to use guide in student navigation and bottom nav", () => {
+    const studentGroups = NAVIGATION.student;
+    const supportGroup = studentGroups.find((g) => g.heading === "Support");
+    const guideItem = supportGroup?.items.find((i) => i.label === "How to use");
+    expect(guideItem).toBeDefined();
+    expect(guideItem?.href).toBe("/student/guide");
+    expect(STUDENT_BOTTOM_NAV.some((item) => item.label === "How to use")).toBe(true);
+  });
+
   it("highlights only Request leave on its own page", () => {
     expect(resolveActiveHref("/student/leaves/new", STUDENT_HREFS)).toBe(
       "/student/leaves/new"
+    );
+  });
+
+  it("highlights How to use on guide page", () => {
+    expect(resolveActiveHref("/student/guide", STUDENT_HREFS)).toBe(
+      "/student/guide"
     );
   });
 
