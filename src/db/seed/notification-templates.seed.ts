@@ -53,10 +53,10 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       code: "leave_approved_email_exam_leave",
       eventKey: NOTIFICATION_EVENT.LEAVE_APPROVED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Leave During Examination Approved",
+      subject: "Re-Exam Approved",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "Your Leave During Examination for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
+        "Your Re-Exam request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
         "Please follow the approved leave dates and observe all hostel rules while you are away.\n\n" +
         "<strong>Please note:</strong> This approval covers the Warden verification component only. For the remaining steps of your re-exam exemption process, please refer to the Student Policy and submit your request via this form: <a href=\"https://docs.google.com/forms/d/e/1FAIpQLScPUfow-KEoG8auclaYeb8F4E5_tgTALOFdwA-1jPk0jlHSzA/viewform\">https://docs.google.com/forms/d/e/1FAIpQLScPUfow-KEoG8auclaYeb8F4E5_tgTALOFdwA-1jPk0jlHSzA/viewform</a>\n\n" +
@@ -68,10 +68,10 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       code: "leave_rejected_email_exam_leave_policy",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Leave During Examination Request Rejected",
+      subject: "Re-Exam Request Rejected",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "Your Leave During Examination request for {{startDate}} to {{endDate}} could not be approved, as the requested dates do not match the approved examination schedule under the hostel leave policy.\n\n" +
+        "Your Re-Exam request for {{startDate}} to {{endDate}} could not be approved, as the requested dates do not match the approved examination schedule under the hostel leave policy.\n\n" +
         "{{reviewCommentsSection}}" +
         "If you believe this is an error or need any clarification, please contact the Hostel Administration.\n\n" +
         "Regards,\nHostel Administration\nScaler School of Technology",
@@ -80,10 +80,10 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       code: "leave_rejected_email_exam_leave_parent",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Leave During Examination Request Declined by Parent/Guardian",
+      subject: "Re-Exam Request Declined by Parent/Guardian",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "Your Leave During Examination request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been declined by your parent/guardian.\n\n" +
+        "Your Re-Exam request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been declined by your parent/guardian.\n\n" +
         "{{reviewCommentsSection}}" +
         "For any clarification, please speak with your parent/guardian directly.\n\n" +
         "Regards,\nHostel Administration\nScaler School of Technology",
@@ -92,10 +92,10 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       code: "leave_rejected_email_exam_leave_admin",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Leave During Examination Request Rejected",
+      subject: "Re-Exam Request Rejected",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "Your Leave During Examination request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been reviewed by the Hostel Administration and has not been approved by the Hostel Warden.\n\n" +
+        "Your Re-Exam request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been reviewed by the Hostel Administration and has not been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
         "For any clarification, please reach out to your Hostel Warden.\n\n" +
         "Regards,\nHostel Administration\nScaler School of Technology",
@@ -116,7 +116,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       subject: null,
       templateBody:
         "Dear Hostel Warden,\n\n" +
-        "A new Leave During Examination request has been submitted by {{studentName}} ({{rollNumber}}).\n" +
+        "A new Re-Exam request has been submitted by {{studentName}} ({{rollNumber}}).\n" +
         "Leave Duration: {{startDate}} to {{endDate}}\n" +
         "Reason: {{reason}}\n\n" +
         "Kindly review the request and approve or reject it using the link below:\n" +
@@ -577,10 +577,10 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       code: "leave_approved_email_attendance_exception",
       eventKey: NOTIFICATION_EVENT.LEAVE_APPROVED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Special Leave Approved",
+      subject: "Attendance Exemption Approved",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "Your Special Leave for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
+        "Your Attendance Exemption for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
         "Please follow the approved leave dates and observe all hostel rules during your leave.\n\n" +
         "<strong>Please note:</strong> This approval covers the Warden verification component only. For the remaining steps of your attendance exemption process, please refer to the Student Policy and submit your request via this form: <a href=\"https://docs.google.com/forms/d/1YWPF5AbXSV8D50WjpCcsP8l5AvV1ZAnXsnYAugM86aA/viewform?ts=67b573db&edit_requested=true#responses\">https://docs.google.com/forms/d/1YWPF5AbXSV8D50WjpCcsP8l5AvV1ZAnXsnYAugM86aA/viewform?ts=67b573db&edit_requested=true#responses</a>\n\n" +
@@ -591,10 +591,10 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       code: "leave_rejected_email_attendance_exception_policy",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Special Leave Request Rejected",
+      subject: "Attendance Exemption Request Rejected",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "Your Special Leave request for {{startDate}} to {{endDate}} could not be approved, as a policy requirement was not met or the required supporting documents were missing or invalid.\n\n" +
+        "Your Attendance Exemption request for {{startDate}} to {{endDate}} could not be approved, as a policy requirement was not met or the required supporting documents were missing or invalid.\n\n" +
         "{{reviewCommentsSection}}" +
         "If you believe this is an error or need any clarification, please contact the Hostel Administration.\n\n" +
         "Regards,\nHostel Administration\nScaler School of Technology",
@@ -603,10 +603,10 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       code: "leave_rejected_email_attendance_exception_parent",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Special Leave Request Declined by Parent/Guardian",
+      subject: "Attendance Exemption Request Declined by Parent/Guardian",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "Your Special Leave request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been declined by your parent/guardian.\n\n" +
+        "Your Attendance Exemption request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been declined by your parent/guardian.\n\n" +
         "{{reviewCommentsSection}}" +
         "For any clarification, please speak with your parent/guardian directly.\n\n" +
         "Regards,\nHostel Administration\nScaler School of Technology",
@@ -615,10 +615,10 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       code: "leave_rejected_email_attendance_exception_admin",
       eventKey: NOTIFICATION_EVENT.LEAVE_REJECTED,
       channel: NOTIFICATION_CHANNEL.EMAIL,
-      subject: "Special Leave Request Rejected",
+      subject: "Attendance Exemption Request Rejected",
       templateBody:
         "Dear {{studentName}},\n\n" +
-        "Your Special Leave request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been reviewed by the Hostel Administration and has not been approved by the Hostel Warden.\n\n" +
+        "Your Attendance Exemption request for {{startDate}} to {{endDate}}, submitted for \"{{reason}}\", has been reviewed by the Hostel Administration and has not been approved by the Hostel Warden.\n\n" +
         "{{reviewCommentsSection}}" +
         "For any clarification, please reach out to your Hostel Warden.\n\n" +
         "Regards,\nHostel Administration\nScaler School of Technology",
@@ -638,7 +638,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       subject: null,
       templateBody:
         "Dear POC,\n\n" +
-        "A Special Leave ({{leaveCategory}}) request approved by the parent is awaiting your review.\n" +
+        "An Attendance Exemption ({{leaveCategory}}) request approved by the parent is awaiting your review.\n" +
         "Student: {{studentName}} ({{rollNumber}})\n" +
         "Leave Duration: {{startDate}} to {{endDate}}\n" +
         "Reason: {{reason}}\n\n" +
@@ -652,7 +652,7 @@ const LEAVE_TYPE_TEMPLATES: Record<string, TemplateSeed[]> = {
       subject: null,
       templateBody:
         "Dear {{campus}} Hostel Warden,\n\n" +
-        "A new Special Leave ({{leaveCategory}}) request has been submitted by {{studentName}} ({{rollNumber}}).\n" +
+        "A new Attendance Exemption ({{leaveCategory}}) request has been submitted by {{studentName}} ({{rollNumber}}).\n" +
         "Leave Duration: {{startDate}} to {{endDate}}\n" +
         "Reason: {{reason}}\n\n" +
         "Please review and approve or reject it using the link below:\n" +

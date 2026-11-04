@@ -104,8 +104,8 @@ const LEAVE_TYPES_INFO = [
   },
   {
     code: "ATTENDANCE_EXCEPTION",
-    name: "Warden Approval for Attendance Exception",
-    description: "For official hostel attendance exceptions, university re-examinations, or medical excuses.",
+    name: "Warden Approval for Attendance Exemption",
+    description: "For official hostel attendance exemptions, university re-examinations, or medical excuses.",
     requiresParent: true,
     requiresPoc: false,
     requiresWarden: true,
@@ -571,7 +571,7 @@ export default function StudentGuidePage() {
             <div className="rounded-xl border border-border bg-surface p-4 shadow-raised">
               <h4 className="font-semibold text-ink">No QR Required (Attendance)</h4>
               <p className="mt-1 text-caption text-muted">
-                For <strong>Warden Attendance Exceptions</strong>. Administrative attendance excuses that require no gate scan and automatically complete when the scheduled period ends.
+                For <strong>Warden Attendance Exemptions</strong>. Administrative attendance excuses that require no gate scan and automatically complete when the scheduled period ends.
               </p>
             </div>
           </div>

@@ -30,7 +30,7 @@ const WORKFLOW_DEFS: WorkflowDef[] = [
   { code: "DIFFERENT_HOSTEL", name: "Staying At Different Hostel Workflow" },
   { code: "HOLIDAY", name: "Holidays Workflow" },
   { code: "INTERNSHIP", name: "Internship Workflow" },
-  { code: "ATTENDANCE_EXCEPTION", name: "Warden Approval for Attendance Exception Workflow" },
+  { code: "ATTENDANCE_EXCEPTION", name: "Warden Approval for Attendance Exemption Workflow" },
 ];
 
 const WORKFLOW_STEPS: WorkflowStep[] = [

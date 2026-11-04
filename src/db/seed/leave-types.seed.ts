@@ -134,7 +134,7 @@ const LEAVE_TYPES: LeaveTypeSeed[] = [
   },
   {
     code: "ATTENDANCE_EXCEPTION",
-    name: "Warden Approval for Attendance Exception",
+    name: "Warden Approval for Attendance Exemption",
     category: LEAVE_CATEGORY.HOSTEL,
     color: "#78716c",
     workflowCode: "ATTENDANCE_EXCEPTION",
