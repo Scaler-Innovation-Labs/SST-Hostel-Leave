@@ -102,6 +102,24 @@ function workflowStepLabel(stepKey: string): string {
   return cleaned || "Step";
 }
 
+function hexToRgba(hex: string, alpha: number): string {
+  const clean = hex.replace("#", "");
+  const num = parseInt(clean.length === 3 ? clean.split("").map((c) => c + c).join("") : clean, 16);
+  if (isNaN(num)) return hex;
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function resolveLeaveColor(item: { leaveTypeUiConfig?: Record<string, unknown> | null }): string | null {
+  const rawColor = item.leaveTypeUiConfig?.color as string | undefined;
+  if (rawColor && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(rawColor)) {
+    return rawColor;
+  }
+  return null;
+}
+
 export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disableNavigation, viewerRole }: ApprovalCommandCardProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -143,6 +161,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
   const waitingOn = lr?.currentStepKey ?? (lr?.status === LEAVE_REQUEST_STATUS.PENDING ? VIEW_STEP_KEY.POLICY : VIEW_STEP_KEY.COMPLETE);
   const isExtension = !!item.leaveExtensionId;
   const isSpecialLeave = (item.leaveTypeUiConfig?.isSpecial as boolean | undefined) ?? false;
+  const leaveTypeColor = resolveLeaveColor(item);
   const isPocViewer = viewerRole === "POC";
   // Role required by the currently active workflow step. When it doesn't match
   // this viewer's role, the approver's turn hasn't come yet — show a waiting
@@ -380,8 +399,29 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
         }
       }}
     >
+      {/* ── Top color accent bar ── */}
+      {leaveTypeColor && (
+        <div
+          className="h-1 w-full shrink-0"
+          style={{ backgroundColor: leaveTypeColor }}
+        />
+      )}
+
       {/* ── HEADER ── */}
-      <div className="flex items-center justify-between gap-3 border-b border-border bg-surface-sunken px-4 py-2.5">
+      <div
+        className={cn(
+          "flex items-center justify-between gap-3 border-b border-border px-4 py-2.5 transition-colors",
+          !leaveTypeColor && "bg-surface-sunken",
+        )}
+        style={
+          leaveTypeColor
+            ? {
+                backgroundColor: hexToRgba(leaveTypeColor, 0.08),
+                borderBottomColor: hexToRgba(leaveTypeColor, 0.22),
+              }
+            : undefined
+        }
+      >
         <div className="flex items-center gap-2">
           <StatusBadge status={headerStatus} />
           {isExtension && (
