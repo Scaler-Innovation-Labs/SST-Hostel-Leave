@@ -3,6 +3,8 @@
 import { format } from "date-fns";
 import {
   Building2,
+  Camera,
+  CameraOff,
   CheckCircle2,
   Clock,
   History,
@@ -68,6 +70,7 @@ export function ScannerPage() {
   const [preview, setPreview] = useState<QrScanPreviewResult | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
   const [autoResetSeconds, setAutoResetSeconds] = useState<number | null>(null);
 
   // Synchronous guards against duplicate frame processing & race conditions
@@ -283,20 +286,52 @@ export function ScannerPage() {
           </div>
         )}
 
-        {/* ── CAMERA SCANNER ── */}
-        <div className="space-y-3">
-          <QrScanner
-            onScan={handleScanToken}
-            paused={isCameraPaused}
-            className="aspect-square w-full rounded-2xl shadow-raised"
-          />
-          <div className="flex items-center justify-between px-1 text-caption text-muted">
-            <span>Point camera at the student&apos;s live QR code</span>
-            {isCameraPaused && (
-              <span className="font-mono text-micro text-accent">Camera paused</span>
-            )}
+        {/* ── CAMERA STANDBY OR LIVE SCANNER ── */}
+        {!cameraActive ? (
+          <div className="flex aspect-square w-full flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-border bg-surface p-6 text-center shadow-raised">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-light text-accent">
+              <Camera className="h-8 w-8" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-body-lg font-semibold text-ink">Camera is off</h3>
+              <p className="max-w-xs text-caption text-muted">
+                Turn on the camera when you need to scan a student&apos;s pass.
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={() => {
+                setCameraActive(true);
+                setCurrentResult(null);
+              }}
+              className="gap-2 px-6"
+            >
+              <Camera className="h-5 w-5" />
+              Start Scanner
+            </Button>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-3">
+            <QrScanner
+              onScan={handleScanToken}
+              paused={isCameraPaused}
+              className="aspect-square w-full rounded-2xl shadow-raised"
+            />
+            <div className="flex items-center justify-between px-1 text-caption text-muted">
+              <span>Point camera at the student&apos;s live QR code</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCameraActive(false)}
+                className="gap-1.5 text-muted hover:text-ink"
+              >
+                <CameraOff className="h-4 w-4" />
+                Stop Scanner
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* ── SCANNING & VERIFYING STATE ── */}
         {scanning && (
@@ -389,7 +424,7 @@ export function ScannerPage() {
             </div>
 
             <div className="mt-5 flex justify-end">
-              <Button size="guard" block onClick={handleReset}>
+              <Button size="lg" block onClick={handleReset}>
                 <RotateCcw className="h-5 w-5 mr-1" aria-hidden />
                 Scan next pass now
               </Button>
