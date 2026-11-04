@@ -21,9 +21,12 @@ import {
   Image,
   Info,
   Loader2,
+  LogIn,
+  LogOut,
   Mail,
   MapPin,
   MessageSquare,
+  Navigation,
   Phone,
   QrCode,
   RefreshCw,
@@ -73,6 +76,8 @@ import {
   type LeaveApprovalDecision,
 } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import type { QrMode } from "@/constants/leave/qr-mode";
+import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import type { BadgeTone } from "@/design-system/sst";
 import {
   APPROVAL_DECISION_PRESENTATION,
@@ -85,11 +90,14 @@ import {
 import { useApprovalChain } from "@/features/approvals/hooks/use-approval-chain";
 import { formatApprovalActor } from "@/features/approvals/lib/step-display";
 import { AskAQuestionSection } from "@/features/leaves/components/AskAQuestionSection";
+import { LeaveQrPass } from "@/features/leaves/components/LeaveQrPass";
 import { useLeaves } from "@/features/leaves/hooks/use-leaves";
+import { useStudent } from "@/features/students/hooks/use-students";
 import { useDocuments } from "@/hooks/use-documents";
 import { useMovement } from "@/hooks/use-movement";
 import { approveLeave, rejectLeave, superadminOverrideLeave } from "@/lib/api/approval-api";
 import { getLeaveUrl, resendParentApproval } from "@/lib/api/leave-api";
+import { manualCheckout, manualReturn, markOverdue } from "@/lib/api/movement-api";
 import { formatDate, formatDateTime, formatRelative, getDurationLabel } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
@@ -111,6 +119,19 @@ type AuditEntry = {
   actorUserId: string | null;
   metadata: Record<string, unknown> | null;
   createdAt: string;
+};
+
+type MovementEventRow = {
+  id: string;
+  eventType: string;
+  fromState?: string | null;
+  toState?: string | null;
+  movementMethod?: string | null;
+  isManualOverride?: boolean | null;
+  overrideReason?: string | null;
+  occurredAt?: string | null;
+  createdAt?: string | null;
+  location?: string | null;
 };
 
 type LeaveApproval = {
@@ -145,6 +166,7 @@ const REJECTION_CATEGORIES = [
 const TAB_CONFIG = [
   { id: "overview", label: "Overview", icon: Eye },
   { id: "workflow", label: "Workflow", icon: Users },
+  { id: "movement", label: "Movement", icon: MapPin },
   { id: "timeline", label: "Timeline", icon: Clock },
   { id: "audit", label: "Audit", icon: History },
   { id: "documents", label: "Documents", icon: FileText },
@@ -258,7 +280,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
   } = useApprovalChain(leaveId);
 
   const { documents } = useDocuments(leaveId);
-  const { movements } = useMovement({ leaveRequestId: leaveId, page: 1, limit: 50 });
+  const { movements, mutate: mutateMovements } = useMovement({ leaveRequestId: leaveId, page: 1, limit: 50 });
 
   const { data: auditData, isLoading: auditLoading } = useSWR<{ data: AuditEntry[] }>(
     leaveId ? `/api/v1/audit?entityType=LEAVE_REQUEST&entityId=${leaveId}` : null,
@@ -296,6 +318,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
   // Student leave stats
   const studentId = leave?.studentId as string | undefined;
   const { leaves: studentLeaves } = useLeaves(studentId ? { studentId, page: 1, limit: 100 } : undefined);
+  const { student: studentDetail, mutate: mutateStudent } = useStudent(studentId);
 
   // ── Derived state ──
   const isLoading = leaveLoading || chainLoading;
@@ -408,6 +431,101 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
   const studentStatCancelled = studentLeaves.filter((l: Record<string, unknown>) => l.status === LEAVE_REQUEST_STATUS.CANCELLED).length;
   const studentStatPending = studentLeaves.filter((l: Record<string, unknown>) => l.status === LEAVE_REQUEST_STATUS.PENDING).length;
   const studentStatExpired = studentLeaves.filter((l: Record<string, unknown>) => l.status === LEAVE_REQUEST_STATUS.EXPIRED).length;
+
+  // ── Movement & Location state ──
+  const canManageMovement = viewerRole === "ADMIN" || viewerRole === "SUPER_ADMIN";
+
+  const studentDetailTyped = studentDetail as
+    | {
+        student?: { currentLocationState?: string };
+        locationState?: { code?: string; name?: string } | null;
+      }
+    | undefined;
+
+  const locationCode =
+    studentDetailTyped?.locationState?.code ??
+    studentDetailTyped?.student?.currentLocationState ??
+    (student?.currentLocationState as string | undefined) ??
+    MOVEMENT_STATE.IN_HOSTEL;
+
+  const locationStateLabel =
+    studentDetailTyped?.locationState?.name ??
+    locationCode.replace(/_/g, " ").toLowerCase();
+
+  const isInHostel = locationCode === MOVEMENT_STATE.IN_HOSTEL;
+  const isOverdue = locationCode === MOVEMENT_STATE.OVERDUE;
+  const isOnLeave = locationCode === MOVEMENT_STATE.APPROVED_LEAVE;
+  const isCheckedOut =
+    locationCode === MOVEMENT_STATE.CHECKED_OUT ||
+    locationCode === MOVEMENT_STATE.OUTSIDE_HOSTEL;
+
+  const isLeaveApproved =
+    status === "approved" ||
+    status === "completed" ||
+    status === "overdue" ||
+    allApproved;
+
+  const leaveQrMode = ((leave?.qrMode as string | undefined) ?? (leaveTypeRecord?.qrMode as string | undefined) ?? "BOTH") as QrMode;
+
+  const canCheckout =
+    canManageMovement &&
+    isLeaveApproved &&
+    (isInHostel || isOnLeave);
+
+  const canReturn =
+    canManageMovement &&
+    (isCheckedOut || isOverdue);
+
+  const canMarkOverdue =
+    canManageMovement &&
+    isCheckedOut;
+
+  const [movementAction, setMovementAction] = useState<"checkout" | "return" | "overdue" | null>(null);
+  const [movementReason, setMovementReason] = useState("");
+  const [movementActionBusy, setMovementActionBusy] = useState(false);
+
+  const movementActionCopy = {
+    checkout: {
+      title: "Record Check-out (Exit)",
+      description: `This records a manual gate exit for ${studentName || "the student"}. Their movement state will update to Outside Hostel.`,
+    },
+    return: {
+      title: "Record Check-in (Return)",
+      description: `This records a manual gate return for ${studentName || "the student"}. Their movement state will update to In Hostel, completing this leave.`,
+    },
+    overdue: {
+      title: "Mark Student Overdue",
+      description: `This flags ${studentName || "the student"} as overdue for returning past their scheduled curfew or leave return time.`,
+    },
+  } as const;
+
+  async function runLocationAction(action: "checkout" | "return" | "overdue") {
+    if (!studentId) return;
+    setMovementActionBusy(true);
+    try {
+      if (action === "checkout") {
+        await manualCheckout(studentId, movementReason.trim() || undefined, isLeaveApproved ? leaveId : undefined);
+        toast.success("Check-out recorded successfully");
+      } else if (action === "return") {
+        await manualReturn(studentId, movementReason.trim() || undefined, isLeaveApproved ? leaveId : undefined);
+        toast.success("Return to hostel recorded successfully");
+      } else {
+        await markOverdue(studentId, isLeaveApproved ? leaveId : undefined);
+        toast.success("Student marked as overdue");
+      }
+      setMovementReason("");
+      setMovementAction(null);
+      await Promise.all([
+        leaveMutate(),
+        mutateStudent(),
+        mutateMovements(),
+      ]);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to record movement");
+    } finally {
+      setMovementActionBusy(false);
+    }
+  }
 
   // ── Actions ──
   const handleAction = async () => {
@@ -688,6 +806,11 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                       {documents.length}
                     </span>
                   )}
+                  {tab.id === "movement" && movements.length > 0 && (
+                    <span className="ml-1 rounded-full bg-accent/20 px-1.5 py-0.5 text-micro font-semibold text-accent">
+                      {movements.length}
+                    </span>
+                  )}
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -732,6 +855,12 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                       <Shield className="h-3.5 w-3.5 shrink-0 text-muted" />
                       <span className={cn("capitalize", status === "active" ? "text-success" : "text-muted")}>
                         {status.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-3.5 w-3.5 shrink-0 text-muted" />
+                      <span className="capitalize text-muted">
+                        Location: <span className={cn("font-medium", isInHostel ? "text-success" : isOverdue ? "text-danger" : "text-warning")}>{locationStateLabel}</span>
                       </span>
                     </div>
                   </div>
@@ -1126,6 +1255,243 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+              </SectionCard>
+            </TabsContent>
+
+            {/* ▸ MOVEMENT TAB */}
+            <TabsContent value="movement" className="mt-5 space-y-5">
+              {/* Current Location & Summary */}
+              <SectionCard title="Current Movement Status" Icon={MapPin}>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="rounded-xl border border-border bg-surface-sunken/40 p-4">
+                    <p className="text-micro font-medium uppercase tracking-wider text-muted">Current Location</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span
+                        className={cn(
+                          "h-2.5 w-2.5 rounded-full",
+                          isInHostel ? "bg-success" : isOverdue ? "bg-danger" : "bg-warning",
+                        )}
+                      />
+                      <span className="text-body-lg font-semibold capitalize text-ink">
+                        {locationStateLabel}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-caption text-muted">
+                      {isInHostel
+                        ? "Student is currently present inside the hostel building."
+                        : isOnLeave
+                          ? "Student is on approved leave."
+                          : isOverdue
+                            ? "Student has exceeded their scheduled return time."
+                            : "Student has checked out and is outside the campus."}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-border bg-surface-sunken/40 p-4">
+                    <p className="text-micro font-medium uppercase tracking-wider text-muted">Gate Pass Policy</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <QrCode className="h-4 w-4 text-muted" />
+                      <span className="text-body-lg font-semibold text-ink">
+                        {leaveQrMode === "NONE" ? "Exempt (No QR)" : leaveQrMode.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-caption text-muted">
+                      {leaveQrMode === "NONE"
+                        ? "Academic / exam exemption: students do not scan gate passes."
+                        : "Gate security scans the digital QR pass for exit and entry authorization."}
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-border bg-surface-sunken/40 p-4">
+                    <p className="text-micro font-medium uppercase tracking-wider text-muted">Movement Events Logged</p>
+                    <p className="mt-2 text-h3 font-semibold tabular-nums text-ink">{movements.length}</p>
+                    <p className="mt-1 text-caption text-muted">
+                      {movements.length === 0
+                        ? "No gate movements recorded for this request yet."
+                        : `${movements.length} transition${movements.length === 1 ? "" : "s"} logged in audit trail.`}
+                    </p>
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* Admin Movement Controls */}
+              {canManageMovement && (
+                <SectionCard title="Manual Movement Controls" Icon={Navigation}>
+                  <p className="text-body text-muted">
+                    As an administrator, you can manually record gate movement events (e.g. if the gate scanner is offline or the student is unable to present their pass). Every manual action is recorded in the movement audit ledger.
+                  </p>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl border border-border p-4">
+                      <div className="flex items-center gap-2 text-body font-semibold text-ink">
+                        <LogOut className="h-4 w-4 text-muted" />
+                        Check-out (Exit)
+                      </div>
+                      <p className="mt-1 text-caption text-muted">
+                        Mark student as checked out / exiting the hostel premises.
+                      </p>
+                      <div className="mt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full gap-2"
+                          disabled={!canCheckout || movementActionBusy}
+                          onClick={() => {
+                            setMovementReason("");
+                            setMovementAction("checkout");
+                          }}
+                        >
+                          <LogOut className="h-3.5 w-3.5" />
+                          Record Exit
+                        </Button>
+                        {!isLeaveApproved && isInHostel && (
+                          <p className="mt-1.5 text-center text-micro text-muted">Requires approved leave</p>
+                        )}
+                        {!isInHostel && (
+                          <p className="mt-1.5 text-center text-micro text-muted">Student is already outside</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-border p-4">
+                      <div className="flex items-center gap-2 text-body font-semibold text-success">
+                        <LogIn className="h-4 w-4 text-success" />
+                        Check-in (Return)
+                      </div>
+                      <p className="mt-1 text-caption text-muted">
+                        Mark student as returned to hostel and complete this leave.
+                      </p>
+                      <div className="mt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full gap-2 border-success/30 text-success hover:bg-success-light"
+                          disabled={!canReturn || movementActionBusy}
+                          onClick={() => {
+                            setMovementReason("");
+                            setMovementAction("return");
+                          }}
+                        >
+                          <LogIn className="h-3.5 w-3.5" />
+                          Record Return
+                        </Button>
+                        {isInHostel && (
+                          <p className="mt-1.5 text-center text-micro text-muted">Student is already in hostel</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-border p-4">
+                      <div className="flex items-center gap-2 text-body font-semibold text-danger">
+                        <AlertTriangle className="h-4 w-4 text-danger" />
+                        Mark Overdue
+                      </div>
+                      <p className="mt-1 text-caption text-muted">
+                        Flag student as overdue when curfew or expected return passes.
+                      </p>
+                      <div className="mt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full gap-2 border-danger/30 text-danger hover:bg-danger-light"
+                          disabled={!canMarkOverdue || movementActionBusy}
+                          onClick={() => {
+                            setMovementReason("");
+                            setMovementAction("overdue");
+                          }}
+                        >
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                          Mark Overdue
+                        </Button>
+                        {isOverdue && (
+                          <p className="mt-1.5 text-center text-micro text-muted">Already marked overdue</p>
+                        )}
+                        {isInHostel && (
+                          <p className="mt-1.5 text-center text-micro text-muted">Student is currently in hostel</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </SectionCard>
+              )}
+
+              {/* Gate Pass QR Display (if leave has QR mode and is approved) */}
+              {isLeaveApproved && leaveQrMode !== "NONE" && (
+                <SectionCard title="Gate Pass QR Credential" Icon={QrCode}>
+                  <LeaveQrPass leaveId={leaveId} qrMode={leaveQrMode} />
+                </SectionCard>
+              )}
+
+              {/* Movement Events Ledger */}
+              <SectionCard title="Movement History Ledger" Icon={History}>
+                {movements.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <MapPin className="mb-3 h-10 w-10 text-muted/50" />
+                    <p className="text-body font-medium text-ink">No movement events recorded</p>
+                    <p className="text-caption text-muted">
+                      Gate scan events and manual overrides for this leave request will appear here.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border">
+                    {(movements as MovementEventRow[]).map((mov, index) => {
+                                            const isReturn = mov.eventType === "RETURN" || mov.eventType?.includes("RETURN");
+                      const isOverdueEvent = mov.eventType === "OVERDUE" || mov.eventType?.includes("OVERDUE");
+
+                      return (
+                        <div key={mov.id ?? index} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-start gap-3">
+                            <div
+                              className={cn(
+                                "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border",
+                                isReturn
+                                  ? "border-success/30 bg-success-light text-success"
+                                  : isOverdueEvent
+                                    ? "border-danger/30 bg-danger-light text-danger"
+                                    : "border-warning/30 bg-warning-light text-warning",
+                              )}
+                            >
+                              {isReturn ? (
+                                <LogIn className="h-4 w-4" />
+                              ) : isOverdueEvent ? (
+                                <AlertTriangle className="h-4 w-4" />
+                              ) : (
+                                <LogOut className="h-4 w-4" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-body font-medium capitalize text-ink">
+                                  {mov.eventType?.replace(/_/g, " ").toLowerCase() ?? "Movement"}
+                                </span>
+                                {mov.isManualOverride && (
+                                  <span className="rounded bg-accent/15 px-1.5 py-0.5 text-micro font-medium text-accent">
+                                    Manual Override
+                                  </span>
+                                )}
+                                <span className="rounded bg-surface-sunken px-1.5 py-0.5 font-mono text-micro text-muted">
+                                  {mov.movementMethod ?? "SYSTEM"}
+                                </span>
+                              </div>
+                              <p className="text-caption text-muted">
+                                {mov.fromState ?? "—"} → {mov.toState ?? "—"}
+                                {mov.location ? ` · ${mov.location}` : ""}
+                              </p>
+                              {mov.overrideReason && (
+                                <p className="mt-0.5 text-caption italic text-muted">
+                                  &quot;{mov.overrideReason}&quot;
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="shrink-0 text-caption text-muted sm:text-right">
+                            {(mov.occurredAt || mov.createdAt) ? formatDateTime((mov.occurredAt || mov.createdAt)!) : "—"}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </SectionCard>
@@ -1573,6 +1939,118 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
             </div>
           )}
 
+          {/* Movement Control Card — available to admin and super admin */}
+          {canManageMovement && (
+            <div className="rounded-xl border border-border bg-surface shadow-sm">
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <h3 className="flex items-center gap-2 text-caption font-semibold uppercase tracking-wider text-muted">
+                  <MapPin className="h-3.5 w-3.5" />
+                  Movement Control
+                </h3>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-micro font-semibold uppercase tracking-wide",
+                    isInHostel
+                      ? "bg-success-light text-success"
+                      : isOverdue
+                        ? "bg-danger-light text-danger"
+                        : "bg-warning-light text-warning",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full",
+                      isInHostel ? "bg-success" : isOverdue ? "bg-danger" : "bg-warning",
+                    )}
+                  />
+                  {locationStateLabel}
+                </span>
+              </div>
+              <div className="space-y-3 p-4">
+                <div className="rounded-lg bg-surface-sunken/60 p-3 text-caption">
+                  <p className="text-muted">Student Location</p>
+                  <p className="font-semibold capitalize text-ink">{locationStateLabel}</p>
+                  <p className="mt-1 text-micro text-muted">
+                    {isInHostel
+                      ? "Student is recorded inside the hostel."
+                      : isOnLeave
+                        ? "Student is on approved leave."
+                        : isOverdue
+                          ? "Student is past scheduled return time."
+                          : "Student has exited the hostel premises."}
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  {canCheckout && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start gap-2"
+                      onClick={() => {
+                        setMovementReason("");
+                        setMovementAction("checkout");
+                      }}
+                      disabled={movementActionBusy}
+                    >
+                      <LogOut className="h-4 w-4 text-muted" />
+                      Record Check-out (Exit)
+                    </Button>
+                  )}
+
+                  {canReturn && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start gap-2 border-success/30 text-success hover:bg-success-light"
+                      onClick={() => {
+                        setMovementReason("");
+                        setMovementAction("return");
+                      }}
+                      disabled={movementActionBusy}
+                    >
+                      <LogIn className="h-4 w-4 text-success" />
+                      Record Check-in (Return)
+                    </Button>
+                  )}
+
+                  {canMarkOverdue && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start gap-2 border-danger/30 text-danger hover:bg-danger-light"
+                      onClick={() => {
+                        setMovementReason("");
+                        setMovementAction("overdue");
+                      }}
+                      disabled={movementActionBusy}
+                    >
+                      <AlertTriangle className="h-4 w-4 text-danger" />
+                      Mark Overdue
+                    </Button>
+                  )}
+
+                  {!canCheckout && !canReturn && !canMarkOverdue && (
+                    <p className="text-center text-caption text-muted">
+                      {!isLeaveApproved
+                        ? "Movement check-out unlocks once this leave is approved."
+                        : "No actions available in current movement state."}
+                    </p>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("movement")}
+                    className="flex w-full items-center justify-between rounded-lg border border-border px-3 py-2 text-caption text-muted transition-colors hover:bg-surface-sunken hover:text-ink"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <History className="h-3.5 w-3.5" />
+                      Movement details ({movements.length})
+                    </span>
+                    <span>→</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Leave Summary Mini Card */}
           <div className="rounded-xl border border-border bg-surface shadow-sm">
             <div className="border-b border-border px-4 py-3">
@@ -1990,6 +2468,83 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   <Zap className="h-4 w-4" />
                   {overrideMode === "ONE_STEP" ? "Advance One Step" : "Approve All"}
                 </>
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Movement Action Confirmation Dialog */}
+      <AlertDialog
+        open={movementAction !== null}
+        onOpenChange={(open) => {
+          if (!open && !movementActionBusy) setMovementAction(null);
+        }}
+      >
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div
+                className={cn(
+                  "flex h-10 w-10 items-center justify-center rounded-full",
+                  movementAction === "return"
+                    ? "bg-success-light text-success"
+                    : movementAction === "overdue"
+                      ? "bg-danger-light text-danger"
+                      : "bg-accent-light text-accent",
+                )}
+              >
+                {movementAction === "return" ? (
+                  <LogIn className="h-5 w-5" />
+                ) : movementAction === "overdue" ? (
+                  <AlertTriangle className="h-5 w-5" />
+                ) : (
+                  <LogOut className="h-5 w-5" />
+                )}
+              </div>
+              <div>
+                <AlertDialogTitle className="text-h3">
+                  {movementAction ? movementActionCopy[movementAction].title : ""}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {movementAction ? movementActionCopy[movementAction].description : ""}
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="mb-1.5 block text-caption font-medium text-muted">
+                Reason / Note <span className="text-muted/60">(optional)</span>
+              </label>
+              <textarea
+                value={movementReason}
+                onChange={(e) => setMovementReason(e.target.value)}
+                placeholder="Add an optional remark for this manual movement..."
+                rows={3}
+                className="w-full rounded-lg border border-border bg-bg p-2.5 text-body outline-none transition-colors placeholder:text-muted/50 focus:border-accent focus:ring-1 focus:ring-accent"
+              />
+            </div>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={movementActionBusy}>Cancel</AlertDialogCancel>
+            <Button
+              disabled={movementActionBusy}
+              variant={movementAction === "overdue" ? "destructive" : "default"}
+              onClick={(e) => {
+                e.preventDefault();
+                if (movementAction) void runLocationAction(movementAction);
+              }}
+            >
+              {movementActionBusy ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Confirm Movement"
               )}
             </Button>
           </AlertDialogFooter>
