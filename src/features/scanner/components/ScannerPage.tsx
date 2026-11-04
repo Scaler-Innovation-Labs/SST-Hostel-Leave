@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   Clock,
   History,
-  Keyboard,
   Loader2,
   QrCode,
   RotateCcw,
@@ -28,7 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button, Input, OfflineNotice } from "@/design-system/sst";
+import { Button, OfflineNotice } from "@/design-system/sst";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import {
   type QrScanPreviewResult,
@@ -69,8 +68,6 @@ export function ScannerPage() {
   const [preview, setPreview] = useState<QrScanPreviewResult | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
-  const [manualToken, setManualToken] = useState("");
-  const [showManualInput, setShowManualInput] = useState(false);
   const [autoResetSeconds, setAutoResetSeconds] = useState<number | null>(null);
 
   // Synchronous guards against duplicate frame processing & race conditions
@@ -227,17 +224,6 @@ export function ScannerPage() {
     setCurrentResult(null);
   }, []);
 
-  const handleManualSubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      const token = manualToken.trim();
-      if (!token) return;
-      setManualToken("");
-      setShowManualInput(false);
-      handleScanToken(token);
-    },
-    [manualToken, handleScanToken],
-  );
 
   const isExitScan = preview?.scanType === "EXIT_SCAN";
   const isCameraPaused =
@@ -266,50 +252,18 @@ export function ScannerPage() {
         }
       />
 
-      <div className="flex flex-wrap items-center gap-3">
-        <Button asChild variant="outline" size="guard" className="flex-1">
-          <Link href="/guard/manual-movement">Manual check-in / check-out</Link>
-        </Button>
-        <Button
-          variant="outline"
-          size="guard"
-          onClick={() => setShowManualInput((prev) => !prev)}
-          className="gap-2"
-        >
-          <Keyboard className="h-4 w-4" />
-          {showManualInput ? "Hide Code Entry" : "Type Code"}
-        </Button>
-      </div>
+      <Button
+        asChild
+        variant="outline"
+        size="lg"
+        block
+        className="h-12 w-full text-body font-medium sm:h-14 sm:text-body-lg"
+      >
+        <Link href="/guard/manual-movement">Manual check-in / check-out</Link>
+      </Button>
 
       <div className="mx-auto max-w-2xl space-y-6">
         {!online && <OfflineNotice />}
-
-        {/* ── MANUAL TOKEN INPUT FALLBACK ── */}
-        {showManualInput && (
-          <form
-            onSubmit={handleManualSubmit}
-            className="space-y-3 rounded-xl border border-border bg-surface p-4 shadow-raised"
-          >
-            <div className="flex items-center justify-between">
-              <h4 className="text-caption font-semibold text-ink">
-                Manual Pass Code Entry
-              </h4>
-              <span className="text-micro text-muted">Paste or enter token</span>
-            </div>
-            <div className="flex gap-2">
-              <Input
-                value={manualToken}
-                onChange={(e) => setManualToken(e.target.value)}
-                placeholder="Paste or type pass token..."
-                className="font-mono text-caption"
-                autoFocus
-              />
-              <Button type="submit" size="sm" disabled={!manualToken.trim() || scanning}>
-                Verify
-              </Button>
-            </div>
-          </form>
-        )}
 
         {/* ── SCAN STATS ── */}
         {recentScans.length > 0 && (
