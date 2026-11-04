@@ -10,6 +10,7 @@ export const listApprovalsSchema = z.object({
   search: z.string().optional(),
   waitingOn: z.string().optional(),
   hostelId: z.string().uuid().optional(),
+  gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   leaveTypeId: z.string().uuid().optional(),
   sortBy: sortSchema.shape.sortBy,
   sortOrder: sortSchema.shape.sortOrder,

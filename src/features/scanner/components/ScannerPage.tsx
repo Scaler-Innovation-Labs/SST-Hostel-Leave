@@ -6,13 +6,15 @@ import {
   CheckCircle2,
   Clock,
   History,
+  Keyboard,
   Loader2,
   QrCode,
+  RotateCcw,
   User,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { QrScanner } from "@/components/qr/QrScanner";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -26,7 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button, OfflineNotice } from "@/design-system/sst";
+import { Button, Input, OfflineNotice } from "@/design-system/sst";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import {
   type QrScanPreviewResult,
@@ -67,24 +69,51 @@ export function ScannerPage() {
   const [preview, setPreview] = useState<QrScanPreviewResult | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [manualToken, setManualToken] = useState("");
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [autoResetSeconds, setAutoResetSeconds] = useState<number | null>(null);
+
+  // Synchronous guards against duplicate frame processing & race conditions
+  const isProcessingRef = useRef(false);
+  const activeTokenRef = useRef<string | null>(null);
   const lastCommitted = useRef<{ token: string; at: number } | null>(null);
 
   const addResult = useCallback((result: ScanResult) => {
     setCurrentResult(result);
     setRecentScans((prev) => [result, ...prev].slice(0, 10));
+    setAutoResetSeconds(result.success ? 4 : null);
   }, []);
+
+  // Auto-reset timer after a successful scan so the guard does not have to tap every time
+  useEffect(() => {
+    if (!currentResult?.success) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setAutoResetSeconds((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timer);
+          setCurrentResult(null);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [currentResult]);
 
   const handleScanToken = useCallback(
     async (rawToken: string) => {
       const token = rawToken.trim();
       if (!token) return;
 
-      // The scanner re-fires every ~500ms while the same QR stays in view.
-      // Ignore repeats while the guard is deciding on the first detection.
-      if (pendingToken === token) return;
+      // Synchronously block duplicate concurrent processing
+      if (isProcessingRef.current) return;
+      if (activeTokenRef.current === token) return;
 
-      // Ignore re-scans of a QR that was just committed to (the pass is now
-      // used — showing a fresh denied panel right after an approval is noise).
+      // Ignore re-scans of a QR that was just committed to
       if (
         lastCommitted.current &&
         lastCommitted.current.token === token &&
@@ -92,6 +121,9 @@ export function ScannerPage() {
       ) {
         return;
       }
+
+      isProcessingRef.current = true;
+      activeTokenRef.current = token;
 
       setScanning(true);
       setCurrentResult(null);
@@ -109,8 +141,16 @@ export function ScannerPage() {
             scanType: data.scanType ?? undefined,
           });
           setPendingToken(null);
+          activeTokenRef.current = null;
         } else {
           setPreview(data);
+          if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+            try {
+              navigator.vibrate(100);
+            } catch {
+              // Ignore if blocked
+            }
+          }
         }
       } catch (err) {
         addResult({
@@ -119,13 +159,24 @@ export function ScannerPage() {
           timestamp: new Date(),
         });
         setPendingToken(null);
+        activeTokenRef.current = null;
       } finally {
         setPreviewLoading(false);
         setScanning(false);
+        isProcessingRef.current = false;
       }
     },
-    [pendingToken, addResult],
+    [addResult],
   );
+
+  const handleCancelScan = useCallback(() => {
+    isProcessingRef.current = false;
+    activeTokenRef.current = null;
+    setScanning(false);
+    setPreviewLoading(false);
+    setPendingToken(null);
+    setPreview(null);
+  }, []);
 
   const handleConfirm = useCallback(async () => {
     if (!pendingToken) return;
@@ -141,6 +192,13 @@ export function ScannerPage() {
         timestamp: new Date(),
         scanType: data.scanType,
       });
+      if (data.success && typeof navigator !== "undefined" && "vibrate" in navigator) {
+        try {
+          navigator.vibrate([100, 50, 100]);
+        } catch {
+          // Ignore if blocked
+        }
+      }
     } catch (err) {
       addResult({
         success: false,
@@ -151,19 +209,39 @@ export function ScannerPage() {
       setConfirming(false);
       setPendingToken(null);
       setPreview(null);
+      activeTokenRef.current = null;
+      isProcessingRef.current = false;
     }
   }, [pendingToken, addResult]);
 
   const handleDiscard = useCallback(() => {
+    isProcessingRef.current = false;
+    activeTokenRef.current = null;
     setPendingToken(null);
     setPreview(null);
   }, []);
 
   const handleReset = useCallback(() => {
+    isProcessingRef.current = false;
+    activeTokenRef.current = null;
     setCurrentResult(null);
   }, []);
 
+  const handleManualSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      const token = manualToken.trim();
+      if (!token) return;
+      setManualToken("");
+      setShowManualInput(false);
+      handleScanToken(token);
+    },
+    [manualToken, handleScanToken],
+  );
+
   const isExitScan = preview?.scanType === "EXIT_SCAN";
+  const isCameraPaused =
+    scanning || previewLoading || preview !== null || confirming;
 
   // Scan stats for today
   const todayScans = useMemo(() => {
@@ -180,7 +258,7 @@ export function ScannerPage() {
       <PageHeader
         eyebrow="Gate"
         title="Scan a pass"
-        description="Point the camera at the student's code. Check the name and photo before you record anything."
+        description="Point the camera at the student's code. Check the name and details before confirming."
         status={
           online
             ? { label: "Connected", tone: "success" }
@@ -188,20 +266,54 @@ export function ScannerPage() {
         }
       />
 
-      <Button asChild variant="outline" size="guard" block>
-        <Link href="/guard/manual-movement">Manual check-in / check-out</Link>
-      </Button>
+      <div className="flex flex-wrap items-center gap-3">
+        <Button asChild variant="outline" size="guard" className="flex-1">
+          <Link href="/guard/manual-movement">Manual check-in / check-out</Link>
+        </Button>
+        <Button
+          variant="outline"
+          size="guard"
+          onClick={() => setShowManualInput((prev) => !prev)}
+          className="gap-2"
+        >
+          <Keyboard className="h-4 w-4" />
+          {showManualInput ? "Hide Code Entry" : "Type Code"}
+        </Button>
+      </div>
 
       <div className="mx-auto max-w-2xl space-y-6">
-        {/*
-          A scanner that cannot reach the server cannot verify anything. It
-          says so plainly rather than appearing to work.
-        */}
         {!online && <OfflineNotice />}
+
+        {/* ── MANUAL TOKEN INPUT FALLBACK ── */}
+        {showManualInput && (
+          <form
+            onSubmit={handleManualSubmit}
+            className="space-y-3 rounded-xl border border-border bg-surface p-4 shadow-raised"
+          >
+            <div className="flex items-center justify-between">
+              <h4 className="text-caption font-semibold text-ink">
+                Manual Pass Code Entry
+              </h4>
+              <span className="text-micro text-muted">Paste or enter token</span>
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={manualToken}
+                onChange={(e) => setManualToken(e.target.value)}
+                placeholder="Paste or type pass token..."
+                className="font-mono text-caption"
+                autoFocus
+              />
+              <Button type="submit" size="sm" disabled={!manualToken.trim() || scanning}>
+                Verify
+              </Button>
+            </div>
+          </form>
+        )}
 
         {/* ── SCAN STATS ── */}
         {recentScans.length > 0 && (
-          <div className="flex items-center gap-4 rounded-xl border border-border bg-surface px-4 py-3">
+          <div className="flex items-center gap-4 rounded-xl border border-border bg-surface px-4 py-3 shadow-raised">
             <div className="flex items-center gap-2 text-caption text-muted">
               <QrCode className="h-3.5 w-3.5" />
               <span>Today</span>
@@ -218,44 +330,52 @@ export function ScannerPage() {
         )}
 
         {/* ── CAMERA SCANNER ── */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           <QrScanner
             onScan={handleScanToken}
-            className="aspect-square w-full rounded-2xl"
+            paused={isCameraPaused}
+            className="aspect-square w-full rounded-2xl shadow-raised"
           />
-          <p className="text-center text-caption text-muted">
-            Point the camera at the student&apos;s QR code
-          </p>
+          <div className="flex items-center justify-between px-1 text-caption text-muted">
+            <span>Point camera at the student&apos;s live QR code</span>
+            {isCameraPaused && (
+              <span className="font-mono text-micro text-accent">Camera paused</span>
+            )}
+          </div>
         </div>
 
-        {/* ── SCANNING STATE ── */}
+        {/* ── SCANNING & VERIFYING STATE ── */}
         {scanning && (
-          <div className="flex items-center justify-center gap-3 rounded-xl border border-border bg-surface p-5 shadow-sm">
-            <Loader2 className="h-6 w-6 animate-spin text-accent" />
-            <div>
-              <p className="text-body font-medium">
-                {previewLoading ? "Verifying QR..." : "Processing scan..."}
-              </p>
-              <p className="text-caption text-muted">
-                {previewLoading
-                  ? "Fetching student details for confirmation"
-                  : "Recording movement"}
-              </p>
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-accent/30 bg-accent-light/10 p-5 shadow-raised">
+            <div className="flex items-center gap-3">
+              <Loader2 className="h-6 w-6 animate-spin text-accent" />
+              <div>
+                <p className="text-body font-semibold text-ink">
+                  {previewLoading ? "Verifying QR code..." : "Recording movement..."}
+                </p>
+                <p className="text-caption text-muted">
+                  {previewLoading
+                    ? "Validating credentials and fetching student record"
+                    : "Updating gate records"}
+                </p>
+              </div>
             </div>
+            <Button variant="outline" size="sm" onClick={handleCancelScan}>
+              Cancel
+            </Button>
           </div>
         )}
 
-        {/* ── SCAN RESULT ── */}
+        {/* ── SCAN RESULT WITH AUTO-RESET ── */}
         {currentResult && !scanning && (
           <div
             className={cn(
-              "relative overflow-hidden rounded-xl border p-6 shadow-sm transition-all",
+              "relative overflow-hidden rounded-xl border p-6 shadow-raised transition-all",
               currentResult.success
-                ? "border-success/30 bg-gradient-to-br from-success/5 to-success/10"
-                : "border-danger/30 bg-gradient-to-br from-danger/5 to-danger/10",
+                ? "border-success/30 bg-success-light/10"
+                : "border-danger/30 bg-danger-light/10",
             )}
           >
-            {/* Success/Error icon */}
             <div className="flex items-start gap-4">
               <div
                 className={cn(
@@ -273,7 +393,7 @@ export function ScannerPage() {
               </div>
 
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <p
                     className={cn(
                       "text-h3 font-semibold",
@@ -285,7 +405,7 @@ export function ScannerPage() {
                   {currentResult.scanType && (
                     <span
                       className={cn(
-                        "inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-micro font-medium",
+                        "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-micro font-semibold uppercase",
                         currentResult.scanType === "EXIT_SCAN"
                           ? "bg-warning-light text-warning"
                           : "bg-success-light text-success",
@@ -296,7 +416,7 @@ export function ScannerPage() {
                   )}
                 </div>
 
-                <p className="mt-1 text-body-lg text-muted">
+                <p className="mt-1 text-body text-ink">
                   {currentResult.message}
                 </p>
 
@@ -305,25 +425,29 @@ export function ScannerPage() {
                     <Clock className="h-3 w-3" />
                     {format(currentResult.timestamp, "HH:mm:ss")} IST
                   </span>
+                  {autoResetSeconds !== null && (
+                    <span className="inline-flex items-center gap-1 font-mono text-micro text-accent">
+                      Next scan in {autoResetSeconds}s…
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Action button */}
-            <div className="mt-4 flex justify-end">
+            <div className="mt-5 flex justify-end">
               <Button size="guard" block onClick={handleReset}>
-                <QrCode className="h-8 w-8" aria-hidden />
-                Scan the next pass
+                <RotateCcw className="h-5 w-5 mr-1" aria-hidden />
+                Scan next pass now
               </Button>
             </div>
           </div>
         )}
 
-        {/* ── RECENT SCANS ── */}
+        {/* ── RECENT SCANS LOG ── */}
         {recentScans.length > 0 && (
-          <div className="rounded-xl border border-border bg-surface shadow-sm">
+          <div className="rounded-xl border border-border bg-surface shadow-raised">
             <div className="flex items-center justify-between border-b border-border px-5 py-3">
-              <h3 className="flex items-center gap-2 text-body font-semibold">
+              <h3 className="flex items-center gap-2 text-body font-semibold text-ink">
                 <History className="h-4 w-4 text-muted" />
                 Recent Scans
               </h3>
@@ -335,7 +459,7 @@ export function ScannerPage() {
               {recentScans.map((scan, i) => (
                 <div
                   key={`${scan.timestamp.getTime()}-${i}`}
-                  className="flex items-center gap-3 px-5 py-3 text-body transition-colors hover:bg-surface-sunken/30"
+                  className="flex items-center gap-3 px-5 py-3 text-body transition-colors hover:bg-surface-sunken/40"
                 >
                   <div
                     className={cn(
@@ -390,25 +514,39 @@ export function ScannerPage() {
           if (!open && !confirming) handleDiscard();
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {isExitScan ? "Confirm Exit" : "Confirm Check-in"}
+            <div className="flex items-center gap-2">
+              <span
+                className={cn(
+                  "rounded-md px-2.5 py-1 font-mono text-micro font-semibold uppercase",
+                  isExitScan
+                    ? "bg-warning-light text-warning"
+                    : "bg-success-light text-success",
+                )}
+              >
+                {isExitScan ? "Exit Verification" : "Check-in Verification"}
+              </span>
+            </div>
+            <AlertDialogTitle className="text-h3 font-semibold text-ink pt-1">
+              {isExitScan ? "Confirm Campus Exit" : "Confirm Hostel Return"}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Verify the student&apos;s identity before recording the{" "}
+            <AlertDialogDescription className="text-caption text-muted">
+              Verify the student&apos;s physical appearance and details before recording the{" "}
               {isExitScan ? "exit" : "check-in"}.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          <div className="space-y-3 rounded-xl border border-border bg-surface-sunken/30 p-4">
+          <div className="space-y-3 rounded-xl border border-border bg-surface-sunken p-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10">
-                <User className="h-5 w-5 text-accent" />
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-light text-accent">
+                <User className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className="truncate font-semibold">{preview?.student?.name ?? "Unknown"}</p>
-                <p className="truncate text-caption text-muted">
+                <p className="truncate text-body font-semibold text-ink">
+                  {preview?.student?.name ?? "Unknown"}
+                </p>
+                <p className="truncate text-caption text-muted font-mono">
                   {preview?.student?.rollNumber ?? "No roll number"}
                   {preview?.student?.roomNumber
                     ? ` · Room ${preview.student.roomNumber}`
@@ -416,13 +554,13 @@ export function ScannerPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent/10">
-                <Building2 className="h-5 w-5 text-accent" />
+            <div className="flex items-center gap-3 border-t border-border pt-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-light text-accent">
+                <Building2 className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <p className="truncate font-semibold">
-                  {preview?.student?.hostelName ?? "No hostel"}
+                <p className="truncate text-caption font-semibold text-ink">
+                  {preview?.student?.hostelName ?? "No hostel assigned"}
                 </p>
                 <p className="truncate text-caption text-muted">
                   {formatLeaveWindow(preview?.leave)}
@@ -431,9 +569,15 @@ export function ScannerPage() {
             </div>
           </div>
 
-          <AlertDialogFooter>
+          <AlertDialogFooter className="gap-2 sm:gap-2">
             <AlertDialogCancel asChild>
-              <Button variant="outline" size="lg" disabled={confirming} onClick={handleDiscard}>
+              <Button
+                variant="outline"
+                size="lg"
+                disabled={confirming}
+                onClick={handleDiscard}
+                className="flex-1"
+              >
                 Not this student
               </Button>
             </AlertDialogCancel>
@@ -443,9 +587,10 @@ export function ScannerPage() {
                 onClick={handleConfirm}
                 loading={confirming}
                 loadingText="Recording…"
+                className="flex-1"
               >
-                <CheckCircle2 className="h-5 w-5" aria-hidden />
-                {isExitScan ? "Record the exit" : "Record the return"}
+                <CheckCircle2 className="h-5 w-5 mr-1" aria-hidden />
+                {isExitScan ? "Record exit" : "Record return"}
               </Button>
             </AlertDialogAction>
           </AlertDialogFooter>

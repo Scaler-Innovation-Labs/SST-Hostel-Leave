@@ -325,6 +325,8 @@ export const leaveApprovalRepository = {
       excludeLeaveStatuses?: LeaveRequestStatus[];
       waitingOn?: string;
       hostelId?: string;
+      /** Restrict to students of a specific gender. */
+      gender?: "MALE" | "FEMALE" | "OTHER";
       /** Restrict to students whose user belongs to one of these hostels. */
       hostelIds?: string[];
       /** Restrict to a single student's leave requests. */
@@ -364,6 +366,7 @@ export const leaveApprovalRepository = {
           policyResult?: Record<string, unknown> | null;
         } | null;
         studentName: string | null;
+        studentGender: "MALE" | "FEMALE" | "OTHER" | null;
         studentRollNumber: string | null;
         roomNumber: string | null;
         hostelName: string | null;
@@ -431,6 +434,9 @@ export const leaveApprovalRepository = {
     }
     if (filters.hostelId) {
       baseConditions.push(eq(users.hostelId, filters.hostelId));
+    }
+    if (filters.gender) {
+      baseConditions.push(eq(users.gender, filters.gender));
     }
     if (filters.hostelIds?.length) {
       baseConditions.push(inArray(users.hostelId, filters.hostelIds));
@@ -578,6 +584,7 @@ export const leaveApprovalRepository = {
         leaveReqCurrentStepOrder: leaveRequests.currentStepOrder,
         leaveReqPolicyResult: leaveRequests.policyResult,
         studentName: users.fullName,
+        studentGender: users.gender,
         studentRollNumber: students.rollNumber,
         roomNumber: students.roomNumber,
         hostelName: hostels.name,
@@ -698,6 +705,7 @@ export const leaveApprovalRepository = {
             }
           : null,
         studentName: row.studentName,
+        studentGender: row.studentGender,
         studentRollNumber: row.studentRollNumber,
         roomNumber: row.roomNumber,
         hostelName: row.hostelName,
@@ -900,6 +908,8 @@ export const leaveApprovalRepository = {
       /** Restrict to extensions whose parent leave is waiting on this step. */
       waitingOn?: string;
       hostelId?: string;
+      /** Restrict to students of a specific gender. */
+      gender?: "MALE" | "FEMALE" | "OTHER";
       /** Restrict to students whose user belongs to one of these hostels. */
       hostelIds?: string[];
       leaveTypeId?: string;
@@ -930,6 +940,7 @@ export const leaveApprovalRepository = {
         hostelName: string | null;
         departmentName: string | null;
         studentName: string | null;
+        studentGender: "MALE" | "FEMALE" | "OTHER" | null;
         studentRollNumber: string | null;
         parentName: string | null;
         parentPhone: string | null;
@@ -978,6 +989,9 @@ export const leaveApprovalRepository = {
     }
     if (filters.hostelIds?.length) {
       scopeConditions.push(inArray(users.hostelId, filters.hostelIds));
+    }
+    if (filters.gender) {
+      scopeConditions.push(eq(users.gender, filters.gender));
     }
 
     // Everything except the waiting-on filter. The step breakdown has to be
@@ -1203,6 +1217,7 @@ export const leaveApprovalRepository = {
         execUiConfig: leaveTypeVersions.uiConfig,
         execWorkflowSteps: workflowVersions.steps,
         studentName: users.fullName,
+        studentGender: users.gender,
         studentRollNumber: students.rollNumber,
         roomNumber: students.roomNumber,
         hostelName: hostels.name,
@@ -1302,6 +1317,7 @@ export const leaveApprovalRepository = {
         hostelName: row.hostelName,
         departmentName: row.departmentName,
         studentName: row.studentName,
+        studentGender: row.studentGender,
         studentRollNumber: row.studentRollNumber,
         parentName: row.parentName,
         parentPhone: row.parentPhone,

@@ -197,12 +197,18 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
     return { label: key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) || "Unknown" };
   }
 
-  const isComplete = lr?.status === LEAVE_REQUEST_STATUS.APPROVED || lr?.status === LEAVE_REQUEST_STATUS.COMPLETED || lr?.status === LEAVE_REQUEST_STATUS.REJECTED;
-  const isRejected = lr?.status === LEAVE_REQUEST_STATUS.REJECTED;
+  const isRejected = leaveStatus === LEAVE_REQUEST_STATUS.REJECTED;
+  const isExpired = leaveStatus === LEAVE_REQUEST_STATUS.EXPIRED;
+  const isCancelled = leaveStatus === LEAVE_REQUEST_STATUS.CANCELLED;
+  const isPostApproval =
+    leaveStatus === LEAVE_REQUEST_STATUS.APPROVED ||
+    leaveStatus === LEAVE_REQUEST_STATUS.COMPLETED ||
+    leaveStatus === LEAVE_REQUEST_STATUS.OVERDUE ||
+    (isExpired && isApproved);
   const currentOrder = lr?.currentStepOrder ?? null;
   const approvalSteps = (item.workflowSteps ?? []).map((step) => {
     let status: "completed" | "current" | "pending" | "failed";
-    if (isComplete && !isRejected) {
+    if (isPostApproval) {
       status = "completed";
     } else if (isRejected && currentOrder != null) {
       status =
@@ -211,6 +217,15 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
           : step.stepOrder < currentOrder
             ? "completed"
             : "pending";
+    } else if ((isExpired || isCancelled) && !isApproved) {
+      status =
+        currentOrder != null && step.stepOrder === currentOrder
+          ? "failed"
+          : currentOrder != null && step.stepOrder < currentOrder
+            ? "completed"
+            : step.stepOrder === 1
+              ? "failed"
+              : "pending";
     } else if (currentOrder != null) {
       status =
         step.stepOrder < currentOrder
@@ -392,6 +407,15 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
               <h3 className="text-body font-semibold leading-tight">{item.studentName ?? "—"}</h3>
               <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-caption text-muted">
                 <span className="font-mono">{item.studentRollNumber}</span>
+                {item.studentGender && (
+                  <span>
+                    {item.studentGender === "MALE"
+                      ? "Male"
+                      : item.studentGender === "FEMALE"
+                        ? "Female"
+                        : item.studentGender}
+                  </span>
+                )}
                 {item.departmentName && <span>{item.departmentName}</span>}
                 {item.roomNumber && <span>Room {item.roomNumber}</span>}
                 {item.hostelName && (

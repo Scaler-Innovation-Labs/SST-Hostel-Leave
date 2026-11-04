@@ -13,6 +13,7 @@ export function getApprovalsUrl(query?: Partial<ListApprovalsQuery>): string {
     search: query?.search,
     waitingOn: query?.waitingOn,
     hostelId: query?.hostelId,
+    gender: query?.gender,
     leaveTypeId: query?.leaveTypeId,
     page: query?.page,
     limit: query?.limit,

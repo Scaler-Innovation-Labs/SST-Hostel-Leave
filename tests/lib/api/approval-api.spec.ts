@@ -22,5 +22,10 @@ describe("approval-api", () => {
       const url = getApprovalsUrl({ search: "john" });
       expect(url).toBe("/api/v1/approvals?search=john");
     });
+
+    it("includes gender param", () => {
+      const url = getApprovalsUrl({ gender: "MALE" });
+      expect(url).toBe("/api/v1/approvals?gender=MALE");
+    });
   });
 });

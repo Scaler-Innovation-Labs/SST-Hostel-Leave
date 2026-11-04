@@ -11,11 +11,18 @@ type QrCodeDisplayProps = {
   size?: number;
   className?: string;
   onError?: () => void;
-}
+};
 
 export function QrCodeDisplay({ imageUrl, size = 200, className, onError }: QrCodeDisplayProps) {
+  const [prevImageUrl, setPrevImageUrl] = useState(imageUrl);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  if (imageUrl !== prevImageUrl) {
+    setPrevImageUrl(imageUrl);
+    setLoaded(false);
+    setError(null);
+  }
 
   if (error) {
     return (

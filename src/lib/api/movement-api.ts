@@ -129,29 +129,53 @@ export type QrScanPreviewResult = {
 export async function scanQrPreview(
   token: string,
 ): Promise<QrScanPreviewResult> {
-  const res = await fetch(`${BASE}/movements/scan/preview`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token }),
-  });
-  const json: ApiResponse = await res.json();
-  if (!res.ok || !json.success) {
-    throw new Error(json.error?.message ?? "Failed to preview QR");
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(`${BASE}/movements/scan/preview`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: token.trim() }),
+      signal: controller.signal,
+    });
+    const json: ApiResponse = await res.json();
+    if (!res.ok || !json.success) {
+      throw new Error(json.error?.message ?? "Failed to preview QR");
+    }
+    return json.data as QrScanPreviewResult;
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("Verification timed out. Check connection and try again.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  return json.data as QrScanPreviewResult;
 }
 
 export async function scanQr(
   token: string,
 ): Promise<ScanQrResult> {
-  const res = await fetch(`${BASE}/movements/scan`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token }),
-  });
-  const json: ApiResponse = await res.json();
-  if (!res.ok || !json.success) {
-    throw new Error(json.error?.message ?? "Failed to scan QR");
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(`${BASE}/movements/scan`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: token.trim() }),
+      signal: controller.signal,
+    });
+    const json: ApiResponse = await res.json();
+    if (!res.ok || !json.success) {
+      throw new Error(json.error?.message ?? "Failed to scan QR");
+    }
+    return json.data as ScanQrResult;
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("Scan request timed out. Check connection and try again.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  return json.data as ScanQrResult;
 }

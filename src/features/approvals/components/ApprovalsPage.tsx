@@ -45,6 +45,7 @@ type FilterState = {
   waitingOn: string;
   leaveTypeId: string;
   hostelId: string;
+  gender: string;
   dateRange: string;
   search: string;
 };
@@ -76,6 +77,7 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
     waitingOn: "",
     leaveTypeId: "",
     hostelId: "",
+    gender: "",
     dateRange: "",
     search: "",
   });
@@ -98,6 +100,7 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
     search: filters.search || undefined,
     waitingOn: isOverdue ? undefined : filters.waitingOn || undefined,
     hostelId: filters.hostelId || undefined,
+    gender: (filters.gender as "MALE" | "FEMALE" | "OTHER") || undefined,
     leaveTypeId: filters.leaveTypeId || undefined,
     dateFrom: dateRange.dateFrom,
     dateTo: dateRange.dateTo,
@@ -109,7 +112,7 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
   };
 
   const clearFilters = () => {
-    setFilters({ status: "", waitingOn: "", leaveTypeId: "", hostelId: "", dateRange: "", search: "" });
+    setFilters({ status: "", waitingOn: "", leaveTypeId: "", hostelId: "", gender: "", dateRange: "", search: "" });
     setPage(1);
   };
 
@@ -408,6 +411,21 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
             onChange={(v) => updateFilter("hostelId", v)}
           />
         )}
+
+        <Select
+          value={filters.gender}
+          onValueChange={(v) => updateFilter("gender", v)}
+        >
+          <SelectTrigger className="h-9 w-[130px]">
+            <SelectValue placeholder="Gender" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Genders</SelectItem>
+            <SelectItem value="MALE">Male</SelectItem>
+            <SelectItem value="FEMALE">Female</SelectItem>
+            <SelectItem value="OTHER">Other</SelectItem>
+          </SelectContent>
+        </Select>
 
         <Select
           value={filters.dateRange}

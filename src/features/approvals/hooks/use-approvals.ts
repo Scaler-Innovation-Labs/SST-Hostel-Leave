@@ -9,6 +9,7 @@ import type { ApprovalStepBreakdownEntry } from "@/types/leave/approval-step-bre
 export type ApprovalQueueItem = {
   id: string;
   studentName: string | null;
+  studentGender?: "MALE" | "FEMALE" | "OTHER" | null;
   studentRollNumber: string | null;
   decision: string;
   approverRoleCode: string | null;

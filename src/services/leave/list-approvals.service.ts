@@ -46,6 +46,7 @@ export async function listApprovals(
         policyResult?: Record<string, unknown> | null;
       } | null;
       studentName: string | null;
+      studentGender: "MALE" | "FEMALE" | "OTHER" | null;
       studentRollNumber: string | null;
       roomNumber: string | null;
       hostelName: string | null;
@@ -136,6 +137,7 @@ export async function listApprovals(
     hostelId: isPocOnly ? undefined : query.hostelId,
     hostelIds,
     leaveTypeId: query.leaveTypeId,
+    gender: query.gender,
     assignedApproverUserId: isPocOnly && !isChainRequest ? currentUser.id : undefined,
     approverUserId: isPocOnly && !isChainRequest ? currentUser.id : undefined,
     // Admin queues provide full oversight, including CANCELLED requests. A

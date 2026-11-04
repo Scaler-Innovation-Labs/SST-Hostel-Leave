@@ -32,15 +32,17 @@ type QrScannerProps = {
   onScan: (token: string) => void;
   onError?: (error: string) => void;
   className?: string;
-}
+  paused?: boolean;
+};
 
-export function QrScanner({ onScan, onError, className }: QrScannerProps) {
+export function QrScanner({ onScan, onError, className, paused = false }: QrScannerProps) {
   const [status, setStatus] = useState<ScannerStatus>("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [retryCounter, setRetryCounter] = useState(0);
 
   const handleScan = useCallback(
     (detectedCodes: { rawValue: string }[]) => {
+      if (paused) return;
       if (detectedCodes.length > 0) {
         const rawValue = detectedCodes[0]?.rawValue;
         if (rawValue) {
@@ -49,7 +51,7 @@ export function QrScanner({ onScan, onError, className }: QrScannerProps) {
         }
       }
     },
-    [onScan],
+    [onScan, paused],
   );
 
   const handleError = useCallback(
@@ -106,8 +108,11 @@ export function QrScanner({ onScan, onError, className }: QrScannerProps) {
           key={retryCounter}
           onScan={handleScan}
           onError={handleError}
+          paused={paused}
+          sound={true}
           components={{
             finder: true,
+            torch: true,
           }}
           allowMultiple={false}
           scanDelay={500}
@@ -121,13 +126,19 @@ export function QrScanner({ onScan, onError, className }: QrScannerProps) {
       <div
         className={cn(
           "pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity duration-300",
-          status === "active" ? "opacity-100" : "opacity-0",
+          status === "active" && !paused ? "opacity-100" : "opacity-0",
         )}
       >
         <div className="rounded-2xl border-2 border-white/40 p-16">
           <QrCode className="h-8 w-8 text-white/30" />
         </div>
       </div>
+
+      {paused && (
+        <div className="absolute top-3 right-3 z-20 rounded-full bg-black/60 px-3 py-1 text-micro text-white/80 backdrop-blur-sm">
+          Scanner paused
+        </div>
+      )}
     </div>
   );
 }

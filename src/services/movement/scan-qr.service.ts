@@ -108,7 +108,7 @@ export type QrScanPreview = {
  * identity-verification step before the physical check-in/exit is recorded.
  */
 export async function previewQrScan(token: string): Promise<QrScanPreview> {
-	const tokenHash = await sha256(token);
+	const tokenHash = await sha256(token.trim());
 	const pass = await qrPassRepository.findByTokenHash(tokenHash);
 
 	if (!pass) {
@@ -227,7 +227,7 @@ export async function previewQrScan(token: string): Promise<QrScanPreview> {
 export async function scanQrPass(
 	input: ScanQrInput
 ): Promise<ScanResult> {
-	const tokenHash = await sha256(input.token);
+	const tokenHash = await sha256(input.token.trim());
 
 	const pass =
 		await qrPassRepository.findByTokenHash(tokenHash);
