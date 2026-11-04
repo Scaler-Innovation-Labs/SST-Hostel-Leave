@@ -68,7 +68,10 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import type { ApprovalOverrideType } from "@/constants/leave/approval-override-type";
-import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
+import {
+  LEAVE_APPROVAL_DECISION,
+  type LeaveApprovalDecision,
+} from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import type { BadgeTone } from "@/design-system/sst";
 import {
@@ -219,7 +222,17 @@ function DetailRow({ label, children, className }: { label: string; children: Re
 // ═══════════════════════════════════════════════════════════════
 
 /** A decision string from the API, resolved against the closed taxonomy. */
-function decisionPresentation(decision: string) {
+function decisionPresentation(decision: string, leaveStatus?: string) {
+  if (
+    leaveStatus?.toUpperCase() === LEAVE_REQUEST_STATUS.EXPIRED &&
+    decision.toUpperCase() === LEAVE_APPROVAL_DECISION.CANCELLED
+  ) {
+    return {
+      tone: "neutral" as const,
+      label: "Expired",
+      Icon: Clock,
+    };
+  }
   return (
     APPROVAL_DECISION_PRESENTATION[decision as LeaveApprovalDecision] ??
     APPROVAL_DECISION_PRESENTATION.PENDING
@@ -394,6 +407,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
   const studentStatRejected = studentLeaves.filter((l: Record<string, unknown>) => l.status === LEAVE_REQUEST_STATUS.REJECTED).length;
   const studentStatCancelled = studentLeaves.filter((l: Record<string, unknown>) => l.status === LEAVE_REQUEST_STATUS.CANCELLED).length;
   const studentStatPending = studentLeaves.filter((l: Record<string, unknown>) => l.status === LEAVE_REQUEST_STATUS.PENDING).length;
+  const studentStatExpired = studentLeaves.filter((l: Record<string, unknown>) => l.status === LEAVE_REQUEST_STATUS.EXPIRED).length;
 
   // ── Actions ──
   const handleAction = async () => {
@@ -724,11 +738,12 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                 </div>
 
                 {/* Quick Stats */}
-                <div className="mt-4 grid grid-cols-4 gap-3 rounded-lg border border-border bg-surface-sunken/30 p-3">
+                <div className="mt-4 grid grid-cols-5 gap-2 rounded-lg border border-border bg-surface-sunken/30 p-2.5 sm:p-3">
                   <StatBadge label="Approved" value={studentStatApproved} variant="success" />
                   <StatBadge label="Pending" value={studentStatPending} variant="warning" />
                   <StatBadge label="Rejected" value={studentStatRejected} variant="danger" />
                   <StatBadge label="Cancelled" value={studentStatCancelled} variant="default" />
+                  <StatBadge label="Expired" value={studentStatExpired} variant="default" />
                 </div>
               </SectionCard>
 
@@ -935,7 +950,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     <div className="space-y-0">
                       {sortedApprovals.map((app, _idx) => {
                         const decision = (app.decision ?? "PENDING").toUpperCase();
-                        const config = decisionPresentation(decision);
+                        const config = decisionPresentation(decision, status);
                         const Icon = config.Icon;
                         const _isLast = _idx === sortedApprovals.length - 1;
                         const isCurrent = decision === "pending";
@@ -1033,7 +1048,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                     {/* Approval Steps */}
                     {sortedApprovals.map((app, _i) => {
                       const decision = (app.decision ?? "PENDING").toUpperCase();
-                      const config = decisionPresentation(decision);
+                      const config = decisionPresentation(decision, status);
                       const Icon = config.Icon;
                       const isCurrent = decision === "pending";
 

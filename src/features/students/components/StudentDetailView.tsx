@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { getEventLabel } from "@/constants/notification/notification-labels";
 import { useLeaves } from "@/features/leaves/hooks/use-leaves";
@@ -50,12 +51,45 @@ type StudentDetailViewProps = {
 
 
 
+function StatBadge({
+  label,
+  value,
+  variant,
+}: {
+  label: string;
+  value: number;
+  variant: "success" | "danger" | "warning" | "default";
+}) {
+  const variantStyles = {
+    success: "bg-success-light text-success border-success/20",
+    danger: "bg-danger-light text-danger border-danger/20",
+    warning: "bg-warning-light text-warning border-warning/20",
+    default: "bg-surface-sunken text-muted border-border",
+  };
+  return (
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center rounded-md border py-2 px-1 text-center",
+        variantStyles[variant]
+      )}
+    >
+      <span className="text-h3 font-semibold leading-none">{value}</span>
+      <span className="mt-1 text-micro font-medium">{label}</span>
+    </div>
+  );
+}
+
 export function StudentDetailView({ studentId, basePath = "/admin/students", viewerRole }: StudentDetailViewProps) {
   const router = useRouter();
   const movementsPath = basePath.replace(/\/students$/, "/movements");
   const approvalsPath = basePath.replace(/\/students$/, "/approvals");
   const { student, isLoading, isError, error, mutate } = useStudent(studentId);
-  const { leaves } = useLeaves({ studentId, page: 1, limit: 5 });
+  const { leaves } = useLeaves({ studentId, page: 1, limit: 100 });
+  const studentStatApproved = leaves.filter((l: Record<string, unknown>) => l.status === LEAVE_REQUEST_STATUS.APPROVED).length;
+  const studentStatPending = leaves.filter((l: Record<string, unknown>) => l.status === LEAVE_REQUEST_STATUS.PENDING).length;
+  const studentStatRejected = leaves.filter((l: Record<string, unknown>) => l.status === LEAVE_REQUEST_STATUS.REJECTED).length;
+  const studentStatCancelled = leaves.filter((l: Record<string, unknown>) => l.status === LEAVE_REQUEST_STATUS.CANCELLED).length;
+  const studentStatExpired = leaves.filter((l: Record<string, unknown>) => l.status === LEAVE_REQUEST_STATUS.EXPIRED).length;
   const { movements } = useMovement({ studentId, page: 1, limit: 10 });
   const [locationAction, setLocationAction] = useState<"checkout" | "return" | "overdue" | null>(null);
   const [actionBusy, setActionBusy] = useState(false);
@@ -324,12 +358,19 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-lg bg-surface-sunken/50 p-3 text-center">
               <p className="text-h2 font-semibold tabular-nums">{leaves.length}</p>
-              <p className="text-caption text-muted">Recent Leaves</p>
+              <p className="text-caption text-muted">Total Leaves</p>
             </div>
             <div className="rounded-lg bg-surface-sunken/50 p-3 text-center">
               <p className="text-h2 font-semibold tabular-nums">{movements.length}</p>
               <p className="text-caption text-muted">Movements</p>
             </div>
+          </div>
+          <div className="mt-4 grid grid-cols-5 gap-2 rounded-lg border border-border bg-surface-sunken/30 p-2.5">
+            <StatBadge label="Approved" value={studentStatApproved} variant="success" />
+            <StatBadge label="Pending" value={studentStatPending} variant="warning" />
+            <StatBadge label="Rejected" value={studentStatRejected} variant="danger" />
+            <StatBadge label="Cancelled" value={studentStatCancelled} variant="default" />
+            <StatBadge label="Expired" value={studentStatExpired} variant="default" />
           </div>
         </div>
       </div>
@@ -360,7 +401,7 @@ export function StudentDetailView({ studentId, basePath = "/admin/students", vie
                     {formatDate(l.startAt)} — {formatDate(l.endAt)}
                   </p>
                 </div>
-                <StatusBadge status={(l.status ?? "").toLowerCase() as "approved" | "pending" | "rejected"} />
+                <StatusBadge status={(l.status ?? "").toLowerCase() as any} />
               </Link>
             ))}
           </div>
