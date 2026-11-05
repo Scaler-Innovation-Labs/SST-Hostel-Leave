@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 function hostelCondition(hostelIds?: string[]): ReturnType<typeof and>[] {
   const conditions: ReturnType<typeof and>[] = [];
   if (hostelIds?.length) {
-    conditions.push(inArray(users.hostelId, hostelIds));
+    conditions.push(inArray(leaveRequests.hostelId, hostelIds));
   }
   return conditions;
 }
@@ -40,15 +40,15 @@ export const leaveAnalyticsRepository = {
     const conditions = hostelCondition(hostelIds);
     const rows = await dbClient
       .select({
-        name: hostels.name,
+        name: sql<string>`COALESCE(${leaveRequests.hostelName}, 'Unassigned')`,
         count: sql<number>`count(*)`,
       })
       .from(leaveRequests)
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
-      .leftJoin(hostels, eq(users.hostelId, hostels.id))
+      .leftJoin(hostels, eq(leaveRequests.hostelId, hostels.id))
       .where(and(...conditions))
-      .groupBy(hostels.name)
+      .groupBy(sql`COALESCE(${leaveRequests.hostelName}, 'Unassigned')`)
       .orderBy(sql`count(*) desc`);
 
     return rows.map((row) => ({

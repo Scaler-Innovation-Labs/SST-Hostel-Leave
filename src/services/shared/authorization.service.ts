@@ -1,4 +1,5 @@
 import { ROLE_SCOPE_TYPE } from "@/constants/auth/role-scope";
+import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { ROLES } from "@/lib/auth/roles";
 import type { CurrentUser } from "@/lib/auth/types";
@@ -66,7 +67,7 @@ export function isStaffScopeRestricted(currentUser: CurrentUser): boolean {
  */
 export async function canAccessLeave(
   currentUser: CurrentUser,
-  leave: { studentId: string }
+  leave: { studentId: string; hostelId?: string | null; id?: string }
 ): Promise<boolean> {
   if (currentUser.roles.some((r) => r === ROLES.STUDENT)) {
     try {
@@ -86,11 +87,22 @@ export async function canAccessLeave(
 
   if (!isStaffScopeRestricted(currentUser)) return true;
 
-  const student = await studentRepository.findByIdWithRelations(leave.studentId);
-  const studentHostelId = student?.user?.hostelId ?? null;
-  if (!studentHostelId) return false;
+  // Prioritize the immutable hostel snapshot of the leave request.
+  let leaveHostelId = leave.hostelId;
+  if (leaveHostelId === undefined) {
+    if (leave.id) {
+      const fullLeave = await leaveRepository.findById(leave.id);
+      leaveHostelId = fullLeave?.hostelId ?? null;
+    } else {
+      // Fallback when only studentId is provided (e.g. prospective/student-level access check)
+      const student = await studentRepository.findByIdWithRelations(leave.studentId);
+      leaveHostelId = student?.user?.hostelId ?? null;
+    }
+  }
+  // A leave with no hostel snapshot (e.g. unassigned / day scholar) is not scoped to any hostel.
+  if (!leaveHostelId) return false;
 
-  return getScopedHostelIds(currentUser).includes(studentHostelId);
+  return getScopedHostelIds(currentUser).includes(leaveHostelId);
 }
 
 /**
@@ -136,7 +148,7 @@ export async function assertCanAccessStudent(
 /** Throws when the current user may not access the given leave request. */
 export async function assertCanAccessLeave(
   currentUser: CurrentUser,
-  leave: { studentId: string }
+  leave: { studentId: string; hostelId?: string | null; id?: string }
 ): Promise<void> {
   if (!(await canAccessLeave(currentUser, leave))) {
     throw new AuthorizationError("You do not have access to this leave");

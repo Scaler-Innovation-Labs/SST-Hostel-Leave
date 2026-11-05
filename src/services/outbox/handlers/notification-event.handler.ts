@@ -28,11 +28,13 @@ async function resolveLeaveRouting(
   const leave = await leaveRepository.findById(leaveRequestId);
   if (!leave) return {};
 
-  let hostelId: string | undefined;
-  const student = await studentRepository.findById(leave.studentId);
-  if (student) {
-    const user = await userRepository.findById(student.userId);
-    hostelId = user?.hostelId ?? undefined;
+  let hostelId: string | undefined = leave.hostelId ?? undefined;
+  if (!hostelId) {
+    const student = await studentRepository.findById(leave.studentId);
+    if (student) {
+      const user = await userRepository.findById(student.userId);
+      hostelId = user?.hostelId ?? undefined;
+    }
   }
 
   return { leaveTypeId: leave.leaveTypeId, hostelId };

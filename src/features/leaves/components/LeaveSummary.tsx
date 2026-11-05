@@ -96,6 +96,12 @@ export function LeaveSummary({ leave }: { leave: Record<string, unknown> }) {
                 )}
               />
               {destination && <Fact label="Destination" value={destination} />}
+              {((leave.hostelName as string) || (leave.hostel as { name?: string })?.name) && (
+                <Fact
+                  label="Hostel"
+                  value={((leave.hostelName as string) || (leave.hostel as { name?: string })?.name)!}
+                />
+              )}
             </dl>
 
             {(pendingWith || checks.length > 0) && (

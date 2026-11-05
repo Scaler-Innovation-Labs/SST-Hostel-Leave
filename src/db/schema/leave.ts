@@ -267,6 +267,28 @@ export const leaveRequests = pgTable("leave_requests", {
       onDelete: "cascade",
     }),
 
+  /**
+   * Immutable snapshot of student's hostel assignment at leave creation time.
+   * Retained permanently even if the student later transfers to another hostel.
+   */
+  hostelId: uuid("hostel_id").references(() => hostels.id, {
+    onDelete: "restrict",
+  }),
+
+  /**
+   * Immutable snapshot of hostel name at leave creation time, preserving
+   * historical display even if the hostel is later renamed.
+   */
+  hostelName: text("hostel_name"),
+
+  /**
+   * Indicates whether this hostel snapshot was backfilled from student baseline
+   * during migration 0006, rather than captured at creation time.
+   */
+  isHostelBackfilled: boolean("is_hostel_backfilled")
+    .default(false)
+    .notNull(),
+
   leaveTypeId: uuid("leave_type_id")
     .notNull()
     .references(() => leaveTypes.id, {
@@ -342,6 +364,7 @@ export const leaveRequests = pgTable("leave_requests", {
     sql`${table.endAt} >= ${table.startAt}`
   ),
   studentIdIndex: index("leave_requests_student_id_idx").on(table.studentId),
+  hostelIdIndex: index("leave_requests_hostel_id_idx").on(table.hostelId),
   leaveTypeIdIndex: index("leave_requests_leave_type_id_idx").on(table.leaveTypeId),
   statusIndex: index("leave_requests_status_idx").on(table.status),
   startAtIndex: index("leave_requests_start_at_idx").on(table.startAt),

@@ -245,7 +245,7 @@ export const leaveApprovalRepository = {
     ];
 
     if (options.hostelIds?.length) {
-      conditions.push(inArray(users.hostelId, options.hostelIds));
+      conditions.push(inArray(leaveRequests.hostelId, options.hostelIds));
     }
 
     if (options.assignedApproverUserId) {
@@ -290,7 +290,7 @@ export const leaveApprovalRepository = {
     ];
 
     if (options.hostelIds?.length) {
-      conditions.push(inArray(users.hostelId, options.hostelIds));
+      conditions.push(inArray(leaveRequests.hostelId, options.hostelIds));
     }
 
     const result = await dbClient
@@ -434,13 +434,13 @@ export const leaveApprovalRepository = {
       );
     }
     if (filters.hostelId) {
-      baseConditions.push(eq(users.hostelId, filters.hostelId));
+      baseConditions.push(eq(leaveRequests.hostelId, filters.hostelId));
     }
     if (filters.gender) {
       baseConditions.push(eq(users.gender, filters.gender));
     }
     if (filters.hostelIds?.length) {
-      baseConditions.push(inArray(users.hostelId, filters.hostelIds));
+      baseConditions.push(inArray(leaveRequests.hostelId, filters.hostelIds));
     }
     if (filters.leaveTypeId) {
       baseConditions.push(eq(leaveRequests.leaveTypeId, filters.leaveTypeId));
@@ -588,7 +588,7 @@ export const leaveApprovalRepository = {
         studentGender: users.gender,
         studentRollNumber: students.rollNumber,
         roomNumber: students.roomNumber,
-        hostelName: hostels.name,
+        hostelName: leaveRequests.hostelName,
         departmentName: departments.name,
         leaveTypeName: leaveTypes.name,
         leaveTypeUiConfig: leaveTypes.uiConfig,
@@ -631,7 +631,7 @@ export const leaveApprovalRepository = {
       )
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
-      .leftJoin(hostels, eq(users.hostelId, hostels.id))
+      .leftJoin(hostels, eq(leaveRequests.hostelId, hostels.id))
       .leftJoin(academicGroups, eq(students.academicGroupId, academicGroups.id))
       .leftJoin(departments, eq(academicGroups.departmentId, departments.id))
       .where(
@@ -986,10 +986,10 @@ export const leaveApprovalRepository = {
     ];
 
     if (filters.hostelId) {
-      scopeConditions.push(eq(users.hostelId, filters.hostelId));
+      scopeConditions.push(eq(leaveRequests.hostelId, filters.hostelId));
     }
     if (filters.hostelIds?.length) {
-      scopeConditions.push(inArray(users.hostelId, filters.hostelIds));
+      scopeConditions.push(inArray(leaveRequests.hostelId, filters.hostelIds));
     }
     if (filters.gender) {
       scopeConditions.push(eq(users.gender, filters.gender));
@@ -1222,7 +1222,7 @@ export const leaveApprovalRepository = {
         studentGender: users.gender,
         studentRollNumber: students.rollNumber,
         roomNumber: students.roomNumber,
-        hostelName: hostels.name,
+        hostelName: leaveRequests.hostelName,
         departmentName: departments.name,
         parentName: parents.name,
         parentPhone: parents.phone,
@@ -1260,7 +1260,7 @@ export const leaveApprovalRepository = {
       )
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
-      .leftJoin(hostels, eq(users.hostelId, hostels.id))
+      .leftJoin(hostels, eq(leaveRequests.hostelId, hostels.id))
       .leftJoin(academicGroups, eq(students.academicGroupId, academicGroups.id))
       .leftJoin(departments, eq(academicGroups.departmentId, departments.id))
       .leftJoin(

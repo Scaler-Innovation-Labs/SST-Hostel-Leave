@@ -4,7 +4,7 @@ import { and, asc, desc, eq, exists, gt, gte, ilike, inArray, isNotNull, isNull,
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { QR_MODE } from "@/constants/leave/qr-mode";
-import { leaveApprovalParentDetails, leaveApprovals, leaveExtensions, leaveRequests, leaveTypes, qrPasses, students, users } from "@/db";
+import { hostels, leaveApprovalParentDetails, leaveApprovals, leaveExtensions, leaveRequests, leaveTypes, qrPasses, students, users } from "@/db";
 import { db } from "@/lib/db";
 import { PersistenceError } from "@/lib/errors";
 
@@ -20,6 +20,7 @@ export type LeaveWithRelations = {
   student: typeof students.$inferSelect | null;
   user: typeof users.$inferSelect | null;
   leaveType: typeof leaveTypes.$inferSelect | null;
+  hostel?: typeof hostels.$inferSelect | null;
 };
 
 export type OverlappingLeave = {
@@ -377,7 +378,7 @@ async findAutoCompleteDueNonQrLeaves(
       conditions.push(eq(leaveRequests.leaveTypeId, filters.leaveTypeId));
     }
     if (filters.hostelId) {
-      conditions.push(eq(users.hostelId, filters.hostelId));
+      conditions.push(eq(leaveRequests.hostelId, filters.hostelId));
     }
     if (filters.startDate) {
       conditions.push(gte(leaveRequests.startAt, filters.startDate));
@@ -396,7 +397,7 @@ async findAutoCompleteDueNonQrLeaves(
       );
     }
     if (filters.hostelIds?.length) {
-      conditions.push(inArray(users.hostelId, filters.hostelIds));
+      conditions.push(inArray(leaveRequests.hostelId, filters.hostelIds));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
@@ -425,6 +426,7 @@ async findAutoCompleteDueNonQrLeaves(
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .leftJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
+      .leftJoin(hostels, eq(leaveRequests.hostelId, hostels.id))
       .where(whereClause)
       .orderBy(orderByDirection(orderByColumn))
       .limit(filters.limit)
@@ -436,6 +438,7 @@ async findAutoCompleteDueNonQrLeaves(
         student: row.students ?? null,
         user: row.users ?? null,
         leaveType: row.leave_types ?? null,
+        hostel: row.hostels ?? null,
       })),
       total,
       page: filters.page,
@@ -454,6 +457,7 @@ async findAutoCompleteDueNonQrLeaves(
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
       .leftJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
+      .leftJoin(hostels, eq(leaveRequests.hostelId, hostels.id))
       .where(eq(leaveRequests.id, id))
       .limit(1);
 
@@ -465,6 +469,7 @@ async findAutoCompleteDueNonQrLeaves(
       student: row.students ?? null,
       user: row.users ?? null,
       leaveType: row.leave_types ?? null,
+      hostel: row.hostels ?? null,
     };
   },
 
@@ -478,7 +483,7 @@ async findAutoCompleteDueNonQrLeaves(
       conditions.push(eq(leaveRequests.status, status));
     }
     if (hostelIds?.length) {
-      conditions.push(inArray(users.hostelId, hostelIds));
+      conditions.push(inArray(leaveRequests.hostelId, hostelIds));
       const rows = await dbClient
         .select({
           name: leaveTypes.name,
@@ -531,7 +536,7 @@ async findAutoCompleteDueNonQrLeaves(
   ): Promise<number> {
     const conditions: ReturnType<typeof and>[] = [eq(leaveRequests.status, status)];
     if (hostelIds?.length) {
-      conditions.push(inArray(users.hostelId, hostelIds));
+      conditions.push(inArray(leaveRequests.hostelId, hostelIds));
       const result = await dbClient
         .select({ count: sql<number>`count(*)` })
         .from(leaveRequests)
@@ -563,7 +568,7 @@ async findAutoCompleteDueNonQrLeaves(
       conditions.push(eq(leaveRequests.status, status));
     }
     if (hostelIds?.length) {
-      conditions.push(inArray(users.hostelId, hostelIds));
+      conditions.push(inArray(leaveRequests.hostelId, hostelIds));
       const rows = await dbClient
         .select({
           date: sql<string>`DATE(${leaveRequests.createdAt})`,
@@ -598,7 +603,7 @@ async findAutoCompleteDueNonQrLeaves(
   ): Promise<number> {
     const conditions: ReturnType<typeof and>[] = [];
     if (hostelIds?.length) {
-      conditions.push(inArray(users.hostelId, hostelIds));
+      conditions.push(inArray(leaveRequests.hostelId, hostelIds));
       const result = await dbClient
         .select({ count: sql<number>`count(*)` })
         .from(leaveRequests)
@@ -637,7 +642,7 @@ async findAutoCompleteDueNonQrLeaves(
         .from(leaveRequests)
         .leftJoin(students, eq(leaveRequests.studentId, students.id))
         .leftJoin(users, eq(students.userId, users.id))
-        .where(inArray(users.hostelId, hostelIds));
+        .where(inArray(leaveRequests.hostelId, hostelIds));
 
       const row = result[0];
       return {

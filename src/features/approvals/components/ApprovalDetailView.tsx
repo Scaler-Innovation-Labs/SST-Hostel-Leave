@@ -335,6 +335,8 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
   const destination = (leave?.destination as string) ?? "";
   const studentName = (user?.fullName as string) ?? "—";
   const rollNumber = (student?.rollNumber as string) ?? "—";
+  const rawHostel = rawLeaveData?.data?.hostel as Record<string, unknown> | null;
+  const leaveHostelName = (leave?.hostelName as string) || (rawHostel?.name as string) || "";
   const email = (user?.email as string) ?? "";
   const phone = (user?.phone as string) ?? "";
   const isActive = (leave?.isActive as boolean) ?? false;
@@ -896,6 +898,9 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   <DetailRow label="Request #">
                     <span className="font-mono text-caption text-muted">{requestNumber}</span>
                   </DetailRow>
+                  {leaveHostelName && (
+                    <DetailRow label="Hostel">{leaveHostelName}</DetailRow>
+                  )}
                 </dl>
 
                 {reason && reason !== "—" && (

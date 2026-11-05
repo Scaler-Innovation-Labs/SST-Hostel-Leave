@@ -182,6 +182,8 @@ export const hostelsRelations = relations(
     operationalPeriods: many(operationalPeriods),
 
     policies: many(policies),
+
+    leaveRequests: many(leaveRequests),
   })
 );
 
@@ -284,6 +286,11 @@ export const leaveRequestsRelations = relations(
     student: one(students, {
       fields: [leaveRequests.studentId],
       references: [students.id],
+    }),
+
+    hostel: one(hostels, {
+      fields: [leaveRequests.hostelId],
+      references: [hostels.id],
     }),
 
     leaveType: one(leaveTypes, {

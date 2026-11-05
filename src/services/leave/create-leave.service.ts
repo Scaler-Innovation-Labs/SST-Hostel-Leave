@@ -10,6 +10,7 @@ import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { leaveApprovalParentDetails } from "@/db";
 import { userRoleRepository } from "@/db/repositories/auth/user-role.repository";
+import { hostelRepository } from "@/db/repositories/hostel/hostel.repository";
 import type { LeaveRequest } from "@/db/repositories/leave/leave.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
@@ -180,11 +181,24 @@ export async function createLeave(
 
     const requestNumber = await leaveRepository.nextRequestNumber(tx);
 
+    const studentUser = await userRepository.findById(student.userId, tx);
+    let snapshotHostelId: string | null = null;
+    let snapshotHostelName: string | null = null;
+    if (studentUser?.hostelId) {
+      const hostel = await hostelRepository.findById(studentUser.hostelId, tx);
+      if (hostel) {
+        snapshotHostelId = hostel.id;
+        snapshotHostelName = hostel.name;
+      }
+    }
+
     const createdLeave =
   await leaveRepository.create(
     {
       requestNumber,
       studentId: student.id,
+      hostelId: snapshotHostelId,
+      hostelName: snapshotHostelName,
       leaveTypeId: leaveType.id,
 
       reason: dto.reason,

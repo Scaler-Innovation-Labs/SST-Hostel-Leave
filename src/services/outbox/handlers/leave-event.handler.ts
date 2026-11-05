@@ -119,6 +119,10 @@ async function resolveContext(
       // ensuring the exact selected parent receives subsequent notifications.
       if (leaveId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(leaveId)) {
         try {
+          const leave = await leaveRepository.findById(leaveId);
+          if (leave?.hostelId) {
+            hostelId = leave.hostelId;
+          }
           const approvals = await leaveApprovalRepository.findByLeaveRequestId(leaveId);
           const parentApproval = approvals.find((a) => a.stepKey === WORKFLOW_STEP_KEY.PARENT_APPROVAL);
           if (parentApproval) {
