@@ -3,7 +3,6 @@
 import { CheckCircle2, Clock, FileText, Search, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useMemo, useState } from "react";
-import useSWR from "swr";
 
 import { HostelFilter } from "@/components/shared/HostelFilter";
 import { InfoCard } from "@/components/shared/InfoCard";
@@ -30,7 +29,7 @@ import {
 } from "@/features/approvals/lib/step-display";
 import { useExtensionApprovals } from "@/features/extensions/hooks/use-approve-extension";
 import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
-import { fetcher } from "@/lib/api/fetcher";
+import { useHostels } from "@/hooks/use-hostels";
 import { computeDateRange, DATE_RANGE_OPTIONS } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 
@@ -66,7 +65,7 @@ export function ExtensionApprovalsPage({ hrefPrefix }: ExtensionApprovalsPagePro
   });
 
   const { leaveTypes } = useLeaveTypes();
-  const { data: hostels } = useSWR<Array<{ id: string; name: string; code: string }>>("/api/v1/hostels", fetcher);
+  const { hostels } = useHostels();
 
   const dateRange = useMemo(() => computeDateRange(filters.dateRange), [filters.dateRange]);
 

@@ -1,4 +1,10 @@
+import { mutate as globalMutate } from "swr";
+
 const BASE = "/api/v1/academic-groups";
+
+export function getAcademicGroupsUrl(): string {
+  return BASE;
+}
 
 export async function saveAcademicGroup(data: Record<string, unknown>, id?: string): Promise<unknown> {
   const response = await fetch(id ? `${BASE}/${id}` : BASE, {
@@ -10,6 +16,7 @@ export async function saveAcademicGroup(data: Record<string, unknown>, id?: stri
   if (!response.ok || !result.success) {
     throw new Error(result.error?.message ?? "Failed to save academic group");
   }
+  void globalMutate(BASE);
   return result.data;
 }
 
@@ -19,4 +26,5 @@ export async function deleteAcademicGroup(id: string): Promise<void> {
   if (!response.ok || !result.success) {
     throw new Error(result.error?.message ?? "Failed to delete academic group");
   }
+  void globalMutate(BASE);
 }

@@ -2,26 +2,13 @@
 
 import { Building2, Plus, Save, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import useSWR from "swr";
 
 import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
-import { fetcher } from "@/lib/api/fetcher";
+import { type HostelItem, useHostels } from "@/hooks/use-hostels";
 import { deleteHostel, saveHostel } from "@/lib/api/hostel-api";
-
-type HostelItem = {
-  id: string;
-  name: string;
-  code: string;
-  capacity: number | null;
-  curfewStartTime: string | null;
-  curfewEndTime: string | null;
-  slackAdminGroupId: string | null;
-  slackChannelId: string | null;
-  isActive: boolean;
-};
 
 type Draft = {
   id?: string;
@@ -47,7 +34,7 @@ const EMPTY_DRAFT: Draft = {
 };
 
 export default function HostelsPage() {
-  const { data: hostels, isLoading, error, mutate } = useSWR<HostelItem[]>("/api/v1/hostels", fetcher);
+  const { data: hostels, isLoading, error, mutate } = useHostels();
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);

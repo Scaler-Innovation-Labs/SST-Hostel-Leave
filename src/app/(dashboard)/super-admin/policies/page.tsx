@@ -11,18 +11,13 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { POLICY_TYPES } from "@/dto/policy/save-policy.dto";
 import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
+import { useHostels } from "@/hooks/use-hostels";
 import { usePolicies } from "@/hooks/use-policies";
 import { fetcher } from "@/lib/api/fetcher";
 import { savePolicy } from "@/lib/api/policy-api";
 import { cn } from "@/lib/utils";
 
 type DepartmentItem = {
-  id: string;
-  code: string;
-  name: string;
-};
-
-type HostelItem = {
   id: string;
   code: string;
   name: string;
@@ -121,7 +116,7 @@ export default function PoliciesPage() {
   const { policies, isLoading, isError, error, mutate } = usePolicies();
   const { leaveTypes } = useLeaveTypes();
   const { data: departments } = useSWR<DepartmentItem[]>("/api/v1/departments", fetcher);
-  const { data: hostels } = useSWR<HostelItem[]>("/api/v1/hostels", fetcher);
+  const { hostels } = useHostels();
   const [draft, setDraft] = useState<PolicyDraft>(EMPTY_DRAFT);
   const [message, setMessage] = useState<string | null>(null);
   const [messageType, setMessageType] = useState<"success" | "error">("success");

@@ -22,6 +22,7 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/design-system/sst";
+import { useHostels } from "@/hooks/use-hostels";
 import { formatDateTime } from "@/lib/date-utils";
 
 const fetcher = async (url: string) => {
@@ -30,8 +31,6 @@ const fetcher = async (url: string) => {
   const r = await res.json();
   return Array.isArray(r?.data) ? r.data : [];
 };
-
-type HostelOption = { id: string; name: string; code: string };
 
 type OverdueReturn = {
   id: string;
@@ -82,7 +81,7 @@ export function OverdueReturnsPage({ detailBasePath }: OverdueReturnsPageProps) 
     dedupingInterval: 30_000,
   });
 
-  const { data: hostels } = useSWR<HostelOption[]>("/api/v1/hostels", fetcher);
+  const { hostels } = useHostels();
 
   const overdue = useMemo(() => {
     const items = Array.isArray(data) ? data : [];

@@ -13,6 +13,7 @@ import { LEAVE_TYPE_COLOR_PALETTE } from "@/constants/leave/leave-category";
 import { QR_MODE, QR_MODES } from "@/constants/leave/qr-mode";
 import { LEAVE_WORKFLOW_MODE } from "@/constants/leave/workflow-mode";
 import { fetcher } from "@/lib/api/fetcher";
+import { saveLeaveTypeAdmin } from "@/lib/api/leave-api";
 
 type FormField = {
   key: string;
@@ -148,7 +149,10 @@ export default function LeaveTypesPage() {
     error,
     mutate,
   } = useSWR<LeaveType[]>("/api/v1/admin/leave-types", fetcher, {
-    revalidateOnMount: true,
+    revalidateIfStale: false,
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+    dedupingInterval: 30_000,
   });
 
   const isError = !!error;
@@ -251,22 +255,7 @@ export default function LeaveTypesPage() {
         uiConfig: { isSpecial: draft.isSpecial, color: draft.color },
       };
 
-      const url = draft.id
-        ? `/api/v1/admin/leave-types/${draft.id}`
-        : "/api/v1/admin/leave-types";
-
-      const res = await fetch(url, {
-        method: draft.id ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      const json = await res.json();
-
-      if (!res.ok || !json.success) {
-        throw new Error(json.error?.message ?? "Failed to save leave type");
-      }
-
+      await saveLeaveTypeAdmin(body, draft.id);
       await mutate();
       setDraft(EMPTY_DRAFT);
       setMessage("Leave type saved.");

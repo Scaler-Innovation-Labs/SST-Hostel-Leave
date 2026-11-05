@@ -1,9 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import useSWR from "swr";
-
-import { fetcher } from "@/lib/api/fetcher";
 
 const OVERDUE_LIMIT = 200;
 
@@ -36,6 +33,7 @@ import {
 } from "@/features/approvals/lib/step-display";
 import { useDashboardStats } from "@/features/dashboard/hooks/use-dashboard-stats";
 import { useLeaveTypes } from "@/features/leaves/hooks/use-leaves";
+import { useHostels } from "@/hooks/use-hostels";
 import { computeDateRange, DATE_RANGE_OPTIONS } from "@/lib/date-utils";
 
 const OVERDUE_HOURS = 24;
@@ -88,11 +86,7 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
   const { stats } = useDashboardStats(undefined, undefined, undefined, undefined, {
     enabled: viewerRole !== "POC",
   });
-  const { data: hostels } = useSWR<Array<{ id: string; name: string; code: string }>>(
-    "/api/v1/hostels",
-    fetcher,
-    { dedupingInterval: 30_000 }
-  );
+  const { hostels } = useHostels();
 
   // Derive API-ready date range from the friendly range label
   const dateRange = useMemo(() => computeDateRange(filters.dateRange), [filters.dateRange]);

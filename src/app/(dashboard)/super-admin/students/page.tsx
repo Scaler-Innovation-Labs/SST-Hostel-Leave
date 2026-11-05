@@ -9,6 +9,8 @@ import useSWR from "swr";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Pagination } from "@/components/shared/Pagination";
 import { Button } from "@/components/ui/button";
+import { useAcademicGroups } from "@/hooks/use-academic-groups";
+import { useHostels } from "@/hooks/use-hostels";
 import { fetcher } from "@/lib/api/fetcher";
 import { parseBulkExcel } from "@/utils/excel";
 
@@ -127,15 +129,8 @@ export default function SuperAdminStudentsPage() {
     fetcher,
   );
 
-  const { data: academicGroups } = useSWR<Array<{ id: string; name: string; code: string | null }>>(
-    "/api/v1/academic-groups",
-    fetcher,
-  );
-
-  const { data: hostels } = useSWR<Array<{ id: string; name: string }>>(
-    "/api/v1/hostels",
-    fetcher,
-  );
+  const { academicGroups } = useAcademicGroups();
+  const { hostels } = useHostels();
 
   const { data: parentsData, mutate: mutateParents } = useSWR<{ items: ParentRecord[] }>(
     draft.id ? `/api/v1/parents?studentId=${draft.id}&limit=50` : null,

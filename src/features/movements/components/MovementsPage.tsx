@@ -2,7 +2,6 @@
 
 import { RotateCcw } from "lucide-react";
 import { useMemo, useState } from "react";
-import useSWR from "swr";
 
 import { DataToolbar } from "@/components/shared/DataToolbar";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -11,8 +10,8 @@ import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { DataTable } from "@/components/shared/table/DataTable";
 import { Button } from "@/components/ui/button";
+import { useHostels } from "@/hooks/use-hostels";
 import { useMovement } from "@/hooks/use-movement";
-import { fetcher } from "@/lib/api/fetcher";
 import { computeDateRange, DATE_RANGE_OPTIONS, formatDateTime } from "@/lib/date-utils";
 
 const EVENT_TYPE_OPTIONS = [
@@ -57,12 +56,6 @@ type MovementRow = {
   createdAt: string;
 };
 
-type HostelOption = {
-  id: string;
-  name: string;
-  code: string;
-};
-
 type MovementsPageProps = {
   title?: string;
   description?: string;
@@ -78,7 +71,7 @@ export function MovementsPage({
   const [hostelId, setHostelId] = useState("");
   const [dateRange, setDateRange] = useState("");
 
-  const { data: hostels } = useSWR<HostelOption[]>("/api/v1/hostels", fetcher);
+  const { hostels } = useHostels();
 
   const { dateFrom, dateTo } = useMemo(() => computeDateRange(dateRange), [dateRange]);
 

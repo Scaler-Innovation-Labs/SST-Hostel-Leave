@@ -164,9 +164,14 @@ export type LeaveTypeOption = {
 };
 
 export function useLeaveTypes() {
-  const { data, error, isLoading } = useSWR<{ data: LeaveTypeOption[] }>(
+  const { data, error, isLoading, mutate } = useSWR<{ data: LeaveTypeOption[] }>(
     "/api/v1/leave-types",
-    { dedupingInterval: 30_000 },
+    {
+      revalidateIfStale: false,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+      dedupingInterval: 30_000,
+    },
   );
 
   return {
@@ -174,5 +179,6 @@ export function useLeaveTypes() {
     isLoading,
     isError: !!error,
     error,
+    mutate,
   };
 }

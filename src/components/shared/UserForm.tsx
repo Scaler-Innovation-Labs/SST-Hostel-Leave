@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import useSWR from "swr";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetcher } from "@/lib/api/fetcher";
+import { useHostels } from "@/hooks/use-hostels";
 
 const ROLE_OPTIONS = [
   { value: "STUDENT", label: "Student" },
@@ -31,8 +30,6 @@ const GENDER_OPTIONS = [
 
 // Roles that can be restricted to specific hostels.
 const SCOPABLE_ROLES = ["ADMIN", "POC"];
-
-type HostelOption = { id: string; name: string; code: string };
 
 export type UserRoleScopeField = {
   roleCode: string;
@@ -80,7 +77,7 @@ export function UserForm({ initialData, onSubmit, onCancel, isLoading, mode }: U
   const [isActive, setIsActive] = useState(initialData?.isActive ?? true);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: hostels } = useSWR<HostelOption[]>("/api/v1/hostels", fetcher);
+  const { hostels } = useHostels();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

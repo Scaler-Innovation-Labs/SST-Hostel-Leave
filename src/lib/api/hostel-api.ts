@@ -1,3 +1,5 @@
+import { mutate as globalMutate } from "swr";
+
 const BASE = "/api/v1/hostels";
 
 export function getHostelsUrl(): string {
@@ -23,6 +25,7 @@ export async function saveHostel(data: Record<string, unknown>, id?: string): Pr
   if (!response.ok || !result.success) {
     throw new Error(result.error?.message ?? "Failed to save hostel");
   }
+  void globalMutate(BASE);
   return result.data;
 }
 
@@ -32,4 +35,5 @@ export async function deleteHostel(id: string): Promise<void> {
   if (!response.ok || !result.success) {
     throw new Error(result.error?.message ?? "Failed to delete hostel");
   }
+  void globalMutate(BASE);
 }

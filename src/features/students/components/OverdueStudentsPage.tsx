@@ -3,7 +3,6 @@
 import { ArrowRight, Building2, Clock, Mail, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import useSWR from "swr";
 
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
@@ -17,9 +16,7 @@ import { Input } from "@/components/ui/input";
 import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { Avatar } from "@/design-system/sst";
 import { useStudents } from "@/features/students/hooks/use-students";
-import { fetcher } from "@/lib/api/fetcher";
-
-type HostelOption = { id: string; name: string; code: string };
+import { useHostels } from "@/hooks/use-hostels";
 
 type StudentData = {
   id: string;
@@ -59,7 +56,7 @@ export function OverdueStudentsPage({ detailBasePath }: OverdueStudentsPageProps
     hostelId: hostelId || undefined,
   });
 
-  const { data: hostels } = useSWR<HostelOption[]>("/api/v1/hostels", fetcher);
+  const { hostels } = useHostels();
 
   const totalPages = Math.ceil(total / 20);
   const hasActiveFilters = search !== "" || hostelId !== "";

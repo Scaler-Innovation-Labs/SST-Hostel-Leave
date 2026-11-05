@@ -31,6 +31,29 @@ export function getLeaveTypesUrl(): string {
   return `${BASE}/leave-types`;
 }
 
+export function getAdminLeaveTypesUrl(id?: string): string {
+  return id ? `${BASE}/admin/leave-types/${id}` : `${BASE}/admin/leave-types`;
+}
+
+export async function saveLeaveTypeAdmin(
+  data: Record<string, unknown>,
+  id?: string,
+): Promise<unknown> {
+  const url = getAdminLeaveTypesUrl(id);
+  const response = await fetch(url, {
+    method: id ? "PUT" : "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  const result = await response.json();
+  if (!response.ok || !result.success) {
+    throw new Error(result.error?.message ?? "Failed to save leave type");
+  }
+  void globalMutate(`${BASE}/admin/leave-types`);
+  void globalMutate(`${BASE}/leave-types`);
+  return result.data;
+}
+
 export async function createLeave(data: Record<string, unknown>): Promise<unknown> {
   const res = await fetch(`${BASE}/leaves`, {
     method: "POST",

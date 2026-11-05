@@ -8,18 +8,11 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { LoadingState } from "@/components/shared/LoadingState";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Button } from "@/components/ui/button";
+import { type AcademicGroupItem, useAcademicGroups } from "@/hooks/use-academic-groups";
 import { deleteAcademicGroup, saveAcademicGroup } from "@/lib/api/academic-group-api";
 import { fetcher } from "@/lib/api/fetcher";
 
 type DepartmentItem = { id: string; code: string; name: string };
-type AcademicGroupItem = {
-  id: string;
-  departmentId: string;
-  batchYear: number;
-  name: string;
-  groupCode: string | null;
-  isActive: boolean;
-};
 
 type Draft = {
   id?: string;
@@ -41,7 +34,7 @@ const EMPTY_DRAFT: Draft = {
 };
 
 export default function AcademicGroupsPage() {
-  const { data: groupsData, isLoading, error, mutate } = useSWR<AcademicGroupItem[]>("/api/v1/academic-groups", fetcher);
+  const { data: groupsData, isLoading, error, mutate } = useAcademicGroups();
   const { data: departments } = useSWR<DepartmentItem[]>("/api/v1/departments", fetcher);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [saving, setSaving] = useState(false);
