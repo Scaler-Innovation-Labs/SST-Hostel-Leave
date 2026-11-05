@@ -89,10 +89,16 @@ function flattenLeaveItem(item: RawLeaveItem) {
 
 export type FlatLeave = ReturnType<typeof flattenLeaveItem>;
 
-export function useLeaves(query?: Partial<ListLeavesQuery>) {
+export function useLeaves(
+  query?: Partial<ListLeavesQuery>,
+  options?: { refreshInterval?: number; dedupingInterval?: number }
+) {
   const { data, error, isLoading, mutate } = useSWR(
     query ? getLeavesUrl(query) : null,
-    { refreshInterval: 60_000, dedupingInterval: 10_000 },
+    {
+      refreshInterval: options?.refreshInterval ?? 0,
+      dedupingInterval: options?.dedupingInterval ?? 30_000,
+    },
   );
 
   const rawItems: RawLeaveItem[] = data?.data?.items ?? [];
@@ -114,7 +120,7 @@ export function useLeave(id: string | undefined) {
   // calls after cancel/extension keep it fresh without background polling.
   const { data, error, isLoading, mutate } = useSWR(
     id ? getLeaveUrl(id) : null,
-    { revalidateOnMount: true },
+    { dedupingInterval: 30_000 },
   );
 
   const raw = data?.data as RawLeaveItem | undefined;
@@ -160,7 +166,7 @@ export type LeaveTypeOption = {
 export function useLeaveTypes() {
   const { data, error, isLoading } = useSWR<{ data: LeaveTypeOption[] }>(
     "/api/v1/leave-types",
-    { revalidateOnMount: true },
+    { dedupingInterval: 30_000 },
   );
 
   return {

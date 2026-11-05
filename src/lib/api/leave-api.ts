@@ -1,3 +1,5 @@
+import { mutate as globalMutate } from "swr";
+
 import type { ListLeavesQuery } from "@/dto/leave/list-leaves.dto";
 import { buildQueryString } from "@/lib/api/query-string";
 import type { ApiResponse } from "@/types/api";
@@ -39,6 +41,11 @@ export async function createLeave(data: Record<string, unknown>): Promise<unknow
   if (!res.ok || !json.success) {
     throw new Error(json.error?.message ?? "Failed to create leave");
   }
+  void globalMutate(
+    (key) => typeof key === "string" && (key.startsWith("/api/v1/leaves") || key.startsWith("/api/v1/dashboard/stats")),
+    undefined,
+    { revalidate: true }
+  );
   return json.data;
 }
 
@@ -48,6 +55,11 @@ export async function cancelLeave(id: string): Promise<unknown> {
   if (!res.ok || !json.success) {
     throw new Error(json.error?.message ?? "Failed to cancel leave");
   }
+  void globalMutate(
+    (key) => typeof key === "string" && (key.startsWith("/api/v1/leaves") || key.startsWith("/api/v1/dashboard/stats")),
+    undefined,
+    { revalidate: true }
+  );
   return json.data;
 }
 

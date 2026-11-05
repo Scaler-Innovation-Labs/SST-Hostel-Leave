@@ -54,10 +54,16 @@ export type ApprovalQueueItem = {
   } | null;
 };
 
-export function useApprovals(query?: Partial<ListApprovalsQuery>) {
+export function useApprovals(
+  query?: Partial<ListApprovalsQuery>,
+  options?: { refreshInterval?: number; dedupingInterval?: number }
+) {
   const { data, error, isLoading, mutate } = useSWR(
     query ? getApprovalsUrl(query) : null,
-    { refreshInterval: 60_000, dedupingInterval: 10_000 },
+    {
+      refreshInterval: options?.refreshInterval ?? 180_000,
+      dedupingInterval: options?.dedupingInterval ?? 30_000,
+    },
   );
 
   return {

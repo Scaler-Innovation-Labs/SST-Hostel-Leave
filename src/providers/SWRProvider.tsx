@@ -1,12 +1,12 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
-import { type ReactNode,useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { SWRConfig, useSWRConfig } from "swr";
 
 type SWRProviderProps = {
   children: ReactNode;
-}
+};
 
 // Global fetcher for SWR - optimized with proper error handling
 const globalFetcher = async (url: string) => {
@@ -27,10 +27,9 @@ export function SWRProvider({ children }: SWRProviderProps) {
         fetcher: globalFetcher,
         revalidateOnFocus: false,
         revalidateIfStale: false,
-        revalidateOnMount: true,
         refreshWhenHidden: false,
         refreshWhenOffline: false,
-        dedupingInterval: 10_000,
+        dedupingInterval: 30_000,
         errorRetryCount: 2,
         keepPreviousData: true,
       }}

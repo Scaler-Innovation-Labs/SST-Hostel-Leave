@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import useSWR from "swr";
+import useSWR, { mutate as globalMutate } from "swr";
 
 import { fetcher } from "@/lib/api/fetcher";
 import type { Role } from "@/lib/auth/roles";
@@ -35,6 +35,8 @@ export function useActiveRole() {
       throw new Error(json.error?.message ?? "Could not switch role");
     }
     const dashboardHref = (json.data.dashboardHref as string) ?? "/";
+    // Clear SWR cache on role switch so previous role's scoped lists don't linger
+    await globalMutate(() => true, undefined, { revalidate: false });
     await mutate();
     router.push(dashboardHref);
     router.refresh();

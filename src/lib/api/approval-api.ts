@@ -1,3 +1,5 @@
+import { mutate as globalMutate } from "swr";
+
 import type { ListApprovalsQuery } from "@/dto/approval/list-approvals.dto";
 import { buildQueryString } from "@/lib/api/query-string";
 import type { ApiResponse } from "@/types/api";
@@ -45,6 +47,11 @@ export async function approveLeave(
   if (!res.ok || !json.success) {
     throw new Error(json.error?.message ?? "Failed to approve leave");
   }
+  void globalMutate(
+    (key) => typeof key === "string" && (key.startsWith("/api/v1/approvals") || key.startsWith("/api/v1/badges") || key.startsWith("/api/v1/dashboard/stats")),
+    undefined,
+    { revalidate: true }
+  );
   return json.data;
 }
 
@@ -62,6 +69,11 @@ export async function superadminOverrideLeave(
   if (!res.ok || !json.success) {
     throw new Error(json.error?.message ?? "Failed to override leave");
   }
+  void globalMutate(
+    (key) => typeof key === "string" && (key.startsWith("/api/v1/approvals") || key.startsWith("/api/v1/badges") || key.startsWith("/api/v1/dashboard/stats")),
+    undefined,
+    { revalidate: true }
+  );
   return json.data;
 }
 
@@ -80,5 +92,10 @@ export async function rejectLeave(
   if (!res.ok || !json.success) {
     throw new Error(json.error?.message ?? "Failed to reject leave");
   }
+  void globalMutate(
+    (key) => typeof key === "string" && (key.startsWith("/api/v1/approvals") || key.startsWith("/api/v1/badges") || key.startsWith("/api/v1/dashboard/stats")),
+    undefined,
+    { revalidate: true }
+  );
   return json.data;
 }

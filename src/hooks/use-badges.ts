@@ -20,9 +20,10 @@ export type NavBadges = {
  * All badge components consume this same SWR key, so the request is
  * deduplicated across the sidebar for the lifetime of the page.
  */
-export function useNavBadges(refreshInterval = 120_000) {
+export function useNavBadges(refreshInterval = 300_000) {
   const { data } = useSWR<NavBadges>("/api/v1/badges", fetcher, {
     refreshInterval,
+    dedupingInterval: 30_000,
   });
 
   return {

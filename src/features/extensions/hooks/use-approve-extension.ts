@@ -23,7 +23,8 @@ export function useExtensionApprovals(options?: UseExtensionApprovalsOptions) {
   const url = getExtensionApprovalsUrl(options);
 
   const { data, error, isLoading, mutate } = useSWR(url, fetcher, {
-    refreshInterval: options?.refreshInterval ?? 60_000,
+    refreshInterval: options?.refreshInterval ?? 180_000,
+    dedupingInterval: 30_000,
   });
 
   return {
@@ -57,7 +58,7 @@ export function useApproveExtension() {
     if (!res.ok || !json.success) {
       throw new Error(json.error?.message ?? "Failed to approve extension");
     }
-    await globalMutate((key: string) => typeof key === "string" && key.includes("/extensions/approvals"));
+    await globalMutate((key: string) => typeof key === "string" && (key.includes("/extensions/approvals") || key.includes("/badges")));
     return json.data;
   };
 

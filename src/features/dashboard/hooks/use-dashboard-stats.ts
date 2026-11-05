@@ -16,9 +16,8 @@ export function useDashboardStats(
     getDashboardStatsUrl(status, period, startDate, endDate),
     {
       refreshInterval: 180_000,
-      dedupingInterval: 10_000,
+      dedupingInterval: 30_000,
       revalidateIfStale: false,
-      revalidateOnMount: true,
       keepPreviousData: true,
     }
   );
