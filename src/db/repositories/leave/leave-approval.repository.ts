@@ -429,6 +429,7 @@ export const leaveApprovalRepository = {
         or(
           ilike(leaveRequests.requestNumber, searchPattern),
           ilike(users.fullName, searchPattern),
+          ilike(students.rollNumber, searchPattern),
         ),
       );
     }
@@ -1010,6 +1011,7 @@ export const leaveApprovalRepository = {
         or(
           ilike(leaveRequests.requestNumber, searchPattern),
           ilike(users.fullName, searchPattern),
+          ilike(students.rollNumber, searchPattern),
           ...(isUuid
             ? [
                 eq(leaveExtensions.id, trimmed),
