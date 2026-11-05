@@ -97,13 +97,16 @@ export const parentRepository = {
     }
 
     if (filters.search) {
-      const pattern = `%${filters.search}%`;
+      const trimmed = filters.search.trim();
+      const pattern = `%${trimmed}%`;
       conditions.push(
         or(
           ilike(parents.name, pattern),
           ilike(parents.phone, pattern),
-          ilike(parents.email ?? "", pattern),
+          ilike(parents.email, pattern),
           ilike(users.fullName, pattern),
+          ilike(users.email, pattern),
+          ilike(users.phone, pattern),
           ilike(students.rollNumber, pattern)
         )
       );

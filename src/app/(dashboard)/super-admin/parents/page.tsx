@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, Save, Search, Trash2, Upload, X } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
 
@@ -31,15 +31,23 @@ type ParentListResponse = {
   totalPages: number;
 };
 
-type StudentItem = {
-  id: string;
-  rollNumber: string;
-  fullName: string;
+type StudentSearchApiItem = {
+  student: {
+    id: string;
+    rollNumber: string;
+  };
+  user: {
+    id: string;
+    fullName: string;
+    email: string | null;
+  } | null;
 };
 
 type DraftParent = {
   id?: string;
   studentId: string;
+  studentName?: string;
+  studentRollNumber?: string;
   name: string;
   phone: string;
   email: string;
@@ -49,6 +57,8 @@ type DraftParent = {
 
 const EMPTY_DRAFT: DraftParent = {
   studentId: "",
+  studentName: "",
+  studentRollNumber: "",
   name: "",
   phone: "",
   email: "",
@@ -66,6 +76,7 @@ export default function SuperAdminParentsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
+  const [selectedStudentLabel, setSelectedStudentLabel] = useState("");
   const [draft, setDraft] = useState<DraftParent>(EMPTY_DRAFT);
   const [saving, setSaving] = useState<string | null>(null);
   const [showBulk, setShowBulk] = useState(false);
@@ -75,20 +86,27 @@ export default function SuperAdminParentsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data, isLoading, error, mutate } = useSWR<ParentListResponse>(
-    `/api/v1/parents?page=${page}&limit=20${search ? `&search=${encodeURIComponent(search)}` : ""}`,
+    `/api/v1/parents?page=${page}&limit=20${search.trim() ? `&search=${encodeURIComponent(search.trim())}` : ""}`,
     fetcher,
   );
 
-  const { data: studentsData } = useSWR<{ items: StudentItem[] }>(
-    studentSearch ? `/api/v1/students?search=${encodeURIComponent(studentSearch)}&limit=10` : null,
+  const { data: studentsData } = useSWR<{ items: StudentSearchApiItem[] }>(
+    studentSearch.trim() ? `/api/v1/students?search=${encodeURIComponent(studentSearch.trim())}&limit=10` : null,
     fetcher,
   );
 
   const parents = data;
-  const students = studentsData?.items ?? [];
+  const students = useMemo(() => {
+    return (studentsData?.items ?? []).map((item) => ({
+      id: item.student.id,
+      rollNumber: item.student.rollNumber,
+      fullName: item.user?.fullName ?? "Unknown Student",
+    }));
+  }, [studentsData]);
 
   const startNew = () => {
     setDraft(EMPTY_DRAFT);
+    setSelectedStudentLabel("");
     setStudentSearch("");
     setShowBulk(false);
   };
@@ -97,12 +115,15 @@ export default function SuperAdminParentsPage() {
     setDraft({
       id: parent.id,
       studentId: parent.studentId,
+      studentName: parent.studentName ?? "",
+      studentRollNumber: parent.studentRollNumber ?? "",
       name: parent.name,
       phone: parent.phone,
       email: parent.email ?? "",
       relationship: parent.relationship,
       isPrimary: parent.isPrimary,
     });
+    setSelectedStudentLabel("");
     setStudentSearch("");
   };
 
@@ -146,6 +167,8 @@ export default function SuperAdminParentsPage() {
         const json = await res.json();
         if (!json.success) throw new Error(json.error?.message);
         setDraft(EMPTY_DRAFT);
+        setSelectedStudentLabel("");
+        setStudentSearch("");
         await mutate();
       }
     } catch (err) {
@@ -361,8 +384,8 @@ export default function SuperAdminParentsPage() {
                       <span className="text-body font-medium">{parent.name}</span>
                       <div className="mt-0.5 text-caption text-muted">
                         {parent.relationship}
-                        {parent.studentName && (
-                          <> &middot; {parent.studentName} ({parent.studentRollNumber ?? "—"})</>
+                        {(parent.studentName || parent.studentRollNumber) && (
+                          <> &middot; {parent.studentName ?? "Student"} {parent.studentRollNumber ? `(${parent.studentRollNumber})` : ""}</>
                         )}
                       </div>
                       <div className="mt-0.5 text-caption text-muted">
@@ -405,43 +428,53 @@ export default function SuperAdminParentsPage() {
                     <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
                     <input
                       type="text"
-                      placeholder="Search students..."
+                      placeholder="Search students by name or roll number..."
                       value={studentSearch}
                       onChange={(e) => setStudentSearch(e.target.value)}
                       className="h-9 w-full rounded-lg border bg-bg pl-9 pr-3 text-caption outline-none focus:border-accent"
                     />
                   </div>
                 </label>
-                {students.length > 0 && (
-                  <div className="max-h-[120px] space-y-1 overflow-y-auto rounded-lg border bg-bg p-1">
+                {!draft.studentId && students.length > 0 && (
+                  <div className="max-h-[140px] space-y-1 overflow-y-auto rounded-lg border bg-bg p-1">
                     {students.map((s) => (
                       <button
                         key={s.id}
                         type="button"
                         onClick={() => {
-                          setDraft({ ...draft, studentId: s.id });
-                          setStudentSearch(s.fullName);
+                          setDraft({
+                            ...draft,
+                            studentId: s.id,
+                            studentName: s.fullName,
+                            studentRollNumber: s.rollNumber,
+                          });
+                          setSelectedStudentLabel(`${s.fullName} (${s.rollNumber})`);
+                          setStudentSearch("");
                         }}
-                        className={`w-full rounded-md px-2 py-1.5 text-left text-caption hover:bg-surface-sunken ${
-                          draft.studentId === s.id ? "bg-accent/10" : ""
-                        }`}
+                        className="w-full rounded-md px-2 py-1.5 text-left text-caption hover:bg-surface-sunken"
                       >
-                        {s.fullName} ({s.rollNumber})
+                        <span className="font-medium">{s.fullName}</span>{" "}
+                        <span className="text-muted">({s.rollNumber})</span>
                       </button>
                     ))}
                   </div>
                 )}
                 {draft.studentId && (
-                  <div className="flex items-center gap-1 rounded-md bg-accent/10 px-2 py-1 text-caption text-accent">
-                    Student selected
+                  <div className="flex items-center justify-between rounded-md bg-accent/10 px-3 py-1.5 text-caption text-accent">
+                    <span>
+                      Selected: <strong>{selectedStudentLabel || draft.studentName || draft.studentId}</strong>
+                    </span>
                     <button
                       type="button"
                       onClick={() => {
-                        setDraft({ ...draft, studentId: "" });
+                        setDraft({ ...draft, studentId: "", studentName: "", studentRollNumber: "" });
+                        setSelectedStudentLabel("");
                         setStudentSearch("");
                       }}
+                      className="hover:opacity-75"
+                      title="Clear selection"
                     >
-                      <X className="size-3" />
+                      <X className="size-3.5" />
                     </button>
                   </div>
                 )}
@@ -450,7 +483,7 @@ export default function SuperAdminParentsPage() {
 
             {draft.id && (
               <div className="rounded-lg bg-surface-sunken/30 px-3 py-2 text-caption text-muted">
-                Student ID: {draft.studentId}
+                Student: {draft.studentName ? `${draft.studentName} (${draft.studentRollNumber ?? "—"})` : `ID: ${draft.studentId}`}
               </div>
             )}
 

@@ -45,9 +45,11 @@ describe("parentRepository.findAll", () => {
     expect(mockWhere).toHaveBeenCalled();
     const whereSql = new PgDialect().sqlToQuery(mockWhere.mock.calls[0]![0]).sql;
 
-    // Both users.full_name and students.roll_number must be included in the search criteria
+    // Users fullName/email/phone and students.roll_number must be included in the search criteria
     expect(whereSql).toContain("users");
     expect(whereSql).toContain("full_name");
+    expect(whereSql).toContain("email");
+    expect(whereSql).toContain("phone");
     expect(whereSql).toContain("students");
     expect(whereSql).toContain("roll_number");
   });
