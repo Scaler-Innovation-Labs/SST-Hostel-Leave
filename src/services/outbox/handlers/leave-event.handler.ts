@@ -491,27 +491,11 @@ export async function handleLeaveEvent(
       leaveType?.code === "LATE_STAY_COLLEGE";
 
     if (eventType === OUTBOX_EVENT_TYPE.LEAVE_APPROVED) {
-      if (isReturnOnlyOrRecurring && currentState === MOVEMENT_STATE.IN_HOSTEL) {
-        try {
-          await recordMovement({
-            studentId,
-            leaveRequestId: leaveId,
-            fromState: MOVEMENT_STATE.IN_HOSTEL,
-            toState: MOVEMENT_STATE.OUTSIDE_HOSTEL,
-            eventType: MOVEMENT_EVENT.EXIT_HOSTEL,
-            movementMethod: MOVEMENT_METHOD.SYSTEM,
-          });
-          logger.info("Movement recorded for return-only/recurring leave approval: IN_HOSTEL -> OUTSIDE_HOSTEL", { leaveId, studentId });
-        } catch (error) {
-          logger.error("Failed to record movement on return-only leave approval", { leaveId, error: error instanceof Error ? error.message : String(error) });
-        }
-      } else {
-        logger.info("Leave approved — movement state intentionally unchanged", {
-          leaveId,
-          studentId,
-          currentState,
-        });
-      }
+      logger.info("Leave approved — movement state intentionally unchanged", {
+        leaveId,
+        studentId,
+        currentState,
+      });
     }
 
     if (
