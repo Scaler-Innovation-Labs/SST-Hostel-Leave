@@ -27,7 +27,6 @@ import {
 import {
   academicGroups,
   departments,
-  hostels,
   leaveApprovalParentDetails,
   leaveApprovals,
   leaveConfigurationContexts,
@@ -267,8 +266,6 @@ export const leaveApprovalRepository = {
         leaveRequests,
         eq(leaveApprovals.leaveRequestId, leaveRequests.id),
       )
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
       .where(and(...conditions));
 
     return Number(result[0]?.count ?? 0);
@@ -306,8 +303,6 @@ export const leaveApprovalRepository = {
         leaveRequests,
         eq(leaveExtensions.leaveRequestId, leaveRequests.id),
       )
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
       .where(and(...conditions));
 
     return Number(result[0]?.count ?? 0);
@@ -462,34 +457,47 @@ export const leaveApprovalRepository = {
         )
       : and(...baseConditions);
 
-    const [countResult, breakdownRows] = await Promise.all([
-      dbClient
-        .select({
-          count: groupByLeaveRequest
-            ? sql<number>`count(DISTINCT ${leaveApprovals.leaveRequestId})`
-            : sql<number>`count(*)`,
-        })
-        .from(leaveApprovals)
-        .leftJoin(
-          leaveRequests,
-          eq(leaveApprovals.leaveRequestId, leaveRequests.id),
-        )
-        .leftJoin(students, eq(leaveRequests.studentId, students.id))
-        .leftJoin(users, eq(students.userId, users.id))
-        .where(whereClause),
+    const needsStudentJoin = Boolean(filters.search);
+    const needsUserJoin = Boolean(filters.search || filters.gender);
 
-      dbClient
-        .select({
-          stepKey: leaveRequests.currentStepKey,
-          count: sql<number>`count(DISTINCT ${leaveApprovals.leaveRequestId})`,
-        })
-        .from(leaveApprovals)
-        .leftJoin(
-          leaveRequests,
-          eq(leaveApprovals.leaveRequestId, leaveRequests.id),
-        )
-        .leftJoin(students, eq(leaveRequests.studentId, students.id))
-        .leftJoin(users, eq(students.userId, users.id))
+    const applySearchOrGenderJoins = <T extends { leftJoin: (...args: any[]) => any }>(query: T): T => {
+      let q = query;
+      if (needsStudentJoin || needsUserJoin) {
+        q = q.leftJoin(students, eq(leaveRequests.studentId, students.id));
+      }
+      if (needsUserJoin) {
+        q = q.leftJoin(users, eq(students.userId, users.id));
+      }
+      return q;
+    };
+
+    const [countResult, breakdownRows] = await Promise.all([
+      applySearchOrGenderJoins(
+        dbClient
+          .select({
+            count: groupByLeaveRequest
+              ? sql<number>`count(DISTINCT ${leaveApprovals.leaveRequestId})`
+              : sql<number>`count(*)`,
+          })
+          .from(leaveApprovals)
+          .leftJoin(
+            leaveRequests,
+            eq(leaveApprovals.leaveRequestId, leaveRequests.id),
+          ),
+      ).where(whereClause),
+
+      applySearchOrGenderJoins(
+        dbClient
+          .select({
+            stepKey: leaveRequests.currentStepKey,
+            count: sql<number>`count(DISTINCT ${leaveApprovals.leaveRequestId})`,
+          })
+          .from(leaveApprovals)
+          .leftJoin(
+            leaveRequests,
+            eq(leaveApprovals.leaveRequestId, leaveRequests.id),
+          ),
+      )
         .where(
           and(
             ...baseConditions,
@@ -510,15 +518,15 @@ export const leaveApprovalRepository = {
     let pageLeaveRequestIds: string[] = [];
 
     if (groupByLeaveRequest) {
-      const pageIdRows = await dbClient
-        .select({ leaveRequestId: leaveApprovals.leaveRequestId })
-        .from(leaveApprovals)
-        .leftJoin(
-          leaveRequests,
-          eq(leaveApprovals.leaveRequestId, leaveRequests.id),
-        )
-        .leftJoin(students, eq(leaveRequests.studentId, students.id))
-        .leftJoin(users, eq(students.userId, users.id))
+      const pageIdRows = await applySearchOrGenderJoins(
+        dbClient
+          .select({ leaveRequestId: leaveApprovals.leaveRequestId })
+          .from(leaveApprovals)
+          .leftJoin(
+            leaveRequests,
+            eq(leaveApprovals.leaveRequestId, leaveRequests.id),
+          ),
+      )
         .where(whereClause)
         .groupBy(leaveApprovals.leaveRequestId)
         // Sort order prioritizes workflow actionable queue:
@@ -631,7 +639,6 @@ export const leaveApprovalRepository = {
       )
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
-      .leftJoin(hostels, eq(leaveRequests.hostelId, hostels.id))
       .leftJoin(academicGroups, eq(students.academicGroupId, academicGroups.id))
       .leftJoin(departments, eq(academicGroups.departmentId, departments.id))
       .where(
@@ -660,9 +667,11 @@ export const leaveApprovalRepository = {
 
     // Load the configured approval chain for each affected workflow so the UI
     // can render only the steps that actually exist for that leave type.
+    // Optimization: Only load for leaves that lack frozen execution context steps.
     const workflowIds = [
       ...new Set(
         dedupedRows
+          .filter((row) => !row.execWorkflowSteps)
           .map((row) => row.leaveTypeDefaultWorkflowId)
           .filter((id): id is string => !!id),
       ),
@@ -1046,59 +1055,72 @@ export const leaveApprovalRepository = {
       : and(...baseConditions);
     const scopeWhereClause = and(...scopeConditions);
 
-    const [countResult, statsRows, breakdownRows] = await Promise.all([
-      dbClient
-        .select({
-          count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
-        })
-        .from(leaveApprovals)
-        .innerJoin(
-          leaveExtensions,
-          eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
-        )
-        .leftJoin(
-          leaveRequests,
-          eq(leaveExtensions.leaveRequestId, leaveRequests.id),
-        )
-        .leftJoin(students, eq(leaveRequests.studentId, students.id))
-        .leftJoin(users, eq(students.userId, users.id))
-        .where(whereClause),
+    const needsStudentJoin = Boolean(filters.search);
+    const needsUserJoin = Boolean(filters.search || filters.gender);
 
-      dbClient
-        .select({
-          status: leaveExtensions.status,
-          count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
-        })
-        .from(leaveApprovals)
-        .innerJoin(
-          leaveExtensions,
-          eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
-        )
-        .leftJoin(
-          leaveRequests,
-          eq(leaveExtensions.leaveRequestId, leaveRequests.id),
-        )
-        .leftJoin(students, eq(leaveRequests.studentId, students.id))
-        .leftJoin(users, eq(students.userId, users.id))
+    const applyExtensionSearchOrGenderJoins = <T extends { leftJoin: (...args: any[]) => any }>(query: T): T => {
+      let q = query;
+      if (needsStudentJoin || needsUserJoin) {
+        q = q.leftJoin(students, eq(leaveRequests.studentId, students.id));
+      }
+      if (needsUserJoin) {
+        q = q.leftJoin(users, eq(students.userId, users.id));
+      }
+      return q;
+    };
+
+    const [countResult, statsRows, breakdownRows] = await Promise.all([
+      applyExtensionSearchOrGenderJoins(
+        dbClient
+          .select({
+            count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
+          })
+          .from(leaveApprovals)
+          .innerJoin(
+            leaveExtensions,
+            eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+          )
+          .leftJoin(
+            leaveRequests,
+            eq(leaveExtensions.leaveRequestId, leaveRequests.id),
+          ),
+      ).where(whereClause),
+
+      applyExtensionSearchOrGenderJoins(
+        dbClient
+          .select({
+            status: leaveExtensions.status,
+            count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
+          })
+          .from(leaveApprovals)
+          .innerJoin(
+            leaveExtensions,
+            eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+          )
+          .leftJoin(
+            leaveRequests,
+            eq(leaveExtensions.leaveRequestId, leaveRequests.id),
+          ),
+      )
         .where(scopeWhereClause)
         .groupBy(leaveExtensions.status),
 
-      dbClient
-        .select({
-          stepKey: leaveExtensions.currentStepKey,
-          count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
-        })
-        .from(leaveApprovals)
-        .innerJoin(
-          leaveExtensions,
-          eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
-        )
-        .leftJoin(
-          leaveRequests,
-          eq(leaveExtensions.leaveRequestId, leaveRequests.id),
-        )
-        .leftJoin(students, eq(leaveRequests.studentId, students.id))
-        .leftJoin(users, eq(students.userId, users.id))
+      applyExtensionSearchOrGenderJoins(
+        dbClient
+          .select({
+            stepKey: leaveExtensions.currentStepKey,
+            count: sql<number>`count(DISTINCT ${leaveApprovals.leaveExtensionId})`,
+          })
+          .from(leaveApprovals)
+          .innerJoin(
+            leaveExtensions,
+            eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+          )
+          .leftJoin(
+            leaveRequests,
+            eq(leaveExtensions.leaveRequestId, leaveRequests.id),
+          ),
+      )
         .where(
           and(
             ...baseConditions,
@@ -1131,19 +1153,19 @@ export const leaveApprovalRepository = {
     // The page window belongs on the thing the queue renders — one card per
     // extension. Applying it to approval rows would put an extension whose
     // rows straddle the boundary on both pages and drop another one entirely.
-    const pageIdRows = await dbClient
-      .select({ leaveExtensionId: leaveApprovals.leaveExtensionId })
-      .from(leaveApprovals)
-      .innerJoin(
-        leaveExtensions,
-        eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
-      )
-      .leftJoin(
-        leaveRequests,
-        eq(leaveExtensions.leaveRequestId, leaveRequests.id),
-      )
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
+    const pageIdRows = await applyExtensionSearchOrGenderJoins(
+      dbClient
+        .select({ leaveExtensionId: leaveApprovals.leaveExtensionId })
+        .from(leaveApprovals)
+        .innerJoin(
+          leaveExtensions,
+          eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+        )
+        .leftJoin(
+          leaveRequests,
+          eq(leaveExtensions.leaveRequestId, leaveRequests.id),
+        ),
+    )
       .where(whereClause)
       .groupBy(leaveApprovals.leaveExtensionId)
       // Sort order prioritizes workflow actionable queue:
@@ -1260,7 +1282,6 @@ export const leaveApprovalRepository = {
       )
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
-      .leftJoin(hostels, eq(leaveRequests.hostelId, hostels.id))
       .leftJoin(academicGroups, eq(students.academicGroupId, academicGroups.id))
       .leftJoin(departments, eq(academicGroups.departmentId, departments.id))
       .leftJoin(
@@ -1285,9 +1306,11 @@ export const leaveApprovalRepository = {
 
     // Load the configured approval chain for each affected workflow so the UI
     // can render only the steps that actually exist for that leave type.
+    // Optimization: Only load for extensions that lack frozen execution context steps.
     const workflowIds = [
       ...new Set(
         dedupedRows
+          .filter((row) => !row.execWorkflowSteps)
           .map((row) => row.leaveTypeDefaultWorkflowId)
           .filter((id): id is string => !!id),
       ),

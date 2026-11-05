@@ -85,8 +85,14 @@ export function ApprovalsPage({ showHeader = true, hrefPrefix, disableNavigation
   const [now] = useState(() => Date.now());
 
   const { leaveTypes } = useLeaveTypes();
-  const { stats } = useDashboardStats();
-  const { data: hostels } = useSWR<Array<{ id: string; name: string; code: string }>>("/api/v1/hostels", fetcher);
+  const { stats } = useDashboardStats(undefined, undefined, undefined, undefined, {
+    enabled: viewerRole !== "POC",
+  });
+  const { data: hostels } = useSWR<Array<{ id: string; name: string; code: string }>>(
+    "/api/v1/hostels",
+    fetcher,
+    { dedupingInterval: 30_000 }
+  );
 
   // Derive API-ready date range from the friendly range label
   const dateRange = useMemo(() => computeDateRange(filters.dateRange), [filters.dateRange]);

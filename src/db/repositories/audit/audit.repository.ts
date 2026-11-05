@@ -66,8 +66,18 @@ async findByEntityIds(
     return [];
   }
 
-  return dbClient
-    .select()
+  const rows = await dbClient
+    .select({
+      id: auditLogs.id,
+      actorUserId: auditLogs.actorUserId,
+      entityType: auditLogs.entityType,
+      entityId: auditLogs.entityId,
+      action: auditLogs.action,
+      retentionClass: auditLogs.retentionClass,
+      metadata: auditLogs.metadata,
+      expiresAt: auditLogs.expiresAt,
+      createdAt: auditLogs.createdAt,
+    })
     .from(auditLogs)
     .where(
       and(
@@ -78,6 +88,8 @@ async findByEntityIds(
     .orderBy(
       desc(auditLogs.createdAt)
     );
+
+  return rows as AuditLog[];
 },
 
 /**

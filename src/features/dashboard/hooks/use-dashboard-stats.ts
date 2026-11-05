@@ -10,10 +10,12 @@ export function useDashboardStats(
   status?: string,
   period?: AnalyticsPeriod,
   startDate?: string,
-  endDate?: string
+  endDate?: string,
+  options?: { enabled?: boolean }
 ) {
+  const enabled = options?.enabled ?? true;
   const { data, error, isLoading, mutate } = useSWR<{ data: DashboardStats }>(
-    getDashboardStatsUrl(status, period, startDate, endDate),
+    enabled ? getDashboardStatsUrl(status, period, startDate, endDate) : null,
     {
       refreshInterval: 180_000,
       dedupingInterval: 30_000,

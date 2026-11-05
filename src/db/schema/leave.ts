@@ -372,6 +372,8 @@ export const leaveRequests = pgTable("leave_requests", {
   studentDatesIdx: index("lr_student_dates_idx").on(table.studentId, table.startAt, table.endAt),
   statusEndatReturnIdx: index("lr_status_endat_return_idx").on(table.status, table.endAt, table.actualReturnAt),
   statusCreatedIdx: index("lr_status_created_idx").on(table.status, table.createdAt),
+  currentStepKeyIndex: index("lr_current_step_key_idx").on(table.currentStepKey),
+  hostelStatusStepIdx: index("lr_hostel_status_step_idx").on(table.hostelId, table.status, table.currentStepKey),
 }));
 
 // =====================================================
@@ -447,6 +449,7 @@ export const leaveExtensions = pgTable("leave_extensions", {
    leaveRequestIdIndex: index("leave_extensions_leave_request_id_idx").on(table.leaveRequestId),
    extensionNumberIndex: index("leave_extensions_extension_number_idx").on(table.leaveRequestId, table.extensionNumber),
    statusIndex: index("leave_extensions_status_idx").on(table.status),
+   currentStepKeyIndex: index("le_current_step_key_idx").on(table.currentStepKey),
 })
 );
 
@@ -552,6 +555,8 @@ export const leaveApprovals = pgTable("leave_approvals", {
     actedByUserIdIndex: index("la_acted_by_user_id_idx").on(table.actedByUserId),
     approverUserIdIndex: index("la_approver_user_id_idx").on(table.approverUserId),
     decisionIndex: index("la_decision_idx").on(table.decision),
+    decisionRequestIdx: index("la_decision_request_idx").on(table.decision, table.leaveRequestId),
+    decisionExtensionIdx: index("la_decision_extension_idx").on(table.decision, table.leaveExtensionId),
     requestDecisionStepIdx: index("la_request_decision_step_idx").on(table.leaveRequestId, table.decision, table.stepOrder),
     extensionDecisionStepIdx: index("la_extension_decision_step_idx").on(table.leaveExtensionId, table.decision, table.stepOrder),
     createdAtIndex: index("la_created_at_idx").on(table.createdAt),
