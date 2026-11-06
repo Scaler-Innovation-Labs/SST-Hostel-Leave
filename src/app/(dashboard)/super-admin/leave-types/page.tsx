@@ -140,7 +140,7 @@ const QR_MODE_DESCRIPTIONS: Record<string, string> = {
 export default function LeaveTypesPage() {
   const { data: workflowsResponse } = useSWR<{
     items: Array<{ id: string; name: string; code: string }>;
-  }>("/api/v1/workflows?limit=100", fetcher, { revalidateOnMount: true });
+  }>("/api/v1/workflows?limit=100", fetcher, { dedupingInterval: 30_000 });
   const workflows = workflowsResponse?.items ?? [];
 
   const {

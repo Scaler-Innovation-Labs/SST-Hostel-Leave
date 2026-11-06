@@ -7,7 +7,7 @@ export function useUsers(params?: ListUsersParams) {
   const url = getUsersUrl(params);
 
   const { data, error, isLoading, mutate } = useSWR(url, fetcher, {
-    revalidateOnMount: true,
+    dedupingInterval: 30_000,
   });
 
   return {
@@ -46,7 +46,7 @@ export function useUser(id: string) {
   const url = id ? getUserUrl(id) : null;
 
   const { data, error, isLoading, mutate } = useSWR(url, fetcher, {
-    revalidateOnMount: true,
+    dedupingInterval: 30_000,
   });
 
   return {

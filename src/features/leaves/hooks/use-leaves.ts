@@ -91,13 +91,18 @@ export type FlatLeave = ReturnType<typeof flattenLeaveItem>;
 
 export function useLeaves(
   query?: Partial<ListLeavesQuery>,
-  options?: { refreshInterval?: number; dedupingInterval?: number }
+  options?: {
+    refreshInterval?: number;
+    dedupingInterval?: number;
+    revalidateOnFocus?: boolean;
+  }
 ) {
   const { data, error, isLoading, mutate } = useSWR(
     query ? getLeavesUrl(query) : null,
     {
       refreshInterval: options?.refreshInterval ?? 0,
       dedupingInterval: options?.dedupingInterval ?? 30_000,
+      revalidateOnFocus: options?.revalidateOnFocus ?? false,
     },
   );
 
@@ -115,12 +120,18 @@ export function useLeaves(
   };
 }
 
-export function useLeave(id: string | undefined) {
-  // Fetches once on mount — the page's Refresh button and the `mutate()`
-  // calls after cancel/extension keep it fresh without background polling.
+export function useLeave(
+  id: string | undefined,
+  options?: { dedupingInterval?: number; revalidateOnFocus?: boolean }
+) {
+  // Revalidates on tab focus so returning students see approval updates
+  // immediately without continuous background polling.
   const { data, error, isLoading, mutate } = useSWR(
     id ? getLeaveUrl(id) : null,
-    { dedupingInterval: 30_000 },
+    {
+      dedupingInterval: options?.dedupingInterval ?? 30_000,
+      revalidateOnFocus: options?.revalidateOnFocus ?? true,
+    },
   );
 
   const raw = data?.data as RawLeaveItem | undefined;

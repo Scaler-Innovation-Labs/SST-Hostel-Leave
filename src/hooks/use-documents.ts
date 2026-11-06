@@ -18,7 +18,7 @@ export type DocumentItem = {
 export function useDocuments(leaveId: string | undefined) {
   const { data, error, isLoading, mutate } = useSWR(
     leaveId ? getDocumentsUrl(leaveId) : null,
-    { revalidateOnMount: true },
+    { dedupingInterval: 30_000 },
   );
 
   return {

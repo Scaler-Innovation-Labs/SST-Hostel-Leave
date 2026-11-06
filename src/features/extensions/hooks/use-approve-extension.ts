@@ -5,7 +5,9 @@ import { getExtensionApprovalsUrl } from "@/lib/api/extension-api";
 import { fetcher } from "@/lib/api/fetcher";
 import type { ApprovalStepBreakdownEntry } from "@/types/leave/approval-step-breakdown";
 
-type UseExtensionApprovalsOptions = {
+export const EXTENSION_APPROVALS_POLL_INTERVAL = 180_000; // 3 minutes
+
+export type UseExtensionApprovalsOptions = {
   status?: string;
   search?: string;
   waitingOn?: string;
@@ -17,14 +19,17 @@ type UseExtensionApprovalsOptions = {
   limit?: number;
   /** Poll interval ms — callers rendering counts-only may poll slower. */
   refreshInterval?: number;
+  dedupingInterval?: number;
+  revalidateOnFocus?: boolean;
 };
 
 export function useExtensionApprovals(options?: UseExtensionApprovalsOptions) {
   const url = getExtensionApprovalsUrl(options);
 
   const { data, error, isLoading, mutate } = useSWR(url, fetcher, {
-    refreshInterval: options?.refreshInterval ?? 180_000,
-    dedupingInterval: 30_000,
+    refreshInterval: options?.refreshInterval ?? EXTENSION_APPROVALS_POLL_INTERVAL,
+    dedupingInterval: options?.dedupingInterval ?? 30_000,
+    revalidateOnFocus: options?.revalidateOnFocus ?? true,
   });
 
   return {

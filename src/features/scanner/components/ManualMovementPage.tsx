@@ -76,6 +76,10 @@ export function ManualMovementPage(): React.JSX.Element {
       search: debouncedSearch || undefined,
     }),
     fetcher,
+    {
+      dedupingInterval: 30_000,
+      revalidateOnFocus: true,
+    },
   );
 
   const leavesPayload = useMemo(() => {

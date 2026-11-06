@@ -16,11 +16,18 @@ export type QrPass = {
   createdAt: string | null;
 };
 
-export function useQrPasses(leaveId: string | undefined) {
-  // Fetches once on mount — call `mutate()` after generate/regenerate/cancel
-  // instead of polling, so the page stays quiet while viewing.
+export function useQrPasses(
+  leaveId: string | undefined,
+  options?: { dedupingInterval?: number; revalidateOnFocus?: boolean }
+) {
+  // Revalidates on focus so pass status transitions (used/closed/expired)
+  // are detected immediately when the user returns to the screen.
   const { data, error, isLoading, mutate } = useSWR(
     leaveId ? getQrPassesUrl(leaveId) : null,
+    {
+      dedupingInterval: options?.dedupingInterval ?? 30_000,
+      revalidateOnFocus: options?.revalidateOnFocus ?? true,
+    }
   );
 
   return {

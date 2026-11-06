@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import useSWR from "swr";
 
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
@@ -23,30 +22,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/design-system/sst";
 import { useHostels } from "@/hooks/use-hostels";
+import { useOverdue } from "@/hooks/use-overdue";
 import { formatDateTime } from "@/lib/date-utils";
-
-const fetcher = async (url: string) => {
-  const res = await fetch(url);
-  if (!res.ok) return [];
-  const r = await res.json();
-  return Array.isArray(r?.data) ? r.data : [];
-};
-
-type OverdueReturn = {
-  id: string;
-  studentId: string;
-  firstScanAt: string | null;
-  status: string;
-  studentName: string | null;
-  studentRollNumber: string | null;
-  roomNumber: string | null;
-  hostelId: string | null;
-  hostelName: string | null;
-  leaveTypeName: string | null;
-  requestNumber: string | null;
-  leaveStartAt: string | null;
-  leaveEndAt: string | null;
-};
 
 type OverdueReturnsPageProps = {
   /** Base path to a student's detail page, e.g. "/admin/students". */
@@ -76,10 +53,7 @@ export function OverdueReturnsPage({ detailBasePath }: OverdueReturnsPageProps) 
   // Stable "now" captured once per mount (impure calls aren't allowed in render).
   const [now] = useState(() => Date.now());
 
-  const { data, error, isLoading, mutate } = useSWR<OverdueReturn[]>("/api/v1/overdue", fetcher, {
-    refreshInterval: 180_000,
-    dedupingInterval: 30_000,
-  });
+  const { data, error, isLoading, mutate } = useOverdue();
 
   const { hostels } = useHostels();
 

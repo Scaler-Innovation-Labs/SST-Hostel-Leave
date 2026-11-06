@@ -54,15 +54,22 @@ export type ApprovalQueueItem = {
   } | null;
 };
 
+export const APPROVALS_POLL_INTERVAL = 180_000; // 3 minutes
+
 export function useApprovals(
   query?: Partial<ListApprovalsQuery>,
-  options?: { refreshInterval?: number; dedupingInterval?: number }
+  options?: {
+    refreshInterval?: number;
+    dedupingInterval?: number;
+    revalidateOnFocus?: boolean;
+  }
 ) {
   const { data, error, isLoading, mutate } = useSWR(
     query ? getApprovalsUrl(query) : null,
     {
-      refreshInterval: options?.refreshInterval ?? 180_000,
+      refreshInterval: options?.refreshInterval ?? APPROVALS_POLL_INTERVAL,
       dedupingInterval: options?.dedupingInterval ?? 30_000,
+      revalidateOnFocus: options?.revalidateOnFocus ?? true,
     },
   );
 
