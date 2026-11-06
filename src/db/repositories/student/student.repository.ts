@@ -147,11 +147,16 @@ export const studentRepository = {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const countResult = await dbClient
+    const countQuery = dbClient
       .select({ count: sql<number>`count(*)` })
-      .from(students)
-      .leftJoin(users, eq(students.userId, users.id))
-      .where(whereClause);
+      .from(students);
+
+    const needsUserJoin = Boolean(filters.search || filters.hostelId || filters.hostelIds?.length);
+    const countResult = needsUserJoin
+      ? await countQuery
+          .leftJoin(users, eq(students.userId, users.id))
+          .where(whereClause)
+      : await countQuery.where(whereClause);
 
     const total = Number(countResult[0]?.count ?? 0);
     const totalPages = Math.ceil(total / filters.limit);
@@ -163,7 +168,11 @@ export const studentRepository = {
     const orderByDirection = filters.sortOrder === "asc" ? asc : desc;
 
     const rows = await dbClient
-      .select()
+      .select({
+        student: students,
+        user: users,
+        locationState: movementStates,
+      })
       .from(students)
       .leftJoin(users, eq(students.userId, users.id))
       .leftJoin(movementStates, eq(students.currentLocationState, movementStates.code))
@@ -174,9 +183,9 @@ export const studentRepository = {
 
     return {
       items: rows.map((row) => ({
-        student: row.students,
-        user: row.users ?? null,
-        locationState: row.movement_states ?? null,
+        student: row.student,
+        user: row.user?.id ? { ...row.user, clerkId: null } : null,
+        locationState: row.locationState?.code ? row.locationState : null,
       })),
       total,
       page: filters.page,

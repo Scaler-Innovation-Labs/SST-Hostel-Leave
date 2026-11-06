@@ -118,18 +118,29 @@ export const movementEventRepository = {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const countResult = await dbClient
+    const countQuery = dbClient
       .select({ count: sql<number>`count(*)` })
-      .from(movementEvents)
-      .leftJoin(students, eq(movementEvents.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
-      .where(whereClause);
+      .from(movementEvents);
+
+    const needsUserJoin = Boolean(filters.search || filters.hostelIds?.length);
+    const countResult = needsUserJoin
+      ? await countQuery
+          .leftJoin(students, eq(movementEvents.studentId, students.id))
+          .leftJoin(users, eq(students.userId, users.id))
+          .where(whereClause)
+      : await countQuery.where(whereClause);
 
     const total = Number(countResult[0]?.count ?? 0);
     const totalPages = Math.ceil(total / filters.limit);
 
     const rows = await dbClient
-      .select()
+      .select({
+        event: movementEvents,
+        studentName: users.fullName,
+        studentRollNumber: students.rollNumber,
+        fromStateName: fromStates.name,
+        toStateName: toStates.name,
+      })
       .from(movementEvents)
       .leftJoin(students, eq(movementEvents.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
@@ -142,11 +153,11 @@ export const movementEventRepository = {
 
     return {
       items: rows.map((row) => ({
-        ...row.movement_events,
-        studentName: row.users?.fullName ?? null,
-        studentRollNumber: row.students?.rollNumber ?? null,
-        fromStateName: row.from_states?.name ?? null,
-        toStateName: row.to_states?.name ?? null,
+        ...row.event,
+        studentName: row.studentName ?? null,
+        studentRollNumber: row.studentRollNumber ?? null,
+        fromStateName: row.fromStateName ?? null,
+        toStateName: row.toStateName ?? null,
       })),
       total,
       page: filters.page,

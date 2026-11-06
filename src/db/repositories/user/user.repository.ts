@@ -171,6 +171,7 @@ export const userRepository = {
 
     const items: UserWithRoles[] = rows.map((row) => ({
       ...row,
+      clerkId: null,
       userRoles: roleMap.get(row.id) ?? [],
     }));
 

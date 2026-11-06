@@ -402,12 +402,16 @@ async findAutoCompleteDueNonQrLeaves(
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const countResult = await dbClient
+    const countQuery = dbClient
       .select({ count: sql<number>`count(*)` })
-      .from(leaveRequests)
-      .leftJoin(students, eq(leaveRequests.studentId, students.id))
-      .leftJoin(users, eq(students.userId, users.id))
-      .where(whereClause);
+      .from(leaveRequests);
+
+    const countResult = filters.search
+      ? await countQuery
+          .leftJoin(students, eq(leaveRequests.studentId, students.id))
+          .leftJoin(users, eq(students.userId, users.id))
+          .where(whereClause)
+      : await countQuery.where(whereClause);
 
     const total = Number(countResult[0]?.count ?? 0);
     const totalPages = Math.ceil(total / filters.limit);
@@ -421,7 +425,13 @@ async findAutoCompleteDueNonQrLeaves(
     const orderByDirection = filters.sortOrder === "asc" ? asc : desc;
 
     const rows = await dbClient
-      .select()
+      .select({
+        leave: leaveRequests,
+        student: students,
+        user: users,
+        leaveType: leaveTypes,
+        hostel: hostels,
+      })
       .from(leaveRequests)
       .leftJoin(students, eq(leaveRequests.studentId, students.id))
       .leftJoin(users, eq(students.userId, users.id))
@@ -434,11 +444,11 @@ async findAutoCompleteDueNonQrLeaves(
 
     return {
       items: rows.map((row) => ({
-        leave: row.leave_requests,
-        student: row.students ?? null,
-        user: row.users ?? null,
-        leaveType: row.leave_types ?? null,
-        hostel: row.hostels ?? null,
+        leave: row.leave,
+        student: row.student?.id ? row.student : null,
+        user: row.user?.id ? { ...row.user, clerkId: null } : null,
+        leaveType: row.leaveType?.id ? { ...row.leaveType, formSchema: null as any } : null,
+        hostel: row.hostel?.id ? row.hostel : null,
       })),
       total,
       page: filters.page,
@@ -607,8 +617,6 @@ async findAutoCompleteDueNonQrLeaves(
       const result = await dbClient
         .select({ count: sql<number>`count(*)` })
         .from(leaveRequests)
-        .leftJoin(students, eq(leaveRequests.studentId, students.id))
-        .leftJoin(users, eq(students.userId, users.id))
         .where(and(...conditions));
       return Number(result[0]?.count ?? 0);
     }
@@ -629,33 +637,7 @@ async findAutoCompleteDueNonQrLeaves(
     completed: number;
     cancelled: number;
   }> {
-    if (hostelIds?.length) {
-      const result = await dbClient
-        .select({
-          total: sql<number>`count(*)`,
-          approved: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.APPROVED})`,
-          rejected: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.REJECTED})`,
-          expired: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.EXPIRED})`,
-          completed: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.COMPLETED})`,
-          cancelled: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.CANCELLED})`,
-        })
-        .from(leaveRequests)
-        .leftJoin(students, eq(leaveRequests.studentId, students.id))
-        .leftJoin(users, eq(students.userId, users.id))
-        .where(inArray(leaveRequests.hostelId, hostelIds));
-
-      const row = result[0];
-      return {
-        total: Number(row?.total ?? 0),
-        approved: Number(row?.approved ?? 0),
-        rejected: Number(row?.rejected ?? 0),
-        expired: Number(row?.expired ?? 0),
-        completed: Number(row?.completed ?? 0),
-        cancelled: Number(row?.cancelled ?? 0),
-      };
-    }
-
-    const result = await dbClient
+    const query = dbClient
       .select({
         total: sql<number>`count(*)`,
         approved: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.APPROVED})`,
@@ -665,6 +647,10 @@ async findAutoCompleteDueNonQrLeaves(
         cancelled: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.CANCELLED})`,
       })
       .from(leaveRequests);
+
+    const result = hostelIds?.length
+      ? await query.where(inArray(leaveRequests.hostelId, hostelIds))
+      : await query;
 
     const row = result[0];
     return {
