@@ -211,7 +211,7 @@ export const studentRepository = {
     const row = rows[0]!;
     return {
       student: row.students,
-      user: row.users ?? null,
+      user: row.users ? { ...row.users, clerkId: null } : null,
       locationState: row.movement_states ?? null,
     };
   },

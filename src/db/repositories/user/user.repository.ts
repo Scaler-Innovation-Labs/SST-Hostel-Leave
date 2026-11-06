@@ -230,6 +230,7 @@ export const userRepository = {
 
     return {
       ...rows[0]!,
+      clerkId: null,
       userRoles: userRolesRows.map((ur) => ({
         ...ur,
         scopeName: ur.scopeId ? (hostelsByScopeId.get(ur.scopeId) ?? null) : null,

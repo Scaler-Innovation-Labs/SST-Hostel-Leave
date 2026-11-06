@@ -477,7 +477,7 @@ async findAutoCompleteDueNonQrLeaves(
     return {
       leave: row.leave_requests,
       student: row.students ?? null,
-      user: row.users ?? null,
+      user: row.users ? { ...row.users, clerkId: null } : null,
       leaveType: row.leave_types ?? null,
       hostel: row.hostels ?? null,
     };
