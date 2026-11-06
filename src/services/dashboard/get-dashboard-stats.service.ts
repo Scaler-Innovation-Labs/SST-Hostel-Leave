@@ -1,11 +1,11 @@
 import { LEAVE_REQUEST_STATUS, type LeaveRequestStatus } from "@/constants/leave/leave-status";
+import { staffMetricsRepository } from "@/db/repositories/dashboard/staff-metrics.repository";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveApprovalAnalyticsRepository } from "@/db/repositories/leave/leave-approval-analytics.repository";
 import { movementEventRepository } from "@/db/repositories/movement/movement-event.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
-import { userRepository } from "@/db/repositories/user/user.repository";
 import type { AnalyticsPeriod } from "@/dto/analytics/analytics-period.dto";
 import type { Activity, ApprovalStep, DashboardStats, StaffDashboardStats, StudentDashboardStats } from "@/dto/dashboard/dashboard-stats.dto";
 import { ROLES } from "@/lib/auth/roles";
@@ -231,8 +231,7 @@ async function getStaffStats(
 
   const [
     pendingStats,
-    locationStats,
-    totalUsers,
+    locationAndUserStats,
     leaveStats,
     recentApprovalsCount,
     leaveTypeBreakdown,
@@ -243,8 +242,7 @@ async function getStaffStats(
     approvalsRaw,
   ] = await Promise.all([
     leaveApprovalAnalyticsRepository.countPendingStats({ hostelIds }),
-    studentRepository.countLocationStats(hostelIds),
-    userRepository.count(hostelIds),
+    staffMetricsRepository.getLocationAndUserStats(hostelIds),
     leaveRepository.countStatusStats(hostelIds),
     leaveApprovalAnalyticsRepository.countRecent(startDate, hostelIds),
     leaveRepository.countByLeaveType(hostelIds, status),
@@ -264,15 +262,15 @@ async function getStaffStats(
     : approvalsRaw.map((r) => ({ date: r.date, value: r.count }));
 
   return {
-    totalStudents: locationStats.total,
-    activeStudents: locationStats.active,
-    inHostel: locationStats.inHostel,
-    studentsOnLeave: locationStats.outsideHostel,
+    totalStudents: locationAndUserStats.total,
+    activeStudents: locationAndUserStats.active,
+    inHostel: locationAndUserStats.inHostel,
+    studentsOnLeave: locationAndUserStats.outsideHostel,
     pendingApprovals: pendingStats.pendingLeaves,
     pendingExtensions: pendingStats.pendingExtensions,
-    overdueStudents: locationStats.overdue,
-    studentsOutside: locationStats.outsideHostel,
-    totalUsers,
+    overdueStudents: locationAndUserStats.overdue,
+    studentsOutside: locationAndUserStats.outsideHostel,
+    totalUsers: locationAndUserStats.totalUsers,
     totalLeaves: leaveStats.total,
     approvedLeaves: leaveStats.approved,
     rejectedLeaves: leaveStats.rejected,

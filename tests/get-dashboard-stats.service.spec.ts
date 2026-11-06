@@ -26,6 +26,13 @@ const mockCountByLocationState = vi.fn();
 const mockCountLocationStats = vi.fn();
 const mockCountStatusStats = vi.fn();
 const mockCountPendingStats = vi.fn();
+const mockGetLocationAndUserStats = vi.fn();
+
+vi.mock("@/db/repositories/dashboard/staff-metrics.repository", () => ({
+  staffMetricsRepository: {
+    getLocationAndUserStats: (...args: any[]) => mockGetLocationAndUserStats(...args),
+  },
+}));
 
 vi.mock("@/db/repositories/student/student.repository", () => ({
   studentRepository: {
@@ -120,9 +127,17 @@ beforeEach(() => {
   mockCountByDateRangeApproval.mockResolvedValue([]);
   mockCountRecentMovement.mockResolvedValue(0);
   mockCountActive.mockResolvedValue(0);
-  mockCountUsers.mockResolvedValue(0);
+  mockCountUsers.mockResolvedValue(120);
   mockCountByLocationState.mockResolvedValue(0);
   mockCountLocationStats.mockResolvedValue({ total: 100, active: 85, inHostel: 80, outsideHostel: 15, overdue: 5 });
+  mockGetLocationAndUserStats.mockResolvedValue({
+    total: 100,
+    active: 85,
+    inHostel: 80,
+    outsideHostel: 15,
+    overdue: 5,
+    totalUsers: 120,
+  });
   mockCountStatusStats.mockResolvedValue({ total: 200, approved: 150, rejected: 10, expired: 25, completed: 15, cancelled: 5 });
   mockCountPendingStats.mockResolvedValue({ pendingLeaves: 4, pendingExtensions: 1 });
 });
@@ -288,7 +303,7 @@ describe("getDashboardStats", () => {
 
     await getDashboardStats(ADMIN_USER);
 
-    expect(mockCountLocationStats).toHaveBeenCalledWith(["H1"]);
+    expect(mockGetLocationAndUserStats).toHaveBeenCalledWith(["H1"]);
     expect(mockCountByLeaveType).toHaveBeenCalledWith(["H1"], undefined);
   });
 
