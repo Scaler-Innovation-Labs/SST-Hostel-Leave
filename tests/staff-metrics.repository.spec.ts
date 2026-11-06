@@ -44,7 +44,7 @@ describe("staffMetricsRepository.getLocationAndUserStats", () => {
     expect(capturedQuery).not.toContain("WHERE users.hostel_id");
   });
 
-  it("applies hostel filter to both CTEs for hostel-scoped staff", async () => {
+  it("applies hostel filter with IN clause to both CTEs for hostel-scoped staff", async () => {
     let capturedQuery = "";
     const mockDbClient = {
       execute: vi.fn().mockImplementation(async (query: any) => {
@@ -68,7 +68,7 @@ describe("staffMetricsRepository.getLocationAndUserStats", () => {
       }),
     };
 
-    const stats = await staffMetricsRepository.getLocationAndUserStats(["H1"], mockDbClient as any);
+    const stats = await staffMetricsRepository.getLocationAndUserStats(["H1", "H2"], mockDbClient as any);
 
     expect(mockDbClient.execute).toHaveBeenCalledTimes(1);
     expect(stats).toEqual({
@@ -79,9 +79,9 @@ describe("staffMetricsRepository.getLocationAndUserStats", () => {
       outsideHostel: 8,
       overdue: 2,
     });
-    // Verify that hostel scoping is applied to both users and students
-    expect(capturedQuery).toContain("users.hostel_id");
-    expect(capturedQuery).toContain("u.hostel_id");
+    // Verify that hostel scoping is applied via IN clause to both users and students
+    expect(capturedQuery).toContain("users.hostel_id IN");
+    expect(capturedQuery).toContain("u.hostel_id IN");
   });
 
   it("handles empty database or empty hostel cleanly with zero counts", async () => {

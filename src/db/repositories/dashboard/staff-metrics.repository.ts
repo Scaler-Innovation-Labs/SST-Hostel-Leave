@@ -25,13 +25,20 @@ export const staffMetricsRepository = {
     dbClient: Pick<typeof db, "execute"> = db
   ): Promise<LocationAndUserStats> {
     const hasHostels = Boolean(hostelIds && hostelIds.length > 0);
+    const hostelIdsList =
+      hostelIds && hostelIds.length > 0
+        ? sql.join(
+            hostelIds.map((id) => sql`${id}`),
+            sql`, `
+          )
+        : sql``;
 
     const userWhere = hasHostels
-      ? sql`WHERE users.hostel_id = ANY(${hostelIds})`
+      ? sql`WHERE users.hostel_id IN (${hostelIdsList})`
       : sql``;
 
     const studentWhere = hasHostels
-      ? sql`WHERE u.hostel_id = ANY(${hostelIds})`
+      ? sql`WHERE u.hostel_id IN (${hostelIdsList})`
       : sql``;
 
     const query = sql`
