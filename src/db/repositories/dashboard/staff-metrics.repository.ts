@@ -18,12 +18,25 @@ export type LocationAndUserStats = {
  * 1. user counts and student counts are computed independently without cross-join multiplication.
  * 2. hostel-scoping is properly applied to both CTEs when hostelIds are provided.
  * 3. empty datasets always return exactly 1 row of zeros (no nulls or empty sets).
+ * 4. unassigned scoped users (empty hostel array) return zero counts to guarantee zero cross-hostel data leakage.
  */
 export const staffMetricsRepository = {
   async getLocationAndUserStats(
     hostelIds?: string[],
     dbClient: Pick<typeof db, "execute"> = db
   ): Promise<LocationAndUserStats> {
+    // If a staff member is scope-restricted but has zero assigned hostels, return empty metrics immediately.
+    if (hostelIds !== undefined && hostelIds.length === 0) {
+      return {
+        total: 0,
+        active: 0,
+        inHostel: 0,
+        outsideHostel: 0,
+        overdue: 0,
+        totalUsers: 0,
+      };
+    }
+
     const hasHostels = Boolean(hostelIds && hostelIds.length > 0);
     const hostelIdsList =
       hostelIds && hostelIds.length > 0
