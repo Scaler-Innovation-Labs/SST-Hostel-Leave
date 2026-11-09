@@ -27,6 +27,7 @@ import type { CurrentUser } from "@/lib/auth/types";
 import { getPublicBaseUrl } from "@/lib/base-url";
 import { db } from "@/lib/db";
 import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
+import { parseLeaveFormSchema } from "@/lib/leave-form-schema";
 import { resolveApprovalSource } from "@/lib/workflows/resolve-approval-source";
 import { auditService } from "@/services/audit/audit.service";
 import { assertNoConflictingOverlap } from "@/services/leave/overlap-guard.service";
@@ -89,9 +90,27 @@ export async function createExtension(
   }
 
   // Validate submitted form against leave type form schema (B8)
+  // An extension inherits the parent leave's submitted form data (destination, etc.),
+  // with optional overrides from dto.submittedForm.
+  const baseForm =
+    typeof leave.submittedForm === "object" && leave.submittedForm !== null
+      ? (leave.submittedForm as Record<string, unknown>)
+      : {};
+  const schema = parseLeaveFormSchema(leaveType.formSchema);
+  const allowedKeys = new Set(schema.fields.map((f) => f.key));
+  const filteredBaseForm: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(baseForm)) {
+    if (allowedKeys.has(key)) {
+      filteredBaseForm[key] = value;
+    }
+  }
+  const mergedForm = {
+    ...filteredBaseForm,
+    ...(dto.submittedForm ?? {}),
+  };
   const validatedForm = validateLeaveSubmittedForm(
     leaveType.formSchema,
-    dto.submittedForm
+    Object.keys(mergedForm).length > 0 ? mergedForm : undefined
   );
 
   // Check existing extensions: block multiple pending extensions & count active (B5)
@@ -158,6 +177,7 @@ export async function createExtension(
     endAt: requestedEnd,
     hostelId: user?.hostelId ?? null,
     studentDepartmentId,
+    submittedForm: validatedForm,
   });
 
   const policyResultSummary: PolicyResultSummary = {

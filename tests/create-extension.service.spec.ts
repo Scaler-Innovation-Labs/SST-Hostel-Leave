@@ -551,4 +551,118 @@ describe("createExtension service", () => {
     ).rejects.toThrow("Emergency Contact is required");
   });
 
+  it("inherits submittedForm from original leave request when not provided in dto", async () => {
+    mockStudentFindByUserId.mockResolvedValue({ id: "S1", userId: "U1" });
+    mockLeaveFindById.mockResolvedValue({
+      id: "L1",
+      studentId: "S1",
+      status: "APPROVED",
+      startAt: new Date("2026-06-10"),
+      endAt: new Date("2026-06-15"),
+      leaveTypeId: "LT1",
+      submittedForm: { destination: "Home City" },
+    });
+    mockLeaveFindByIdForUpdate.mockResolvedValue({
+      id: "L1",
+      studentId: "S1",
+      status: "APPROVED",
+      startAt: new Date("2026-06-10"),
+      endAt: new Date("2026-06-15"),
+      leaveTypeId: "LT1",
+      submittedForm: { destination: "Home City" },
+    });
+    const { leaveTypeRepository } = await import("@/db/repositories/leave/leave-type.repository");
+    (leaveTypeRepository.findById as any).mockResolvedValue({
+      id: "LT1",
+      code: "HOME_PASS",
+      allowExtensions: true,
+      maxExtensionCount: 3,
+      defaultWorkflowId: "WF1",
+      qrMode: "NONE",
+      formSchema: {
+        fields: [
+          { key: "destination", label: "Destination", type: "text", required: true },
+        ],
+      },
+    });
+
+    // Student submits extension without resubmitting destination
+    const result = await createExtension(
+      "L1",
+      {
+        requestedEndAt: "2026-06-20T23:59:59Z",
+        reason: "Need more time at home",
+      },
+      { id: "U1", roles: ["STUDENT"] }
+    );
+
+    expect(result.status).toBe("PENDING");
+    expect(mockExtensionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leaveRequestId: "L1",
+        submittedForm: { destination: "Home City" },
+      }),
+      expect.anything()
+    );
+  });
+
+  it("allows dto.submittedForm to override or augment inherited submittedForm fields", async () => {
+    mockStudentFindByUserId.mockResolvedValue({ id: "S1", userId: "U1" });
+    mockLeaveFindById.mockResolvedValue({
+      id: "L1",
+      studentId: "S1",
+      status: "APPROVED",
+      startAt: new Date("2026-06-10"),
+      endAt: new Date("2026-06-15"),
+      leaveTypeId: "LT1",
+      submittedForm: { destination: "Home City", emergencyContact: "9999999999" },
+    });
+    mockLeaveFindByIdForUpdate.mockResolvedValue({
+      id: "L1",
+      studentId: "S1",
+      status: "APPROVED",
+      startAt: new Date("2026-06-10"),
+      endAt: new Date("2026-06-15"),
+      leaveTypeId: "LT1",
+      submittedForm: { destination: "Home City", emergencyContact: "9999999999" },
+    });
+    const { leaveTypeRepository } = await import("@/db/repositories/leave/leave-type.repository");
+    (leaveTypeRepository.findById as any).mockResolvedValue({
+      id: "LT1",
+      code: "HOME_PASS",
+      allowExtensions: true,
+      maxExtensionCount: 3,
+      defaultWorkflowId: "WF1",
+      qrMode: "NONE",
+      formSchema: {
+        fields: [
+          { key: "destination", label: "Destination", type: "text", required: true },
+          { key: "emergencyContact", label: "Emergency Contact", type: "text", required: true },
+        ],
+      },
+    });
+
+    const result = await createExtension(
+      "L1",
+      {
+        requestedEndAt: "2026-06-20T23:59:59Z",
+        reason: "Relocating for remainder of break",
+        submittedForm: { destination: "Grandparents House" },
+      },
+      { id: "U1", roles: ["STUDENT"] }
+    );
+
+    expect(result.status).toBe("PENDING");
+    expect(mockExtensionCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        leaveRequestId: "L1",
+        submittedForm: {
+          destination: "Grandparents House",
+          emergencyContact: "9999999999",
+        },
+      }),
+      expect.anything()
+    );
+  });
+
 });
