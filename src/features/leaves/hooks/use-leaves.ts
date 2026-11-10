@@ -134,7 +134,7 @@ export function useLeave(
     },
   );
 
-  const raw = data?.data as RawLeaveItem | undefined;
+  const raw = ((data as any)?.leave ? data : (data as any)?.data) as RawLeaveItem | undefined;
 
   const leave = raw
     ? {

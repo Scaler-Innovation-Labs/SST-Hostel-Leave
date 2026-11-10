@@ -49,6 +49,13 @@ export function ExtensionDetailWorkspace({
   // Fetch leave data for student info
   const { leave, isLoading: leaveLoading } = useLeave(lr?.id);
 
+  const effectiveLeave = leave ?? (lr?.startAt && lr?.endAt ? {
+    leaveTypeName: lr.leaveTypeName ?? "—",
+    startAt: lr.startAt,
+    endAt: lr.endAt,
+    reason: lr.reason ?? "—",
+  } : null);
+
   const [actionTarget, setActionTarget] = useState<"approve" | "reject" | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -187,29 +194,29 @@ export function ExtensionDetailWorkspace({
           <Globe className="h-4 w-4 text-muted" />
           Parent Leave
         </h4>
-        {leaveLoading ? (
+        {leaveLoading && !effectiveLeave ? (
           <LoadingState count={1} />
-        ) : leave ? (
+        ) : effectiveLeave ? (
           <div className="grid gap-x-8 gap-y-3 sm:grid-cols-2">
             <div>
               <dt className="text-caption font-medium uppercase tracking-wider text-muted">
                 Leave Type
               </dt>
-              <dd className="mt-0.5 text-body font-medium">{leave.leaveTypeName ?? "—"}</dd>
+              <dd className="mt-0.5 text-body font-medium">{effectiveLeave.leaveTypeName ?? "—"}</dd>
             </div>
             <div>
               <dt className="text-caption font-medium uppercase tracking-wider text-muted">
                 Duration
               </dt>
               <dd className="mt-0.5 text-body text-muted">
-                {formatDate(leave.startAt)} — {formatDate(leave.endAt)}
+                {formatDate(effectiveLeave.startAt)} — {formatDate(effectiveLeave.endAt)}
               </dd>
             </div>
             <div className="sm:col-span-2">
               <dt className="text-caption font-medium uppercase tracking-wider text-muted">
                 Reason
               </dt>
-              <dd className="mt-0.5 text-body text-muted">{leave.reason ?? "—"}</dd>
+              <dd className="mt-0.5 text-body text-muted">{effectiveLeave.reason ?? "—"}</dd>
             </div>
           </div>
         ) : (

@@ -27,6 +27,10 @@ export type ExtensionCardItem = {
     id: string;
     status: string;
     requestNumber: string;
+    startAt?: Date | string;
+    endAt?: Date | string;
+    reason?: string;
+    leaveTypeName?: string;
   } | null;
 };
 

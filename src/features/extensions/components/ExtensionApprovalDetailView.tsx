@@ -42,6 +42,10 @@ function transformToExtensionCardItem(item: ApprovalQueueItem): ExtensionCardIte
           id: item.leaveRequest.id,
           status: item.leaveRequest.status,
           requestNumber: item.leaveRequest.requestNumber,
+          startAt: item.leaveRequest.startAt,
+          endAt: item.leaveRequest.endAt,
+          reason: item.leaveRequest.reason,
+          leaveTypeName: item.leaveTypeName ?? undefined,
         }
       : null,
   };

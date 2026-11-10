@@ -2,7 +2,7 @@
 
 import { CalendarPlus, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { DataToolbar } from "@/components/shared/DataToolbar";
 import { Pagination } from "@/components/shared/Pagination";
@@ -14,7 +14,7 @@ import {
   ErrorState,
   LEAVE_STATUS_PRESENTATION,
   Masthead,
-  RowSkeleton,
+  Skeleton,
   StatusBadge,
 } from "@/design-system/sst";
 import { LeaveTypeIcon } from "@/features/leaves/components/LeaveTypeIcon";
@@ -49,12 +49,21 @@ export default function StudentLeavesPage() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const { leaves, total, isLoading, isError, mutate } = useLeaves({
     page,
     limit: PAGE_SIZE,
     status: status || undefined,
-    search: search || undefined,
+    search: debouncedSearch || undefined,
   });
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -84,7 +93,6 @@ export default function StudentLeavesPage() {
         searchValue={search}
         onSearchChange={(value) => {
           setSearch(value);
-          setPage(1);
         }}
         filters={[
           {
@@ -109,7 +117,25 @@ export default function StudentLeavesPage() {
           onRetry={() => mutate()}
         />
       ) : isLoading ? (
-        <RowSkeleton rows={5} />
+        <div
+          className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface"
+          aria-hidden
+          data-testid="leaves-skeleton"
+        >
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex w-full items-center gap-3.5 px-5 py-4 text-left"
+            >
+              <Skeleton className="h-10 w-10 shrink-0 rounded-lg" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-3.5 w-48" />
+              </div>
+              <Skeleton className="h-6 w-20 shrink-0 rounded-full max-sm:hidden" />
+            </div>
+          ))}
+        </div>
       ) : items.length === 0 ? (
         <EmptyState
           Icon={FileText}
@@ -130,6 +156,7 @@ export default function StudentLeavesPage() {
                 size="sm"
                 onClick={() => {
                   setSearch("");
+                  setDebouncedSearch("");
                   setStatus("");
                   setPage(1);
                 }}

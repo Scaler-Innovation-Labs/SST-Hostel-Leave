@@ -485,7 +485,7 @@ async function deliverToRecipient(
 
 	try {
 		await notificationLogRepository.create({
-			leaveRequestId: context.leaveRequestId ?? null,
+			leaveRequestId: context.leaveExtensionId ? null : (context.leaveRequestId ?? null),
 			leaveExtensionId: context.leaveExtensionId ?? null,
 			userId: userId ?? context.userId ?? null,
 			parentId: parentId ?? context.parentId ?? null,

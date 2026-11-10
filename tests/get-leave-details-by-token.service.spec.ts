@@ -134,4 +134,82 @@ describe("getLeaveDetailsByToken service", () => {
     expect(failure).toBeInstanceOf(ValidationError);
     expect((failure as Error).message).toBe(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
   });
+
+  it("returns extension details for a valid extension token", async () => {
+    mockFindByParentApprovalToken.mockResolvedValue({
+      id: "AP2",
+      leaveRequestId: null,
+      leaveExtensionId: "EXT1",
+      decision: "PENDING",
+      parentDetails: {
+        parentId: "P1",
+        tokenHash: "hashed-token",
+        tokenExpiresAt: new Date("2099-01-01"),
+      },
+      stepOrder: 1,
+      studentName: "Jane Smith",
+      studentRollNumber: "R2",
+      leaveRequest: null,
+      leaveExtension: {
+        id: "EXT1",
+        extensionNumber: 2,
+        reason: "Need extra time for recovery",
+        currentEndAt: new Date("2026-06-15T10:00:00.000Z"),
+        requestedEndAt: new Date("2026-06-18T18:00:00.000Z"),
+        status: "PENDING",
+        submittedForm: { destination: "Home" },
+        leaveRequestId: "LR1",
+      },
+    });
+
+    const result = await getLeaveDetailsByToken("valid-token");
+
+    expect(result.approvalId).toBe("AP2");
+    expect(result.targetType).toBe("LEAVE_EXTENSION");
+    expect(result.leaveRequestId).toBe("LR1");
+    expect(result.leaveExtensionId).toBe("EXT1");
+    expect(result.extensionNumber).toBe(2);
+    expect(result.studentName).toBe("Jane Smith");
+    expect(result.studentRollNumber).toBe("R2");
+    expect(result.leaveTypeName).toBe("Internship");
+    expect(result.leaveReason).toBe("Need extra time for recovery");
+    expect(result.leaveStartDate).toBe("2026-06-15T10:00:00.000Z");
+    expect(result.leaveEndDate).toBe("2026-06-18T18:00:00.000Z");
+    expect(result.submittedForm).toEqual({ destination: "Home" });
+    expect(result.parentName).toBe("Parent Name");
+  });
+
+  it("handles string timestamp dates for extension without throwing", async () => {
+    mockFindByParentApprovalToken.mockResolvedValue({
+      id: "AP2",
+      leaveRequestId: null,
+      leaveExtensionId: "EXT1",
+      decision: "PENDING",
+      parentDetails: {
+        parentId: "P1",
+        tokenHash: "hashed-token",
+        tokenExpiresAt: new Date("2099-01-01"),
+      },
+      stepOrder: 1,
+      studentName: "Jane Smith",
+      studentRollNumber: "R2",
+      leaveRequest: null,
+      leaveExtension: {
+        id: "EXT1",
+        extensionNumber: 1,
+        reason: "Need extra time",
+        currentEndAt: "2026-06-15T10:00:00.000Z",
+        requestedEndAt: "2026-06-18T18:00:00.000Z",
+        status: "PENDING",
+        submittedForm: null,
+        leaveRequestId: "LR1",
+      },
+    });
+
+    const result = await getLeaveDetailsByToken("valid-token");
+
+    expect(result.targetType).toBe("LEAVE_EXTENSION");
+    expect(result.leaveStartDate).toBe("2026-06-15T10:00:00.000Z");
+    expect(result.leaveEndDate).toBe("2026-06-18T18:00:00.000Z");
+  });
 });

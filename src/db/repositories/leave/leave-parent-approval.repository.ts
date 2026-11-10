@@ -1,5 +1,5 @@
 import type { InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 
 import { LEAVE_APPROVAL_SOURCE } from "@/constants/leave/approval-source";
 import type { LeaveApprovalDecision } from "@/constants/leave/leave-approval-decision";
@@ -75,12 +75,15 @@ export const leaveParentApprovalRepository = {
         eq(parents.id, leaveApprovalParentDetails.parentId)
       )
       .leftJoin(
-        leaveRequests,
-        eq(leaveApprovals.leaveRequestId, leaveRequests.id)
-      )
-      .leftJoin(
         leaveExtensions,
         eq(leaveApprovals.leaveExtensionId, leaveExtensions.id)
+      )
+      .leftJoin(
+        leaveRequests,
+        or(
+          eq(leaveApprovals.leaveRequestId, leaveRequests.id),
+          eq(leaveExtensions.leaveRequestId, leaveRequests.id)
+        )
       )
       .leftJoin(
         students,
@@ -96,39 +99,7 @@ export const leaveParentApprovalRepository = {
     if (rows.length === 0) return null;
 
     const row = rows[0]!;
-    const leaveRequestId = row.approval.leaveRequestId;
     const leaveExtensionId = row.approval.leaveExtensionId;
-
-    let leaveRequest: {
-      id: string;
-      reason: string;
-      startAt: Date;
-      endAt: Date;
-      status: string;
-      submittedForm: Record<string, unknown> | null;
-    } | null = null;
-    if (leaveRequestId) {
-      const leaveRows = await dbClient
-        .select({
-          id: leaveRequests.id,
-          reason: leaveRequests.reason,
-          startAt: leaveRequests.startAt,
-          endAt: leaveRequests.endAt,
-          status: leaveRequests.status,
-          submittedForm: leaveRequests.submittedForm,
-        })
-        .from(leaveRequests)
-        .where(eq(leaveRequests.id, leaveRequestId))
-        .limit(1);
-
-      const lr = leaveRows[0];
-      if (lr) {
-        leaveRequest = {
-          ...lr,
-          submittedForm: lr.submittedForm as Record<string, unknown> | null,
-        };
-      }
-    }
 
     let leaveExtension: {
       id: string;
@@ -161,6 +132,39 @@ export const leaveParentApprovalRepository = {
         leaveExtension = {
           ...ext,
           submittedForm: ext.submittedForm as Record<string, unknown> | null,
+        };
+      }
+    }
+
+    const leaveRequestId = row.approval.leaveRequestId ?? leaveExtension?.leaveRequestId ?? null;
+
+    let leaveRequest: {
+      id: string;
+      reason: string;
+      startAt: Date;
+      endAt: Date;
+      status: string;
+      submittedForm: Record<string, unknown> | null;
+    } | null = null;
+    if (leaveRequestId) {
+      const leaveRows = await dbClient
+        .select({
+          id: leaveRequests.id,
+          reason: leaveRequests.reason,
+          startAt: leaveRequests.startAt,
+          endAt: leaveRequests.endAt,
+          status: leaveRequests.status,
+          submittedForm: leaveRequests.submittedForm,
+        })
+        .from(leaveRequests)
+        .where(eq(leaveRequests.id, leaveRequestId))
+        .limit(1);
+
+      const lr = leaveRows[0];
+      if (lr) {
+        leaveRequest = {
+          ...lr,
+          submittedForm: lr.submittedForm as Record<string, unknown> | null,
         };
       }
     }

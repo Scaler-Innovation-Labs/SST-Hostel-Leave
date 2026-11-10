@@ -314,8 +314,13 @@ export async function createExtension(
           }
         }
         if (!parentId) {
-          const parent = await parentRepository.findPrimaryByStudentId(leave.studentId, tx);
-          parentId = parent?.id ?? null;
+          const primary = await parentRepository.findPrimaryByStudentId(leave.studentId, tx);
+          if (primary) {
+            parentId = primary.id;
+          } else if (typeof parentRepository.findByStudentId === "function") {
+            const allParents = await parentRepository.findByStudentId(leave.studentId, tx);
+            parentId = allParents[0]?.id ?? null;
+          }
         }
       }
       if (pocApprovalStep) {

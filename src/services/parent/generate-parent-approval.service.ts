@@ -93,9 +93,11 @@ export async function generateParentApproval(
   }
 
   if (!parent) {
-    parent = await parentRepository.findPrimaryByStudentId(
-      context.studentId
-    );
+    parent = await parentRepository.findPrimaryByStudentId(context.studentId);
+    if (!parent && typeof parentRepository.findByStudentId === "function") {
+      const allParents = await parentRepository.findByStudentId(context.studentId);
+      parent = allParents[0] ?? null;
+    }
   }
 
   if (!parent) {
