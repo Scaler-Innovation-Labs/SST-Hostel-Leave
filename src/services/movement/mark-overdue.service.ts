@@ -6,6 +6,7 @@ import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import type { CurrentUser } from "@/lib/auth/types";
@@ -58,6 +59,14 @@ export async function markOverdue(
     let targetQrPassId: string | undefined;
 
     if (input.leaveRequestId) {
+      const hasActivePendingExt =
+        await leaveExtensionRepository.hasActivePendingExtension(input.leaveRequestId, new Date(), tx);
+      if (hasActivePendingExt) {
+        throw new ConflictError(
+          "Cannot mark overdue: an active extension request is pending decision"
+        );
+      }
+
       const activePass = await qrPassRepository.findByLeaveRequestId(input.leaveRequestId, tx);
       if (activePass) {
         targetQrPassId = activePass.id;

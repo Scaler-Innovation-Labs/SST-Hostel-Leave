@@ -7,6 +7,7 @@ import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { transaction } from "@/lib/db/transaction";
@@ -63,6 +64,14 @@ export async function markOverdueSingleLeave(
     if (!canTransition(leaveInTx.status, LEAVE_ACTION.MARK_OVERDUE)) {
       throw new ConflictError(
         `Cannot mark leave overdue in ${leaveInTx.status} status`
+      );
+    }
+
+    const hasActivePendingExt =
+      await leaveExtensionRepository.hasActivePendingExtension(leaveId, new Date(), tx);
+    if (hasActivePendingExt) {
+      throw new ConflictError(
+        "Cannot mark leave overdue: an active extension request is pending decision"
       );
     }
 

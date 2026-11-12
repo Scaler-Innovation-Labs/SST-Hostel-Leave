@@ -1,8 +1,9 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, lt, notExists, sql } from "drizzle-orm";
 
+import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
-import { leaveExtensions, leaveRequests } from "@/db";
+import { leaveApprovalParentDetails, leaveApprovals, leaveExtensions, leaveRequests } from "@/db";
 import { db } from "@/lib/db";
 
 export type LeaveExtension = InferSelectModel<typeof leaveExtensions>;
@@ -221,6 +222,90 @@ export const leaveExtensionRepository = {
 
     return rows[0] ?? null;
   },
+
+  /**
+   * Checks whether a leave request currently has an active pending extension.
+   * Returns true if an extension is PENDING and its parent approval link (if any)
+   * has not expired.
+   */
+  async hasActivePendingExtension(
+    leaveRequestId: string,
+    asOf: Date = new Date(),
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<boolean> {
+    const client = typeof dbClient?.select === "function" ? dbClient : db;
+    const rows = await client
+      .select({ id: leaveExtensions.id })
+      .from(leaveExtensions)
+      .where(
+        and(
+          eq(leaveExtensions.leaveRequestId, leaveRequestId),
+          eq(leaveExtensions.status, LEAVE_REQUEST_STATUS.PENDING),
+          notExists(
+            client
+              .select()
+              .from(leaveApprovals)
+              .innerJoin(
+                leaveApprovalParentDetails,
+                eq(leaveApprovalParentDetails.approvalId, leaveApprovals.id)
+              )
+              .where(
+                and(
+                  eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+                  eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+                  isNotNull(leaveApprovalParentDetails.tokenExpiresAt),
+                  lt(leaveApprovalParentDetails.tokenExpiresAt, asOf)
+                )
+              )
+          )
+        )
+      )
+      .limit(1);
+
+    return rows.length > 0;
+  },
 };
+
+/**
+ * Drizzle SQL condition ensuring a leave request does NOT have an active pending extension.
+ *
+ * If a student raised an extension:
+ * It CANNOT go to overdue while the extension is PENDING, unless:
+ * - It has been rejected or cancelled, OR
+ * - Its parent approval link has expired (tokenExpiresAt < asOf).
+ */
+export function buildNotHasActivePendingExtensionCondition(
+  dbClient: Pick<typeof db, "select">,
+  asOf: Date = new Date()
+) {
+  return notExists(
+    dbClient
+      .select()
+      .from(leaveExtensions)
+      .where(
+        and(
+          eq(leaveExtensions.leaveRequestId, leaveRequests.id),
+          eq(leaveExtensions.status, LEAVE_REQUEST_STATUS.PENDING),
+          notExists(
+            dbClient
+              .select()
+              .from(leaveApprovals)
+              .innerJoin(
+                leaveApprovalParentDetails,
+                eq(leaveApprovalParentDetails.approvalId, leaveApprovals.id)
+              )
+              .where(
+                and(
+                  eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+                  eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+                  isNotNull(leaveApprovalParentDetails.tokenExpiresAt),
+                  lt(leaveApprovalParentDetails.tokenExpiresAt, asOf)
+                )
+              )
+          )
+        )
+      )
+  );
+}
 
 export default leaveExtensionRepository;

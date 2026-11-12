@@ -13,6 +13,13 @@ const mockFindStudentById = vi.fn();
 const mockFindOpenSessionPass = vi.fn();
 const mockRecordMovement = vi.fn();
 const mockAuditRecord = vi.fn();
+const mockHasActivePendingExtension = vi.fn();
+
+vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
+  leaveExtensionRepository: {
+    hasActivePendingExtension: (...args: any[]) => mockHasActivePendingExtension(...args),
+  },
+}));
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
@@ -72,6 +79,7 @@ const APPROVED_LEAVE = {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mockHasActivePendingExtension.mockResolvedValue(false);
   mockAuditRecord.mockResolvedValue({});
   mockRecordMovement.mockResolvedValue({ id: "ME1" });
   mockUpdateById.mockResolvedValue({ id: "L1", status: "OVERDUE" });
@@ -145,6 +153,16 @@ describe("markOverdueSingleLeave service", () => {
     await expect(
       markOverdueSingleLeave("L2", SYSTEM_ACTOR)
     ).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("rejects when leave has an active pending extension awaiting approval", async () => {
+    mockFindById.mockResolvedValue(APPROVED_LEAVE);
+    mockFindByIdForUpdate.mockResolvedValue(APPROVED_LEAVE);
+    mockHasActivePendingExtension.mockResolvedValue(true);
+
+    await expect(
+      markOverdueSingleLeave("L1", SYSTEM_ACTOR)
+    ).rejects.toThrow("Cannot mark leave overdue: an active extension request is pending decision");
   });
 
   it("publishes LEAVE_OVERDUE outbox event", async () => {

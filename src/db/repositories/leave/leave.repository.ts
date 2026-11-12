@@ -8,6 +8,7 @@ import { hostels, leaveApprovalParentDetails, leaveApprovals, leaveExtensions, l
 import { startOfDayIst } from "@/lib/date-utils";
 import { db } from "@/lib/db";
 import { PersistenceError } from "@/lib/errors";
+import { buildNotHasActivePendingExtensionCondition } from "./leave-extension.repository";
 
 type LeaveDbClient = Pick<typeof db, "insert" | "select" | "update">;
 
@@ -345,7 +346,10 @@ async findAutoCompleteDueNonQrLeaves(
 					// OVERDUE = checked out for this leave (QR first-scanned)
 					// but not returned (pass not closed) after the end date has fully passed in IST.
 					isNotNull(qrPasses.firstScanAt),
-					isNull(qrPasses.closedAt)
+					isNull(qrPasses.closedAt),
+					// A student with an active pending extension cannot go to overdue
+					// until it is rejected or its parent link has expired.
+					buildNotHasActivePendingExtensionCondition(dbClient, before)
 				)
 			)
 			.orderBy(leaveRequests.endAt);

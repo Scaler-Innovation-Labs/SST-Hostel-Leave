@@ -3,6 +3,7 @@ import { and, eq, gte, inArray, isNotNull, isNull, lt, lte, sql } from "drizzle-
 import type { MovementEvent } from "@/constants/movement/movement-event";
 import { QR_SCAN_RESULT } from "@/constants/movement/qr-scan-result";
 import { leaveRequests, movementEvents, qrPasses, qrScanLogs, students, users } from "@/db";
+import { buildNotHasActivePendingExtensionCondition } from "@/db/repositories/leave/leave-extension.repository";
 import { startOfDayIst } from "@/lib/date-utils";
 import { db } from "@/lib/db";
 
@@ -254,10 +255,12 @@ export const movementAnalyticsRepository = {
     hostelIds?: string[],
     dbClient: Pick<typeof db, "select"> = db
   ): Promise<number> {
+    const now = new Date();
     const conditions: ReturnType<typeof and>[] = [
       isNotNull(qrPasses.firstScanAt),
       isNull(qrPasses.closedAt),
-      lt(leaveRequests.endAt, startOfDayIst(new Date())),
+      lt(leaveRequests.endAt, startOfDayIst(now)),
+      buildNotHasActivePendingExtensionCondition(dbClient, now),
     ];
     conditions.push(...hostelCondition(hostelIds));
     const result = await dbClient

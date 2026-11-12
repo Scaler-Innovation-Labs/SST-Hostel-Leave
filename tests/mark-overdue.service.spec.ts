@@ -28,6 +28,14 @@ vi.mock("@/db/repositories/student/student.repository", () => ({
   },
 }));
 
+const mockHasActivePendingExtension = vi.fn();
+
+vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
+  leaveExtensionRepository: {
+    hasActivePendingExtension: (...args: any[]) => mockHasActivePendingExtension(...args),
+  },
+}));
+
 vi.mock("@/services/movement/record-movement.service", () => ({
   recordMovement: (...args: any[]) => mockRecordMovement(...args),
 }));
@@ -39,6 +47,7 @@ const OVERRIDE_USER = { id: "SYSTEM", roles: ["SUPER_ADMIN"] };
 
 beforeEach(() => {
   vi.resetAllMocks();
+  mockHasActivePendingExtension.mockResolvedValue(false);
   mockRecordMovement.mockResolvedValue({ id: "ME1" });
   mockStudentFindByIdWithRelations.mockResolvedValue(null);
 });
@@ -62,6 +71,22 @@ describe("markOverdue service", () => {
       await expect(
         markOverdue({ studentId: "S1", currentUser: OVERRIDE_USER })
       ).rejects.toBeInstanceOf(ConflictError);
+    });
+
+    it("throws ConflictError when leave has an active pending extension", async () => {
+      mockStudentFindById.mockResolvedValue({
+        id: "S1",
+        currentLocationState: "CHECKED_OUT",
+      });
+      mockHasActivePendingExtension.mockResolvedValue(true);
+
+      await expect(
+        markOverdue({
+          studentId: "S1",
+          leaveRequestId: "L1",
+          currentUser: OVERRIDE_USER,
+        })
+      ).rejects.toThrow("Cannot mark overdue: an active extension request is pending decision");
     });
 
   });
