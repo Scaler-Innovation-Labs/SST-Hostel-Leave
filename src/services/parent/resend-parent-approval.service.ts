@@ -82,12 +82,13 @@ export async function resendParentApproval(
     const studentName = user?.fullName ?? "Student";
     const leaveDates = `${new Date(leave.startAt).toLocaleDateString()} - ${new Date(leave.endAt).toLocaleDateString()}`;
 
-    // Reset token expiration so generateParentApproval mints a fresh token
-    if (typeof (tx as any).update === "function" && parentApprovalWithDetails?.parentDetails?.tokenHash) {
+    // Reset token so generateParentApproval mints a fresh token
+    if (typeof (tx as any).update === "function" && parentApprovalWithDetails?.parentDetails) {
       await (tx as any)
         .update(leaveApprovalParentDetails)
         .set({
-          tokenExpiresAt: new Date(0),
+          tokenHash: null,
+          tokenExpiresAt: null,
         })
         .where(eq(leaveApprovalParentDetails.approvalId, currentApproval.id));
     }
@@ -199,12 +200,13 @@ export async function resendExtensionParentApproval(
     const studentName = user?.fullName ?? "Student";
     const leaveDates = `${new Date(extension.currentEndAt).toLocaleDateString()} - ${new Date(extension.requestedEndAt).toLocaleDateString()}`;
 
-    // Reset token expiration so generateParentApproval mints a fresh token
-    if (typeof (tx as any).update === "function" && parentApprovalWithDetails?.parentDetails?.tokenHash) {
+    // Reset token so generateParentApproval mints a fresh token
+    if (typeof (tx as any).update === "function" && parentApprovalWithDetails?.parentDetails) {
       await (tx as any)
         .update(leaveApprovalParentDetails)
         .set({
-          tokenExpiresAt: new Date(0),
+          tokenHash: null,
+          tokenExpiresAt: null,
         })
         .where(eq(leaveApprovalParentDetails.approvalId, currentApproval.id));
     }
