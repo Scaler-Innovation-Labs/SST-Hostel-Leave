@@ -3,6 +3,21 @@ import useSWR from "swr";
 import { getExtensionsUrl } from "@/lib/api/extension-api";
 import { fetcher } from "@/lib/api/fetcher";
 
+export type LeaveExtensionItem = {
+  id: string;
+  leaveRequestId: string;
+  extensionNumber: number;
+  status: string;
+  reason: string;
+  currentEndAt: string;
+  requestedEndAt: string;
+  currentStepKey?: string | null;
+  submittedAt?: string | null;
+  approvedAt?: string | null;
+  rejectedAt?: string | null;
+  createdAt: string;
+};
+
 export function useLeaveExtensions(leaveId: string) {
   const url = leaveId ? getExtensionsUrl(leaveId) : null;
 
@@ -10,16 +25,9 @@ export function useLeaveExtensions(leaveId: string) {
 
   return {
     data: data as {
-      items: Array<{
-        id: string;
-        extensionNumber: number;
-        status: string;
-        reason: string;
-        requestedEndAt: string;
-        createdAt: string;
-      }> | null;
+      items: LeaveExtensionItem[] | null;
       total: number;
-    },
+    } | undefined,
     isLoading,
     isError: !!error,
     error,

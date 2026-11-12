@@ -40,9 +40,19 @@ export const notificationLogRepository = {
 		input: NewNotificationLog,
 		dbClient: LogDbClient = db
 	): Promise<NotificationLog> {
+		const payload = { ...input };
+		if (payload.leaveExtensionId) {
+			payload.leaveRequestId = null;
+		}
+		if (payload.userId === "") {
+			payload.userId = null;
+		}
+		if (payload.parentId === "") {
+			payload.parentId = null;
+		}
 		const rows = await dbClient
 			.insert(notificationLogs)
-			.values(input)
+			.values(payload)
 			.returning();
 
 		return rows[0]!;

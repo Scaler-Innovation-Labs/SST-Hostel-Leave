@@ -2,6 +2,7 @@ import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import { MOVEMENT_STATE } from "@/constants/movement/movement-state";
 import { AGGREGATE_TYPE } from "@/constants/outbox/aggregate-types";
 import { OUTBOX_EVENT_TYPE } from "@/constants/outbox/event-types";
 import { leaveApprovals } from "@/db";
@@ -9,6 +10,7 @@ import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
+import { studentRepository } from "@/db/repositories/student/student.repository";
 import type { ApproveLeaveDto } from "@/dto/leave/approve-leave.dto";
 import type { CurrentUser } from "@/lib/auth/types";
 import { db } from "@/lib/db";
@@ -183,6 +185,18 @@ export async function approveExtension(
       },
       tx
     );
+
+    // If student was marked OVERDUE because leave ended before extension approval, restore to OUTSIDE_HOSTEL
+    if (leave) {
+      const student = await studentRepository.findById(leave.studentId, tx);
+      if (student && student.currentLocationState === MOVEMENT_STATE.OVERDUE) {
+        await studentRepository.updateCurrentLocationState(
+          student.id,
+          MOVEMENT_STATE.OUTSIDE_HOSTEL,
+          tx
+        );
+      }
+    }
 
     // Contract T14: an extended QR leave's pass window grows with the new end
     // date so the exit/return credential stays usable through the extension

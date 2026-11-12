@@ -17,6 +17,15 @@ function transformToExtensionCardItem(item: ApprovalQueueItem): ExtensionCardIte
     approverRoleCode: item.approverRoleCode,
     studentName: item.studentName,
     studentRollNumber: item.studentRollNumber,
+    studentGender: item.studentGender,
+    parentName: item.parentName,
+    parentPhone: item.parentPhone,
+    roomNumber: item.roomNumber,
+    hostelName: item.hostelName,
+    departmentName: item.departmentName,
+    stepKey: item.stepKey,
+    stepOrder: item.stepOrder,
+    workflowSteps: item.workflowSteps,
     createdAt: item.createdAt,
     extension: ext
       ? {
@@ -53,9 +62,10 @@ function transformToExtensionCardItem(item: ApprovalQueueItem): ExtensionCardIte
 
 type ExtensionApprovalDetailViewProps = {
   backRoute: string;
+  viewerRole?: "ADMIN" | "SUPER_ADMIN" | "POC";
 };
 
-export function ExtensionApprovalDetailView({ backRoute }: ExtensionApprovalDetailViewProps) {
+export function ExtensionApprovalDetailView({ backRoute, viewerRole = "ADMIN" }: ExtensionApprovalDetailViewProps) {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -103,6 +113,7 @@ export function ExtensionApprovalDetailView({ backRoute }: ExtensionApprovalDeta
   return (
     <ExtensionDetailWorkspace
       item={transformedItem}
+      viewerRole={viewerRole}
       onBack={backToQueue}
       onActionComplete={() => {
         router.refresh();

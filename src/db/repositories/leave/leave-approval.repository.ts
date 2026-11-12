@@ -1415,6 +1415,17 @@ export const leaveApprovalRepository = {
       .where(eq(leaveApprovals.leaveRequestId, leaveRequestId))
       .orderBy(leaveApprovals.stepOrder);
   },
+
+  async findByLeaveExtensionId(
+    leaveExtensionId: string,
+    dbClient: Pick<typeof db, "select"> = db,
+  ): Promise<LeaveApproval[]> {
+    return await dbClient
+      .select()
+      .from(leaveApprovals)
+      .where(eq(leaveApprovals.leaveExtensionId, leaveExtensionId))
+      .orderBy(leaveApprovals.stepOrder);
+  },
 };
 
 export default leaveApprovalRepository;

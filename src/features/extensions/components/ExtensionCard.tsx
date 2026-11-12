@@ -14,6 +14,21 @@ export type ExtensionCardItem = {
   approverRoleCode: string | null;
   studentName: string | null;
   studentRollNumber: string | null;
+  studentGender?: "MALE" | "FEMALE" | "OTHER" | null;
+  parentName?: string | null;
+  parentPhone?: string | null;
+  roomNumber?: string | null;
+  hostelName?: string | null;
+  departmentName?: string | null;
+  stepKey?: string | null;
+  stepOrder?: number | null;
+  workflowSteps?: Array<{
+    stepKey: string;
+    stepOrder: number;
+    approverRoleCode: string | null;
+    isParentApproval: boolean | null;
+    approvalMethod: string | null;
+  }>;
   createdAt?: string | Date;
   extension: {
     id: string;

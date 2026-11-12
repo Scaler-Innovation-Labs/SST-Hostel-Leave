@@ -27,4 +27,10 @@ describe("leaveRepository", () => {
   it("generates request numbers from the database sequence", async () => {
     await expect(leaveRepository.nextRequestNumber()).resolves.toBe("LR-42");
   });
+
+  it("exposes findOverdueLeaves, findExpiredLeaves and findAutoCompleteDueNonQrLeaves query methods", () => {
+    expect(typeof leaveRepository.findOverdueLeaves).toBe("function");
+    expect(typeof leaveRepository.findExpiredLeaves).toBe("function");
+    expect(typeof leaveRepository.findAutoCompleteDueNonQrLeaves).toBe("function");
+  });
 });

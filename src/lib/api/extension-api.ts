@@ -19,6 +19,8 @@ export function getExtensionApprovalsUrl(params?: {
   status?: string;
   search?: string;
   waitingOn?: string;
+  leaveRequestId?: string;
+  leaveExtensionId?: string;
   hostelId?: string;
   leaveTypeId?: string;
   dateFrom?: string;
@@ -30,6 +32,8 @@ export function getExtensionApprovalsUrl(params?: {
   if (params?.status) searchParams.set("status", params.status);
   if (params?.search) searchParams.set("search", params.search);
   if (params?.waitingOn) searchParams.set("waitingOn", params.waitingOn);
+  if (params?.leaveRequestId) searchParams.set("leaveRequestId", params.leaveRequestId);
+  if (params?.leaveExtensionId) searchParams.set("leaveExtensionId", params.leaveExtensionId);
   if (params?.hostelId) searchParams.set("hostelId", params.hostelId);
   if (params?.leaveTypeId) searchParams.set("leaveTypeId", params.leaveTypeId);
   if (params?.dateFrom) searchParams.set("dateFrom", params.dateFrom);
@@ -67,4 +71,37 @@ export async function approveExtension(
     throw new Error(json.error?.message ?? "Failed to approve extension");
   }
   return json.data;
+}
+
+export async function overrideExtension(
+  id: string,
+  modeOrOptions: "ONE_STEP" | "ALL" | { mode: "ONE_STEP" | "ALL"; comments?: string },
+  commentsArg?: string
+): Promise<unknown> {
+  const mode = typeof modeOrOptions === "string" ? modeOrOptions : modeOrOptions.mode;
+  const comments = typeof modeOrOptions === "string" ? commentsArg : modeOrOptions.comments;
+  const res = await fetch(`${BASE}/extensions/${id}/override`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode, comments }),
+  });
+  const json: ApiResponse = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message ?? "Failed to override extension");
+  }
+  return json.data;
+}
+
+export async function resendExtensionParentApproval(
+  id: string
+): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${BASE}/extensions/${id}/resend-parent-approval`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  const json: ApiResponse<{ success: boolean; message: string }> = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message ?? "Failed to resend parent approval link");
+  }
+  return json.data ?? { success: true, message: "Parent approval link resent successfully" };
 }

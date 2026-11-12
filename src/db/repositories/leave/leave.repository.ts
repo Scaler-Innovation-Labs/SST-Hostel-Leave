@@ -1,10 +1,11 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, asc, desc, eq, exists, gt, gte, ilike, inArray, isNotNull, isNull, lte, ne, notExists, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, exists, gt, gte, ilike, inArray, isNotNull, isNull, lt, lte, ne, notExists, or, sql } from "drizzle-orm";
 
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { QR_MODE } from "@/constants/leave/qr-mode";
 import { hostels, leaveApprovalParentDetails, leaveApprovals, leaveExtensions, leaveRequests, leaveTypes, qrPasses, students, users } from "@/db";
+import { startOfDayIst } from "@/lib/date-utils";
 import { db } from "@/lib/db";
 import { PersistenceError } from "@/lib/errors";
 
@@ -270,7 +271,7 @@ export const leaveRepository = {
 						eq(leaveRequests.status, LEAVE_REQUEST_STATUS.APPROVED),
 						eq(leaveRequests.status, LEAVE_REQUEST_STATUS.PENDING)
 					),
-					lte(leaveRequests.endAt, before),
+					lt(leaveRequests.endAt, startOfDayIst(before)),
 					isNull(leaveRequests.actualReturnAt),
 					// EXPIRED = approved but never checked out. Exclude leaves
 					// that have an active QR pass (i.e. the student left), and
@@ -304,7 +305,7 @@ async findAutoCompleteDueNonQrLeaves(
 			.where(
 				and(
 					eq(leaveRequests.status, LEAVE_REQUEST_STATUS.APPROVED),
-					lte(leaveRequests.endAt, before),
+					lt(leaveRequests.endAt, startOfDayIst(before)),
 					isNull(leaveRequests.actualReturnAt),
 					eq(leaveTypes.qrMode, QR_MODE.NONE),
 					notExists(
@@ -339,10 +340,10 @@ async findAutoCompleteDueNonQrLeaves(
 			.where(
 				and(
 					eq(leaveRequests.status, LEAVE_REQUEST_STATUS.APPROVED),
-					lte(leaveRequests.endAt, before),
+					lt(leaveRequests.endAt, startOfDayIst(before)),
 					isNull(leaveRequests.actualReturnAt),
 					// OVERDUE = checked out for this leave (QR first-scanned)
-					// but not returned (pass not closed) after the end date.
+					// but not returned (pass not closed) after the end date has fully passed in IST.
 					isNotNull(qrPasses.firstScanAt),
 					isNull(qrPasses.closedAt)
 				)

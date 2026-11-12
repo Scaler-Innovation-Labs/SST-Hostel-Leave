@@ -4,6 +4,7 @@ import { and, asc, eq, gte, inArray, isNotNull, isNull, lt, lte, ne, or, sql } f
 import { QR_STATUS } from "@/constants/movement/qr-status";
 import type { QrType } from "@/constants/movement/qr-type";
 import { hostels, leaveRequests, leaveTypes, qrPasses, students, users } from "@/db";
+import { startOfDayIst } from "@/lib/date-utils";
 import { db } from "@/lib/db";
 
 export type QrPass = InferSelectModel<typeof qrPasses>;
@@ -420,7 +421,7 @@ export const qrPassRepository = {
     const conditions: ReturnType<typeof and>[] = [
       isNotNull(qrPasses.firstScanAt),
       isNull(qrPasses.closedAt),
-      lt(leaveRequests.endAt, new Date()),
+      lt(leaveRequests.endAt, startOfDayIst(new Date())),
     ];
     if (opts.hostelIds?.length) {
       conditions.push(inArray(users.hostelId, opts.hostelIds));
@@ -475,7 +476,7 @@ export const qrPassRepository = {
     const conditions: ReturnType<typeof and>[] = [
       isNotNull(qrPasses.firstScanAt),
       isNull(qrPasses.closedAt),
-      lt(leaveRequests.endAt, new Date()),
+      lt(leaveRequests.endAt, startOfDayIst(new Date())),
     ];
     if (opts.hostelIds?.length) {
       conditions.push(inArray(users.hostelId, opts.hostelIds));

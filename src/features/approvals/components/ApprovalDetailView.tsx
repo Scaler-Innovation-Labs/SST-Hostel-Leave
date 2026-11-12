@@ -5,6 +5,7 @@ import {
   AlertCircle,
   AlertTriangle,
   ArrowLeft,
+  ArrowRight,
   Calendar,
   Check,
   CheckCircle2,
@@ -39,6 +40,7 @@ import {
   XCircle,
   Zap,
 } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import useSWR from "swr";
@@ -89,6 +91,8 @@ import {
 } from "@/design-system/sst";
 import { useApprovalChain } from "@/features/approvals/hooks/use-approval-chain";
 import { formatApprovalActor } from "@/features/approvals/lib/step-display";
+import { ExtensionStatusBadge } from "@/features/extensions/components/ExtensionStatusBadge";
+import { useLeaveExtensions } from "@/features/extensions/hooks/use-leave-extensions";
 import { AskAQuestionSection } from "@/features/leaves/components/AskAQuestionSection";
 import { LeaveQrPass } from "@/features/leaves/components/LeaveQrPass";
 import { useLeaves } from "@/features/leaves/hooks/use-leaves";
@@ -167,6 +171,7 @@ const TAB_CONFIG = [
   { id: "overview", label: "Overview", icon: Eye },
   { id: "workflow", label: "Workflow", icon: Users },
   { id: "movement", label: "Movement", icon: MapPin },
+  { id: "extensions", label: "Extensions", icon: Calendar },
   { id: "timeline", label: "Timeline", icon: Clock },
   { id: "audit", label: "Audit", icon: History },
   { id: "documents", label: "Documents", icon: FileText },
@@ -285,6 +290,16 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
   const { data: auditData, isLoading: auditLoading } = useSWR<{ data: AuditEntry[] }>(
     leaveId ? `/api/v1/audit?entityType=LEAVE_REQUEST&entityId=${leaveId}` : null,
   );
+
+  const { data: extensionsData, isLoading: extensionsLoading } = useLeaveExtensions(leaveId);
+  const extensions = useMemo(() => extensionsData?.items ?? [], [extensionsData?.items]);
+  const pendingExtensions = useMemo(
+    () => extensions.filter((ext) => ext.status.toUpperCase() === "PENDING"),
+    [extensions]
+  );
+  const latestPendingExtension = pendingExtensions[0] ?? null;
+  const hasPendingExtension = latestPendingExtension !== null;
+  const extApprovalsBasePath = viewerRole === "ADMIN" ? "/admin/extension-approvals" : "/super-admin/extension-approvals";
 
   // Student data
   const rawLeave = rawLeaveData?.data as {
@@ -813,12 +828,53 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                       {movements.length}
                     </span>
                   )}
+                  {tab.id === "extensions" && extensions.length > 0 && (
+                    <span
+                      className={cn(
+                        "ml-1 rounded-full px-1.5 py-0.5 text-micro font-semibold",
+                        hasPendingExtension
+                          ? "bg-warning/20 text-warning"
+                          : "bg-accent/20 text-accent"
+                      )}
+                    >
+                      {extensions.length}
+                    </span>
+                  )}
                 </TabsTrigger>
               ))}
             </TabsList>
 
             {/* ▸ OVERVIEW TAB */}
             <TabsContent value="overview" className="mt-5 space-y-5">
+              {/* Extension Pending Alert Banner */}
+              {hasPendingExtension && latestPendingExtension && (
+                <div className="flex flex-col gap-3 rounded-xl border border-warning/40 bg-warning-light p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+                    <div>
+                      <p className="text-body font-semibold text-ink">
+                        Extension Request Pending (Extension #{latestPendingExtension.extensionNumber})
+                      </p>
+                      <p className="text-caption text-muted">
+                        Requested return date:{" "}
+                        <span className="font-medium text-ink">
+                          {formatDate(latestPendingExtension.requestedEndAt)}
+                        </span>
+                        {latestPendingExtension.reason && ` — "${latestPendingExtension.reason}"`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`${extApprovalsBasePath}/${latestPendingExtension.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-caption font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                    >
+                      <span>Review / Override</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              )}
               {/* Student Profile */}
               <SectionCard title="Student Profile" Icon={User}>
                 <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
@@ -910,6 +966,69 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                   </div>
                 )}
               </SectionCard>
+
+              {/* Extensions Summary */}
+              {extensions.length > 0 && (
+                <SectionCard
+                  title={`Extensions (${extensions.length})`}
+                  Icon={Calendar}
+                  action={
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("extensions")}
+                      className="inline-flex items-center gap-1 text-caption font-medium text-accent hover:underline"
+                    >
+                      <span>View details</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </button>
+                  }
+                >
+                  <div className="space-y-3">
+                    {extensions.slice(0, 3).map((ext) => (
+                      <div
+                        key={ext.id}
+                        className="flex flex-col gap-2 rounded-lg border border-border bg-surface-sunken/40 p-3 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-caption font-semibold text-ink">
+                              Extension #{ext.extensionNumber}
+                            </span>
+                            <ExtensionStatusBadge
+                              status={
+                                (ext.status.toLowerCase() as
+                                  | "pending"
+                                  | "approved"
+                                  | "rejected"
+                                  | "cancelled") || "pending"
+                              }
+                            />
+                            {ext.status.toUpperCase() === "PENDING" && (
+                              <span className="rounded-full bg-warning/20 px-2 py-0.5 text-micro font-medium text-warning">
+                                Action Needed
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-caption text-muted">
+                            {ext.currentEndAt ? formatDate(ext.currentEndAt) : "—"} →{" "}
+                            <span className="font-medium text-ink">
+                              {formatDate(ext.requestedEndAt)}
+                            </span>
+                            {ext.reason ? ` • ${ext.reason}` : ""}
+                          </p>
+                        </div>
+                        <Link
+                          href={`${extApprovalsBasePath}/${ext.id}`}
+                          className="inline-flex items-center gap-1 text-caption font-medium text-accent hover:underline"
+                        >
+                          <span>Open Workspace</span>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                </SectionCard>
+              )}
 
               {/* Uploaded Documents */}
               <SectionCard
@@ -1497,6 +1616,113 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                         </div>
                       );
                     })}
+                  </div>
+                )}
+              </SectionCard>
+            </TabsContent>
+
+            {/* ▸ EXTENSIONS TAB */}
+            <TabsContent value="extensions" className="mt-5 space-y-5">
+              <SectionCard
+                title={`Leave Extensions (${extensions.length})`}
+                Icon={Calendar}
+                action={
+                  extensions.length > 0 ? (
+                    <span className="text-caption text-muted">
+                      {pendingExtensions.length > 0
+                        ? `${pendingExtensions.length} pending review`
+                        : "All extensions processed"}
+                    </span>
+                  ) : undefined
+                }
+              >
+                {extensionsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted" />
+                  </div>
+                ) : extensions.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-border py-8 text-center">
+                    <Calendar className="mx-auto h-8 w-8 text-muted/60" />
+                    <p className="mt-2 text-body font-medium text-muted">
+                      No extensions requested
+                    </p>
+                    <p className="text-caption text-muted">
+                      The student has not requested any extensions for this leave request.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {extensions.map((ext) => (
+                      <div
+                        key={ext.id}
+                        className="rounded-lg border border-border bg-surface p-4 transition-colors hover:border-border-strong"
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-body font-semibold text-ink">
+                              Extension #{ext.extensionNumber}
+                            </span>
+                            <ExtensionStatusBadge
+                              status={
+                                (ext.status.toLowerCase() as
+                                  | "pending"
+                                  | "approved"
+                                  | "rejected"
+                                  | "cancelled") || "pending"
+                              }
+                            />
+                            {ext.status.toUpperCase() === "PENDING" && (
+                              <span className="rounded-full bg-warning/20 px-2 py-0.5 text-micro font-medium text-warning">
+                                Action Needed
+                              </span>
+                            )}
+                          </div>
+                          <Link
+                            href={`${extApprovalsBasePath}/${ext.id}`}
+                            className="inline-flex items-center gap-1.5 text-caption font-medium text-accent hover:underline"
+                          >
+                            <span>Open in Extension Workspace</span>
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Link>
+                        </div>
+
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                          <div>
+                            <span className="text-micro font-semibold uppercase tracking-wider text-muted">
+                              Current End Date
+                            </span>
+                            <p className="text-caption font-medium text-ink">
+                              {ext.currentEndAt ? formatDate(ext.currentEndAt) : "—"}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-micro font-semibold uppercase tracking-wider text-muted">
+                              Requested New End
+                            </span>
+                            <p className="text-caption font-medium text-ink">
+                              {formatDate(ext.requestedEndAt)}
+                            </p>
+                          </div>
+                          <div>
+                            <span className="text-micro font-semibold uppercase tracking-wider text-muted">
+                              Submitted At
+                            </span>
+                            <p className="text-caption font-medium text-ink">
+                              {formatDateTime(ext.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {ext.reason && (
+                          <div className="mt-3 rounded-md bg-surface-sunken p-2.5">
+                            <span className="text-micro font-semibold uppercase tracking-wider text-muted">
+                              Reason
+                            </span>
+                            <p className="mt-0.5 text-caption text-ink">{ext.reason}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </SectionCard>
