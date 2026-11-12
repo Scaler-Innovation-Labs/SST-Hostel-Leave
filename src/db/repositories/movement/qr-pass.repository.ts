@@ -1,11 +1,10 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, asc, eq, gte, inArray, isNotNull, isNull, lt, lte, ne, or, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNotNull, isNull, lte, ne, or, sql } from "drizzle-orm";
 
 import { QR_STATUS } from "@/constants/movement/qr-status";
 import type { QrType } from "@/constants/movement/qr-type";
 import { hostels, leaveRequests, leaveTypes, qrPasses, students, users } from "@/db";
-import { buildNotHasActivePendingExtensionCondition } from "@/db/repositories/leave/leave-extension.repository";
-import { startOfDayIst } from "@/lib/date-utils";
+import { buildNotHasActivePendingExtensionCondition, isOverdueInIstCondition } from "@/db/repositories/leave/leave-extension.repository";
 import { db } from "@/lib/db";
 
 export type QrPass = InferSelectModel<typeof qrPasses>;
@@ -423,7 +422,7 @@ export const qrPassRepository = {
     const conditions: ReturnType<typeof and>[] = [
       isNotNull(qrPasses.firstScanAt),
       isNull(qrPasses.closedAt),
-      lt(leaveRequests.endAt, startOfDayIst(now)),
+      isOverdueInIstCondition(leaveRequests.endAt, now),
       buildNotHasActivePendingExtensionCondition(dbClient, now),
     ];
     if (opts.hostelIds?.length) {
@@ -480,7 +479,7 @@ export const qrPassRepository = {
     const conditions: ReturnType<typeof and>[] = [
       isNotNull(qrPasses.firstScanAt),
       isNull(qrPasses.closedAt),
-      lt(leaveRequests.endAt, startOfDayIst(now)),
+      isOverdueInIstCondition(leaveRequests.endAt, now),
       buildNotHasActivePendingExtensionCondition(dbClient, now),
     ];
     if (opts.hostelIds?.length) {

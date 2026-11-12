@@ -8,7 +8,7 @@ import { hostels, leaveApprovalParentDetails, leaveApprovals, leaveExtensions, l
 import { startOfDayIst } from "@/lib/date-utils";
 import { db } from "@/lib/db";
 import { PersistenceError } from "@/lib/errors";
-import { buildNotHasActivePendingExtensionCondition } from "./leave-extension.repository";
+import { buildNotHasActivePendingExtensionCondition, isOverdueInIstCondition } from "./leave-extension.repository";
 
 type LeaveDbClient = Pick<typeof db, "insert" | "select" | "update">;
 
@@ -306,7 +306,7 @@ async findAutoCompleteDueNonQrLeaves(
 			.where(
 				and(
 					eq(leaveRequests.status, LEAVE_REQUEST_STATUS.APPROVED),
-					lt(leaveRequests.endAt, startOfDayIst(before)),
+					isOverdueInIstCondition(leaveRequests.endAt, before),
 					isNull(leaveRequests.actualReturnAt),
 					eq(leaveTypes.qrMode, QR_MODE.NONE),
 					notExists(
@@ -341,7 +341,7 @@ async findAutoCompleteDueNonQrLeaves(
 			.where(
 				and(
 					eq(leaveRequests.status, LEAVE_REQUEST_STATUS.APPROVED),
-					lt(leaveRequests.endAt, startOfDayIst(before)),
+					isOverdueInIstCondition(leaveRequests.endAt, before),
 					isNull(leaveRequests.actualReturnAt),
 					// OVERDUE = checked out for this leave (QR first-scanned)
 					// but not returned (pass not closed) after the end date has fully passed in IST.

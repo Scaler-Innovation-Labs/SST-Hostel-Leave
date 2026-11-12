@@ -31,12 +31,16 @@ type OverdueReturnsPageProps = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
 function daysOverdue(endAt: string | null, now: number): number {
   if (!endAt) return 0;
   const end = new Date(endAt).getTime();
   if (Number.isNaN(end)) return 0;
-  return Math.max(0, Math.floor((now - end) / DAY_MS));
+  // Calendar day calculation in IST (changes at night 12:00 AM midnight)
+  const endDay = Math.floor((end + IST_OFFSET_MS) / DAY_MS);
+  const nowDay = Math.floor((now + IST_OFFSET_MS) / DAY_MS);
+  return Math.max(0, nowDay - endDay);
 }
 
 

@@ -83,7 +83,7 @@ export async function resendParentApproval(
     const leaveDates = `${new Date(leave.startAt).toLocaleDateString()} - ${new Date(leave.endAt).toLocaleDateString()}`;
 
     // Reset token expiration so generateParentApproval mints a fresh token
-    if (typeof (tx as any).update === "function") {
+    if (typeof (tx as any).update === "function" && parentApprovalWithDetails?.parentDetails?.tokenHash) {
       await (tx as any)
         .update(leaveApprovalParentDetails)
         .set({
@@ -200,7 +200,7 @@ export async function resendExtensionParentApproval(
     const leaveDates = `${new Date(extension.currentEndAt).toLocaleDateString()} - ${new Date(extension.requestedEndAt).toLocaleDateString()}`;
 
     // Reset token expiration so generateParentApproval mints a fresh token
-    if (typeof (tx as any).update === "function") {
+    if (typeof (tx as any).update === "function" && parentApprovalWithDetails?.parentDetails?.tokenHash) {
       await (tx as any)
         .update(leaveApprovalParentDetails)
         .set({

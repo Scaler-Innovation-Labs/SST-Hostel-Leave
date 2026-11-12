@@ -308,4 +308,18 @@ export function buildNotHasActivePendingExtensionCondition(
   );
 }
 
+/**
+ * Drizzle SQL condition ensuring a leave's endAt calendar date in IST has fully passed.
+ * The leave only becomes overdue at night 12:00 AM (00:00:00 IST) when the day changes to
+ * the day after endAt, regardless of the time they left campus or checkout hours.
+ *
+ * Example: if leave is till 11 November, it becomes overdue on 12 November at 00:00 IST.
+ */
+export function isOverdueInIstCondition(
+  endAtColumn: typeof leaveRequests.endAt,
+  asOf: Date = new Date()
+) {
+  return sql`(${endAtColumn} AT TIME ZONE 'Asia/Kolkata')::date < (${asOf.toISOString()}::timestamptz AT TIME ZONE 'Asia/Kolkata')::date`;
+}
+
 export default leaveExtensionRepository;
