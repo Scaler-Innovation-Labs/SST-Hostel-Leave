@@ -11,7 +11,7 @@ export async function GET() {
   try {
     await requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN, ROLES.ADMIN]);
     const rows = await listAcademicGroups();
-    return ApiResponse.success(rows);
+    return ApiResponse.cached(rows, 300, 600);
   } catch (error) {
     return ApiResponse.fromError(error);
   }

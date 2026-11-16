@@ -19,7 +19,7 @@ export async function GET() {
       ? await listHostels(scopedHostelIds)
       : await listHostels();
 
-    return ApiResponse.success(rows);
+    return ApiResponse.cached(rows, 300, 600);
   } catch (error) {
     return ApiResponse.fromError(error);
   }

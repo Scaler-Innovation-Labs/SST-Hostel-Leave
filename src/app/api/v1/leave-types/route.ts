@@ -18,7 +18,7 @@ export async function GET() {
 
     const result = await listLeaveTypes();
 
-    return ApiResponse.success(result);
+    return ApiResponse.cached(result, 300, 600);
   } catch (error) {
     return ApiResponse.fromError(error);
   }

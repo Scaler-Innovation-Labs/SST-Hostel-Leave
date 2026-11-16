@@ -5,18 +5,24 @@ import { TooManyRequestsError } from "@/lib/errors/rate-limit-error";
 import { logger } from "@/lib/logger";
 
 export class ApiResponse {
-  static success<T>(data: T, status = 200) {
+  static success<T>(data: T, status = 200, headers?: HeadersInit) {
     return Response.json(
       {
         success: true,
         data,
       },
-      { status }
+      { status, headers }
     );
   }
 
   static created<T>(data: T) {
     return this.success(data, 201);
+  }
+
+  static cached<T>(data: T, maxAge = 300, staleWhileRevalidate = 600) {
+    return this.success(data, 200, {
+      "Cache-Control": `private, max-age=${maxAge}, stale-while-revalidate=${staleWhileRevalidate}`,
+    });
   }
 
   static error(code: string, message: string, status: number = 500, headers?: Record<string, string>) {
