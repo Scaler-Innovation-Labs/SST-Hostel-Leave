@@ -61,4 +61,6 @@ temp.md
 
 /.freebuff
 
+/docs/interview-prep/*
+
 EC2 Leave Worker.pem

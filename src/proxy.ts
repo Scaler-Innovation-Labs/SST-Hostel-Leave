@@ -3,39 +3,28 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 /**
- * Routes that require Clerk authentication (student, admin, POC, super-admin).
+ * Public routes that do not require Clerk session authentication.
+ *
+ * All other routes are protected by default (fail-closed / default-deny):
+ * - Dashboard consoles (/student, /admin, /poc, /guard, /super-admin)
+ * - User profile (/profile)
+ * - Console redirector (/redirect)
+ * - API routes (/api/v1/*, /api/docs)
  */
-const isAuthenticatedRoute = createRouteMatcher([
-  "/student(.*)",
-  "/admin(.*)",
-  "/poc(.*)",
-  "/guard(.*)",
-  "/super-admin(.*)",
-  "/api/v1(.*)",
-]);
-
-/**
- * Parent-approve token routes — accessed via SMS/email links with embedded tokens.
- * These use per-request tokens, not session-based auth.
- */
-const isParentApproveRoute = createRouteMatcher([
+export const isPublicRoute = createRouteMatcher([
+  "/login(.*)",
+  "/sso-callback(.*)",
+  "/unauthorized",
   "/parent-approve(.*)",
   "/api/parent-approve(.*)",
+  "/api/health",
+  "/api/cron(.*)",
 ]);
 
 export default clerkMiddleware(
   async (auth, request: NextRequest) => {
-    const pathname = request.nextUrl.pathname;
-
-    // ── Parent-approve token routes ─────────────────────────────────
-    // These use per-request tokens from SMS/email links.
-    // Validation happens in the route handlers themselves.
-    if (isParentApproveRoute(request)) {
-      return NextResponse.next();
-    }
-
-    // ── Root path — redirect authenticated users to their dashboard ─
-    if (pathname === "/") {
+    // ── Root path — landing/marketing page or dashboard redirect ───────
+    if (request.nextUrl.pathname === "/") {
       const authObj = await auth();
       if (authObj.userId) {
         return NextResponse.redirect(new URL("/redirect", request.url));
@@ -43,13 +32,13 @@ export default clerkMiddleware(
       return NextResponse.next();
     }
 
-    // ── Clerk-authenticated routes ──────────────────────────────────
-    // Protect student, admin, POC, super-admin dashboards
-    // NOTE: every unauthenticated exemption above must correspond to a
-    // real, intentional route. Do not add open matchers for future use.
-    if (isAuthenticatedRoute(request)) {
-      await auth.protect();
+    // ── Public routes bypass Clerk session enforcement ─────────────────
+    if (isPublicRoute(request)) {
+      return NextResponse.next();
     }
+
+    // ── Default-deny: all other routes require a valid Clerk session ───
+    await auth.protect();
 
     return NextResponse.next();
   },

@@ -269,22 +269,21 @@ describe("S7 — Route-Gating and RBAC Audit", () => {
   });
 
   describe("Middleware proxy protection verification", () => {
-    it("matches all protected console prefixes including /guard", async () => {
+    it("enforces default-deny by protecting all unlisted routes with auth.protect()", async () => {
       const proxySource = (await import("fs")).readFileSync("src/proxy.ts", "utf8");
 
-      expect(proxySource).toContain('"/guard(.*)"');
-      expect(proxySource).toContain('"/student(.*)"');
-      expect(proxySource).toContain('"/admin(.*)"');
-      expect(proxySource).toContain('"/poc(.*)"');
-      expect(proxySource).toContain('"/super-admin(.*)"');
-      expect(proxySource).toContain('"/api/v1(.*)"');
+      expect(proxySource).toContain("isPublicRoute");
+      expect(proxySource).toContain("await auth.protect()");
     });
 
-    it("explicitly exempts public parent approval routes", async () => {
+    it("explicitly defines known public route exemptions", async () => {
       const proxySource = (await import("fs")).readFileSync("src/proxy.ts", "utf8");
 
       expect(proxySource).toContain('"/parent-approve(.*)"');
       expect(proxySource).toContain('"/api/parent-approve(.*)"');
+      expect(proxySource).toContain('"/login(.*)"');
+      expect(proxySource).toContain('"/api/health"');
+      expect(proxySource).toContain('"/api/cron(.*)"');
     });
   });
 });
