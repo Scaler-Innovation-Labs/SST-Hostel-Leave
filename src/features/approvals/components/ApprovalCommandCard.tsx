@@ -515,34 +515,19 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
                     Waiting for <span className="text-ink">{getStepDisplay(waitingOn).label}</span>
                   </span>
                   {(effectiveViewerRole === "ADMIN" || effectiveViewerRole === "SUPER_ADMIN") && (
-                    <div className="mt-1 flex w-full flex-col gap-1.5">
-                      <Button
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActionError("");
-                          setApproveOpen(true);
-                        }}
-                        disabled={actionLoading}
-                        className="h-7 w-full gap-1 text-micro"
-                      >
-                        <CheckCircle2 className="h-3 w-3" />
-                        Override & Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowPreview("reject");
-                        }}
-                        disabled={actionLoading}
-                        className="h-7 w-full gap-1 text-micro"
-                      >
-                        <XCircle className="h-3 w-3" />
-                        Reject
-                      </Button>
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowPreview("reject");
+                      }}
+                      disabled={actionLoading}
+                      className="mt-1 h-7 w-full gap-1 text-micro"
+                    >
+                      <XCircle className="h-3 w-3" />
+                      Reject
+                    </Button>
                   )}
                 </div>
               ) : (
