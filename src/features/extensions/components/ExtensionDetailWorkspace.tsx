@@ -360,7 +360,7 @@ export function ExtensionDetailWorkspace({
           </h4>
           {lr?.id && (
             <Link
-              href={`/admin/leave-approvals/${lr.id}`}
+              href={viewerRole === "SUPER_ADMIN" ? `/super-admin/approvals/${lr.id}` : `/admin/approvals/${lr.id}`}
               className="text-caption text-primary hover:underline flex items-center gap-1"
             >
               View Base Leave
