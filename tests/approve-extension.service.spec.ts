@@ -185,6 +185,7 @@ describe("approveExtension service", () => {
     );
   });
 
+
   it("rejects extension and updates status", async () => {
     mockExtensionFindById.mockResolvedValue({ id: "EXT3", status: "PENDING", leaveRequestId: "L1" });
     mockExtensionFindByIdForUpdate.mockResolvedValue({ id: "EXT3", status: "PENDING", leaveRequestId: "L1", currentEndAt: new Date("2026-06-15"), requestedEndAt: new Date("2026-06-20") });
@@ -216,6 +217,7 @@ describe("approveExtension service", () => {
     );
   });
 
+
   it("refuses to approve an extension after its parent leave was cancelled", async () => {
     mockExtensionFindById.mockResolvedValue({ id: "EXT6", status: "PENDING", leaveRequestId: "L1" });
     mockExtensionFindByIdForUpdate.mockResolvedValue({ id: "EXT6", status: "PENDING", leaveRequestId: "L1" });
@@ -229,6 +231,39 @@ describe("approveExtension service", () => {
       approveExtension("EXT6", { decision: "APPROVED" }, { id: "U1", roles: ["ADMIN"] })
     ).rejects.toBeInstanceOf(ConflictError);
     expect(mockFindPending).not.toHaveBeenCalled();
+  });
+
+  it("approves an extension when parent leave is already COMPLETED, preserving COMPLETED status", async () => {
+    mockExtensionFindById.mockResolvedValue({ id: "EXT-COMP", status: "PENDING", leaveRequestId: "L1" });
+    mockExtensionFindByIdForUpdate.mockResolvedValue({
+      id: "EXT-COMP",
+      status: "PENDING",
+      leaveRequestId: "L1",
+      currentStepKey: "S1",
+      currentStepOrder: 1,
+      currentEndAt: new Date("2026-06-15"),
+      requestedEndAt: new Date("2026-06-20"),
+    });
+    mockLeaveFindByIdForUpdate.mockResolvedValue({
+      id: "L1",
+      studentId: "ST1",
+      status: "COMPLETED",
+      startAt: new Date("2026-06-01"),
+      endAt: new Date("2026-06-15"),
+    });
+    mockFindPending.mockResolvedValue([
+      { id: "A1", stepOrder: 1, stepKey: "S1", approverRoleCode: null },
+    ]);
+    mockFindNextByDecisionForExtension.mockResolvedValue(null);
+
+    const result = await approveExtension("EXT-COMP", { decision: "APPROVED" }, { id: "U1", roles: ["ADMIN"] });
+
+    expect(result.newStatus).toBe("APPROVED");
+    expect(mockLeaveUpdateById).toHaveBeenCalledWith(
+      "L1",
+      { endAt: new Date("2026-06-20"), status: "COMPLETED" },
+      expect.any(Object)
+    );
   });
 
   it("only acts on the extension's current workflow step", async () => {

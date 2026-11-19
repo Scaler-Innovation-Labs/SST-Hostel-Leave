@@ -64,7 +64,8 @@ export async function rejectExtension(
 
     if (
       leave.status !== LEAVE_REQUEST_STATUS.APPROVED &&
-      leave.status !== LEAVE_REQUEST_STATUS.OVERDUE
+      leave.status !== LEAVE_REQUEST_STATUS.OVERDUE &&
+      leave.status !== LEAVE_REQUEST_STATUS.COMPLETED
     ) {
       throw new ConflictError(
         `Cannot reject an extension for a leave in ${leave.status} status`,

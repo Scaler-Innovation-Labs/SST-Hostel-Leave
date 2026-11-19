@@ -64,7 +64,8 @@ export async function superadminOverrideExtension(
 
     if (
       leave.status !== LEAVE_REQUEST_STATUS.APPROVED &&
-      leave.status !== LEAVE_REQUEST_STATUS.OVERDUE
+      leave.status !== LEAVE_REQUEST_STATUS.OVERDUE &&
+      leave.status !== LEAVE_REQUEST_STATUS.COMPLETED
     ) {
       throw new ConflictError(
         `Cannot approve an extension for a leave in ${leave.status} status`
@@ -203,26 +204,32 @@ export async function superadminOverrideExtension(
       tx
     );
 
+    const isCompleted = leave.status === LEAVE_REQUEST_STATUS.COMPLETED;
+
     await leaveRepository.updateById(
       leave.id,
       {
         endAt: extension.requestedEndAt,
-        status: LEAVE_REQUEST_STATUS.APPROVED,
+        status: isCompleted
+          ? LEAVE_REQUEST_STATUS.COMPLETED
+          : LEAVE_REQUEST_STATUS.APPROVED,
       },
       tx
     );
 
-    // If student was marked OVERDUE because leave ended before extension approval, restore to OUTSIDE_HOSTEL
-    const student = await studentRepository.findById(leave.studentId, tx);
-    if (student && student.currentLocationState === MOVEMENT_STATE.OVERDUE) {
-      await studentRepository.updateCurrentLocationState(
-        student.id,
-        MOVEMENT_STATE.OUTSIDE_HOSTEL,
-        tx
-      );
-    }
+    if (!isCompleted) {
+      // If student was marked OVERDUE because leave ended before extension approval, restore to OUTSIDE_HOSTEL
+      const student = await studentRepository.findById(leave.studentId, tx);
+      if (student && student.currentLocationState === MOVEMENT_STATE.OVERDUE) {
+        await studentRepository.updateCurrentLocationState(
+          student.id,
+          MOVEMENT_STATE.OUTSIDE_HOSTEL,
+          tx
+        );
+      }
 
-    await extendQrPassWindow(leave.id, extension.requestedEndAt, tx);
+      await extendQrPassWindow(leave.id, extension.requestedEndAt, tx);
+    }
 
     await auditService.record(
       AUDIT_ACTION.UPDATE,

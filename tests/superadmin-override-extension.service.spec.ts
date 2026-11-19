@@ -192,4 +192,22 @@ describe("superadminOverrideExtension", () => {
       expect.anything()
     );
   });
+
+  it("successfully overrides extension when parent leave is COMPLETED, keeping leave status COMPLETED", async () => {
+    mockFindLeaveByIdForUpdate.mockResolvedValue({
+      ...mockLeave,
+      status: "COMPLETED",
+    });
+
+    const result = await superadminOverrideExtension("ext-1", "ALL", superAdmin);
+
+    expect(result.extensionId).toBe("ext-1");
+    expect(result.newStatus).toBe("APPROVED");
+    expect(mockUpdateLeaveById).toHaveBeenCalledWith(
+      "leave-1",
+      expect.objectContaining({ status: "COMPLETED", endAt: mockExtension.requestedEndAt }),
+      expect.anything()
+    );
+    expect(mockExtendQrPassWindow).not.toHaveBeenCalled();
+  });
 });

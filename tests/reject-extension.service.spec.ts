@@ -141,6 +141,24 @@ describe("rejectExtension service", () => {
     ).rejects.toBeInstanceOf(ConflictError);
   });
 
+  it("rejects an extension successfully when parent leave is in COMPLETED status", async () => {
+    mockFindById.mockResolvedValue({ id: "E-COMP", status: "PENDING", leaveRequestId: "L1" });
+    mockFindByIdForUpdate.mockResolvedValue({ id: "E-COMP", status: "PENDING", leaveRequestId: "L1", currentStepKey: "S1", currentStepOrder: 1 });
+    mockLeaveFindById.mockResolvedValue({ id: "L1", status: "COMPLETED" });
+    mockLeaveFindByIdForUpdate.mockResolvedValue({ id: "L1", status: "COMPLETED" });
+    mockFindPending.mockResolvedValue([{ id: "A1", stepOrder: 1, stepKey: "S1", assignedApproverUserId: null, approverRoleCode: null }]);
+    mockUpdateById.mockResolvedValue({ id: "E-COMP", status: "REJECTED" });
+
+    const result = await rejectExtension("E-COMP", { decision: "REJECTED" }, currentUser);
+
+    expect(result.newStatus).toBe("REJECTED");
+    expect(mockUpdateById).toHaveBeenCalledWith(
+      "E-COMP",
+      expect.objectContaining({ status: "REJECTED" }),
+      expect.any(Object)
+    );
+  });
+
   it("throws ConflictError when no pending approval exists for extension", async () => {
     mockFindById.mockResolvedValue({ id: "E4", status: "PENDING", leaveRequestId: "L1" });
     mockFindByIdForUpdate.mockResolvedValue({ id: "E4", status: "PENDING", leaveRequestId: "L1" });

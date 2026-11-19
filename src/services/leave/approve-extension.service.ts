@@ -70,11 +70,12 @@ export async function approveExtension(
     }
 
     // A pending extension outlives its parent leave unless the leave is still
-    // one an extension may apply to. Without this guard a cancelled, rejected,
-    // expired, or completed leave can be set back to APPROVED below.
+    // one an extension may apply to (APPROVED, OVERDUE, or COMPLETED).
+    // Without this guard a cancelled, rejected, or expired leave can be set back to APPROVED below.
     if (
       leave.status !== LEAVE_REQUEST_STATUS.APPROVED &&
-      leave.status !== LEAVE_REQUEST_STATUS.OVERDUE
+      leave.status !== LEAVE_REQUEST_STATUS.OVERDUE &&
+      leave.status !== LEAVE_REQUEST_STATUS.COMPLETED
     ) {
       throw new ConflictError(
         `Cannot approve an extension for a leave in ${leave.status} status`,
@@ -175,19 +176,25 @@ export async function approveExtension(
       });
     }
 
+    const isCompleted = leave.status === LEAVE_REQUEST_STATUS.COMPLETED;
+
     await leaveRepository.updateById(
       extensionInTx.leaveRequestId,
       {
         endAt: extensionInTx.requestedEndAt,
         // An extended OVERDUE leave is authorized again through the new end
-        // date; no-op for already-APPROVED leaves.
-        status: LEAVE_REQUEST_STATUS.APPROVED,
+        // date; no-op for already-APPROVED leaves. For COMPLETED leaves, the
+        // leave remains COMPLETED (movement reality: student has already returned).
+        status: isCompleted
+          ? LEAVE_REQUEST_STATUS.COMPLETED
+          : LEAVE_REQUEST_STATUS.APPROVED,
       },
       tx
     );
 
     // If student was marked OVERDUE because leave ended before extension approval, restore to OUTSIDE_HOSTEL
-    if (leave) {
+    // (only if not already completed/returned)
+    if (leave && !isCompleted) {
       const student = await studentRepository.findById(leave.studentId, tx);
       if (student && student.currentLocationState === MOVEMENT_STATE.OVERDUE) {
         await studentRepository.updateCurrentLocationState(
@@ -200,8 +207,8 @@ export async function approveExtension(
 
     // Contract T14: an extended QR leave's pass window grows with the new end
     // date so the exit/return credential stays usable through the extension
-    // period.
-    if (leave) {
+    // period. If leave is already COMPLETED, pass is already closed.
+    if (leave && !isCompleted) {
       await extendQrPassWindow(
         extensionInTx.leaveRequestId,
         extensionInTx.requestedEndAt,

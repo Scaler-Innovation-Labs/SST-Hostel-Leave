@@ -494,23 +494,31 @@ async function handleExtensionDecision(
         tx
       );
 
+      const isCompleted =
+        extension.leaveRequest?.status === LEAVE_REQUEST_STATUS.COMPLETED;
+
       await leaveRepository.updateById(
         leaveRequestId,
         {
           endAt: extension.requestedEndAt,
           // An extended OVERDUE leave is authorized again through the new
-          // end date; no-op for already-APPROVED leaves.
-          status: LEAVE_REQUEST_STATUS.APPROVED,
+          // end date; no-op for already-APPROVED leaves. For COMPLETED leaves,
+          // the leave remains COMPLETED.
+          status: isCompleted
+            ? LEAVE_REQUEST_STATUS.COMPLETED
+            : LEAVE_REQUEST_STATUS.APPROVED,
         },
         tx
       );
 
       // Contract T14: the pass window must track the extended end date.
-      await extendQrPassWindow(
-        leaveRequestId,
-        extension.requestedEndAt,
-        tx
-      );
+      if (!isCompleted) {
+        await extendQrPassWindow(
+          leaveRequestId,
+          extension.requestedEndAt,
+          tx
+        );
+      }
 
       await auditService.record(
         AUDIT_ACTION.UPDATE,
