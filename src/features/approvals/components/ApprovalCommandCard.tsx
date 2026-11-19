@@ -377,28 +377,39 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
   };
 
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden rounded-xl border border-border bg-surface shadow-raised",
-        !disableNavigation && ["cursor-pointer", HOVER_LIFT, FOCUS],
-      )}
-      onClick={() => {
-        if (disableNavigation || !lr?.id) return;
-        router.push(`${detailPrefix.replace(/\/+$/, "")}/${lr.id}`);
-      }}
-      role={disableNavigation ? undefined : "button"}
-      tabIndex={disableNavigation ? undefined : 0}
-      onKeyDown={(e) => {
-        if (disableNavigation || !lr?.id) return;
-        // Only navigate when the card itself has focus — a keypress on an inner
-        // control (e.g. Approve/Reject button) must not open the details page.
-        if (e.target !== e.currentTarget) return;
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
+    <>
+      <div
+        className={cn(
+          "relative overflow-hidden rounded-xl border border-border bg-surface shadow-raised",
+          !disableNavigation && ["cursor-pointer", HOVER_LIFT, FOCUS],
+        )}
+        onClick={(e) => {
+          if (disableNavigation || !lr?.id) return;
+          if (e.defaultPrevented) return;
+          const target = e.target as HTMLElement | null;
+          if (
+            target &&
+            target.closest(
+              "button, a, input, textarea, select, [role='dialog'], [role='alertdialog']"
+            )
+          ) {
+            return;
+          }
           router.push(`${detailPrefix.replace(/\/+$/, "")}/${lr.id}`);
-        }
-      }}
-    >
+        }}
+        role={disableNavigation ? undefined : "button"}
+        tabIndex={disableNavigation ? undefined : 0}
+        onKeyDown={(e) => {
+          if (disableNavigation || !lr?.id) return;
+          // Only navigate when the card itself has focus — a keypress on an inner
+          // control (e.g. Approve/Reject button) must not open the details page.
+          if (e.target !== e.currentTarget) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            router.push(`${detailPrefix.replace(/\/+$/, "")}/${lr.id}`);
+          }
+        }}
+      >
       {/* ── Top color accent bar ── */}
       {leaveTypeColor && (
         <div
@@ -505,7 +516,10 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
         </div>
 
         {/* Right — actions / status */}
-        <div className="flex shrink-0 items-center justify-center sm:w-44">
+        <div
+          className="flex shrink-0 items-center justify-center sm:w-44"
+          onClick={(e) => e.stopPropagation()}
+        >
           {isLeavePending && isPending ? (
             <div className="flex w-full flex-col gap-2">
               {showWaitingPanel ? (
@@ -601,6 +615,7 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
           </div>
         </div>
       )}
+      </div>
 
       {/* ── Confirm reject ── */}
       {showPreview === "reject" && (
@@ -625,7 +640,10 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
           if (!open) setActionError("");
         }}
       >
-        <AlertDialogContent className="max-w-md">
+        <AlertDialogContent
+          className="max-w-md"
+          onClick={(e) => e.stopPropagation()}
+        >
           <AlertDialogHeader>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success-light">
@@ -722,9 +740,21 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
             )}
           </div>
 
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
-            <Button onClick={submitApprove} disabled={actionLoading} className="gap-2 bg-success hover:bg-success">
+          <AlertDialogFooter onClick={(e) => e.stopPropagation()}>
+            <AlertDialogCancel
+              disabled={actionLoading}
+              onClick={(e) => e.stopPropagation()}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <Button
+              onClick={(e) => {
+                e.stopPropagation();
+                submitApprove();
+              }}
+              disabled={actionLoading}
+              className="gap-2 bg-success hover:bg-success"
+            >
               {actionLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -743,7 +773,10 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
 
       {/* ── Parent override confirmation ── */}
       <AlertDialog open={overrideOpen} onOpenChange={setOverrideOpen}>
-        <AlertDialogContent className="max-w-md">
+        <AlertDialogContent
+          className="max-w-md"
+          onClick={(e) => e.stopPropagation()}
+        >
           <AlertDialogHeader>
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-light">
@@ -765,10 +798,18 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
             </div>
           )}
 
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+          <AlertDialogFooter onClick={(e) => e.stopPropagation()}>
+            <AlertDialogCancel
+              disabled={actionLoading}
+              onClick={(e) => e.stopPropagation()}
+            >
+              Cancel
+            </AlertDialogCancel>
             <Button
-              onClick={submitOverride}
+              onClick={(e) => {
+                e.stopPropagation();
+                submitOverride();
+              }}
               disabled={actionLoading}
               className="gap-2 bg-warning hover:bg-warning"
             >
@@ -787,6 +828,6 @@ export function ApprovalCommandCard({ item, onActionComplete, hrefPrefix, disabl
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

@@ -52,7 +52,10 @@ export function AutoPreviewModal({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="sm:max-w-md">
+      <AlertDialogContent
+        className="sm:max-w-md"
+        onClick={(e) => e.stopPropagation()}
+      >
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
             {action === "approve" ? (
@@ -97,11 +100,19 @@ export function AutoPreviewModal({
           })}
         </div>
 
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+        <AlertDialogFooter onClick={(e) => e.stopPropagation()}>
+          <AlertDialogCancel
+            disabled={loading}
+            onClick={(e) => e.stopPropagation()}
+          >
+            Cancel
+          </AlertDialogCancel>
           <Button
             variant={action === "approve" ? "default" : "destructive"}
-            onClick={onConfirm}
+            onClick={(e) => {
+              e.stopPropagation();
+              onConfirm();
+            }}
             disabled={loading}
           >
             {action === "approve" ? "Yes, Approve" : "Yes, Reject"}
