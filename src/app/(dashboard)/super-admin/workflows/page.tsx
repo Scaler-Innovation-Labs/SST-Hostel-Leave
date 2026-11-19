@@ -300,7 +300,7 @@ export default function SuperAdminWorkflowsPage() {
             </div>
             {draft.steps.map((step, index) => (
               <div
-                key={`${step.stepKey}-${index}`}
+                key={index}
                 draggable
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}

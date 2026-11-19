@@ -7,7 +7,10 @@ import { sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 
+import { assertSafeDatabaseTarget } from "./safety";
+
 async function main() {
+  assertSafeDatabaseTarget();
   console.log("Dropping all tables...");
   await db.execute(sql`DROP SCHEMA IF EXISTS public CASCADE`);
   await db.execute(sql`CREATE SCHEMA public`);

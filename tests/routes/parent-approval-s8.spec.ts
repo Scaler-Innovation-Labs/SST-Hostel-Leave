@@ -70,6 +70,10 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
   },
 }));
 
+vi.mock("@/services/leave/overlap-guard.service", () => ({
+  assertNoConflictingOverlap: vi.fn().mockResolvedValue(undefined),
+}));
+
 const mockLeaveTypeFindById = vi.fn();
 vi.mock("@/db/repositories/leave/leave-type.repository", () => ({
   leaveTypeRepository: {

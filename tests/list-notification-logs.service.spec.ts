@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 
 const mockFindByFilters = vi.fn();
 const mockGetScopedHostelIds = vi.fn().mockReturnValue([]);
+const mockIsStaffScopeRestricted = vi.fn().mockReturnValue(false);
 
 vi.mock("@/db/repositories/notification/notification-log.repository", () => ({
   notificationLogRepository: {
@@ -12,6 +13,7 @@ vi.mock("@/db/repositories/notification/notification-log.repository", () => ({
 
 vi.mock("@/services/shared/authorization.service", () => ({
   getScopedHostelIds: (...args: any[]) => mockGetScopedHostelIds(...args),
+  isStaffScopeRestricted: (...args: any[]) => mockIsStaffScopeRestricted(...args),
 }));
 
 import { listNotificationLogs } from "@/services/notification/list-notification-logs.service";
@@ -35,6 +37,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockFindByFilters.mockResolvedValue(MOCK_RESULT);
   mockGetScopedHostelIds.mockReturnValue([]);
+  mockIsStaffScopeRestricted.mockReturnValue(false);
 });
 
 describe("listNotificationLogs service", () => {
@@ -48,6 +51,7 @@ describe("listNotificationLogs service", () => {
   });
 
   it("scopes logs to the admin's hostels", async () => {
+    mockIsStaffScopeRestricted.mockReturnValue(true);
     mockGetScopedHostelIds.mockReturnValue(["H1"]);
 
     await listNotificationLogs({ page: 1, limit: 20 }, SCOPED_ADMIN);
@@ -55,6 +59,16 @@ describe("listNotificationLogs service", () => {
     expect(mockFindByFilters).toHaveBeenCalledWith(
       expect.objectContaining({ hostelIds: ["H1"] })
     );
+  });
+
+  it("fails closed with an empty page when a restricted admin has zero scoped hostels", async () => {
+    mockIsStaffScopeRestricted.mockReturnValue(true);
+    mockGetScopedHostelIds.mockReturnValue([]);
+
+    const result = await listNotificationLogs({ page: 1, limit: 20 }, SCOPED_ADMIN);
+
+    expect(result).toEqual({ items: [], total: 0, page: 1, limit: 20, totalPages: 0 });
+    expect(mockFindByFilters).not.toHaveBeenCalled();
   });
 
   it("passes eventType filter", async () => {

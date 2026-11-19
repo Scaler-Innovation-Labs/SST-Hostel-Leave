@@ -1206,7 +1206,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                         const config = decisionPresentation(decision, status);
                         const Icon = config.Icon;
                         const _isLast = _idx === sortedApprovals.length - 1;
-                        const isCurrent = decision === "pending";
+                        const isCurrent = decision === "PENDING";
 
                         return (
                           <div key={app.id} className="relative flex gap-3">
@@ -1224,9 +1224,9 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                                 <div
                                   className={cn(
                                     "h-full w-0.5",
-                                    decision === "approved" || decision === "auto_approved"
+                                    decision === "APPROVED" || decision === "AUTO_APPROVED"
                                       ? "bg-success-light"
-                                      : decision === "rejected" || decision === "cancelled"
+                                      : decision === "REJECTED" || decision === "CANCELLED"
                                       ? "bg-danger-light"
                                       : "bg-border",
                                   )}
@@ -1303,7 +1303,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                       const decision = (app.decision ?? "PENDING").toUpperCase();
                       const config = decisionPresentation(decision, status);
                       const Icon = config.Icon;
-                      const isCurrent = decision === "pending";
+                      const isCurrent = decision === "PENDING";
 
                       return (
                         <div key={app.id} className="relative flex gap-4">
@@ -1320,7 +1320,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
                             <div className={cn(
                               "h-full w-0.5",
                               isCurrent ? "bg-warning-light" :
-                              decision === "approved" || decision === "auto_approved" ? "bg-success-light" :
+                              decision === "APPROVED" || decision === "AUTO_APPROVED" ? "bg-success-light" :
                               "bg-border",
                             )} />
                           </div>

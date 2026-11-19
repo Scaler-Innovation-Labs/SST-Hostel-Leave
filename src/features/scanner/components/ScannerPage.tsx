@@ -573,7 +573,10 @@ export function ScannerPage() {
             <AlertDialogAction asChild>
               <Button
                 size="lg"
-                onClick={handleConfirm}
+                onClick={(e) => {
+                  e.preventDefault();
+                  void handleConfirm();
+                }}
                 loading={confirming}
                 loadingText="Recording…"
                 className="flex-1"

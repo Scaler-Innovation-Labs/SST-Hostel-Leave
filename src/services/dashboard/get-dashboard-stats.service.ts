@@ -118,10 +118,25 @@ async function getStudentStats(userId: string): Promise<StudentDashboardStats> {
   const openSessionPass = qrPassesList.find(
     (q) => q.firstScanAt && !q.closedAt
   );
+  let sessionLeave = openSessionPass
+    ? (approvedLeavesList.find((l) => l.leave.id === openSessionPass.leaveRequestId) ?? null)
+    : null;
+  // Contract T7/T8: an open movement session whose leave transitioned to OVERDUE
+  // must still resolve as the student's active leave so they can scan back in.
+  if (openSessionPass && !sessionLeave) {
+    const overdueLeavesResult = await leaveRepository.findByFilters({
+      studentId: student.id,
+      status: LEAVE_REQUEST_STATUS.OVERDUE,
+      page: 1,
+      limit: 20,
+    });
+    sessionLeave =
+      overdueLeavesResult.items.find(
+        (l) => l.leave.id === openSessionPass.leaveRequestId
+      ) ?? null;
+  }
   const activeLeave =
-    (openSessionPass
-      ? approvedLeavesList.find((l) => l.leave.id === openSessionPass.leaveRequestId) ?? null
-      : null) ??
+    sessionLeave ??
     approvedLeavesList.find(
       (l) => l.leave.startAt <= now && now <= l.leave.endAt
     ) ??
@@ -134,15 +149,15 @@ async function getStudentStats(userId: string): Promise<StudentDashboardStats> {
       .sort((a, b) => a.leave.startAt.getTime() - b.leave.startAt.getTime())[0] ??
     null;
 
-  // Contract §7: the QR shown is the ACTIVE pass of the CURRENT leave only.
-  // A future approved leave may hold an ACTIVE pass record (window-gated);
-  // it is never exposed as "current" — that was the first-active-QR bug.
+  // Contract §7 / T8: the QR shown is the ACTIVE pass of the CURRENT leave only.
+  // An open movement session (firstScanAt set, closedAt null) stays usable for
+  // RETURN even past expiresAt (overdue return).
   const activeQr = activeLeave
     ? (qrPassesList.find(
         (q) =>
           q.status === "ACTIVE" &&
           q.leaveRequestId === activeLeave.leave.id &&
-          (!q.expiresAt || q.expiresAt > now)
+          ((q.firstScanAt && !q.closedAt) || !q.expiresAt || q.expiresAt > now)
       ) ?? null)
     : null;
 

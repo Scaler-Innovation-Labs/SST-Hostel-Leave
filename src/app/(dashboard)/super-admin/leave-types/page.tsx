@@ -674,7 +674,7 @@ export default function LeaveTypesPage() {
               ) : (
                 draft.requiredDocuments.map((document, index) => (
                   <div
-                    key={`${document.code}-${index}`}
+                    key={index}
                     className="rounded-lg border bg-bg p-3"
                   >
                     <div className="grid gap-3 sm:grid-cols-2">

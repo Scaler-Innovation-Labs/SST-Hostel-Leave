@@ -6,15 +6,13 @@ import type {
   NotificationSendResult,
 } from "./notification-provider"
 
-const DEV_REDIRECT_EMAIL = "n.vedvarshit@gmail.com"
-
-let provider: ReturnType<typeof createMessagingEmailProvider> | null = null
+let provider: ReturnType<typeof createMessagingEmailProvider> | null = null;
 
 function getProvider() {
   if (!provider) {
-    provider = createMessagingEmailProvider()
+    provider = createMessagingEmailProvider();
   }
-  return provider
+  return provider;
 }
 
 export function createEmailProvider() {
@@ -22,11 +20,21 @@ export function createEmailProvider() {
     async send(
       payload: NotificationPayload,
     ): Promise<NotificationSendResult> {
-      const actualTo = process.env.NODE_ENV === "development" ? DEV_REDIRECT_EMAIL : payload.to
-      const originalTo = Array.isArray(payload.to) ? payload.to.join(", ") : payload.to
+      const devRedirect =
+        process.env.NODE_ENV === "development"
+          ? process.env.DEV_EMAIL_REDIRECT?.trim() || undefined
+          : undefined;
+      const isDevRedirect = Boolean(devRedirect);
+      const actualTo = isDevRedirect ? devRedirect! : payload.to;
+      const originalTo = Array.isArray(payload.to) ? payload.to.join(", ") : payload.to;
 
-      if (process.env.NODE_ENV === "development" && payload.to !== DEV_REDIRECT_EMAIL) {
-        logger.info("Dev mode email redirect", { from: originalTo, to: actualTo, subject: payload.subject })
+      if (isDevRedirect && payload.to !== devRedirect) {
+        logger.info("Dev mode email redirect", {
+          from: originalTo,
+          to: actualTo,
+          suppressedCcCount: payload.cc?.length ?? 0,
+          subject: payload.subject,
+        });
       }
 
       try {
@@ -38,7 +46,8 @@ export function createEmailProvider() {
           // wins; otherwise fall back to the legacy per-line <p> wrap (no
           // escaping — used only for direct provider calls / tests).
           html: payload.htmlBody ?? payload.body.split("\n").map((line) => `<p>${line}</p>`).join(""),
-          cc: payload.cc && payload.cc.length > 0 ? payload.cc : undefined,
+          // Never leak real CC addresses when redirecting emails in dev mode.
+          cc: !isDevRedirect && payload.cc && payload.cc.length > 0 ? payload.cc : undefined,
         })
 
         return {

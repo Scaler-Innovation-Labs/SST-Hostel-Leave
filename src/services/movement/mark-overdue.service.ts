@@ -11,7 +11,7 @@ import { qrPassRepository } from "@/db/repositories/movement/qr-pass.repository"
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import type { CurrentUser } from "@/lib/auth/types";
 import { transaction } from "@/lib/db/transaction";
-import { ConflictError, NotFoundError } from "@/lib/errors";
+import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { canTransition, getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
@@ -73,6 +73,9 @@ export async function markOverdue(
       }
 
       const leave = await leaveRepository.findById(input.leaveRequestId, tx);
+      if (leave && leave.studentId && leave.studentId !== input.studentId) {
+        throw new ValidationError("Leave request does not belong to this student");
+      }
       if (leave && canTransition(leave.status, LEAVE_ACTION.MARK_OVERDUE)) {
         const nextState = getNextState(leave.status, LEAVE_ACTION.MARK_OVERDUE);
         await leaveRepository.updateById(

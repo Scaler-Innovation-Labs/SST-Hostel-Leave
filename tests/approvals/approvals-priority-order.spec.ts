@@ -21,6 +21,7 @@ vi.mock("@/lib/db", () => {
       return queryChain;
     },
     innerJoin: (...args: any[]) => queryChain,
+    $dynamic: () => queryChain,
     where: (...args: any[]) => {
       mockWhere(...args);
       return queryChain;

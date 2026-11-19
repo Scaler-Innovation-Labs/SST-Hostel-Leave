@@ -31,7 +31,12 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
     findByIdForUpdate: (...args: any[]) => mockFindByIdForUpdate(...args),
     updateById: (...args: any[]) => mockUpdateById(...args),
     updateCurrentStep: (...args: any[]) => mockUpdateCurrentStep(...args),
+    findOverlappingLeaves: vi.fn().mockResolvedValue([]),
   },
+}));
+
+vi.mock("@/services/leave/qr-pass-lifecycle.service", () => ({
+  issueQrPassForApprovedLeave: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({

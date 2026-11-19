@@ -1,4 +1,4 @@
-import { differenceInCalendarDays, format, parseISO } from "date-fns";
+import { differenceInCalendarDays, parseISO } from "date-fns";
 
 /**
  * One format per data type, everywhere — inconsistency here reads as a bug.
@@ -13,6 +13,31 @@ export const OPERATING_TIMEZONE = "IST";
 
 /** India has no DST, so the operating offset is a constant. */
 const IST_UTC_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+
+const IST_TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Kolkata",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+
+const IST_DAY_MONTH_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Kolkata",
+  day: "numeric",
+  month: "long",
+});
+
+const IST_DAY_MONTH_YEAR_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Kolkata",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
+const IST_WEEKDAY_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Kolkata",
+  weekday: "long",
+});
 
 /** Midnight at the start of the given date in IST (00:00:00.000 IST), as an instant. */
 export function startOfDayIst(date: Date = new Date()): Date {
@@ -51,24 +76,37 @@ export function endOfDayIst(date: Date = new Date()): Date {
 /** Backwards-compatible alias for startOfDayIst. */
 export const startOfTodayIst = startOfDayIst;
 
-/** 24-hour clock. `18:00`, never `6:00 PM`. */
-const TIME = "HH:mm";
-/** `3 March`. */
-const DAY_MONTH = "d MMMM";
-/** `3 March 2025` — only when the date is not in the current year. */
-const DAY_MONTH_YEAR = "d MMMM yyyy";
-
 /** Callers hold either an ISO string from the API or an already-parsed Date. */
 function toDate(value: Date | string): Date {
-  return typeof value === "string" ? parseISO(value) : value;
+  if (value instanceof Date) return value;
+  if (typeof value === "string") {
+    // If string has no timezone specified, interpret in IST so server running in UTC formats consistently
+    if (!value.includes("Z") && !/[+-]\d{2}(:?\d{2})?$/.test(value)) {
+      return new Date(value.includes("T") ? `${value}+05:30` : `${value}T00:00:00+05:30`);
+    }
+    return parseISO(value);
+  }
+  return new Date(value);
+}
+
+export function isSameDayIst(a: Date, b: Date): boolean {
+  return startOfDayIst(a).getTime() === startOfDayIst(b).getTime();
 }
 
 function isThisYear(date: Date): boolean {
-  return date.getFullYear() === new Date().getFullYear();
+  const istDateYear = new Date(date.getTime() + IST_UTC_OFFSET_MS).getUTCFullYear();
+  const istNowYear = new Date(Date.now() + IST_UTC_OFFSET_MS).getUTCFullYear();
+  return istDateYear === istNowYear;
 }
 
-function dayPattern(date: Date): string {
-  return isThisYear(date) ? DAY_MONTH : DAY_MONTH_YEAR;
+function formatDayInIst(date: Date): string {
+  return isThisYear(date)
+    ? IST_DAY_MONTH_FORMATTER.format(date)
+    : IST_DAY_MONTH_YEAR_FORMATTER.format(date);
+}
+
+function formatTimeInIst(date: Date): string {
+  return IST_TIME_FORMATTER.format(date);
 }
 
 /**
@@ -92,7 +130,7 @@ export function formatRelative(value: Date | string): string {
       const unit = hours === 1 ? "hour" : "hours";
       return future ? `in ${hours} ${unit}` : `${hours} ${unit} ago`;
     }
-    return format(date, dayPattern(date));
+    return formatDayInIst(date);
   } catch {
     return "\u2014";
   }
@@ -102,7 +140,7 @@ export function formatRelative(value: Date | string): string {
 export function formatDate(value: Date | string): string {
   try {
     const date = toDate(value);
-    return format(date, dayPattern(date));
+    return formatDayInIst(date);
   } catch {
     return typeof value === "string" ? (value.split("T")[0] ?? "—") : "—";
   }
@@ -111,6 +149,7 @@ export function formatDate(value: Date | string): string {
 /** "12 Jun 2026" for a Date object — shared by outbox message handlers. */
 export function formatShortDate(date: Date): string {
   return date.toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -121,11 +160,11 @@ export function formatShortDate(date: Date): string {
 export function formatDateTime(value: Date | string): string {
   try {
     const date = toDate(value);
-    const time = format(date, TIME);
+    const time = formatTimeInIst(date);
     if (isWithinWeek(date)) {
-      return `${format(date, "EEEE")}, ${time} ${OPERATING_TIMEZONE}`;
+      return `${IST_WEEKDAY_FORMATTER.format(date)}, ${time} ${OPERATING_TIMEZONE}`;
     }
-    return `${format(date, dayPattern(date))}, ${time} ${OPERATING_TIMEZONE}`;
+    return `${formatDayInIst(date)}, ${time} ${OPERATING_TIMEZONE}`;
   } catch {
     return "\u2014";
   }
@@ -162,34 +201,31 @@ export function formatDateRange(
     const start = toDate(startValue);
     const end = toDate(endValue);
 
-    if (start.toDateString() === end.toDateString()) {
-      return `${format(start, dayPattern(start))}, ${format(start, TIME)}\u2013${format(end, TIME)} ${OPERATING_TIMEZONE}`;
+    if (isSameDayIst(start, end)) {
+      return `${formatDayInIst(start)}, ${formatTimeInIst(start)}\u2013${formatTimeInIst(end)} ${OPERATING_TIMEZONE}`;
     }
 
-    const startFmt = `${format(start, dayPattern(start))}, ${format(start, TIME)}`;
-    if (isToday(end)) return `${startFmt} \u2192 today, ${format(end, TIME)} ${OPERATING_TIMEZONE}`;
-    if (isTomorrow(end)) return `${startFmt} \u2192 tomorrow, ${format(end, TIME)} ${OPERATING_TIMEZONE}`;
+    const startFmt = `${formatDayInIst(start)}, ${formatTimeInIst(start)}`;
+    if (isToday(end)) return `${startFmt} \u2192 today, ${formatTimeInIst(end)} ${OPERATING_TIMEZONE}`;
+    if (isTomorrow(end)) return `${startFmt} \u2192 tomorrow, ${formatTimeInIst(end)} ${OPERATING_TIMEZONE}`;
 
-    return `${startFmt} \u2192 ${format(end, dayPattern(end))}, ${format(end, TIME)} ${OPERATING_TIMEZONE}`;
+    return `${startFmt} \u2192 ${formatDayInIst(end)}, ${formatTimeInIst(end)} ${OPERATING_TIMEZONE}`;
   } catch {
     return "\u2014";
   }
 }
 
 function isToday(date: Date): boolean {
-  const now = new Date();
-  return date.toDateString() === now.toDateString();
+  return isSameDayIst(date, new Date());
 }
 
 function isTomorrow(date: Date): boolean {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return date.toDateString() === tomorrow.toDateString();
+  return isSameDayIst(date, new Date(Date.now() + 24 * 60 * 60 * 1000));
 }
 
 /** Inside the next or previous six days, where a weekday name still orients. */
 function isWithinWeek(date: Date): boolean {
-  const days = Math.abs(differenceInCalendarDays(date, new Date()));
+  const days = Math.abs((startOfDayIst(date).getTime() - startOfDayIst(new Date()).getTime()) / (24 * 60 * 60 * 1000));
   return days < 7;
 }
 
@@ -223,37 +259,38 @@ export const DATE_RANGE_OPTIONS = [
   { value: "month", label: "This Month" },
 ] as const;
 
-/** Compute ISO date boundaries from a date-range label. */
+/** Compute ISO date boundaries from a date-range label in IST. */
 export function computeDateRange(range: string): { dateFrom?: string; dateTo?: string } {
   if (!range) return {};
   const now = new Date();
-  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const endOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
 
   switch (range) {
     case "today": {
       return {
-        dateFrom: startOfDay(now).toISOString(),
-        dateTo: endOfDay(now).toISOString(),
+        dateFrom: startOfDayIst(now).toISOString(),
+        dateTo: endOfDayIst(now).toISOString(),
       };
     }
     case "week": {
-      const dayOfWeek = now.getDay();
-      const monday = new Date(now);
-      monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7)); // Monday
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
+      const istNow = new Date(now.getTime() + IST_UTC_OFFSET_MS);
+      const dayOfWeek = istNow.getUTCDay();
+      const daysSinceMonday = (dayOfWeek + 6) % 7;
+      const monday = new Date(now.getTime() - daysSinceMonday * 24 * 60 * 60 * 1000);
+      const sunday = new Date(monday.getTime() + 6 * 24 * 60 * 60 * 1000);
       return {
-        dateFrom: startOfDay(monday).toISOString(),
-        dateTo: endOfDay(sunday).toISOString(),
+        dateFrom: startOfDayIst(monday).toISOString(),
+        dateTo: endOfDayIst(sunday).toISOString(),
       };
     }
     case "month": {
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      const istNow = new Date(now.getTime() + IST_UTC_OFFSET_MS);
+      const year = istNow.getUTCFullYear();
+      const month = istNow.getUTCMonth();
+      const firstDay = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0) - IST_UTC_OFFSET_MS);
+      const lastDay = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999) - IST_UTC_OFFSET_MS);
       return {
-        dateFrom: startOfDay(firstDay).toISOString(),
-        dateTo: endOfDay(lastDay).toISOString(),
+        dateFrom: firstDay.toISOString(),
+        dateTo: lastDay.toISOString(),
       };
     }
     default:

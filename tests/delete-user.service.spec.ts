@@ -33,6 +33,9 @@ vi.mock("@/services/audit/audit.service", () => ({
 }));
 
 vi.mock("@/lib/db", () => ({ db: {} }));
+vi.mock("@/lib/db/transaction", () => ({
+  transaction: (cb: any) => cb({}),
+}));
 
 import { deleteUser } from "@/services/user/delete-user.service";
 import { NotFoundError, ValidationError } from "@/lib/errors";

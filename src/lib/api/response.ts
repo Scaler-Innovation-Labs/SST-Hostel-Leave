@@ -68,10 +68,8 @@ export class ApiResponse {
         const queryError = error as { query?: unknown };
         meta.query = queryError.query;
       }
-      if ("params" in error) {
-        const paramsError = error as { params?: unknown };
-        meta.params = paramsError.params;
-      }
+      // Deliberately omit error.params from logs: parameterized SQL values
+      // frequently contain student/parent PII (emails, phones) or bearer hashes.
       logger.error("Unhandled API error", meta);
     } else {
       logger.error("Unhandled API error", { error: String(error) });

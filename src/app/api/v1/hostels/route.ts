@@ -12,11 +12,12 @@ export async function GET() {
   try {
     const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.POC]);
 
-    const scopedHostelIds = isStaffScopeRestricted(currentUser)
-      ? getScopedHostelIds(currentUser)
-      : undefined;
-    const rows = scopedHostelIds && scopedHostelIds.length > 0
-      ? await listHostels(scopedHostelIds)
+    const restricted = isStaffScopeRestricted(currentUser);
+    const scopedHostelIds = restricted ? getScopedHostelIds(currentUser) : undefined;
+    const rows = restricted
+      ? scopedHostelIds && scopedHostelIds.length > 0
+        ? await listHostels(scopedHostelIds)
+        : []
       : await listHostels();
 
     return ApiResponse.cached(rows, 300, 600);

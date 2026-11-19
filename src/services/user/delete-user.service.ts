@@ -4,6 +4,7 @@ import { userRoleRepository } from "@/db/repositories/auth/user-role.repository"
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 import { db } from "@/lib/db";
+import { transaction } from "@/lib/db/transaction";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 
@@ -25,19 +26,20 @@ export async function deleteUser(
     throw new ValidationError("Cannot delete a user linked to a student record. Delete the student profile first.");
   }
 
-  // Remove any assigned roles
-  await userRoleRepository.deleteByUserId(id, db);
-
-  // Delete the user record
-  await userRepository.deleteById(id, db);
-
-  await auditService.record(
-    AUDIT_ACTION.DELETE,
-    AUDIT_ENTITY_TYPE.USER,
-    id,
-    actorUserId,
-    { email: user.email, fullName: user.fullName }
-  );
+  // Atomic transaction: if deleting the user fails on a foreign-key constraint,
+  // role removal rolls back so we never leave a live user with all roles wiped.
+  await transaction(async (tx) => {
+    await userRoleRepository.deleteByUserId(id, tx);
+    await userRepository.deleteById(id, tx);
+    await auditService.record(
+      AUDIT_ACTION.DELETE,
+      AUDIT_ENTITY_TYPE.USER,
+      id,
+      actorUserId,
+      { email: user.email, fullName: user.fullName },
+      tx
+    );
+  });
 
   return { id };
 }

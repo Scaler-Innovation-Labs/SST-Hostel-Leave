@@ -92,7 +92,7 @@ The platform is designed as a configurable workflow engine rather than a hardcod
 
 - Super Admin configuration: workflows, leave types, hostels, departments, academic groups, policies, notification rules/templates, users, parents, students
 - Leave / movement / rejection analytics with occupancy insights
-- Document uploads (Cloudinary) with MIME/size validation
+- Document uploads (AWS S3) with MIME/size validation
 
 ---
 
@@ -130,7 +130,7 @@ State changes publish events into an `outbox_events` table inside the same trans
 
 ```txt
 ├── docs/                        Architecture & engineering documentation
-├── scripts/                     Migrations (migrate-00XX.ts), seed & ops scripts
+├── scripts/                     Database migrations, seed & ops scripts
 ├── src/
 │   ├── app/
 │   │   ├── (auth)/              Clerk sign-in / redirect / sso-callback
@@ -180,7 +180,7 @@ State changes publish events into an `outbox_events` table inside the same trans
 | SMS               | Infobip (India DLT)                               |
 | Email             | AWS SES (Resend fallback)                         |
 | Chat              | Slack Bot API                                     |
-| File Storage      | Cloudinary                                        |
+| File Storage      | AWS S3                                            |
 | QR                | qrcode + @yudiel/react-qr-scanner                 |
 | Background Jobs   | Outbox pattern + DB-polled worker, no broker (no Redis, no SQS) |
 | Tests             | Vitest + Testing Library                          |
@@ -211,20 +211,17 @@ pnpm install
 # Configure environment variables
 cp .env.example .env.local
 
-# Apply database migrations in order
-# (schema evolution is tracked via numbered scripts)
-npx tsx scripts/migrate-0003.ts
-# ... run each migrate-*.ts script up to the latest, e.g.:
-npx tsx scripts/migrate-0026-audit-p1-cleanups.ts
+# Apply database migrations
+pnpm db:migrate
 
 # Seed initial data (roles, workflows, leave types, users, ...)
-npx tsx scripts/clear-and-seed.ts
+pnpm db:seed
 
 # Start the development server
 pnpm dev
 ```
 
-Migrations are standalone scripts under `scripts/` (`npx tsx scripts/migrate-00XX.ts`). Run them in numeric order against your database.
+Database migrations are managed with Drizzle ORM in `src/db/drizzle/` and applied using `pnpm db:migrate` (`scripts/migrate.ts`).
 
 ---
 
@@ -289,12 +286,12 @@ LOG_LEVEL=info
 
 # Cron Jobs
 
-Defined in `vercel.json` (all daily; all Bearer `CRON_SECRET` gated):
+Defined in `vercel.json` (all Bearer `CRON_SECRET` gated):
 
 | Endpoint             | Schedule    | Purpose                                        |
 | -------------------- | ----------- | ---------------------------------------------- |
-| `/api/cron/cleanup`  | daily 04:00 | QR expiry, document/audit/outbox retention purge |
-| `/api/cron/maintenance` | daily 03:00 | Leave expiry, overdue marking, auto-complete |
+| `/api/cron/cleanup`  | daily 04:00 (`0 4 * * *`) | QR expiry, document/audit/outbox retention purge |
+| `/api/cron/maintenance` | hourly (`0 * * * *`) | Leave expiry, overdue marking, auto-complete |
 
 ---
 
@@ -336,7 +333,7 @@ pnpm lint:fix          # ESLint with autofix
 pnpm format            # Prettier
 ```
 
-The suite covers services, repositories, routes, and state machines (153 test files, 871 tests). Commits are enforced with commitlint (conventional commits) and lint-staged via husky. The project also ships `pnpm audit:architecture` (see `scripts/audit-architecture.sh`).
+The suite covers services, repositories, routes, and state machines (222 test files, 1,539 tests). Commits are enforced with commitlint (conventional commits) and lint-staged via husky. The project also ships `pnpm audit:architecture` (see `scripts/audit-architecture.sh`).
 
 ---
 

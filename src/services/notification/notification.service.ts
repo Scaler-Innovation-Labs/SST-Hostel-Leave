@@ -501,9 +501,14 @@ async function deliverToRecipient(
 			sentAt: result.success ? new Date() : null,
 			metadata: logMetadata,
 		});
-	} catch (logError: any) {
+	} catch (logError: unknown) {
 		// Unique constraint violation (23505): concurrent worker already logged SENT for this delivery.
-		if (logError?.code === "23505" || String(logError?.message).includes("notification_logs_outbox_delivery_sent_unq")) {
+		const pgCode =
+			typeof logError === "object" && logError !== null && "code" in logError
+				? (logError as { code?: unknown }).code
+				: undefined;
+		const errMsg = logError instanceof Error ? logError.message : String(logError);
+		if (pgCode === "23505" || errMsg.includes("notification_logs_outbox_delivery_sent_unq")) {
 			logger.warn("Concurrent duplicate delivery detected and prevented by database unique constraint", {
 				outboxEventId: context.outboxEventId,
 				channel,

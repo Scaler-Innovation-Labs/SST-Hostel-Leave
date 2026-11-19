@@ -273,10 +273,8 @@ export const outboxRepository = {
     const leaseExpires = new Date(now.getTime() + leaseMs);
 
     // Single atomic UPDATE with FOR UPDATE SKIP LOCKED — finds and
-    // claims rows in one statement. Rows already locked by another
-    // transaction are skipped, not waited on.
-    const executor = dbClient.execute ?? db.execute;
-    const rows = await executor(sql`
+    // claims rows in one statement. Preserve `this` binding on dbClient/db.
+    const claimSql = sql`
       UPDATE ${outboxEvents}
       SET
         status = ${OUTBOX_STATUS.PROCESSING},
@@ -292,7 +290,10 @@ export const outboxRepository = {
         FOR UPDATE SKIP LOCKED
       )
       RETURNING *
-    `);
+    `;
+    const rows = dbClient.execute
+      ? await dbClient.execute(claimSql)
+      : await db.execute(claimSql);
 
     return (rows.rows as Record<string, unknown>[]).map(mapRawOutboxRow);
   },

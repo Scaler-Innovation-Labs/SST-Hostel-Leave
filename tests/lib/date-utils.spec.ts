@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  computeDateRange,
   endOfDayIst,
   formatDate,
   formatDateRange,
   formatDateTime,
   formatRelative,
+  formatShortDate,
   formatTimeRemaining,
+  isSameDayIst,
   startOfDayIst,
   startOfTodayIst,
 } from "@/lib/date-utils";
@@ -73,6 +76,54 @@ describe("date formatting", () => {
       expect(value).not.toMatch(/\d{4}-\d{2}-\d{2}/);
       expect(value).not.toMatch(/\dT\d/);
     }
+  });
+
+  it("formats UTC timestamps into IST accurately", () => {
+    // 13:00 UTC = 18:30 IST
+    expect(formatDateTime("2026-06-20T13:00:00Z")).toContain("18:30 IST");
+  });
+
+  it("formats short date in IST", () => {
+    const d = new Date("2026-06-20T13:00:00Z");
+    expect(formatShortDate(d)).toBe("20 Jun 2026");
+  });
+
+  it("checks same day in IST across UTC boundary", () => {
+    // 2026-03-03 23:00 IST is 2026-03-03 17:30 UTC
+    // 2026-03-03 01:00 IST is 2026-03-02 19:30 UTC
+    const d1 = new Date("2026-03-03T17:30:00Z");
+    const d2 = new Date("2026-03-02T19:30:00Z");
+    expect(isSameDayIst(d1, d2)).toBe(true);
+  });
+});
+
+describe("computeDateRange", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-03T06:30:00Z")); // 12:00 IST on Tuesday 3 March 2026
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("computes today boundaries strictly in IST", () => {
+    const range = computeDateRange("today");
+    expect(range.dateFrom).toBe("2026-03-02T18:30:00.000Z"); // 00:00 IST
+    expect(range.dateTo).toBe("2026-03-03T18:29:59.999Z"); // 23:59:59.999 IST
+  });
+
+  it("computes week boundaries in IST", () => {
+    const range = computeDateRange("week");
+    // Tuesday March 3 -> Monday was March 2
+    expect(range.dateFrom).toBe("2026-03-01T18:30:00.000Z"); // Monday 00:00 IST
+    expect(range.dateTo).toBe("2026-03-08T18:29:59.999Z"); // Sunday 23:59:59.999 IST
+  });
+
+  it("computes month boundaries in IST", () => {
+    const range = computeDateRange("month");
+    expect(range.dateFrom).toBe("2026-02-28T18:30:00.000Z"); // March 1 00:00 IST
+    expect(range.dateTo).toBe("2026-03-31T18:29:59.999Z"); // March 31 23:59:59.999 IST
   });
 });
 

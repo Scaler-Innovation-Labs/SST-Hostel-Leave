@@ -23,12 +23,13 @@ export async function getStudentAnalytics(
     customEndDate
   );
 
-  const [totalUsers, totalStudents, inHostel, onLeave, overdue, byHostel, byDepartment, byAcademicGroup, byGender, trend] =
+  const [totalUsers, totalStudents, inHostel, outsideHostel, checkedOut, overdue, byHostel, byDepartment, byAcademicGroup, byGender, trend] =
     await Promise.all([
       userRepository.count(hostelIds),
       studentRepository.countAll(hostelIds),
       studentRepository.countByLocationState(MOVEMENT_STATE.IN_HOSTEL, hostelIds),
       studentRepository.countByLocationState(MOVEMENT_STATE.OUTSIDE_HOSTEL, hostelIds),
+      studentRepository.countByLocationState(MOVEMENT_STATE.CHECKED_OUT, hostelIds),
       studentRepository.countByLocationState(MOVEMENT_STATE.OVERDUE, hostelIds),
       studentAnalyticsRepository.countByHostel(hostelIds),
       studentAnalyticsRepository.countByDepartment(hostelIds),
@@ -42,7 +43,7 @@ export async function getStudentAnalytics(
     totalUsers,
     totalStudents,
     inHostel,
-    onLeave,
+    onLeave: outsideHostel + checkedOut,
     overdue,
     byHostel,
     byDepartment,

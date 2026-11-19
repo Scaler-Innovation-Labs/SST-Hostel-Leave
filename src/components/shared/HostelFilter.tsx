@@ -24,6 +24,8 @@ type HostelFilterProps = {
  * only ever see a single hostel (e.g. a HOSTEL-scoped admin). Super admins
  * (or admins scoped to multiple hostels) keep the full dropdown.
  */
+const ALL_HOSTELS_VALUE = "__all__";
+
 export function HostelFilter({ value, hostels, onChange, className }: HostelFilterProps) {
   if (!hostels || hostels.length === 1) {
     const hostel = hostels?.[0];
@@ -39,12 +41,15 @@ export function HostelFilter({ value, hostels, onChange, className }: HostelFilt
   }
 
   return (
-    <Select value={value} onValueChange={onChange}>
+    <Select
+      value={value || ALL_HOSTELS_VALUE}
+      onValueChange={(next) => onChange(next === ALL_HOSTELS_VALUE ? "" : next)}
+    >
       <SelectTrigger className={`h-9 w-[160px] ${className ?? ""}`}>
         <SelectValue placeholder="Hostel" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="">All Hostels</SelectItem>
+        <SelectItem value={ALL_HOSTELS_VALUE}>All Hostels</SelectItem>
         {hostels.map((h) => (
           <SelectItem key={h.id} value={h.id}>
             {h.name}

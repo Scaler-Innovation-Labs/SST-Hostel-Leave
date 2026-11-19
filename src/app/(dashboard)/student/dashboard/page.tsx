@@ -12,7 +12,7 @@ import {
   ScanLine,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { QrCodeDisplay } from "@/components/qr/QrCodeDisplay";
@@ -131,16 +131,19 @@ export default function StudentDashboardPage() {
   const isQrApplicable = activeLeave?.qrMode ? activeLeave.qrMode !== "NONE" : true;
   const needsEnsure = isQrApplicable && !!((!activeQr && activeLeave?.id) || (activeQr && qrImageFailed)) && !qrError;
 
+  const qrEnsuringRef = useRef(false);
+
   useEffect(() => {
-    if (!needsEnsure || !activeLeave?.id || !userId || qrEnsuring) return;
+    if (!needsEnsure || !activeLeave?.id || !userId || qrEnsuringRef.current) return;
     let cancelled = false;
+    qrEnsuringRef.current = true;
+    setQrEnsuring(true);
 
     (async () => {
       // Contract §7: never destroy a working pass. generateQr is idempotent
       // for an ACTIVE pass — it returns the SAME pass id so the emailed QR
       // and the app QR stay consistent. Only a broken (invalidated,
       // never-used) pass is re-issued, and that happens inside the service.
-      setQrEnsuring(true);
       try {
         const qrType = activeLeave.qrMode === "RETURN_ONLY" || activeLeave.qrMode === "DAILY_RECURRING" ? "LEAVE_RETURN" : "LEAVE_EXIT";
         const result = (await generateQr(activeLeave.id, qrType)) as {
@@ -157,6 +160,7 @@ export default function StudentDashboardPage() {
           );
         }
       } finally {
+        qrEnsuringRef.current = false;
         if (!cancelled) setQrEnsuring(false);
       }
     })();
@@ -167,8 +171,8 @@ export default function StudentDashboardPage() {
   }, [
     needsEnsure,
     activeLeave?.id,
+    activeLeave?.qrMode,
     userId,
-    qrEnsuring,
     qrError,
     retryStats,
   ]);

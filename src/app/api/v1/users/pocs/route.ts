@@ -12,7 +12,7 @@ export async function GET() {
       page: 1,
       limit: 200,
       role: "POC",
-      isActive: undefined,
+      isActive: true,
       sortOrder: "desc",
     });
 

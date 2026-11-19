@@ -15,12 +15,19 @@ const globalForDb = globalThis as typeof globalThis & {
 function sanitizeConnectionString(raw: string): {
 	url: string;
 	ssl: boolean;
+	strictSsl: boolean;
 } {
 	const parsed = new URL(raw);
-	const ssl = parsed.searchParams.get("sslmode") === "require";
+	const sslmode = parsed.searchParams.get("sslmode")?.toLowerCase();
+	const ssl =
+		sslmode === "require" ||
+		sslmode === "verify-ca" ||
+		sslmode === "verify-full" ||
+		sslmode === "prefer";
+	const strictSsl = sslmode === "verify-ca" || sslmode === "verify-full";
 	parsed.searchParams.delete("sslmode");
 	parsed.searchParams.delete("channel_binding");
-	return { url: parsed.toString(), ssl };
+	return { url: parsed.toString(), ssl, strictSsl };
 }
 
 function getOrCreatePool(): Pool {
@@ -38,15 +45,20 @@ function getOrCreatePool(): Pool {
 		// certs) cannot satisfy — the explicit option below would be ignored.
 		// So `sslmode`/`channel_binding` (Neon-only) are stripped from the URL
 		// and TLS-without-CA-verification is configured explicitly instead.
-		const { url, ssl } = sanitizeConnectionString(databaseUrl);
+		const { url, ssl, strictSsl } = sanitizeConnectionString(databaseUrl);
 		const isInsecureSsl = process.env.DB_SSL_INSECURE === "true";
 		const isExplicitReject = process.env.DB_SSL_REJECT_UNAUTHORIZED === "true";
 		const isProd = process.env.NODE_ENV === "production";
 		const ca = process.env.DB_CA_CERT;
-		// If CA bundle is provided, enforce strict verification in production unless disabled.
-		// If no CA bundle is provided, self-managed PgBouncer endpoints with self-signed
-		// certs use TLS without CA verification unless explicitly requested.
-		const rejectUnauthorized = ca ? (isProd ? !isInsecureSsl : false) : isExplicitReject;
+		// Enforce strict CA verification when explicitly requested via sslmode=verify-ca/verify-full
+		// or when a CA bundle is provided in production, unless DB_SSL_INSECURE=true.
+		const rejectUnauthorized = strictSsl
+			? !isInsecureSsl
+			: ca
+				? isProd
+					? !isInsecureSsl
+					: false
+				: isExplicitReject;
 		const maxConnections = process.env.DB_POOL_MAX
 			? Number.parseInt(process.env.DB_POOL_MAX, 10)
 			: 10;

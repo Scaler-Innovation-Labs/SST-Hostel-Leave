@@ -9,7 +9,10 @@ import * as dotenv from "dotenv";
 
 dotenv.config({ path: ".env.local" });
 
+import { assertSafeDatabaseTarget } from "./safety";
+
 async function main() {
+  assertSafeDatabaseTarget();
   const { sql } = await import("drizzle-orm");
   const { db } = await import("@/lib/db");
 

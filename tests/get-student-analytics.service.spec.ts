@@ -42,7 +42,11 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockCountUsers.mockResolvedValue(150);
   mockCountAll.mockResolvedValue(120);
-  mockCountByLocationState.mockImplementation((state) => Promise.resolve(state === "IN_HOSTEL" ? 100 : state === "OUTSIDE_HOSTEL" ? 15 : 5));
+  mockCountByLocationState.mockImplementation((state) =>
+    Promise.resolve(
+      state === "IN_HOSTEL" ? 100 : state === "OUTSIDE_HOSTEL" ? 15 : state === "CHECKED_OUT" ? 3 : 5
+    )
+  );
   mockCountByHostel.mockResolvedValue([{ hostel: "BH1", count: 60 }]);
   mockCountByDepartment.mockResolvedValue([{ department: "CSE", count: 40 }]);
   mockCountByAcademicGroup.mockResolvedValue([{ group: "2024", count: 80 }]);
@@ -57,7 +61,7 @@ describe("getStudentAnalytics", () => {
     expect(result.totalUsers).toBe(150);
     expect(result.totalStudents).toBe(120);
     expect(result.inHostel).toBe(100);
-    expect(result.onLeave).toBe(15);
+    expect(result.onLeave).toBe(18);
     expect(result.overdue).toBe(5);
   });
 

@@ -1,3 +1,5 @@
+import { createHash, timingSafeEqual } from "crypto";
+
 import { ApiResponse } from "@/lib/api/response";
 
 /**
@@ -10,6 +12,12 @@ import { ApiResponse } from "@/lib/api/response";
  */
 const MIN_CRON_SECRET_LENGTH = 32;
 
+function constantTimeEquals(a: string, b: string): boolean {
+  const hashA = createHash("sha256").update(a).digest();
+  const hashB = createHash("sha256").update(b).digest();
+  return timingSafeEqual(hashA, hashB);
+}
+
 export function checkCronAuth(request: Request): Response | null {
   const authHeader = request.headers.get("Authorization");
   const cronSecret = process.env.CRON_SECRET;
@@ -17,7 +25,8 @@ export function checkCronAuth(request: Request): Response | null {
   if (
     !cronSecret ||
     cronSecret.length < MIN_CRON_SECRET_LENGTH ||
-    authHeader !== `Bearer ${cronSecret}`
+    !authHeader ||
+    !constantTimeEquals(authHeader, `Bearer ${cronSecret}`)
   ) {
     return ApiResponse.error("UNAUTHORIZED", "Unauthorized", 401);
   }

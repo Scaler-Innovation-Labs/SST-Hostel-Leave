@@ -2,6 +2,7 @@ import { AUDIT_ACTION } from "@/constants/audit/audit-action";
 import { AUDIT_ENTITY_TYPE } from "@/constants/audit/audit-entity-type";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveDocumentRepository } from "@/db/repositories/leave/leave-document.repository";
+import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import type { CurrentUser } from "@/lib/auth/types";
 import { NotFoundError, ValidationError } from "@/lib/errors";
 import {
@@ -29,15 +30,21 @@ export async function deleteLeaveDocument(
     throw new ValidationError("Document does not belong to this leave request");
   }
 
-  // IDOR guard: students may only delete their own leave's documents; staff
-  // must be within the leave's hostel scope.
-  if (document.leaveRequestId) {
-    const leave = await leaveRepository.findById(document.leaveRequestId);
-    if (!leave) {
-      throw new NotFoundError("LeaveRequest");
-    }
-    await assertCanAccessLeave(currentUser, leave);
+  // IDOR guard (fail-closed): resolve the owning leave request whether the
+  // document belongs directly to a leave or to a leave extension.
+  let targetLeaveId = document.leaveRequestId;
+  if (!targetLeaveId && document.leaveExtensionId) {
+    const extension = await leaveExtensionRepository.findById(document.leaveExtensionId);
+    targetLeaveId = extension?.leaveRequestId ?? null;
   }
+  if (!targetLeaveId) {
+    throw new NotFoundError("LeaveRequest");
+  }
+  const leave = await leaveRepository.findById(targetLeaveId);
+  if (!leave) {
+    throw new NotFoundError("LeaveRequest");
+  }
+  await assertCanAccessLeave(currentUser, leave);
 
   // Extract the S3 object key from metadata (preferred) or file URL (fallback)
   const objectKey =

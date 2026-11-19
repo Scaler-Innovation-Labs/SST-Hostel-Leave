@@ -108,6 +108,7 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
     updateCurrentStep: (...args: any[]) => mockLeaveUpdateCurrentStep(...args),
     findById: (...args: any[]) => mockLeaveFindById(...args),
     findByIdForUpdate: (...args: any[]) => mockLeaveFindByIdForUpdate(...args),
+    findOverlappingLeaves: vi.fn().mockResolvedValue([]),
   },
 }));
 

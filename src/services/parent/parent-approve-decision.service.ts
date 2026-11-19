@@ -24,6 +24,7 @@ import {
 import { logger } from "@/lib/logger";
 import { auditService } from "@/services/audit/audit.service";
 import { expireSingleLeave } from "@/services/leave/expire-leave.service";
+import { assertNoConflictingOverlap } from "@/services/leave/overlap-guard.service";
 import {
   extendQrPassWindow,
   issueQrPassForApprovedLeave,
@@ -265,6 +266,15 @@ async function handleLeaveDecision(
         });
       }
     } else {
+      await assertNoConflictingOverlap({
+        studentId: lockedLeave.studentId,
+        startAt: new Date(lockedLeave.startAt),
+        endAt: new Date(lockedLeave.endAt),
+        leaveTypeId: lockedLeave.leaveTypeId,
+        excludeLeaveRequestId: lockedLeave.id,
+        dbClient: tx,
+      });
+
       await leaveRepository.updateById(
         approval.leaveRequestId!,
         {

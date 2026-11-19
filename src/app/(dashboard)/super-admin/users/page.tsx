@@ -201,9 +201,9 @@ export default function SuperAdminUsersPage() {
 
                 {/* Roles */}
                 <div className="hidden gap-1.5 md:flex">
-                  {user.userRoles.map((r) => (
+                  {user.userRoles.map((r, idx) => (
                     <span
-                      key={r.roleCode}
+                      key={`${r.roleCode}-${idx}`}
                       className={`inline-flex items-center rounded-sm px-2.5 py-0.5 text-caption font-medium ${ROLE_STYLES[r.roleCode] ?? "bg-surface-sunken text-muted"}`}
                     >
                       <Shield className="mr-1 h-3 w-3" />

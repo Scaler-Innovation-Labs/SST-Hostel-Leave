@@ -16,6 +16,8 @@ import { transaction } from "@/lib/db/transaction";
 import { ConflictError, NotFoundError } from "@/lib/errors";
 import { getNextState, LEAVE_ACTION } from "@/lib/workflows/leave-state-machine";
 import { auditService } from "@/services/audit/audit.service";
+import { assertNoConflictingOverlap } from "@/services/leave/overlap-guard.service";
+import { issueQrPassForApprovedLeave } from "@/services/leave/qr-pass-lifecycle.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 import { activateWorkflowStep } from "@/services/workflow/workflow-activation.service";
@@ -141,6 +143,15 @@ export async function superadminOverrideLeave(
     }
 
     // All steps processed — final approval via state machine
+    await assertNoConflictingOverlap({
+      studentId: leave.studentId,
+      startAt: new Date(leave.startAt),
+      endAt: new Date(leave.endAt),
+      leaveTypeId: leave.leaveTypeId,
+      excludeLeaveRequestId: leave.id,
+      dbClient: tx,
+    });
+
     const finalStatus = getNextState(LEAVE_REQUEST_STATUS.PENDING, LEAVE_ACTION.APPROVE);
     await leaveRepository.updateById(
       leaveId,
@@ -153,6 +164,8 @@ export async function superadminOverrideLeave(
       },
       tx,
     );
+
+    await issueQrPassForApprovedLeave(leave, tx);
 
     await auditService.record(
       AUDIT_ACTION.UPDATE,

@@ -14,6 +14,7 @@ import {
   or,
   sql,
 } from "drizzle-orm";
+import type { PgSelect } from "drizzle-orm/pg-core";
 import { alias } from "drizzle-orm/pg-core";
 
 import type { LeaveApprovalSource } from "@/constants/leave/approval-source";
@@ -460,13 +461,13 @@ export const leaveApprovalRepository = {
     const needsStudentJoin = Boolean(filters.search);
     const needsUserJoin = Boolean(filters.search || filters.gender);
 
-    const applySearchOrGenderJoins = <T extends { leftJoin: (...args: any[]) => any }>(query: T): T => {
+    const applySearchOrGenderJoins = <T extends PgSelect>(query: T): T => {
       let q = query;
       if (needsStudentJoin || needsUserJoin) {
-        q = q.leftJoin(students, eq(leaveRequests.studentId, students.id));
+        q = q.leftJoin(students, eq(leaveRequests.studentId, students.id)) as unknown as T;
       }
       if (needsUserJoin) {
-        q = q.leftJoin(users, eq(students.userId, users.id));
+        q = q.leftJoin(users, eq(students.userId, users.id)) as unknown as T;
       }
       return q;
     };
@@ -483,7 +484,8 @@ export const leaveApprovalRepository = {
           .leftJoin(
             leaveRequests,
             eq(leaveApprovals.leaveRequestId, leaveRequests.id),
-          ),
+          )
+          .$dynamic(),
       ).where(whereClause),
 
       applySearchOrGenderJoins(
@@ -496,7 +498,8 @@ export const leaveApprovalRepository = {
           .leftJoin(
             leaveRequests,
             eq(leaveApprovals.leaveRequestId, leaveRequests.id),
-          ),
+          )
+          .$dynamic(),
       )
         .where(
           and(
@@ -525,7 +528,8 @@ export const leaveApprovalRepository = {
           .leftJoin(
             leaveRequests,
             eq(leaveApprovals.leaveRequestId, leaveRequests.id),
-          ),
+          )
+          .$dynamic(),
       )
         .where(whereClause)
         .groupBy(leaveApprovals.leaveRequestId)
@@ -1058,13 +1062,13 @@ export const leaveApprovalRepository = {
     const needsStudentJoin = Boolean(filters.search);
     const needsUserJoin = Boolean(filters.search || filters.gender);
 
-    const applyExtensionSearchOrGenderJoins = <T extends { leftJoin: (...args: any[]) => any }>(query: T): T => {
+    const applyExtensionSearchOrGenderJoins = <T extends PgSelect>(query: T): T => {
       let q = query;
       if (needsStudentJoin || needsUserJoin) {
-        q = q.leftJoin(students, eq(leaveRequests.studentId, students.id));
+        q = q.leftJoin(students, eq(leaveRequests.studentId, students.id)) as unknown as T;
       }
       if (needsUserJoin) {
-        q = q.leftJoin(users, eq(students.userId, users.id));
+        q = q.leftJoin(users, eq(students.userId, users.id)) as unknown as T;
       }
       return q;
     };
@@ -1083,7 +1087,8 @@ export const leaveApprovalRepository = {
           .leftJoin(
             leaveRequests,
             eq(leaveExtensions.leaveRequestId, leaveRequests.id),
-          ),
+          )
+          .$dynamic(),
       ).where(whereClause),
 
       applyExtensionSearchOrGenderJoins(
@@ -1100,7 +1105,8 @@ export const leaveApprovalRepository = {
           .leftJoin(
             leaveRequests,
             eq(leaveExtensions.leaveRequestId, leaveRequests.id),
-          ),
+          )
+          .$dynamic(),
       )
         .where(scopeWhereClause)
         .groupBy(leaveExtensions.status),
@@ -1119,7 +1125,8 @@ export const leaveApprovalRepository = {
           .leftJoin(
             leaveRequests,
             eq(leaveExtensions.leaveRequestId, leaveRequests.id),
-          ),
+          )
+          .$dynamic(),
       )
         .where(
           and(
@@ -1164,7 +1171,8 @@ export const leaveApprovalRepository = {
         .leftJoin(
           leaveRequests,
           eq(leaveExtensions.leaveRequestId, leaveRequests.id),
-        ),
+        )
+        .$dynamic(),
     )
       .where(whereClause)
       .groupBy(leaveApprovals.leaveExtensionId)

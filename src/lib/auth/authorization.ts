@@ -47,6 +47,13 @@ export function canApproveApproval(
   currentUser: { id: string; roles: string[] }
 ): boolean {
   const assigned = approval.assignedApproverUserId ?? approval.approverUserId ?? null;
+  if (!assigned && !approval.approverRoleCode) {
+    return (
+      currentUser.roles.includes(ROLES.SUPER_ADMIN) ||
+      currentUser.roles.includes(ROLES.ADMIN)
+    );
+  }
+
   if (assigned && assigned !== currentUser.id) {
     return false;
   }

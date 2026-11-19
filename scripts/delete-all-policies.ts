@@ -3,6 +3,8 @@ import { resolve } from "path";
 
 dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 
+import { assertSafeDatabaseTarget } from "./safety";
+
 // Ops script: remove every policy and its immutable configuration history.
 //
 // Deletion order is dictated by foreign keys:
@@ -15,6 +17,7 @@ dotenv.config({ path: resolve(process.cwd(), ".env.local") });
 // past leaves and are preserved (only their policy references are cleared).
 
 async function main() {
+  assertSafeDatabaseTarget();
   const { db } = await import("@/lib/db");
   const { sql } = await import("drizzle-orm");
 

@@ -1,15 +1,22 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { Mail, User } from "lucide-react";
 import Image from "next/image";
+import { redirect } from "next/navigation";
 
 import { PageHeader } from "@/components/shared/PageHeader";
 import { SectionCard, TECH_LABEL } from "@/design-system/sst";
+import { getCurrentUser } from "@/lib/auth/get-current-user";
 
 export default async function ProfilePage() {
+  const dbUser = await getCurrentUser();
+  if (!dbUser) {
+    redirect("/login");
+  }
+
   const user = await currentUser();
 
   const name = user?.fullName ?? "Your account";
-  const email = user?.primaryEmailAddress?.emailAddress ?? "No email on file";
+  const email = user?.primaryEmailAddress?.emailAddress ?? dbUser.email ?? "No email on file";
 
   return (
     <div className="space-y-6">
