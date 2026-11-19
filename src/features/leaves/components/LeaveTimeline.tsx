@@ -240,11 +240,63 @@ export function LeaveTimeline({
         downstreamEvents.push({
           id: `ext-${raw.id as string}`,
           label: `Extension ${number} requested`,
-          status: "waiting",
+          status: "done",
           actor: null,
           time: raw.createdAt as string,
         });
       }
+
+      const extApprovals = (raw.approvals as Array<Record<string, unknown>> | undefined) ?? [];
+      if (extApprovals.length > 0) {
+        const sortedExtApprovals = [...extApprovals].sort(
+          (a, b) => ((a.stepOrder as number) ?? 0) - ((b.stepOrder as number) ?? 0)
+        );
+        for (const approval of sortedExtApprovals) {
+          const decision = ((approval.decision as string) ?? "pending").toLowerCase();
+          const isActed =
+            decision === "approved" ||
+            decision === "auto_approved" ||
+            decision === "rejected";
+          const stepKey = (approval.stepKey as string) ?? "";
+          const stepLabel =
+            stepKey === "PARENT_APPROVAL"
+              ? "Extension parent approval"
+              : stepKey === "ADMIN_APPROVAL"
+                ? "Extension warden approval"
+                : `Extension ${stepKey.replace(/_/g, " ").toLowerCase()}`;
+
+          downstreamEvents.push({
+            id: `ext-app-${approval.id as string}`,
+            label: stepLabel,
+            status:
+              decision === "approved" || decision === "auto_approved"
+                ? "done"
+                : decision === "rejected"
+                  ? "rejected"
+                  : "waiting",
+            actor: stepKey === "PARENT_APPROVAL" ? "Parent / Guardian" : "Warden",
+            time: (approval.actedAt ?? approval.createdAt ?? raw.createdAt) as string | null,
+            comment: isActed ? (approval.comments as string | null) : null,
+            rejectionCategory: isActed ? (approval.rejectionCategory as string | null) : null,
+          });
+        }
+      } else if (raw.currentStepKey && status === "pending") {
+        const stepKey = raw.currentStepKey as string;
+        const stepLabel =
+          stepKey === "PARENT_APPROVAL"
+            ? "Extension parent approval"
+            : stepKey === "ADMIN_APPROVAL"
+              ? "Extension warden approval"
+              : `Extension ${stepKey.replace(/_/g, " ").toLowerCase()}`;
+        downstreamEvents.push({
+          id: `ext-step-${raw.id as string}`,
+          label: stepLabel,
+          status: "waiting",
+          actor: stepKey === "PARENT_APPROVAL" ? "Parent / Guardian" : "Warden",
+          time: raw.createdAt as string,
+        });
+      }
+
       const approvedAt = raw.approvedAt as string | null;
       const rejectedAt = raw.rejectedAt as string | null;
       if (status === "approved" && approvedAt) {

@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 const mockFindById = vi.fn();
 const mockFindByLeaveRequestIdPaginated = vi.fn();
 const mockAssertCanAccessLeave = vi.fn();
+const mockFindByLeaveExtensionId = vi.fn().mockResolvedValue([]);
 
 vi.mock("@/db/repositories/leave/leave.repository", () => ({
   leaveRepository: {
@@ -14,6 +15,12 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
 vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
   leaveExtensionRepository: {
     findByLeaveRequestIdPaginated: (...args: any[]) => mockFindByLeaveRequestIdPaginated(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
+  leaveApprovalRepository: {
+    findByLeaveExtensionId: (...args: any[]) => mockFindByLeaveExtensionId(...args),
   },
 }));
 
@@ -36,6 +43,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockFindById.mockResolvedValue({ id: "LR1", studentId: "S1" });
   mockFindByLeaveRequestIdPaginated.mockResolvedValue(MOCK_RESULT);
+  mockFindByLeaveExtensionId.mockResolvedValue([]);
   mockAssertCanAccessLeave.mockResolvedValue(undefined);
 });
 
@@ -43,7 +51,10 @@ describe("listLeaveExtensions service", () => {
   it("returns paginated extensions for a leave request", async () => {
     const result = await listLeaveExtensions("LR1", { page: 1, limit: 20 }, { id: "U1", roles: ["ADMIN"] });
 
-    expect(result).toEqual(MOCK_RESULT);
+    expect(result).toEqual({
+      ...MOCK_RESULT,
+      items: [{ id: "EXT1", extensionNumber: 1, status: "PENDING", approvals: [] }],
+    });
     expect(mockFindById).toHaveBeenCalledWith("LR1");
     expect(mockAssertCanAccessLeave).toHaveBeenCalledWith(
       { id: "U1", roles: ["ADMIN"] },

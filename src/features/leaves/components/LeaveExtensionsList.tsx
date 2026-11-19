@@ -96,6 +96,11 @@ export function LeaveExtensionsList({ leaveId }: { leaveId: string }) {
                     Requested {formatRelative(extension.createdAt)}
                   </p>
                 )}
+                {extension.status?.toUpperCase() === "PENDING" && extension.currentStepKey && (
+                  <p className="mt-0.5 text-caption font-medium text-warning">
+                    Waiting for {extension.currentStepKey.replace(/_/g, " ").toLowerCase()}
+                  </p>
+                )}
                 {extension.reason && (
                   <p className="mt-1 text-caption text-muted">
                     {extension.reason}

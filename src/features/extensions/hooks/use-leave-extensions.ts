@@ -12,10 +12,22 @@ export type LeaveExtensionItem = {
   currentEndAt: string;
   requestedEndAt: string;
   currentStepKey?: string | null;
+  currentStepOrder?: number | null;
   submittedAt?: string | null;
   approvedAt?: string | null;
   rejectedAt?: string | null;
   createdAt: string;
+  approvals?: Array<{
+    id: string;
+    stepKey: string;
+    stepOrder: number;
+    decision: string;
+    approvalSource?: string | null;
+    comments?: string | null;
+    actedAt?: string | null;
+    createdAt: string;
+    rejectionCategory?: string | null;
+  }>;
 };
 
 export function useLeaveExtensions(leaveId: string) {

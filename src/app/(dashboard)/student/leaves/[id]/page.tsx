@@ -21,6 +21,7 @@ import {
 } from "@/design-system/sst";
 import { useApprovalChain } from "@/features/approvals/hooks/use-approval-chain";
 import { ExtensionForm } from "@/features/extensions/components/ExtensionForm";
+import { useLeaveExtensions } from "@/features/extensions/hooks/use-leave-extensions";
 import { AskAQuestionSection } from "@/features/leaves/components/AskAQuestionSection";
 import { DocumentList } from "@/features/leaves/components/DocumentList";
 import { LeaveExtensionsList } from "@/features/leaves/components/LeaveExtensionsList";
@@ -36,11 +37,20 @@ export default function StudentLeaveDetailPage() {
   const id = params.id as string;
   const { leave, isLoading, isError, mutate } = useLeave(id);
   const { approvals } = useApprovalChain(id);
+  const { data: extensionsData } = useLeaveExtensions(id);
   const rejectingApproval = approvals.find((a) => a.decision?.toLowerCase() === "rejected");
   const parentApproval = approvals.find(
     (a) =>
       a.stepKey?.toUpperCase().includes("PARENT") ||
       a.approverRoleCode?.toUpperCase().includes("PARENT")
+  );
+
+  const pendingExtension = extensionsData?.items?.find(
+    (ext) => ext.status?.toUpperCase() === "PENDING"
+  );
+  const isExtensionParentPending = Boolean(
+    pendingExtension &&
+    pendingExtension.currentStepKey?.toUpperCase().includes("PARENT")
   );
 
   const [cancelling, setCancelling] = useState(false);
@@ -213,6 +223,22 @@ export default function StudentLeaveDetailPage() {
                     An approval link was sent to your parent{parentApproval?.approverName ? ` (${parentApproval.approverName})` : ""} via SMS. Approval links have a short lifespan and <strong className="font-semibold text-ink">expire within {PARENT_APPROVAL_TOKEN_EXPIRY_HOURS} hours</strong>. Please remind them to review and approve before the link expires.
                   </>
                 )}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isExtensionParentPending && (
+        <div className="rounded-2xl border border-warning/30 bg-warning-light p-5 text-ink shadow-sm">
+          <div className="flex items-start gap-3.5">
+            <Clock className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h3 className="text-body font-semibold text-ink">
+                Extension #{pendingExtension?.extensionNumber} — Parent Approval Pending
+              </h3>
+              <p className="text-caption text-ink/80 leading-relaxed">
+                An approval link was sent to your parent via SMS for this extension request. Approval links have a short lifespan and <strong className="font-semibold text-ink">expire within {PARENT_APPROVAL_TOKEN_EXPIRY_HOURS} hours</strong>. Please remind them to review and approve before the link expires.
               </p>
             </div>
           </div>
