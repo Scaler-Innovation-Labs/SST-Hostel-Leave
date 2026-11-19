@@ -17,9 +17,10 @@ export async function GET(request: Request) {
     // errors buried in the body is how stuck leaves went unnoticed for days.
     // Fail the run instead: the scheduler flags it and the log carries the rest.
     const errors = [
-      ...result.completed.errors,
-      ...result.expired.errors,
-      ...result.overdue.errors,
+      ...(result.completed?.errors ?? []),
+      ...(result.expired?.errors ?? []),
+      ...(result.expiredExtensions?.errors ?? []),
+      ...(result.overdue?.errors ?? []),
     ];
 
     if (errors.length > 0) {

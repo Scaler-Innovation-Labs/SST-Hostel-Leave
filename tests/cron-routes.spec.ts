@@ -57,6 +57,7 @@ const CLEAN_LIFECYCLE = {
   job: "expire-leaves",
   completed: { total: 0, completed: 0, skipped: 0, errors: [] },
   expired: CLEAN_BATCH,
+  expiredExtensions: CLEAN_BATCH,
   overdue: { total: 0, overdue: 0, skipped: 0, errors: [] },
 };
 
@@ -128,6 +129,27 @@ describe("GET /api/cron/maintenance", () => {
     expect(body.success).toBe(false);
     expect(body.error.code).toBe("CRON_JOB_FAILED");
     expect(body.error.message).toContain("LR-1");
+    expect(mockLoggerError).toHaveBeenCalled();
+  });
+
+  it("fails the run when an extension could not be expired", async () => {
+    mockRunExpireLeavesJob.mockResolvedValue({
+      ...CLEAN_LIFECYCLE,
+      expiredExtensions: {
+        total: 1,
+        expired: 0,
+        skipped: 0,
+        errors: ["Failed to expire extension EXT-1: DB error"],
+      },
+    });
+
+    const res = await maintenance(makeRequest());
+    const body = await res.json();
+
+    expect(res.status).toBe(500);
+    expect(body.success).toBe(false);
+    expect(body.error.code).toBe("CRON_JOB_FAILED");
+    expect(body.error.message).toContain("EXT-1");
     expect(mockLoggerError).toHaveBeenCalled();
   });
 

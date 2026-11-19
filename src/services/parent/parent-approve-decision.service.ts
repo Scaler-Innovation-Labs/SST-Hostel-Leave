@@ -23,6 +23,7 @@ import {
 } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { auditService } from "@/services/audit/audit.service";
+import { expireSingleExtension } from "@/services/leave/expire-extension.service";
 import { expireSingleLeave } from "@/services/leave/expire-leave.service";
 import { assertNoConflictingOverlap } from "@/services/leave/overlap-guard.service";
 import {
@@ -63,19 +64,35 @@ export async function parentApproveDecision(
   ) {
     if (
       initialCheck.decision === LEAVE_APPROVAL_DECISION.PENDING &&
-      !initialCheck.actedAt &&
-      initialCheck.leaveRequestId
+      !initialCheck.actedAt
     ) {
-      try {
-        await expireSingleLeave(
-          initialCheck.leaveRequestId,
-          systemActor("parent-link-expired")
-        );
-      } catch (error) {
-        logger.warn("Failed to expire leave on expired parent decision attempt", {
-          leaveRequestId: initialCheck.leaveRequestId,
-          error: error instanceof Error ? error.message : String(error),
-        });
+      if (initialCheck.leaveRequestId) {
+        try {
+          await expireSingleLeave(
+            initialCheck.leaveRequestId,
+            systemActor("parent-link-expired")
+          );
+        } catch (error) {
+          logger.warn("Failed to expire leave on expired parent decision attempt", {
+            leaveRequestId: initialCheck.leaveRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      } else if (initialCheck.leaveExtensionId) {
+        try {
+          await expireSingleExtension(
+            initialCheck.leaveExtensionId,
+            systemActor("parent-link-expired")
+          );
+        } catch (error) {
+          logger.warn(
+            "Failed to expire extension on expired parent decision attempt",
+            {
+              leaveExtensionId: initialCheck.leaveExtensionId,
+              error: error instanceof Error ? error.message : String(error),
+            }
+          );
+        }
       }
     }
     logger.warn("Parent approval decision failed: link expired", {

@@ -8,6 +8,7 @@ import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { sha256 } from "@/lib/crypto";
 import { ValidationError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
+import { expireSingleExtension } from "@/services/leave/expire-extension.service";
 import { expireSingleLeave } from "@/services/leave/expire-leave.service";
 
 export type LeaveDetailsResult = {
@@ -69,19 +70,32 @@ export async function getLeaveDetailsByToken(
   ) {
     if (
       approval.decision === LEAVE_APPROVAL_DECISION.PENDING &&
-      !approval.actedAt &&
-      approval.leaveRequestId
+      !approval.actedAt
     ) {
-      try {
-        await expireSingleLeave(
-          approval.leaveRequestId,
-          systemActor("parent-link-expired")
-        );
-      } catch (error) {
-        logger.warn("Failed to expire leave on expired parent token lookup", {
-          leaveRequestId: approval.leaveRequestId,
-          error: error instanceof Error ? error.message : String(error),
-        });
+      if (approval.leaveRequestId) {
+        try {
+          await expireSingleLeave(
+            approval.leaveRequestId,
+            systemActor("parent-link-expired")
+          );
+        } catch (error) {
+          logger.warn("Failed to expire leave on expired parent token lookup", {
+            leaveRequestId: approval.leaveRequestId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      } else if (approval.leaveExtensionId) {
+        try {
+          await expireSingleExtension(
+            approval.leaveExtensionId,
+            systemActor("parent-link-expired")
+          );
+        } catch (error) {
+          logger.warn("Failed to expire extension on expired parent token lookup", {
+            leaveExtensionId: approval.leaveExtensionId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
       }
     }
     logger.warn("Parent approval link lookup failed: link expired", {

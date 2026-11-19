@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, isNotNull, lt, notExists, sql } from "drizzle-orm";
+import { and, desc, eq, exists, isNotNull, lt, notExists, or, sql } from "drizzle-orm";
 
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
@@ -264,6 +264,68 @@ export const leaveExtensionRepository = {
 
     return rows.length > 0;
   },
+
+  /**
+   * Finds pending extensions that have expired:
+   * 1. A parent approval token exists and has expired (tokenExpiresAt < asOf), OR
+   * 2. The requested new end date has already passed in IST.
+   */
+  async findExpiredPendingExtensions(
+    asOf: Date = new Date(),
+    dbClient: Pick<typeof db, "select"> = db,
+    limit?: number
+  ): Promise<LeaveExtension[]> {
+    const client = typeof dbClient?.select === "function" ? dbClient : db;
+    const query = client
+      .select({
+        id: leaveExtensions.id,
+        leaveRequestId: leaveExtensions.leaveRequestId,
+        extensionNumber: leaveExtensions.extensionNumber,
+        currentEndAt: leaveExtensions.currentEndAt,
+        requestedEndAt: leaveExtensions.requestedEndAt,
+        reason: leaveExtensions.reason,
+        status: leaveExtensions.status,
+        currentStepKey: leaveExtensions.currentStepKey,
+        currentStepOrder: leaveExtensions.currentStepOrder,
+        policyResult: leaveExtensions.policyResult,
+        submittedForm: leaveExtensions.submittedForm,
+        metadata: leaveExtensions.metadata,
+        submittedAt: leaveExtensions.submittedAt,
+        approvedAt: leaveExtensions.approvedAt,
+        rejectedAt: leaveExtensions.rejectedAt,
+        createdAt: leaveExtensions.createdAt,
+        updatedAt: leaveExtensions.updatedAt,
+      })
+      .from(leaveExtensions)
+      .where(
+        and(
+          eq(leaveExtensions.status, LEAVE_REQUEST_STATUS.PENDING),
+          or(
+            isOverdueInIstCondition(leaveExtensions.requestedEndAt, asOf),
+            exists(
+              client
+                .select()
+                .from(leaveApprovals)
+                .innerJoin(
+                  leaveApprovalParentDetails,
+                  eq(leaveApprovalParentDetails.approvalId, leaveApprovals.id)
+                )
+                .where(
+                  and(
+                    eq(leaveApprovals.leaveExtensionId, leaveExtensions.id),
+                    eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.PENDING),
+                    isNotNull(leaveApprovalParentDetails.tokenExpiresAt),
+                    lt(leaveApprovalParentDetails.tokenExpiresAt, asOf)
+                  )
+                )
+            )
+          )
+        )
+      )
+      .orderBy(leaveExtensions.requestedEndAt);
+
+    return limit ? await query.limit(limit) : await query;
+  },
 };
 
 /**
@@ -316,7 +378,7 @@ export function buildNotHasActivePendingExtensionCondition(
  * Example: if leave is till 11 November, it becomes overdue on 12 November at 00:00 IST.
  */
 export function isOverdueInIstCondition(
-  endAtColumn: typeof leaveRequests.endAt,
+  endAtColumn: typeof leaveRequests.endAt | typeof leaveExtensions.requestedEndAt,
   asOf: Date = new Date()
 ) {
   return sql`(${endAtColumn} AT TIME ZONE 'Asia/Kolkata')::date < (${asOf.toISOString()}::timestamptz AT TIME ZONE 'Asia/Kolkata')::date`;

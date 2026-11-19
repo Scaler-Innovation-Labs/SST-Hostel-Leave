@@ -30,12 +30,28 @@ vi.mock("@/db/repositories/leave/leave.repository", () => ({
 
 const mockUpdateDecisionByLeaveRequestId = vi.fn().mockResolvedValue([]);
 const mockUpdateDecisionById = vi.fn().mockResolvedValue(undefined);
+const mockFindByEntityAndDecision = vi.fn().mockResolvedValue([]);
 
 vi.mock("@/db/repositories/leave/leave-approval.repository", () => ({
   leaveApprovalRepository: {
     updateDecisionByLeaveRequestId: (...args: any[]) =>
       mockUpdateDecisionByLeaveRequestId(...args),
     updateDecisionById: (...args: any[]) => mockUpdateDecisionById(...args),
+    findByEntityAndDecision: (...args: any[]) =>
+      mockFindByEntityAndDecision(...args),
+  },
+}));
+
+const mockExtensionFindById = vi.fn();
+const mockExtensionFindByIdForUpdate = vi.fn();
+const mockExtensionUpdateById = vi.fn();
+
+vi.mock("@/db/repositories/leave/leave-extension.repository", () => ({
+  leaveExtensionRepository: {
+    findById: (...args: any[]) => mockExtensionFindById(...args),
+    findByIdForUpdate: (...args: any[]) => mockExtensionFindByIdForUpdate(...args),
+    updateById: (...args: any[]) => mockExtensionUpdateById(...args),
+    findExpiredPendingExtensions: vi.fn().mockResolvedValue([]),
   },
 }));
 
@@ -305,6 +321,43 @@ describe("Expired Parent Approval to Leave Expiration", () => {
       // Expiry should NOT have been called
       expect(mockLeaveUpdateById).not.toHaveBeenCalled();
     });
+
+    it("expires extension when link expired and no action taken, then throws generic ValidationError", async () => {
+      const rawToken = "raw-expired-ext-token-1";
+
+      mockFindByParentApprovalToken.mockResolvedValue({
+        id: "AP-EXT-1",
+        leaveExtensionId: "EXT-201",
+        decision: "PENDING",
+        actedAt: null,
+        parentDetails: {
+          tokenExpiresAt: new Date(Date.now() - 3600000), // 1 hour ago
+        },
+      });
+
+      mockExtensionFindById.mockResolvedValue({
+        id: "EXT-201",
+        leaveRequestId: "LR-501",
+        status: "PENDING",
+      });
+      mockExtensionFindByIdForUpdate.mockResolvedValue({
+        id: "EXT-201",
+        leaveRequestId: "LR-501",
+        status: "PENDING",
+      });
+      mockExtensionUpdateById.mockResolvedValue({ status: "REJECTED" });
+
+      await expect(getLeaveDetailsByToken(rawToken)).rejects.toThrow(
+        GENERIC_PARENT_TOKEN_ERROR_MESSAGE
+      );
+
+      // Verify extension was expired/rejected
+      expect(mockExtensionUpdateById).toHaveBeenCalledWith(
+        "EXT-201",
+        expect.objectContaining({ status: "REJECTED" }),
+        expect.anything()
+      );
+    });
   });
 
   describe("parentApproveDecision", () => {
@@ -341,6 +394,42 @@ describe("Expired Parent Approval to Leave Expiration", () => {
       expect(mockLeaveUpdateById).toHaveBeenCalledWith(
         "LR-301",
         expect.objectContaining({ status: "EXPIRED" }),
+        expect.anything()
+      );
+    });
+
+    it("expires extension when decision attempted on expired link with no action taken", async () => {
+      const rawToken = "raw-expired-ext-token-2";
+
+      mockFindByParentApprovalToken.mockResolvedValue({
+        id: "AP-EXT-2",
+        leaveExtensionId: "EXT-301",
+        decision: "PENDING",
+        actedAt: null,
+        parentDetails: {
+          tokenExpiresAt: new Date(Date.now() - 3600000), // expired
+        },
+      });
+
+      mockExtensionFindById.mockResolvedValue({
+        id: "EXT-301",
+        leaveRequestId: "LR-502",
+        status: "PENDING",
+      });
+      mockExtensionFindByIdForUpdate.mockResolvedValue({
+        id: "EXT-301",
+        leaveRequestId: "LR-502",
+        status: "PENDING",
+      });
+      mockExtensionUpdateById.mockResolvedValue({ status: "REJECTED" });
+
+      await expect(
+        parentApproveDecision(rawToken, { decision: "APPROVED" })
+      ).rejects.toThrow(GENERIC_PARENT_TOKEN_ERROR_MESSAGE);
+
+      expect(mockExtensionUpdateById).toHaveBeenCalledWith(
+        "EXT-301",
+        expect.objectContaining({ status: "REJECTED" }),
         expect.anything()
       );
     });
