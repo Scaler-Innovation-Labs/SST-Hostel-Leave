@@ -166,7 +166,7 @@ describe("recordMovement service", () => {
       const result = await recordMovement({
         studentId: "S1",
         fromState: "IN_HOSTEL",
-        toState: "CHECKED_OUT",
+        toState: "OUTSIDE_HOSTEL",
         eventType: "MANUAL_CHECKOUT",
         movementMethod: "MANUAL",
         isManualOverride: true,
@@ -175,7 +175,7 @@ describe("recordMovement service", () => {
 
       expect(result).toEqual({ id: "ME1" });
       expect(mockMovementEventCreate).toHaveBeenCalled();
-      expect(mockUpdateCurrentLocationState).toHaveBeenCalledWith("S1", "CHECKED_OUT", expect.any(Object));
+      expect(mockUpdateCurrentLocationState).toHaveBeenCalledWith("S1", "OUTSIDE_HOSTEL", expect.any(Object));
     });
 
     it("rejects invalid transition (OUTSIDE_HOSTEL + MANUAL_CHECKOUT)", async () => {

@@ -78,7 +78,7 @@ export async function manualCheckout(
       leaveRequestId: input.leaveRequestId,
       qrPassId,
       fromState: currentState,
-      toState: MOVEMENT_STATE.CHECKED_OUT,
+      toState: MOVEMENT_STATE.OUTSIDE_HOSTEL,
       eventType: MOVEMENT_EVENT.MANUAL_CHECKOUT,
       movementMethod: MOVEMENT_METHOD.MANUAL,
       recordedBy: input.currentUser.id,
@@ -90,7 +90,7 @@ export async function manualCheckout(
     return {
       movementEventId: movementEvent.id,
       studentId: input.studentId,
-      newState: MOVEMENT_STATE.CHECKED_OUT,
+      newState: MOVEMENT_STATE.OUTSIDE_HOSTEL,
     };
   });
 }

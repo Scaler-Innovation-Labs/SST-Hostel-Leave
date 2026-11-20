@@ -105,6 +105,12 @@ describe("movement-state-machine", () => {
 			).toBe("OUTSIDE_HOSTEL");
 		});
 
+		it("transitions IN_HOSTEL -> OUTSIDE_HOSTEL (manual checkout)", () => {
+			expect(
+				getNextState("IN_HOSTEL", MOVEMENT_ACTION.MANUAL_CHECKOUT)
+			).toBe("OUTSIDE_HOSTEL");
+		});
+
 		it("transitions APPROVED_LEAVE -> OUTSIDE_HOSTEL (legacy exit)", () => {
 			expect(
 				getNextState(

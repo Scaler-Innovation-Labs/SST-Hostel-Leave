@@ -107,7 +107,7 @@ describe("manualCheckout service", () => {
   });
 
   describe("successful manual checkout", () => {
-    it("records movement from IN_HOSTEL to CHECKED_OUT", async () => {
+    it("records movement from IN_HOSTEL to OUTSIDE_HOSTEL", async () => {
       mockStudentFindById.mockResolvedValue({
         id: "S1",
         currentLocationState: "IN_HOSTEL",
@@ -122,13 +122,13 @@ describe("manualCheckout service", () => {
       expect(result).toEqual({
         movementEventId: "ME1",
         studentId: "S1",
-        newState: "CHECKED_OUT",
+        newState: "OUTSIDE_HOSTEL",
       });
       expect(mockRecordMovement).toHaveBeenCalledWith(
         expect.objectContaining({
           studentId: "S1",
           fromState: "IN_HOSTEL",
-          toState: "CHECKED_OUT",
+          toState: "OUTSIDE_HOSTEL",
           eventType: "MANUAL_CHECKOUT",
           movementMethod: "MANUAL",
           recordedBy: "U1",
