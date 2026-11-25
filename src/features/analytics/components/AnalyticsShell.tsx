@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { AnalyticsPeriod } from "@/dto/analytics/analytics-period.dto";
+import { ExpiredTab } from "@/features/analytics/components/ExpiredTab";
 import { LeavesTab } from "@/features/analytics/components/LeavesTab";
 import { MovementQrTab } from "@/features/analytics/components/MovementQrTab";
 import { PeriodSelect } from "@/features/analytics/components/PeriodSelect";
@@ -64,6 +65,7 @@ export function AnalyticsShell({ description, headerExtra, overall }: AnalyticsS
           <TabsTrigger value="leaves">Leaves</TabsTrigger>
           <TabsTrigger value="movement">Movement &amp; QR</TabsTrigger>
           <TabsTrigger value="rejections">Rejections</TabsTrigger>
+          <TabsTrigger value="expired">Expired</TabsTrigger>
           <TabsTrigger value="staff">Staff</TabsTrigger>
         </TabsList>
 
@@ -89,6 +91,9 @@ export function AnalyticsShell({ description, headerExtra, overall }: AnalyticsS
         </TabsContent>
         <TabsContent value="rejections">
           <RejectionsTab period={period} startDate={startDate} endDate={endDate} />
+        </TabsContent>
+        <TabsContent value="expired">
+          <ExpiredTab period={period} startDate={startDate} endDate={endDate} />
         </TabsContent>
         <TabsContent value="staff">
           <StaffTab period={period} startDate={startDate} endDate={endDate} />

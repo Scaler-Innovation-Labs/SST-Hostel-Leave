@@ -53,3 +53,11 @@ export function getStaffAnalyticsUrl(
 ): string {
   return buildAnalyticsUrl("staff", period, startDate, endDate);
 }
+
+export function getExpiredAnalyticsUrl(
+  period: AnalyticsPeriod,
+  startDate?: string,
+  endDate?: string
+): string {
+  return buildAnalyticsUrl("expired", period, startDate, endDate);
+}

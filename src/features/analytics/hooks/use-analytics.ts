@@ -3,12 +3,14 @@
 import useSWR from "swr";
 
 import type { AnalyticsPeriod } from "@/dto/analytics/analytics-period.dto";
+import type { ExpiredAnalytics } from "@/dto/analytics/expired-analytics.dto";
 import type { LeaveAnalytics } from "@/dto/analytics/leave-analytics.dto";
 import type { MovementAnalytics } from "@/dto/analytics/movement-analytics.dto";
 import type { RejectionAnalytics } from "@/dto/analytics/rejection-analytics.dto";
 import type { StaffAnalytics } from "@/dto/analytics/staff-analytics.dto";
 import type { StudentAnalytics } from "@/dto/analytics/student-analytics.dto";
 import {
+  getExpiredAnalyticsUrl,
   getLeaveAnalyticsUrl,
   getMovementAnalyticsUrl,
   getRejectionAnalyticsUrl,
@@ -78,6 +80,18 @@ export function useStaffAnalytics(
 ): SwrResponse<StaffAnalytics> {
   const { data, error, isLoading, mutate } = useSWR<{ data: StaffAnalytics }>(
     getStaffAnalyticsUrl(period, startDate, endDate),
+    { keepPreviousData: true },
+  );
+  return { data: data?.data ?? null, isLoading, isError: !!error, mutate };
+}
+
+export function useExpiredAnalytics(
+  period: AnalyticsPeriod,
+  startDate?: string,
+  endDate?: string
+): SwrResponse<ExpiredAnalytics> {
+  const { data, error, isLoading, mutate } = useSWR<{ data: ExpiredAnalytics }>(
+    getExpiredAnalyticsUrl(period, startDate, endDate),
     { keepPreviousData: true },
   );
   return { data: data?.data ?? null, isLoading, isError: !!error, mutate };

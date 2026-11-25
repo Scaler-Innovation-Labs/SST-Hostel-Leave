@@ -1,8 +1,46 @@
 import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
-import { academicGroups, departments, hostels, leaveApprovals, leaveRequests, students, users } from "@/db";
+import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
+import { QR_STATUS } from "@/constants/movement/qr-status";
+import {
+  academicGroups,
+  departments,
+  hostels,
+  leaveApprovals,
+  leaveExtensions,
+  leaveRequests,
+  leaveTypes,
+  qrPasses,
+  students,
+  users,
+} from "@/db";
 import { db } from "@/lib/db";
+
+function expiredLeaveTimestamp() {
+  return sql`COALESCE(${leaveRequests.expiredAt}, ${leaveRequests.updatedAt})`;
+}
+
+function expiredLeaveConditions(
+  hostelIds?: string[],
+  startDate?: Date,
+  endDate?: Date
+): ReturnType<typeof and>[] {
+  const conditions: ReturnType<typeof and>[] = [
+    eq(leaveRequests.status, LEAVE_REQUEST_STATUS.EXPIRED),
+  ];
+  if (hostelIds?.length) {
+    conditions.push(inArray(leaveRequests.hostelId, hostelIds));
+  }
+  const ts = expiredLeaveTimestamp();
+  if (startDate) {
+    conditions.push(sql`${ts} >= ${startDate}`);
+  }
+  if (endDate) {
+    conditions.push(sql`${ts} <= ${endDate}`);
+  }
+  return conditions;
+}
 
 function leaveConditions(
   hostelIds?: string[],
@@ -184,6 +222,196 @@ export const leaveAnalyticsRepository = {
     return rows.map((row) => ({
       date: row.date,
       avgHours: Number(Number(row.avgHours ?? 0).toFixed(1)),
+    }));
+  },
+
+  async countExpiredLeaves(
+    hostelIds?: string[],
+    startDate?: Date,
+    endDate?: Date,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<number> {
+    const conditions = expiredLeaveConditions(hostelIds, startDate, endDate);
+    const result = await dbClient
+      .select({ count: sql<number>`count(*)` })
+      .from(leaveRequests)
+      .where(and(...conditions));
+    return Number(result[0]?.count ?? 0);
+  },
+
+  async countExpiredExtensions(
+    hostelIds?: string[],
+    startDate?: Date,
+    endDate?: Date,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [
+      eq(leaveExtensions.status, LEAVE_REQUEST_STATUS.EXPIRED),
+    ];
+    if (hostelIds?.length) {
+      conditions.push(inArray(leaveRequests.hostelId, hostelIds));
+    }
+    if (startDate) {
+      conditions.push(gte(leaveExtensions.updatedAt, startDate));
+    }
+    if (endDate) {
+      conditions.push(lte(leaveExtensions.updatedAt, endDate));
+    }
+    const result = await dbClient
+      .select({ count: sql<number>`count(*)` })
+      .from(leaveExtensions)
+      .innerJoin(leaveRequests, eq(leaveExtensions.leaveRequestId, leaveRequests.id))
+      .where(and(...conditions));
+    return Number(result[0]?.count ?? 0);
+  },
+
+  async countExpiredQrPasses(
+    hostelIds?: string[],
+    startDate?: Date,
+    endDate?: Date,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [
+      eq(qrPasses.status, QR_STATUS.EXPIRED),
+    ];
+    if (hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, hostelIds));
+    }
+    const ts = sql`COALESCE(${qrPasses.expiresAt}, ${qrPasses.createdAt})`;
+    if (startDate) {
+      conditions.push(sql`${ts} >= ${startDate}`);
+    }
+    if (endDate) {
+      conditions.push(sql`${ts} <= ${endDate}`);
+    }
+    const result = await dbClient
+      .select({ count: sql<number>`count(*)` })
+      .from(qrPasses)
+      .leftJoin(students, eq(qrPasses.studentId, students.id))
+      .leftJoin(users, eq(students.userId, users.id))
+      .where(and(...conditions));
+    return Number(result[0]?.count ?? 0);
+  },
+
+  async expiredTrend(
+    startDate: Date,
+    endDate: Date,
+    hostelIds?: string[],
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<Array<{ date: string; count: number }>> {
+    const ts = expiredLeaveTimestamp();
+    const conditions = expiredLeaveConditions(hostelIds, startDate, endDate);
+    const rows = await dbClient
+      .select({
+        date: sql<string>`DATE(${ts})`,
+        count: sql<number>`count(*)`,
+      })
+      .from(leaveRequests)
+      .where(and(...conditions))
+      .groupBy(sql`DATE(${ts})`)
+      .orderBy(sql`DATE(${ts})`);
+
+    return rows.map((row) => ({ date: row.date, count: Number(row.count ?? 0) }));
+  },
+
+  async expiredByLeaveType(
+    hostelIds?: string[],
+    startDate?: Date,
+    endDate?: Date,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<Array<{ name: string; count: number; color: string | null }>> {
+    const conditions = expiredLeaveConditions(hostelIds, startDate, endDate);
+    const rows = await dbClient
+      .select({
+        name: leaveTypes.name,
+        count: sql<number>`count(*)`,
+        uiConfig: leaveTypes.uiConfig,
+      })
+      .from(leaveRequests)
+      .innerJoin(leaveTypes, eq(leaveRequests.leaveTypeId, leaveTypes.id))
+      .where(and(...conditions))
+      .groupBy(leaveTypes.id, leaveTypes.name, leaveTypes.uiConfig)
+      .orderBy(sql`count(*) desc`);
+
+    return rows.map((row) => {
+      const uiConfig = row.uiConfig as { color?: string } | null;
+      return {
+        name: row.name,
+        count: Number(row.count ?? 0),
+        color: typeof uiConfig?.color === "string" ? uiConfig.color : null,
+      };
+    });
+  },
+
+  async expiredByPendingStep(
+    hostelIds?: string[],
+    startDate?: Date,
+    endDate?: Date,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<Array<{ stepKey: string | null; count: number }>> {
+    const conditions = expiredLeaveConditions(hostelIds, startDate, endDate);
+    const rows = await dbClient
+      .select({
+        stepKey: leaveRequests.currentStepKey,
+        count: sql<number>`count(*)`,
+      })
+      .from(leaveRequests)
+      .where(and(...conditions))
+      .groupBy(leaveRequests.currentStepKey)
+      .orderBy(sql`count(*) desc`);
+
+    return rows.map((row) => ({
+      stepKey: row.stepKey,
+      count: Number(row.count ?? 0),
+    }));
+  },
+
+  async expiredByHostel(
+    hostelIds?: string[],
+    startDate?: Date,
+    endDate?: Date,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<Array<{ name: string; count: number }>> {
+    const conditions = expiredLeaveConditions(hostelIds, startDate, endDate);
+    const rows = await dbClient
+      .select({
+        name: sql<string>`COALESCE(${leaveRequests.hostelName}, 'Unassigned')`,
+        count: sql<number>`count(*)`,
+      })
+      .from(leaveRequests)
+      .where(and(...conditions))
+      .groupBy(sql`COALESCE(${leaveRequests.hostelName}, 'Unassigned')`)
+      .orderBy(sql`count(*) desc`);
+
+    return rows.map((row) => ({
+      name: row.name ?? "Unassigned",
+      count: Number(row.count ?? 0),
+    }));
+  },
+
+  async expiredByDepartment(
+    hostelIds?: string[],
+    startDate?: Date,
+    endDate?: Date,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<Array<{ name: string; count: number }>> {
+    const conditions = expiredLeaveConditions(hostelIds, startDate, endDate);
+    const rows = await dbClient
+      .select({
+        name: departments.name,
+        count: sql<number>`count(*)`,
+      })
+      .from(leaveRequests)
+      .innerJoin(students, eq(leaveRequests.studentId, students.id))
+      .innerJoin(academicGroups, eq(students.academicGroupId, academicGroups.id))
+      .innerJoin(departments, eq(academicGroups.departmentId, departments.id))
+      .where(and(...conditions))
+      .groupBy(departments.name)
+      .orderBy(sql`count(*) desc`);
+
+    return rows.map((row) => ({
+      name: row.name ?? "Unassigned",
+      count: Number(row.count ?? 0),
     }));
   },
 };
