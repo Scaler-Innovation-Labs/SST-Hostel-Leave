@@ -67,15 +67,24 @@ export function ExpiredTab({ period, startDate, endDate }: ExpiredTabProps) {
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
+        <LeaveTypePieChart title="Expiration Reasons" data={d.byReason} />
         <LeaveTypePieChart title="Expired by Leave Type" data={d.byLeaveType} />
-        <LeaveTypePieChart title="Expired at Approval Step" data={d.byPendingStep} />
       </div>
 
-      <Tabs defaultValue="hostel" className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
+      <Tabs defaultValue="reason" className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
         <TabsList>
+          <TabsTrigger value="reason">By Reason</TabsTrigger>
           <TabsTrigger value="hostel">By Hostel</TabsTrigger>
           <TabsTrigger value="department">By Department</TabsTrigger>
         </TabsList>
+        <TabsContent value="reason">
+          <AnalyticsBarChart
+            title="Expired Leaves by Reason"
+            description="Why leave requests expired across the selected period."
+            data={d.byReason}
+            height={300}
+          />
+        </TabsContent>
         <TabsContent value="hostel">
           <AnalyticsBarChart
             title="Expired Leaves by Hostel"

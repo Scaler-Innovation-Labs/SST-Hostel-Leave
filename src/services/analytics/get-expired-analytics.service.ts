@@ -42,6 +42,7 @@ export async function getExpiredAnalytics(
     expiredQrPasses,
     byLeaveTypeRaw,
     byPendingStepRaw,
+    byReason,
     byHostel,
     byDepartment,
     trendRaw,
@@ -51,6 +52,7 @@ export async function getExpiredAnalytics(
     leaveAnalyticsRepository.countExpiredQrPasses(hostelIds, rangeStart, rangeEnd),
     leaveAnalyticsRepository.expiredByLeaveType(hostelIds, rangeStart, rangeEnd),
     leaveAnalyticsRepository.expiredByPendingStep(hostelIds, rangeStart, rangeEnd),
+    leaveAnalyticsRepository.expiredByReason(hostelIds, rangeStart, rangeEnd),
     leaveAnalyticsRepository.expiredByHostel(hostelIds, rangeStart, rangeEnd),
     leaveAnalyticsRepository.expiredByDepartment(hostelIds, rangeStart, rangeEnd),
     leaveAnalyticsRepository.expiredTrend(startDate, endDate, hostelIds),
@@ -74,6 +76,7 @@ export async function getExpiredAnalytics(
     expiredQrPasses,
     byLeaveType,
     byPendingStep,
+    byReason,
     byHostel,
     byDepartment,
     expiredTrend: isBounded

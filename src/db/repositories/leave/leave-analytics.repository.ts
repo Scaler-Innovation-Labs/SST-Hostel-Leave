@@ -366,6 +366,67 @@ export const leaveAnalyticsRepository = {
     }));
   },
 
+  async expiredByReason(
+    hostelIds?: string[],
+    startDate?: Date,
+    endDate?: Date,
+    dbClient: Pick<typeof db, "select"> = db
+  ): Promise<Array<{ name: string; count: number }>> {
+    const conditions = expiredLeaveConditions(hostelIds, startDate, endDate);
+    const expiredTs = expiredLeaveTimestamp();
+    const reasonExpr = sql<string>`CASE
+      WHEN ${leaveRequests.approvedAt} IS NOT NULL THEN 'Approved — QR Not Scanned / Didn''t Leave'
+      WHEN EXISTS (
+        SELECT 1
+        FROM leave_approvals la
+        JOIN leave_approval_parent_details lapd ON lapd.approval_id = la.id
+        WHERE la.leave_request_id = ${leaveRequests.id}
+          AND la.step_key = 'PARENT_APPROVAL'
+          AND la.decision = 'CANCELLED'
+          AND lapd.token_expires_at IS NOT NULL
+          AND lapd.token_expires_at <= ${expiredTs}
+      ) THEN 'Parent Approval Link Expired'
+      WHEN EXISTS (
+        SELECT 1 FROM leave_approvals la
+        WHERE la.leave_request_id = ${leaveRequests.id}
+          AND la.step_key = 'ADMIN_APPROVAL'
+          AND la.decision = 'CANCELLED'
+      ) AND NOT EXISTS (
+        SELECT 1 FROM leave_approvals la
+        WHERE la.leave_request_id = ${leaveRequests.id}
+          AND la.step_key IN ('PARENT_APPROVAL', 'POC_APPROVAL')
+          AND la.decision = 'CANCELLED'
+      ) THEN 'Pending Admin Approval (Window Ended)'
+      WHEN EXISTS (
+        SELECT 1 FROM leave_approvals la
+        WHERE la.leave_request_id = ${leaveRequests.id}
+          AND la.step_key = 'POC_APPROVAL'
+          AND la.decision = 'CANCELLED'
+      ) AND NOT EXISTS (
+        SELECT 1 FROM leave_approvals la
+        WHERE la.leave_request_id = ${leaveRequests.id}
+          AND la.step_key = 'PARENT_APPROVAL'
+          AND la.decision = 'CANCELLED'
+      ) THEN 'Pending POC Approval (Window Ended)'
+      ELSE 'Pending Parent Approval (Window Ended)'
+    END`;
+
+    const rows = await dbClient
+      .select({
+        name: reasonExpr,
+        count: sql<number>`count(*)`,
+      })
+      .from(leaveRequests)
+      .where(and(...conditions))
+      .groupBy(reasonExpr)
+      .orderBy(sql`count(*) desc`);
+
+    return rows.map((row) => ({
+      name: row.name ?? "Unknown",
+      count: Number(row.count ?? 0),
+    }));
+  },
+
   async expiredByHostel(
     hostelIds?: string[],
     startDate?: Date,

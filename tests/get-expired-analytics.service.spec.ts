@@ -11,6 +11,7 @@ const mockCountExpiredExtensions = vi.fn();
 const mockCountExpiredQrPasses = vi.fn();
 const mockExpiredByLeaveType = vi.fn();
 const mockExpiredByPendingStep = vi.fn();
+const mockExpiredByReason = vi.fn();
 const mockExpiredByHostel = vi.fn();
 const mockExpiredByDepartment = vi.fn();
 const mockExpiredTrend = vi.fn();
@@ -22,6 +23,7 @@ vi.mock("@/db/repositories/leave/leave-analytics.repository", () => ({
     countExpiredQrPasses: (...args: any[]) => mockCountExpiredQrPasses(...args),
     expiredByLeaveType: (...args: any[]) => mockExpiredByLeaveType(...args),
     expiredByPendingStep: (...args: any[]) => mockExpiredByPendingStep(...args),
+    expiredByReason: (...args: any[]) => mockExpiredByReason(...args),
     expiredByHostel: (...args: any[]) => mockExpiredByHostel(...args),
     expiredByDepartment: (...args: any[]) => mockExpiredByDepartment(...args),
     expiredTrend: (...args: any[]) => mockExpiredTrend(...args),
@@ -40,6 +42,10 @@ beforeEach(() => {
     { stepKey: "PARENT_APPROVAL", count: 6 },
     { stepKey: null, count: 2 },
   ]);
+  mockExpiredByReason.mockResolvedValue([
+    { name: "Approved — QR Not Scanned / Didn't Leave", count: 5 },
+    { name: "Parent Approval Link Expired", count: 3 },
+  ]);
   mockExpiredByHostel.mockResolvedValue([{ name: "BH1", count: 8 }]);
   mockExpiredByDepartment.mockResolvedValue([{ name: "CSE", count: 8 }]);
   mockExpiredTrend.mockResolvedValue([]);
@@ -57,6 +63,10 @@ describe("getExpiredAnalytics", () => {
     expect(result.byPendingStep).toEqual([
       { name: "Parent Approval", count: 6 },
       { name: "Unassigned", count: 2 },
+    ]);
+    expect(result.byReason).toEqual([
+      { name: "Approved — QR Not Scanned / Didn't Leave", count: 5 },
+      { name: "Parent Approval Link Expired", count: 3 },
     ]);
     expect(result.expiredTrend.length).toBeGreaterThan(0);
   });

@@ -10,6 +10,7 @@ export type ExpiredAnalytics = {
   expiredQrPasses: number;
   byLeaveType: BreakdownItem[];
   byPendingStep: BreakdownItem[];
+  byReason: BreakdownItem[];
   byHostel: BreakdownItem[];
   byDepartment: BreakdownItem[];
   expiredTrend: TrendItem[];
