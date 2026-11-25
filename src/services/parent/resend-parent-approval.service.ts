@@ -11,20 +11,42 @@ import { leaveRepository } from "@/db/repositories/leave/leave.repository";
 import { leaveApprovalRepository } from "@/db/repositories/leave/leave-approval.repository";
 import { leaveExtensionRepository } from "@/db/repositories/leave/leave-extension.repository";
 import { leaveParentApprovalRepository } from "@/db/repositories/leave/leave-parent-approval.repository";
+import { parentRepository } from "@/db/repositories/parent/parent.repository";
 import { studentRepository } from "@/db/repositories/student/student.repository";
 import { userRepository } from "@/db/repositories/user/user.repository";
 import { leaveApprovalParentDetails, leaveApprovals } from "@/db/schema/leave";
 import type { CurrentUser } from "@/lib/auth/types";
 import { getPublicBaseUrl } from "@/lib/base-url";
 import { transaction } from "@/lib/db/transaction";
-import { AuthorizationError, ConflictError, NotFoundError } from "@/lib/errors";
+import { AuthorizationError, ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 import { auditService } from "@/services/audit/audit.service";
 import { outboxService } from "@/services/outbox/outbox.service";
 import { assertCanAccessLeave } from "@/services/shared/authorization.service";
 
+async function resolveTargetParentId(
+  studentId: string,
+  requestedParentId: string | undefined,
+  existingParentId: string | null | undefined,
+  tx: Parameters<Parameters<typeof transaction>[0]>[0]
+): Promise<string | undefined> {
+  if (!requestedParentId) {
+    return existingParentId ?? undefined;
+  }
+
+  const selectedParent = await parentRepository.findById(requestedParentId, tx);
+  if (!selectedParent || selectedParent.studentId !== studentId) {
+    throw new NotFoundError("Parent");
+  }
+  if (!selectedParent.phone || selectedParent.phone.trim().length === 0) {
+    throw new ValidationError("Selected parent has no phone number");
+  }
+  return selectedParent.id;
+}
+
 export async function resendParentApproval(
   leaveId: string,
-  currentUserOrId: CurrentUser | string
+  currentUserOrId: CurrentUser | string,
+  requestedParentId?: string
 ): Promise<{ success: boolean; message: string }> {
   const actorUserId =
     typeof currentUserOrId === "string" ? currentUserOrId : currentUserOrId.id;
@@ -75,7 +97,12 @@ export async function resendParentApproval(
       tx
     );
 
-    const parentId = parentApprovalWithDetails?.parentDetails?.parentId;
+    const parentId = await resolveTargetParentId(
+      leave.studentId,
+      requestedParentId,
+      parentApprovalWithDetails?.parentDetails?.parentId,
+      tx
+    );
 
     const student = await studentRepository.findById(leave.studentId, tx);
     const user = student?.userId ? await userRepository.findById(student.userId, tx) : null;
@@ -87,6 +114,7 @@ export async function resendParentApproval(
       await (tx as any)
         .update(leaveApprovalParentDetails)
         .set({
+          ...(parentId ? { parentId } : {}),
           tokenHash: null,
           tokenExpiresAt: null,
         })
@@ -137,7 +165,8 @@ export async function resendParentApproval(
 
 export async function resendExtensionParentApproval(
   extensionId: string,
-  currentUserOrId: CurrentUser | string
+  currentUserOrId: CurrentUser | string,
+  requestedParentId?: string
 ): Promise<{ success: boolean; message: string }> {
   const actorUserId =
     typeof currentUserOrId === "string" ? currentUserOrId : currentUserOrId.id;
@@ -193,7 +222,12 @@ export async function resendExtensionParentApproval(
       tx
     );
 
-    const parentId = parentApprovalWithDetails?.parentDetails?.parentId;
+    const parentId = await resolveTargetParentId(
+      leave.studentId,
+      requestedParentId,
+      parentApprovalWithDetails?.parentDetails?.parentId,
+      tx
+    );
 
     const student = await studentRepository.findById(leave.studentId, tx);
     const user = student?.userId ? await userRepository.findById(student.userId, tx) : null;
@@ -205,6 +239,7 @@ export async function resendExtensionParentApproval(
       await (tx as any)
         .update(leaveApprovalParentDetails)
         .set({
+          ...(parentId ? { parentId } : {}),
           tokenHash: null,
           tokenExpiresAt: null,
         })

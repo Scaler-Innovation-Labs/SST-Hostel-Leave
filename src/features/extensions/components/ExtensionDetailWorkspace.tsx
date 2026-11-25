@@ -27,6 +27,7 @@ import { toast } from "sonner";
 
 import { ConfirmationDialog } from "@/components/shared/ConfirmationDialog";
 import { LoadingState } from "@/components/shared/LoadingState";
+import { type ParentSmsOption, ResendParentSmsDialog } from "@/components/shared/ResendParentSmsDialog";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
   AlertDialog,
@@ -48,6 +49,7 @@ import {
 import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decision";
 import { Avatar } from "@/design-system/sst";
 import { useLeave } from "@/features/leaves/hooks/use-leaves";
+import { useStudent } from "@/features/students/hooks/use-students";
 import {
   approveExtension,
   overrideExtension,
@@ -89,6 +91,11 @@ export function ExtensionDetailWorkspace({
 
   // Fetch leave data for student info
   const { leave, isLoading: leaveLoading, mutate: mutateLeave } = useLeave(lr?.id);
+  const studentId =
+    (leave as { studentId?: string } | null)?.studentId ??
+    (lr as { studentId?: string } | undefined)?.studentId;
+  const { student: studentDetail } = useStudent(studentId);
+  const studentParents = ((studentDetail as { parents?: ParentSmsOption[] } | undefined)?.parents) ?? [];
 
   const effectiveLeave =
     leave ??
@@ -119,6 +126,7 @@ export function ExtensionDetailWorkspace({
   const [overrideError, setOverrideError] = useState("");
 
   // Resend parent SMS state
+  const [resendSmsOpen, setResendSmsOpen] = useState(false);
   const [resendingSms, setResendingSms] = useState(false);
 
   // Calculate day difference
@@ -233,13 +241,19 @@ export function ExtensionDetailWorkspace({
     }
   };
 
-  const handleResendParentSms = async () => {
+  const handleResendParentSms = () => {
+    if (!ext) return;
+    setResendSmsOpen(true);
+  };
+
+  const handleConfirmResendParentSms = async (parentId?: string) => {
     if (!ext) return;
     setResendingSms(true);
 
     try {
-      const res = await resendExtensionParentApproval(ext.id);
+      const res = await resendExtensionParentApproval(ext.id, parentId);
       toast.success(res.message || "Parent approval SMS resent successfully");
+      setResendSmsOpen(false);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to resend parent approval link";
@@ -775,6 +789,14 @@ export function ExtensionDetailWorkspace({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Resend Parent SMS Dialog */}
+      <ResendParentSmsDialog
+        open={resendSmsOpen}
+        onOpenChange={setResendSmsOpen}
+        parents={studentParents}
+        loading={resendingSms}
+        onConfirm={handleConfirmResendParentSms}
+      />
     </div>
   );
 }

@@ -86,8 +86,19 @@ export async function cancelLeave(id: string): Promise<unknown> {
   return json.data;
 }
 
-export async function resendParentApproval(id: string): Promise<{ success: boolean; message: string }> {
-  const res = await fetch(`${BASE}/leaves/${id}/resend-parent-approval`, { method: "POST" });
+export async function resendParentApproval(
+  id: string,
+  parentId?: string
+): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${BASE}/leaves/${id}/resend-parent-approval`, {
+    method: "POST",
+    ...(parentId
+      ? {
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ parentId }),
+        }
+      : {}),
+  });
   const json: ApiResponse<{ success: boolean; message: string }> = await res.json();
   if (!res.ok || !json.success) {
     throw new Error(json.error?.message ?? "Failed to resend parent approval SMS");

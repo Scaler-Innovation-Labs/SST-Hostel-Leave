@@ -2,10 +2,17 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 const mockFindByIdWithRelations = vi.fn();
+const mockFindByStudentId = vi.fn();
 
 vi.mock("@/db/repositories/student/student.repository", () => ({
   studentRepository: {
     findByIdWithRelations: (...args: any[]) => mockFindByIdWithRelations(...args),
+  },
+}));
+
+vi.mock("@/db/repositories/parent/parent.repository", () => ({
+  parentRepository: {
+    findByStudentId: (...args: any[]) => mockFindByStudentId(...args),
   },
 }));
 
@@ -21,6 +28,9 @@ const STUDENT_WITH_RELATIONS = {
 beforeEach(() => {
   vi.clearAllMocks();
   mockFindByIdWithRelations.mockResolvedValue(STUDENT_WITH_RELATIONS);
+  mockFindByStudentId.mockResolvedValue([
+    { id: "P1", name: "Parent One", relationship: "Father", phone: "9999999999", isPrimary: true },
+  ]);
 });
 
 describe("getStudent service", () => {

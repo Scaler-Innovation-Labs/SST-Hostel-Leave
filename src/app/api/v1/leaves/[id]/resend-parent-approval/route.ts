@@ -1,3 +1,4 @@
+import { resendParentApprovalSchema } from "@/dto/parent/resend-parent-approval.dto";
 import { ApiResponse } from "@/lib/api/response";
 import { requireAnyRole } from "@/lib/auth/authorization";
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -5,7 +6,7 @@ import { ROLES } from "@/lib/auth/roles";
 import { resendParentApproval } from "@/services/parent/resend-parent-approval.service";
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -17,7 +18,14 @@ export async function POST(
     ]);
     const { id } = await params;
 
-    const result = await resendParentApproval(id, currentUser);
+    const rawBody = await request.text();
+    const dto = rawBody.trim()
+      ? resendParentApprovalSchema.parse(JSON.parse(rawBody))
+      : {};
+
+    const result = dto.parentId !== undefined
+      ? await resendParentApproval(id, currentUser, dto.parentId)
+      : await resendParentApproval(id, currentUser);
 
     return ApiResponse.success(result);
   } catch (error) {

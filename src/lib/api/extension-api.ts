@@ -93,11 +93,13 @@ export async function overrideExtension(
 }
 
 export async function resendExtensionParentApproval(
-  id: string
+  id: string,
+  parentId?: string
 ): Promise<{ success: boolean; message: string }> {
   const res = await fetch(`${BASE}/extensions/${id}/resend-parent-approval`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(parentId ? { parentId } : {}),
   });
   const json: ApiResponse<{ success: boolean; message: string }> = await res.json();
   if (!res.ok || !json.success) {

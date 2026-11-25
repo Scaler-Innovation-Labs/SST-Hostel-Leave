@@ -48,6 +48,7 @@ import useSWR from "swr";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { LeaveTypeBadge } from "@/components/shared/LeaveTypeBadge";
 import { LoadingState } from "@/components/shared/LoadingState";
+import { type ParentSmsOption, ResendParentSmsDialog } from "@/components/shared/ResendParentSmsDialog";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import {
   AlertDialog,
@@ -380,6 +381,7 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
   const [overrideError, setOverrideError] = useState("");
   const [overrideComments, setOverrideComments] = useState("");
   const [parentOverrideOpen, setParentOverrideOpen] = useState(false);
+  const [resendSmsOpen, setResendSmsOpen] = useState(false);
   const [resendingParentSms, setResendingParentSms] = useState(false);
 
   // ── Computed data ──
@@ -456,8 +458,10 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
     | {
         student?: { currentLocationState?: string };
         locationState?: { code?: string; name?: string } | null;
+        parents?: ParentSmsOption[];
       }
     | undefined;
+  const studentParents = studentDetailTyped?.parents ?? [];
 
   const locationCode =
     studentDetailTyped?.locationState?.code ??
@@ -627,11 +631,16 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
     }
   };
 
-  const handleResendParentSms = async () => {
+  const handleResendParentSms = () => {
+    setResendSmsOpen(true);
+  };
+
+  const handleConfirmResendParentSms = async (parentId?: string) => {
     setResendingParentSms(true);
     try {
-      const result = await resendParentApproval(leaveId);
+      const result = await resendParentApproval(leaveId, parentId);
       toast.success(result.message || "Parent approval SMS resent successfully");
+      setResendSmsOpen(false);
       await Promise.all([leaveMutate(), chainMutate()]);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to resend parent approval SMS";
@@ -2781,6 +2790,15 @@ export function ApprovalDetailView({ leaveId, onBack, viewerRole }: ApprovalDeta
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Resend Parent SMS Dialog */}
+      <ResendParentSmsDialog
+        open={resendSmsOpen}
+        onOpenChange={setResendSmsOpen}
+        parents={studentParents}
+        loading={resendingParentSms}
+        onConfirm={handleConfirmResendParentSms}
+      />
 
       {/* Error banner */}
       {actionError && actionTarget === null && (

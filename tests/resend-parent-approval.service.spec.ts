@@ -4,7 +4,7 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { LEAVE_REQUEST_STATUS } from "@/constants/leave/leave-status";
 import { WORKFLOW_STEP_KEY } from "@/constants/workflow/workflow-step-key";
 import { ROLES } from "@/lib/auth/roles";
-import { ConflictError } from "@/lib/errors";
+import { ConflictError, NotFoundError, ValidationError } from "@/lib/errors";
 
 vi.mock("@/lib/db", () => {
   const fakeTx = {
@@ -61,6 +61,13 @@ vi.mock("@/db/repositories/student/student.repository", () => ({
 vi.mock("@/db/repositories/user/user.repository", () => ({
   userRepository: {
     findById: vi.fn().mockResolvedValue({ id: "U1", fullName: "Test Student" }),
+  },
+}));
+
+const mockParentFindById = vi.fn();
+vi.mock("@/db/repositories/parent/parent.repository", () => ({
+  parentRepository: {
+    findById: (...args: any[]) => mockParentFindById(...args),
   },
 }));
 
@@ -172,5 +179,89 @@ describe("resend-parent-approval service", () => {
     await expect(
       resendExtensionParentApproval("EXT1", superAdmin as any)
     ).rejects.toThrow(ConflictError);
+  });
+
+  it("resends to a specifically selected parent of the same student", async () => {
+    mockLeaveFindById.mockResolvedValue({
+      id: "LR1",
+      studentId: "S1",
+      status: LEAVE_REQUEST_STATUS.PENDING,
+      startAt: new Date().toISOString(),
+      endAt: new Date().toISOString(),
+    });
+    mockApprovalFindByEntityAndDecision.mockResolvedValue([
+      { id: "AP1", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1 },
+    ]);
+    mockParentApprovalFindById.mockResolvedValue({
+      id: "AP1",
+      parentDetails: { parentId: "P1", tokenHash: "hash123" },
+    });
+    mockParentFindById.mockResolvedValue({
+      id: "P2",
+      studentId: "S1",
+      phone: "9890212511",
+    });
+
+    const res = await resendParentApproval("LR1", superAdmin as any, "P2");
+
+    expect(res.success).toBe(true);
+    expect(mockOutboxPublish).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({ parentId: "P2" }),
+      }),
+      expect.anything()
+    );
+  });
+
+  it("throws NotFoundError when selected parent belongs to a different student", async () => {
+    mockLeaveFindById.mockResolvedValue({
+      id: "LR1",
+      studentId: "S1",
+      status: LEAVE_REQUEST_STATUS.PENDING,
+      startAt: new Date().toISOString(),
+      endAt: new Date().toISOString(),
+    });
+    mockApprovalFindByEntityAndDecision.mockResolvedValue([
+      { id: "AP1", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1 },
+    ]);
+    mockParentApprovalFindById.mockResolvedValue({
+      id: "AP1",
+      parentDetails: { parentId: "P1", tokenHash: "hash123" },
+    });
+    mockParentFindById.mockResolvedValue({
+      id: "P_OTHER",
+      studentId: "S_OTHER",
+      phone: "9999999999",
+    });
+
+    await expect(
+      resendParentApproval("LR1", superAdmin as any, "P_OTHER")
+    ).rejects.toThrow(NotFoundError);
+  });
+
+  it("throws ValidationError when selected parent has no phone number", async () => {
+    mockLeaveFindById.mockResolvedValue({
+      id: "LR1",
+      studentId: "S1",
+      status: LEAVE_REQUEST_STATUS.PENDING,
+      startAt: new Date().toISOString(),
+      endAt: new Date().toISOString(),
+    });
+    mockApprovalFindByEntityAndDecision.mockResolvedValue([
+      { id: "AP1", stepKey: WORKFLOW_STEP_KEY.PARENT_APPROVAL, stepOrder: 1 },
+    ]);
+    mockParentApprovalFindById.mockResolvedValue({
+      id: "AP1",
+      parentDetails: { parentId: "P1", tokenHash: "hash123" },
+    });
+    mockParentFindById.mockResolvedValue({
+      id: "P2",
+      studentId: "S1",
+      phone: "",
+    });
+
+    await expect(
+      resendParentApproval("LR1", superAdmin as any, "P2")
+    ).rejects.toThrow(ValidationError);
   });
 });
