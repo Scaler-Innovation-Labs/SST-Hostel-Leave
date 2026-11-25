@@ -1,0 +1,258 @@
+"use client";
+
+import { Search } from "lucide-react";
+import { useState } from "react";
+import useSWR from "swr";
+
+import { ErrorState } from "@/components/shared/ErrorState";
+import { LoadingState } from "@/components/shared/LoadingState";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { Button } from "@/components/ui/button";
+import { NOTIFICATION_CHANNELS } from "@/constants/notification/notification-channel";
+import { NOTIFICATION_DELIVERY_STATUSES } from "@/constants/notification/notification-delivery-status";
+import { NOTIFICATION_EVENTS } from "@/constants/notification/notification-event";
+import { getEventColor, getEventLabel } from "@/constants/notification/notification-labels";
+import { fetcher } from "@/lib/api/fetcher";
+
+type NotificationLogItem = {
+  id: string;
+  createdAt: string | Date;
+  recipient: string;
+  eventType: string;
+  channel: string;
+  deliveryStatus: string;
+  providerMessageId: string | null;
+  providerResponse: string | null;
+};
+
+const CHANNEL_LABELS: Record<string, string> = {
+  EMAIL: "Email",
+  SMS: "SMS",
+  PUSH: "In-App",
+  WEBHOOK: "Webhook",
+  SLACK: "Slack",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: "Pending",
+  SENT: "Sent",
+  FAILED: "Failed",
+  DELIVERED: "Delivered",
+  READ: "Read",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  PENDING: "bg-surface-sunken text-muted",
+  SENT: "bg-accent-light text-accent",
+  FAILED: "bg-danger/10 text-danger",
+  DELIVERED: "bg-success-light text-success",
+  READ: "bg-accent-light text-accent",
+};
+
+export function DeliveryLogsView() {
+  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState<{
+    search: string;
+    eventType: string;
+    channel: string;
+    status: string;
+  }>({ search: "", eventType: "", channel: "", status: "" });
+
+  const params = new URLSearchParams({ page: String(page), limit: "50" });
+  if (filters.search.trim()) params.set("search", filters.search.trim());
+  if (filters.eventType) params.set("eventType", filters.eventType);
+  if (filters.channel) params.set("channel", filters.channel);
+  if (filters.status) params.set("status", filters.status);
+
+  const { data, isLoading, error, mutate } = useSWR<{
+    items: NotificationLogItem[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>(`/api/v1/admin/notification-logs?${params.toString()}`, fetcher);
+
+  const handleRefresh = () => mutate();
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Delivery Logs"
+        description="View notification delivery status across all channels and events."
+      />
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-surface p-4">
+        <div className="relative min-w-[220px] flex-1">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
+          <input
+            type="text"
+            value={filters.search}
+            onChange={(e) => {
+              setFilters((f) => ({ ...f, search: e.target.value }));
+              setPage(1);
+            }}
+            placeholder="Search recipient, student, roll no, or provider ID..."
+            aria-label="Search delivery logs"
+            className="h-8 w-full rounded-lg border bg-bg pl-8 pr-3 text-caption outline-none focus:border-accent"
+          />
+        </div>
+
+        <select
+          value={filters.eventType}
+          onChange={(e) => {
+            setFilters((f) => ({ ...f, eventType: e.target.value }));
+            setPage(1);
+          }}
+          className="h-8 rounded-lg border bg-bg px-2.5 text-caption outline-none focus:border-accent"
+        >
+          <option value="">All events</option>
+          {NOTIFICATION_EVENTS.map((ev) => (
+            <option key={ev} value={ev}>
+              {getEventLabel(ev)}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={filters.channel}
+          onChange={(e) => {
+            setFilters((f) => ({ ...f, channel: e.target.value }));
+            setPage(1);
+          }}
+          className="h-8 rounded-lg border bg-bg px-2.5 text-caption outline-none focus:border-accent"
+        >
+          <option value="">All channels</option>
+          {NOTIFICATION_CHANNELS.map((ch) => (
+            <option key={ch} value={ch}>
+              {CHANNEL_LABELS[ch] ?? ch}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={filters.status}
+          onChange={(e) => {
+            setFilters((f) => ({ ...f, status: e.target.value }));
+            setPage(1);
+          }}
+          className="h-8 rounded-lg border bg-bg px-2.5 text-caption outline-none focus:border-accent"
+        >
+          <option value="">All statuses</option>
+          {NOTIFICATION_DELIVERY_STATUSES.map((st) => (
+            <option key={st} value={st}>
+              {STATUS_LABELS[st] ?? st}
+            </option>
+          ))}
+        </select>
+
+        <Button variant="outline" size="sm" onClick={handleRefresh}>
+          Refresh
+        </Button>
+      </div>
+
+      {/* Table */}
+      {isLoading ? (
+        <LoadingState count={8} />
+      ) : error ? (
+        <ErrorState message="Failed to load delivery logs" onRetry={() => mutate()} />
+      ) : !data || data.items.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed bg-surface p-12">
+          <p className="text-body text-muted">No delivery logs found.</p>
+          <p className="text-caption text-muted">
+            Notifications will appear here once they are sent.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto rounded-2xl border bg-surface">
+            <table className="w-full text-body">
+              <thead>
+                <tr className="border-b border-border text-left text-caption text-muted">
+                  <th className="px-4 py-3 font-medium">Date</th>
+                  <th className="px-4 py-3 font-medium">Recipient</th>
+                  <th className="px-4 py-3 font-medium">Event</th>
+                  <th className="px-4 py-3 font-medium">Channel</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Provider ID</th>
+                  <th className="px-4 py-3 font-medium">Response</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {data.items.map((log) => (
+                  <tr key={log.id} className="hover:bg-surface-sunken/30">
+                    <td className="whitespace-nowrap px-4 py-3 text-caption text-muted">
+                      {new Date(log.createdAt).toLocaleString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td className="max-w-[200px] truncate px-4 py-3 text-caption font-medium">
+                      {log.recipient}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-block rounded-sm px-2 py-0.5 text-micro font-medium ${getEventColor(log.eventType)}`}
+                      >
+                        {getEventLabel(log.eventType)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-caption">
+                      {CHANNEL_LABELS[log.channel] ?? log.channel}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-block rounded-sm px-2 py-0.5 text-micro font-medium ${STATUS_COLORS[log.deliveryStatus] ?? ""}`}
+                      >
+                        {STATUS_LABELS[log.deliveryStatus] ?? log.deliveryStatus}
+                      </span>
+                    </td>
+                    <td className="max-w-[120px] truncate px-4 py-3 font-mono text-micro text-muted">
+                      {log.providerMessageId ?? "—"}
+                    </td>
+                    <td className="max-w-[200px] truncate px-4 py-3 text-micro text-muted">
+                      {log.providerResponse ?? "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {data.totalPages > 1 && (
+            <div className="flex items-center justify-between text-body">
+              <p className="text-caption text-muted">
+                {data.total} total log{data.total !== 1 ? "s" : ""}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  Previous
+                </Button>
+                <span className="flex items-center text-caption text-muted">
+                  Page {data.page} of {data.totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= data.totalPages}
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+export default DeliveryLogsView;

@@ -11,6 +11,8 @@ export const ROUTES = {
   ADMIN_ANALYTICS: "/admin/analytics",
   ADMIN_STUDENTS: "/admin/students",
   ADMIN_STUDENT_DETAIL: "/admin/students",
+  ADMIN_PARENTS: "/admin/parents",
+  ADMIN_DELIVERY_LOGS: "/admin/notifications/delivery-logs",
   GUARD_SCANNER: "/guard/scanner",
   POC_DASHBOARD: "/poc/dashboard",
   ADMIN_APPROVALS: "/admin/approvals",

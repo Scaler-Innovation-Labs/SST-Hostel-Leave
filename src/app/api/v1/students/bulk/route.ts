@@ -10,7 +10,7 @@ import { parseCsv } from "@/utils/csv";
 
 export async function POST(request: Request) {
   try {
-    const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.ADMIN, ROLES.SUPER_ADMIN]);
 
     // 2000-row DB fan-out per call: throttle per admin.
     await rateLimit(`bulk:${currentUser.id}`, 10, 3_600_000);

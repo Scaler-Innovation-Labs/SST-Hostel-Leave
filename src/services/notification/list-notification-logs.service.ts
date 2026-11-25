@@ -33,6 +33,7 @@ export async function listNotificationLogs(
     eventType: query.eventType,
     channel: query.channel,
     status: query.status,
+    search: query.search,
     dateFrom: query.dateFrom,
     dateTo: query.dateTo,
     hostelIds: restricted ? scopedHostelIds : undefined,

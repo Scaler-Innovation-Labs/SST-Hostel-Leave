@@ -10,6 +10,7 @@ export const listNotificationLogsSchema = z.object({
   eventType: z.string().optional(),
   channel: z.string().optional(),
   status: z.string().optional(),
+  search: z.string().trim().max(200).optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
 });

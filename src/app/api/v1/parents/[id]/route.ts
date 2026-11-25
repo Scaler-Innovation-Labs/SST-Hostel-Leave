@@ -8,7 +8,7 @@ import { parentManagementService } from "@/services/parent/parent-management.ser
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    requireAnyRole(await requireAuth(), [ROLES.ADMIN, ROLES.SUPER_ADMIN]);
     const { id } = await params;
     return ApiResponse.success(await parentManagementService.getById(id));
   } catch (error) {
@@ -18,7 +18,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.ADMIN, ROLES.SUPER_ADMIN]);
     const { id } = await params;
     const dto = updateParentSchema.parse(await readBoundedJson(request));
     return ApiResponse.success(await parentManagementService.update(id, dto, currentUser.id));
@@ -29,7 +29,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.ADMIN, ROLES.SUPER_ADMIN]);
     const { id } = await params;
     await parentManagementService.delete(id, currentUser.id);
     return ApiResponse.success({ deleted: true });

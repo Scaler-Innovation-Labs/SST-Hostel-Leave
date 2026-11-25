@@ -135,7 +135,20 @@ const ADMIN: NavigationGroup[] = [
   },
   {
     heading: "Directory",
-    items: [{ label: "Students", href: ROUTES.ADMIN_STUDENTS, Icon: Users }],
+    items: [
+      { label: "Students", href: ROUTES.ADMIN_STUDENTS, Icon: Users },
+      { label: "Parents", href: ROUTES.ADMIN_PARENTS, Icon: UsersRound },
+    ],
+  },
+  {
+    heading: "Notifications",
+    items: [
+      {
+        label: "Delivery logs",
+        href: ROUTES.ADMIN_DELIVERY_LOGS,
+        Icon: FileText,
+      },
+    ],
   },
   SUPPORT,
 ];

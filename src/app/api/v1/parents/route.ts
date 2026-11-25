@@ -8,7 +8,7 @@ import { parentManagementService } from "@/services/parent/parent-management.ser
 
 export async function GET(request: Request) {
   try {
-    requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    requireAnyRole(await requireAuth(), [ROLES.ADMIN, ROLES.SUPER_ADMIN]);
 
     const url = new URL(request.url);
     const { page, limit, search, studentId } = ListParentsSchema.parse(
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const currentUser = requireAnyRole(await requireAuth(), [ROLES.SUPER_ADMIN]);
+    const currentUser = requireAnyRole(await requireAuth(), [ROLES.ADMIN, ROLES.SUPER_ADMIN]);
 
     const body = await readBoundedJson(request);
     const { createParentSchema } = await import("@/dto/admin/create-parent.dto");

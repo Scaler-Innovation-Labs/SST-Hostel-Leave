@@ -1,5 +1,5 @@
 import type { InferInsertModel, InferSelectModel } from "drizzle-orm";
-import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, inArray, lte, or, sql } from "drizzle-orm";
 
 import type { NotificationChannel } from "@/constants/notification/notification-channel";
 import type { NotificationDeliveryStatus } from "@/constants/notification/notification-delivery-status";
@@ -17,6 +17,7 @@ export type NotificationLogFilters = {
   eventType?: string;
   channel?: string;
   status?: string;
+  search?: string;
   dateFrom?: string;
   dateTo?: string;
   /** Restrict logs to these hostels (via leave → student → user). Empty = all. */
@@ -165,6 +166,20 @@ export const notificationLogRepository = {
 		}
 		if (filters.status) {
 			conditions.push(eq(notificationLogs.deliveryStatus, filters.status as NotificationDeliveryStatus));
+		}
+		if (filters.search?.trim()) {
+			const pattern = `%${filters.search.trim()}%`;
+			const searchCondition = or(
+				ilike(notificationLogs.recipient, pattern),
+				ilike(notificationLogs.providerMessageId, pattern),
+				ilike(notificationLogs.providerResponse, pattern),
+				ilike(users.fullName, pattern),
+				ilike(users.email, pattern),
+				ilike(students.rollNumber, pattern)
+			);
+			if (searchCondition) {
+				conditions.push(searchCondition);
+			}
 		}
 		if (filters.dateFrom) {
 			conditions.push(gte(notificationLogs.createdAt, new Date(filters.dateFrom)));
