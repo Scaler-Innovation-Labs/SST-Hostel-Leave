@@ -2,10 +2,14 @@
 
 import {
   Activity,
+  AlertTriangle,
+  CheckCheck,
   CheckCircle2,
   Clock,
   ThumbsDown,
+  TimerOff,
   X,
+  XCircle,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -43,7 +47,15 @@ type StaffAnalyticsProps = {
   endDate?: string;
 };
 
-type StatusFilter = "" | "APPROVED" | "REJECTED" | "PENDING";
+type StatusFilter =
+  | ""
+  | "APPROVED"
+  | "COMPLETED"
+  | "REJECTED"
+  | "PENDING"
+  | "EXPIRED"
+  | "CANCELLED"
+  | "OVERDUE";
 
 const STATUS_FILTERS: Array<{
   value: StatusFilter;
@@ -51,8 +63,12 @@ const STATUS_FILTERS: Array<{
 }> = [
   { value: "", label: "All Leaves" },
   { value: LEAVE_REQUEST_STATUS.APPROVED, label: "Approved" },
+  { value: LEAVE_REQUEST_STATUS.COMPLETED, label: "Completed" },
   { value: LEAVE_REQUEST_STATUS.REJECTED, label: "Rejected" },
   { value: LEAVE_REQUEST_STATUS.PENDING, label: "Pending Approvals" },
+  { value: LEAVE_REQUEST_STATUS.EXPIRED, label: "Expired" },
+  { value: LEAVE_REQUEST_STATUS.CANCELLED, label: "Cancelled" },
+  { value: LEAVE_REQUEST_STATUS.OVERDUE, label: "Overdue" },
 ];
 
 export function StaffAnalytics({
@@ -123,6 +139,44 @@ export function StaffAnalytics({
           compact
           onClick={() => toggleFilter(LEAVE_REQUEST_STATUS.PENDING)}
           active={statusFilter === LEAVE_REQUEST_STATUS.PENDING}
+        />
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <InfoCard
+          label="Completed"
+          value={s.completedLeaves ?? 0}
+          icon={<CheckCheck className="h-4 w-4" />}
+          tone="accent"
+          compact
+          onClick={() => toggleFilter(LEAVE_REQUEST_STATUS.COMPLETED)}
+          active={statusFilter === LEAVE_REQUEST_STATUS.COMPLETED}
+        />
+        <InfoCard
+          label="Expired"
+          value={s.expiredLeaves ?? 0}
+          icon={<TimerOff className="h-4 w-4" />}
+          tone="warning"
+          compact
+          onClick={() => toggleFilter(LEAVE_REQUEST_STATUS.EXPIRED)}
+          active={statusFilter === LEAVE_REQUEST_STATUS.EXPIRED}
+        />
+        <InfoCard
+          label="Cancelled"
+          value={s.cancelledLeaves ?? 0}
+          icon={<XCircle className="h-4 w-4" />}
+          compact
+          onClick={() => toggleFilter(LEAVE_REQUEST_STATUS.CANCELLED)}
+          active={statusFilter === LEAVE_REQUEST_STATUS.CANCELLED}
+        />
+        <InfoCard
+          label="Overdue"
+          value={s.overdueLeaves ?? 0}
+          icon={<AlertTriangle className="h-4 w-4" />}
+          tone="danger"
+          compact
+          onClick={() => toggleFilter(LEAVE_REQUEST_STATUS.OVERDUE)}
+          active={statusFilter === LEAVE_REQUEST_STATUS.OVERDUE}
         />
       </section>
 

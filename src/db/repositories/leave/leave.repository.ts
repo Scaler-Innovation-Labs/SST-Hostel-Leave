@@ -657,6 +657,7 @@ async findAutoCompleteDueNonQrLeaves(
     expired: number;
     completed: number;
     cancelled: number;
+    overdue: number;
   }> {
     const conditions: ReturnType<typeof and>[] = [];
     if (hostelIds?.length) {
@@ -677,6 +678,7 @@ async findAutoCompleteDueNonQrLeaves(
         expired: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.EXPIRED})`,
         completed: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.COMPLETED})`,
         cancelled: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.CANCELLED})`,
+        overdue: sql<number>`count(*) filter (where ${leaveRequests.status} = ${LEAVE_REQUEST_STATUS.OVERDUE})`,
       })
       .from(leaveRequests);
 
@@ -692,6 +694,7 @@ async findAutoCompleteDueNonQrLeaves(
       expired: Number(row?.expired ?? 0),
       completed: Number(row?.completed ?? 0),
       cancelled: Number(row?.cancelled ?? 0),
+      overdue: Number(row?.overdue ?? 0),
     };
   },
 };

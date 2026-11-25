@@ -16,6 +16,9 @@ export type LeaveAnalytics = {
   approved: number;
   rejected: number;
   cancelled: number;
+  completed: number;
+  expired: number;
+  overdue: number;
   byStatus: BreakdownItem[];
   statusTrend: StatusTrendPoint[];
   byLeaveType: BreakdownItem[];

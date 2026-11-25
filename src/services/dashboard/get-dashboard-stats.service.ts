@@ -295,6 +295,7 @@ async function getStaffStats(
     expiredLeaves: leaveStats.expired,
     completedLeaves: leaveStats.completed,
     cancelledLeaves: leaveStats.cancelled,
+    overdueLeaves: leaveStats.overdue ?? 0,
     recentApprovalsCount,
     averageApprovalHours: averageApprovalTime,
     activeQrPasses: activeQrCount,

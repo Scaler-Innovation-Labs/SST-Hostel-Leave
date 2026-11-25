@@ -1,6 +1,15 @@
 "use client";
 
-import { CheckCircle2, Clock, FileText, ThumbsDown, XCircle } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCheck,
+  CheckCircle2,
+  Clock,
+  FileText,
+  ThumbsDown,
+  TimerOff,
+  XCircle,
+} from "lucide-react";
 
 import { AnalyticsAreaChart } from "@/components/analytics/AreaChart";
 import { AnalyticsBarChart } from "@/components/analytics/BarChart";
@@ -17,7 +26,10 @@ import { useLeaveAnalytics } from "@/features/analytics/hooks/use-analytics";
 const STATUS_SERIES: SeriesDef[] = [
   { key: "PENDING", label: "Pending", color: CHART.warning },
   { key: "APPROVED", label: "Approved", color: CHART.success },
+  { key: "COMPLETED", label: "Completed", color: CHART.accent },
+  { key: "OVERDUE", label: "Overdue", color: CHART.info },
   { key: "REJECTED", label: "Rejected", color: CHART.danger },
+  { key: "EXPIRED", label: "Expired", color: CHART.axis },
   { key: "CANCELLED", label: "Cancelled", color: CHART.muted },
 ];
 
@@ -57,12 +69,15 @@ export function LeavesTab({ period, startDate, endDate }: LeavesTabProps) {
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <InfoCard label="Total Leaves" value={d.totalLeaves} icon={<FileText className="h-4 w-4" />} tone="accent" />
         <InfoCard label="Approved" value={d.approved} icon={<CheckCircle2 className="h-4 w-4" />} tone="success" />
-        <InfoCard label="Rejected" value={d.rejected} icon={<ThumbsDown className="h-4 w-4" />} tone="danger" />
+        <InfoCard label="Completed" value={d.completed} icon={<CheckCheck className="h-4 w-4" />} tone="accent" />
         <InfoCard label="Pending" value={d.pending} icon={<Clock className="h-4 w-4" />} tone="warning" />
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-3 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <InfoCard label="Rejected" value={d.rejected} icon={<ThumbsDown className="h-4 w-4" />} tone="danger" />
+        <InfoCard label="Expired" value={d.expired} icon={<TimerOff className="h-4 w-4" />} tone="warning" />
         <InfoCard label="Cancelled" value={d.cancelled} icon={<XCircle className="h-4 w-4" />} />
+        <InfoCard label="Overdue" value={d.overdue} icon={<AlertTriangle className="h-4 w-4" />} tone="danger" />
         <InfoCard label="Avg Approval Time" value={avgHours} icon={<Clock className="h-4 w-4" />} tone="success" />
       </section>
 
