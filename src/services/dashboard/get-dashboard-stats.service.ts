@@ -244,6 +244,9 @@ async function getStaffStats(
   const hostelIds =
     isStaffScopeRestricted(currentUser) ? getScopedHostelIds(currentUser) : undefined;
 
+  const rangeStart = isBounded ? startDate : undefined;
+  const rangeEnd = isBounded ? endDate : undefined;
+
   const [
     pendingStats,
     locationAndUserStats,
@@ -258,12 +261,12 @@ async function getStaffStats(
   ] = await Promise.all([
     leaveApprovalAnalyticsRepository.countPendingStats({ hostelIds }),
     staffMetricsRepository.getLocationAndUserStats(hostelIds),
-    leaveRepository.countStatusStats(hostelIds),
-    leaveApprovalAnalyticsRepository.countRecent(startDate, hostelIds),
-    leaveRepository.countByLeaveType(hostelIds, status),
-    leaveApprovalAnalyticsRepository.averageApprovalTime(startDate, hostelIds),
+    leaveRepository.countStatusStats(hostelIds, undefined, rangeStart, rangeEnd),
+    leaveApprovalAnalyticsRepository.countRecent(startDate, hostelIds, undefined, rangeEnd),
+    leaveRepository.countByLeaveType(hostelIds, status, undefined, rangeStart, rangeEnd),
+    leaveApprovalAnalyticsRepository.averageApprovalTime(startDate, hostelIds, undefined, rangeEnd),
     qrPassRepository.countActive(hostelIds),
-    movementEventRepository.countRecent(startDate, hostelIds),
+    movementEventRepository.countRecent(startDate, hostelIds, undefined, rangeEnd),
     leaveRepository.countByDateRange(startDate, endDate, status, hostelIds),
     leaveApprovalAnalyticsRepository.countByDateRange(startDate, endDate, hostelIds),
   ]);

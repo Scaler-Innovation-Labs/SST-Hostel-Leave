@@ -99,9 +99,17 @@ export const movementAnalyticsRepository = {
 
   async qrByStatus(
     hostelIds?: string[],
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
+    startDate?: Date,
+    endDate?: Date
   ): Promise<Array<{ name: string; count: number }>> {
     const conditions = hostelCondition(hostelIds);
+    if (startDate) {
+      conditions.push(gte(qrPasses.generatedAt, startDate));
+    }
+    if (endDate) {
+      conditions.push(lte(qrPasses.generatedAt, endDate));
+    }
     const rows = await dbClient
       .select({
         name: qrPasses.status,

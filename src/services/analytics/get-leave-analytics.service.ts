@@ -27,18 +27,21 @@ export async function getLeaveAnalytics(
     customEndDate
   );
 
+  const rangeStart = isBounded ? startDate : undefined;
+  const rangeEnd = isBounded ? endDate : undefined;
+
   const [totalLeaves, byStatus, statusTrend, byLeaveType, byHostel, byDepartment, durationDistribution, leaveTrend, approvalTimeTrend, averageApprovalHours] =
     await Promise.all([
-      leaveRepository.countAll(hostelIds),
-      leaveAnalyticsRepository.statusBreakdown(hostelIds),
+      leaveRepository.countAll(hostelIds, undefined, rangeStart, rangeEnd),
+      leaveAnalyticsRepository.statusBreakdown(hostelIds, undefined, rangeStart, rangeEnd),
       leaveAnalyticsRepository.trendByStatus(startDate, endDate, hostelIds),
-      leaveRepository.countByLeaveType(hostelIds),
-      leaveAnalyticsRepository.countByHostel(hostelIds),
-      leaveAnalyticsRepository.countByDepartment(hostelIds),
-      leaveAnalyticsRepository.durationDistribution(hostelIds),
+      leaveRepository.countByLeaveType(hostelIds, undefined, undefined, rangeStart, rangeEnd),
+      leaveAnalyticsRepository.countByHostel(hostelIds, undefined, rangeStart, rangeEnd),
+      leaveAnalyticsRepository.countByDepartment(hostelIds, undefined, rangeStart, rangeEnd),
+      leaveAnalyticsRepository.durationDistribution(hostelIds, undefined, rangeStart, rangeEnd),
       leaveRepository.countByDateRange(startDate, endDate, undefined, hostelIds),
       leaveAnalyticsRepository.approvalTimeTrend(startDate, endDate, hostelIds),
-      leaveApprovalAnalyticsRepository.averageApprovalTime(startDate, hostelIds),
+      leaveApprovalAnalyticsRepository.averageApprovalTime(startDate, hostelIds, undefined, rangeEnd),
     ]);
 
   const statusMap = new Map(byStatus.map((row) => [row.status, row.count]));

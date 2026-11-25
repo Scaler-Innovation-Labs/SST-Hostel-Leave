@@ -523,22 +523,35 @@ export const qrPassRepository = {
 
   async countAll(
     hostelIds?: string[],
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
+    startDate?: Date,
+    endDate?: Date
   ): Promise<number> {
+    const conditions: ReturnType<typeof and>[] = [];
+    if (startDate) {
+      conditions.push(gte(qrPasses.generatedAt, startDate));
+    }
+    if (endDate) {
+      conditions.push(lte(qrPasses.generatedAt, endDate));
+    }
+
     if (hostelIds?.length) {
+      conditions.push(inArray(users.hostelId, hostelIds));
       const result = await dbClient
         .select({ count: sql<number>`count(*)` })
         .from(qrPasses)
         .leftJoin(leaveRequests, eq(qrPasses.leaveRequestId, leaveRequests.id))
         .leftJoin(students, eq(leaveRequests.studentId, students.id))
         .leftJoin(users, eq(students.userId, users.id))
-        .where(inArray(users.hostelId, hostelIds));
+        .where(and(...conditions));
       return Number(result[0]?.count ?? 0);
     }
 
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
     const result = await dbClient
       .select({ count: sql<number>`count(*)` })
-      .from(qrPasses);
+      .from(qrPasses)
+      .where(whereClause);
     return Number(result[0]?.count ?? 0);
   },
 };

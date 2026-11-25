@@ -169,9 +169,13 @@ export const movementEventRepository = {
   async countRecent(
     since: Date,
     hostelIds?: string[],
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
+    endDate?: Date
   ): Promise<number> {
     const conditions: ReturnType<typeof and>[] = [gte(movementEvents.occurredAt, since)];
+    if (endDate) {
+      conditions.push(lte(movementEvents.occurredAt, endDate));
+    }
     if (hostelIds?.length) {
       conditions.push(inArray(users.hostelId, hostelIds));
       const result = await dbClient

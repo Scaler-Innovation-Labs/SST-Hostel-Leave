@@ -32,9 +32,13 @@ export const leaveApprovalAnalyticsRepository = {
   async countRecent(
     since: Date,
     hostelIds?: string[],
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
+    endDate?: Date
   ): Promise<number> {
     const conditions: ReturnType<typeof and>[] = [gte(leaveApprovals.createdAt, since)];
+    if (endDate) {
+      conditions.push(lte(leaveApprovals.createdAt, endDate));
+    }
     if (hostelIds?.length) {
       conditions.push(...hostelCondition(hostelIds));
       const result = await dbClient
@@ -56,13 +60,17 @@ export const leaveApprovalAnalyticsRepository = {
   async averageApprovalTime(
     since: Date,
     hostelIds?: string[],
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
+    endDate?: Date
   ): Promise<number | null> {
     const conditions: ReturnType<typeof and>[] = [
       gte(leaveApprovals.createdAt, since),
       eq(leaveApprovals.decision, LEAVE_APPROVAL_DECISION.APPROVED),
       sql`${leaveApprovals.actedAt} IS NOT NULL`,
     ];
+    if (endDate) {
+      conditions.push(lte(leaveApprovals.createdAt, endDate));
+    }
     if (hostelIds?.length) {
       conditions.push(...hostelCondition(hostelIds));
       const result = await dbClient

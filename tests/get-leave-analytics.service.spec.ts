@@ -94,5 +94,17 @@ describe("getLeaveAnalytics", () => {
 
     expect(result.period).toBe("all");
     expect(result.leaveTrend).toEqual([{ date: "2026-01-01", value: 2 }]);
+    expect(mockCountAll).toHaveBeenCalledWith(undefined, undefined, undefined, undefined);
+  });
+
+  it("passes 7d date bounds to aggregate queries", async () => {
+    await getLeaveAnalytics({ id: "U1", roles: ["SUPER_ADMIN"] }, "7d");
+
+    expect(mockCountAll).toHaveBeenCalledWith(undefined, undefined, expect.any(Date), expect.any(Date));
+    expect(mockStatusBreakdown).toHaveBeenCalledWith(undefined, undefined, expect.any(Date), expect.any(Date));
+    expect(mockCountByLeaveType).toHaveBeenCalledWith(undefined, undefined, undefined, expect.any(Date), expect.any(Date));
+    expect(mockCountByHostel).toHaveBeenCalledWith(undefined, undefined, expect.any(Date), expect.any(Date));
+    expect(mockCountByDepartment).toHaveBeenCalledWith(undefined, undefined, expect.any(Date), expect.any(Date));
+    expect(mockDurationDistribution).toHaveBeenCalledWith(undefined, undefined, expect.any(Date), expect.any(Date));
   });
 });

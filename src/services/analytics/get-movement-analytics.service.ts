@@ -21,13 +21,16 @@ export async function getMovementAnalytics(
     customEndDate
   );
 
+  const rangeStart = isBounded ? startDate : undefined;
+  const rangeEnd = isBounded ? endDate : undefined;
+
   const [byEventType, byMovementMethod, totalQrPasses, activeQrPasses, qrByStatus, scanByResult, scanTrend, topFailureReasons, overdueReturns] =
     await Promise.all([
       movementAnalyticsRepository.countByEventType(startDate, endDate, hostelIds),
       movementAnalyticsRepository.countByMovementMethod(startDate, endDate, hostelIds),
-      qrPassRepository.countAll(hostelIds),
+      qrPassRepository.countAll(hostelIds, undefined, rangeStart, rangeEnd),
       qrPassRepository.countActive(hostelIds),
-      movementAnalyticsRepository.qrByStatus(hostelIds),
+      movementAnalyticsRepository.qrByStatus(hostelIds, undefined, rangeStart, rangeEnd),
       movementAnalyticsRepository.qrScanByResult(startDate, endDate, hostelIds),
       movementAnalyticsRepository.qrScanTrend(startDate, endDate, hostelIds),
       movementAnalyticsRepository.topScanFailureReasons(startDate, endDate, 8, hostelIds),

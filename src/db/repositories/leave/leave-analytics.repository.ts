@@ -4,10 +4,20 @@ import { LEAVE_APPROVAL_DECISION } from "@/constants/leave/leave-approval-decisi
 import { academicGroups, departments, hostels, leaveApprovals, leaveRequests, students, users } from "@/db";
 import { db } from "@/lib/db";
 
-function hostelCondition(hostelIds?: string[]): ReturnType<typeof and>[] {
+function leaveConditions(
+  hostelIds?: string[],
+  startDate?: Date,
+  endDate?: Date
+): ReturnType<typeof and>[] {
   const conditions: ReturnType<typeof and>[] = [];
   if (hostelIds?.length) {
     conditions.push(inArray(leaveRequests.hostelId, hostelIds));
+  }
+  if (startDate) {
+    conditions.push(gte(leaveRequests.createdAt, startDate));
+  }
+  if (endDate) {
+    conditions.push(lte(leaveRequests.createdAt, endDate));
   }
   return conditions;
 }
@@ -15,9 +25,11 @@ function hostelCondition(hostelIds?: string[]): ReturnType<typeof and>[] {
 export const leaveAnalyticsRepository = {
   async statusBreakdown(
     hostelIds?: string[],
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
+    startDate?: Date,
+    endDate?: Date
   ): Promise<Array<{ status: string; count: number }>> {
-    const conditions = hostelCondition(hostelIds);
+    const conditions = leaveConditions(hostelIds, startDate, endDate);
     const rows = await dbClient
       .select({
         status: leaveRequests.status,
@@ -35,9 +47,11 @@ export const leaveAnalyticsRepository = {
 
   async countByHostel(
     hostelIds?: string[],
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
+    startDate?: Date,
+    endDate?: Date
   ): Promise<Array<{ name: string; count: number }>> {
-    const conditions = hostelCondition(hostelIds);
+    const conditions = leaveConditions(hostelIds, startDate, endDate);
     const rows = await dbClient
       .select({
         name: sql<string>`COALESCE(${leaveRequests.hostelName}, 'Unassigned')`,
@@ -59,9 +73,11 @@ export const leaveAnalyticsRepository = {
 
   async countByDepartment(
     hostelIds?: string[],
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
+    startDate?: Date,
+    endDate?: Date
   ): Promise<Array<{ name: string; count: number }>> {
-    const conditions = hostelCondition(hostelIds);
+    const conditions = leaveConditions(hostelIds, startDate, endDate);
     const rows = await dbClient
       .select({
         name: departments.name,
@@ -84,7 +100,9 @@ export const leaveAnalyticsRepository = {
 
   async durationDistribution(
     hostelIds?: string[],
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
+    startDate?: Date,
+    endDate?: Date
   ): Promise<Array<{ bucket: string; count: number }>> {
     const durationDays = sql`EXTRACT(EPOCH FROM (${leaveRequests.endAt} - ${leaveRequests.startAt})) / 86400`;
     const bucket = sql<string>`CASE
@@ -94,7 +112,7 @@ export const leaveAnalyticsRepository = {
       ELSE '8+ days'
     END`;
 
-    const conditions = hostelCondition(hostelIds);
+    const conditions = leaveConditions(hostelIds, startDate, endDate);
     const rows = await dbClient
       .select({
         bucket,
@@ -120,7 +138,7 @@ export const leaveAnalyticsRepository = {
       gte(leaveRequests.createdAt, startDate),
       lte(leaveRequests.createdAt, endDate),
     ];
-    conditions.push(...hostelCondition(hostelIds));
+    conditions.push(...leaveConditions(hostelIds));
     const rows = await dbClient
       .select({
         date: sql<string>`DATE(${leaveRequests.createdAt})`,
@@ -149,7 +167,7 @@ export const leaveAnalyticsRepository = {
       lte(leaveApprovals.actedAt, endDate),
       sql`${leaveApprovals.actedAt} IS NOT NULL`,
     ];
-    conditions.push(...hostelCondition(hostelIds));
+    conditions.push(...leaveConditions(hostelIds));
     const rows = await dbClient
       .select({
         date: sql<string>`DATE(${leaveApprovals.actedAt})`,

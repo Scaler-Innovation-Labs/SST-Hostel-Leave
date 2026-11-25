@@ -492,11 +492,19 @@ async findAutoCompleteDueNonQrLeaves(
   async countByLeaveType(
     hostelIds?: string[],
     status?: LeaveRequestStatus,
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
+    startDate?: Date,
+    endDate?: Date
   ): Promise<Array<{ name: string; count: number; color: string | null }>> {
     const conditions: ReturnType<typeof and>[] = [];
     if (status) {
       conditions.push(eq(leaveRequests.status, status));
+    }
+    if (startDate) {
+      conditions.push(gte(leaveRequests.createdAt, startDate));
+    }
+    if (endDate) {
+      conditions.push(lte(leaveRequests.createdAt, endDate));
     }
     if (hostelIds?.length) {
       conditions.push(inArray(leaveRequests.hostelId, hostelIds));
@@ -615,26 +623,33 @@ async findAutoCompleteDueNonQrLeaves(
 
   async countAll(
     hostelIds?: string[],
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
+    startDate?: Date,
+    endDate?: Date
   ): Promise<number> {
     const conditions: ReturnType<typeof and>[] = [];
     if (hostelIds?.length) {
       conditions.push(inArray(leaveRequests.hostelId, hostelIds));
-      const result = await dbClient
-        .select({ count: sql<number>`count(*)` })
-        .from(leaveRequests)
-        .where(and(...conditions));
-      return Number(result[0]?.count ?? 0);
     }
+    if (startDate) {
+      conditions.push(gte(leaveRequests.createdAt, startDate));
+    }
+    if (endDate) {
+      conditions.push(lte(leaveRequests.createdAt, endDate));
+    }
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     const result = await dbClient
       .select({ count: sql<number>`count(*)` })
-      .from(leaveRequests);
+      .from(leaveRequests)
+      .where(whereClause);
     return Number(result[0]?.count ?? 0);
   },
   async countStatusStats(
     hostelIds?: string[],
-    dbClient: Pick<typeof db, "select"> = db
+    dbClient: Pick<typeof db, "select"> = db,
+    startDate?: Date,
+    endDate?: Date
   ): Promise<{
     total: number;
     approved: number;
@@ -643,6 +658,17 @@ async findAutoCompleteDueNonQrLeaves(
     completed: number;
     cancelled: number;
   }> {
+    const conditions: ReturnType<typeof and>[] = [];
+    if (hostelIds?.length) {
+      conditions.push(inArray(leaveRequests.hostelId, hostelIds));
+    }
+    if (startDate) {
+      conditions.push(gte(leaveRequests.createdAt, startDate));
+    }
+    if (endDate) {
+      conditions.push(lte(leaveRequests.createdAt, endDate));
+    }
+
     const query = dbClient
       .select({
         total: sql<number>`count(*)`,
@@ -654,8 +680,8 @@ async findAutoCompleteDueNonQrLeaves(
       })
       .from(leaveRequests);
 
-    const result = hostelIds?.length
-      ? await query.where(inArray(leaveRequests.hostelId, hostelIds))
+    const result = conditions.length > 0
+      ? await query.where(and(...conditions))
       : await query;
 
     const row = result[0];

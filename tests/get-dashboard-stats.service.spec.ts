@@ -293,7 +293,34 @@ describe("getDashboardStats", () => {
     expect(result.expiredLeaves).toBe(25);
     expect(result.completedLeaves).toBe(15);
     expect(result.cancelledLeaves).toBe(5);
-    expect(mockCountByLeaveType).toHaveBeenCalledWith(undefined, "APPROVED");
+    expect(mockCountByLeaveType).toHaveBeenCalledWith(
+      undefined,
+      "APPROVED",
+      undefined,
+      expect.any(Date),
+      expect.any(Date)
+    );
+  });
+
+  it("passes bounded date range to countStatusStats and countByLeaveType when period is 7d", async () => {
+    await getDashboardStats(ADMIN_USER, undefined, "7d");
+
+    expect(mockCountStatusStats).toHaveBeenCalledWith(
+      undefined,
+      undefined,
+      expect.any(Date),
+      expect.any(Date)
+    );
+    const [, , startArg, endArg] = mockCountStatusStats.mock.calls[0];
+    const diffDays = Math.round((endArg.getTime() - startArg.getTime()) / (1000 * 60 * 60 * 24));
+    expect(diffDays).toBe(7);
+  });
+
+  it("omits date bounds on countStatusStats and countByLeaveType when period is all", async () => {
+    await getDashboardStats(ADMIN_USER, undefined, "all");
+
+    expect(mockCountStatusStats).toHaveBeenCalledWith(undefined, undefined, undefined, undefined);
+    expect(mockCountByLeaveType).toHaveBeenCalledWith(undefined, undefined, undefined, undefined, undefined);
   });
 
   it("passes scoped hostel ids for scope-restricted staff", async () => {
@@ -304,7 +331,13 @@ describe("getDashboardStats", () => {
     await getDashboardStats(ADMIN_USER);
 
     expect(mockGetLocationAndUserStats).toHaveBeenCalledWith(["H1"]);
-    expect(mockCountByLeaveType).toHaveBeenCalledWith(["H1"], undefined);
+    expect(mockCountByLeaveType).toHaveBeenCalledWith(
+      ["H1"],
+      undefined,
+      undefined,
+      expect.any(Date),
+      expect.any(Date)
+    );
   });
 
   it("rejects a GUARD from the staff stats path", async () => {
