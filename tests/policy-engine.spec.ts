@@ -77,6 +77,51 @@ describe("policyEngine", () => {
     expect(blocked.restrictions[0]).toContain("curfew");
   });
 
+  it("evaluates overnight RETURN_TIME_WINDOW (22:30 to 04:00 IST) accurately", async () => {
+    const lateEntryWindow = {
+      name: "Late Entry Window",
+      policyType: "TIME_WINDOW",
+      config: { type: "RETURN_TIME_WINDOW", startTime: "22:30", endTime: "04:00" },
+    };
+    findActiveByLeaveTypeId.mockResolvedValue([lateEntryWindow]);
+
+    // 22:30 IST (17:00 UTC) -> allowed
+    const atStart = await policyEngine.evaluate({
+      ...context,
+      endAt: new Date("2025-06-01T17:00:00.000Z"),
+    });
+    expect(atStart.allowed).toBe(true);
+
+    // 03:30 IST next day (22:00 UTC) -> allowed
+    const inNight = await policyEngine.evaluate({
+      ...context,
+      endAt: new Date("2025-06-01T22:00:00.000Z"),
+    });
+    expect(inNight.allowed).toBe(true);
+
+    // 04:00 IST next day (22:30 UTC) -> allowed
+    const atEnd = await policyEngine.evaluate({
+      ...context,
+      endAt: new Date("2025-06-01T22:30:00.000Z"),
+    });
+    expect(atEnd.allowed).toBe(true);
+
+    // 22:29 IST (16:59 UTC) -> rejected
+    const tooEarly = await policyEngine.evaluate({
+      ...context,
+      endAt: new Date("2025-06-01T16:59:00.000Z"),
+    });
+    expect(tooEarly.allowed).toBe(false);
+    expect(tooEarly.restrictions[0]).toContain("22:30 and 04:00 IST");
+
+    // 04:01 IST next day (22:31 UTC) -> rejected
+    const tooLate = await policyEngine.evaluate({
+      ...context,
+      endAt: new Date("2025-06-01T22:31:00.000Z"),
+    });
+    expect(tooLate.allowed).toBe(false);
+  });
+
   describe("department / batch year scoping", () => {
     it("applies policy when student matches department", async () => {
       const deptId = "11111111-1111-4111-8111-111111111111";

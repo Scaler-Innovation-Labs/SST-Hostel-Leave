@@ -202,6 +202,35 @@ export function PolicyConfigBuilder({
         </div>
       );
 
+    case "RETURN_TIME_WINDOW":
+      return (
+        <div className="space-y-3">
+          <p className="text-caption text-muted">
+            Restrict ending time to a daily or overnight IST window (e.g. 22:30 to 04:00 next day).
+          </p>
+          <div className="flex flex-wrap gap-4">
+            <label className="block text-body">
+              <span className="mb-1.5 block font-medium">Allowed From (IST)</span>
+              <input
+                type="time"
+                value={(config.startTime as string) ?? "22:30"}
+                onChange={(e) => update("startTime", e.target.value)}
+                className="h-9 w-40 rounded-lg border bg-bg px-3 font-mono text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+              />
+            </label>
+            <label className="block text-body">
+              <span className="mb-1.5 block font-medium">Allowed Until (IST)</span>
+              <input
+                type="time"
+                value={(config.endTime as string) ?? "04:00"}
+                onChange={(e) => update("endTime", e.target.value)}
+                className="h-9 w-40 rounded-lg border bg-bg px-3 font-mono text-body outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+              />
+            </label>
+          </div>
+        </div>
+      );
+
     case "MAX_EXTENSION_COUNT":
       return (
         <div className="space-y-3">

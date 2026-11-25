@@ -1,5 +1,6 @@
 import { QR_MODE } from "@/constants/leave/qr-mode";
 import { leaveRepository } from "@/db/repositories/leave/leave.repository";
+import { leaveTypeRepository } from "@/db/repositories/leave/leave-type.repository";
 import { type db } from "@/lib/db";
 import { ConflictError } from "@/lib/errors";
 
@@ -16,8 +17,9 @@ export function isMovementCapable(
 
 /**
  * Overlap policy:
- * Overlapping leaves of DIFFERENT types/kinds CAN be raised.
- * Only overlapping leaves of the SAME leave type are rejected.
+ * - Overlapping leaves of the SAME leave type are always rejected.
+ * - Overlapping leaves of DIFFERENT types are allowed ONLY when they do not
+ *   both have QR passes (i.e. at most one is movement-capable / qrMode !== NONE).
  *
  * Overlap = `new.startAt <= existing.endAt AND existing.startAt <= new.endAt`
  * over PENDING / APPROVED / OVERDUE leaves of the same student.
@@ -46,12 +48,30 @@ export async function assertNoConflictingOverlap(params: {
 
   if (overlapping.length === 0) return;
 
-  // Overlapping leaves of different types/kinds can be raised.
-  // Reject only when there is an overlapping leave of the same type.
+  // 1. Same leave type is always rejected.
   const sameType = overlapping.find(
     (row) => row.leave.leaveTypeId === params.leaveTypeId
   );
   if (sameType) {
     throw new ConflictError("Overlapping leave exists");
+  }
+
+  // 2. Different leave types are allowed only if they don't compete for a QR pass.
+  let incomingQrMode = params.qrMode;
+  if (incomingQrMode === undefined) {
+    const leaveType = await leaveTypeRepository.findById(
+      params.leaveTypeId,
+      params.dbClient
+    );
+    incomingQrMode = leaveType?.qrMode ?? null;
+  }
+
+  if (isMovementCapable(incomingQrMode)) {
+    const conflictingQrLeave = overlapping.find((row) =>
+      isMovementCapable(row.leaveType?.qrMode)
+    );
+    if (conflictingQrLeave) {
+      throw new ConflictError("Overlapping leave with QR pass exists");
+    }
   }
 }

@@ -15,6 +15,18 @@ const IST_HOUR_FORMATTER = new Intl.DateTimeFormat("en-GB", {
   hourCycle: "h23",
 });
 
+function parseTimeToMinutes(value: string): number | null {
+  const parts = value.split(":").map(Number);
+  if (parts.length !== 2 || parts.some(isNaN)) {
+    return null;
+  }
+  const [hour, minute] = parts as [number, number];
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+    return null;
+  }
+  return hour * 60 + minute;
+}
+
 function getIstHourMinute(date: Date): { hour: number; minute: number } {
   const parts = IST_HOUR_FORMATTER.formatToParts(date);
   const hour = Number(parts.find((p) => p.type === "hour")?.value ?? 0);
@@ -116,6 +128,36 @@ function evaluatePolicy(
           (returnHour === curfewHour && returnMinute > curfewMinute)
         ) {
           return `${policy.name}: Expected return after curfew ${latestReturnTime}`;
+        }
+        return null;
+      }
+
+      if (ruleType === "RETURN_TIME_WINDOW") {
+        const startTime = config.startTime as string | undefined;
+        const endTime = config.endTime as string | undefined;
+        if (!startTime || !endTime || !context.endAt) {
+          return null;
+        }
+
+        const startMinutes = parseTimeToMinutes(startTime);
+        const endMinutes = parseTimeToMinutes(endTime);
+        if (startMinutes === null || endMinutes === null) {
+          return null;
+        }
+
+        const { hour: returnHour, minute: returnMinute } =
+          getIstHourMinute(context.endAt);
+        const returnMinutes = returnHour * 60 + returnMinute;
+
+        // Supports both same-day windows (e.g. 08:00–20:00) and overnight
+        // windows (e.g. 22:30–04:00 next day).
+        const isAllowed =
+          startMinutes <= endMinutes
+            ? returnMinutes >= startMinutes && returnMinutes <= endMinutes
+            : returnMinutes >= startMinutes || returnMinutes <= endMinutes;
+
+        if (!isAllowed) {
+          return `${policy.name}: Ending time must be between ${startTime} and ${endTime} IST`;
         }
         return null;
       }
