@@ -418,7 +418,7 @@ export const leaveAnalyticsRepository = {
       })
       .from(leaveRequests)
       .where(and(...conditions))
-      .groupBy(reasonExpr)
+      .groupBy(sql`1`)
       .orderBy(sql`count(*) desc`);
 
     return rows.map((row) => ({
